@@ -36,6 +36,15 @@ test('Traversenwagen-Vorlagen sind vom Typ truss mit passenden Maßen', () => {
     assert.equal(c.wheelH, 0, c.id);
   }
 });
+test('Legacy-Traversen-Presets aus V0.2 existieren weiter (für alte Ladepläne)', () => {
+  const byId = id => PRESET_CASES.find(c => c.id === id);
+  const legacy1 = byId('preset-truss-29-3m');
+  const legacy2 = byId('preset-truss-dolly');
+  assert.ok(legacy1, 'preset-truss-29-3m fehlt');
+  assert.ok(legacy2, 'preset-truss-dolly fehlt');
+  assert.equal(legacy1.legacy, true);
+  assert.equal(legacy2.legacy, true);
+});
 test('Fahrzeug-Vorlagen gültig', () => {
   assert.ok(unique(PRESET_TRUCKS.map(t => t.id)));
   assert.ok(PRESET_TRUCKS.some(t => t.id === DEFAULT_TRUCK_ID));

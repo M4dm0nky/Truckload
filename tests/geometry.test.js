@@ -57,6 +57,13 @@ test('faceSlab', () => {
   assert.deepEqual(faceSlab(B(0,0,0,100,60,50), '-y', 3), B(0,0,0,100,3,50));
 });
 
+test('boxOf einer Traverse ignoriert p.orientation: immer wie stehend', () => {
+  const truss = { kind: 'truss', l: 300, w: 60, h: 80 };
+  const standing = boxOf(truss, { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 });
+  const tipped = boxOf(truss, { x: 0, y: 0, z: 0, orientation: 'tipLong', rot: 0 });
+  assert.deepEqual(tipped, standing);
+});
+
 test('wheelHOf: Fallback DEFAULT_WHEEL_H wenn fehlend, sonst der Wert', () => {
   assert.equal(wheelHOf({}), DEFAULT_WHEEL_H);
   assert.equal(wheelHOf({ wheelH: 0 }), 0);

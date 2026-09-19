@@ -21,6 +21,7 @@ export function chooseOrientation(c, truck) {
 function canAddToStack(stack, c, dz, truck) {
   if (stack.height + dz > truck.h + 1e-6) return false;
   if (!stack.items.at(-1).c.stackable) return false;
+  if (stack.items.at(-1).c.weight < c.weight) return false;
   let above = c.weight;
   for (let i = stack.items.length - 1; i >= 0; i--) {
     const s = stack.items[i].c;

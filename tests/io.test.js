@@ -125,6 +125,33 @@ test('Case ohne kind wird akzeptiert (Fallback case)', () => {
   assert.equal(res.cases[0].kind, undefined);
 });
 
+test('Case mit truss.width über 40 cm wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 300, width: 52, count: 4 } }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+test('Case mit truss und tippable true wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 300, width: 29, count: 4 }, tippable: true }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+test('Case mit truss.count als Bruchzahl wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 300, width: 29, count: 2.5 } }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+test('Case mit truss.count 13 wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 300, width: 29, count: 13 } }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+test('Truss wird beim Import normalisiert (l/w/h, wheelH, tippable)', () => {
+  const raw = { ...own, kind: 'truss', truss: { length: 300, width: 29, count: 4 }, l: 1, w: 1, h: 999, wheelH: 12, tippable: false };
+  const res = parseBundle(bundleWith({ cases: [raw], trucks: [], plans: [] }));
+  const c = res.cases[0];
+  assert.equal(c.l, 300);
+  assert.equal(c.w, 60);
+  assert.equal(c.h, 22 + 2 * 29);
+  assert.equal(c.wheelH, 0);
+  assert.equal(c.tippable, false);
+});
+
 test('Vorlagen (builtin/preset-*) werden beim Import verworfen', () => {
   const presetById = { ...mkCase('preset-y', 10, 10, 10), builtin: false };
   const bad = bundleWith({ cases: [own, builtin, presetById], trucks: [mkTruck(), { ...mkTruck({ id: 'preset-truck' }) }], plans: [] });

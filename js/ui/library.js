@@ -54,7 +54,7 @@ export function mountLibrary(el, h) {
     const match = c => (!cat || c.category === cat)
       && (!q || `${c.name} ${c.content}`.toLowerCase().includes(q));
     const own = last.cases.filter(c => !c.builtin && match(c));
-    const presets = last.cases.filter(c => c.builtin && match(c));
+    const presets = last.cases.filter(c => c.builtin && !c.legacy && match(c));
     list.innerHTML = `
       <h3>Eigene Cases (${own.length})</h3>${own.map(row).join('') || '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>'}
       <h3>Vorlagen <small>(Richtwerte)</small></h3>${presets.map(row).join('')}`;

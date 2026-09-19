@@ -1,5 +1,5 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
-import { wheelHOf, layersOf } from '../model/geometry.js';
+import { wheelHOf, layersOf, DEFAULT_WHEEL_H } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
@@ -39,11 +39,12 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
             ${TRUSS_PROFILES.map(p => `<option value="${p.width}">${p.name} – ${p.width} cm</option>`).join('')}
             <option value="custom">eigene …</option>
           </select></label>
-          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="10" max="100" step="1" required></label>
+          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="1" max="40" step="1" required></label>
           <label>Anzahl Stück<input type="number" name="trussCount" min="1" max="12" step="1" required></label>
         </div>
         <p class="hint truss-dims"></p>
         <p class="hint truss-hint" hidden>Traversenlänge, -breite und Stückzahl müssen größer als 0 sein.</p>
+        <p class="hint truss-width-hint" hidden>Traversenbreite max. 40 cm (Wagen 60er oder 80er)</p>
       </fieldset>
       <div class="row">
         <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" step="0.5" required></label>
@@ -83,6 +84,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   const trussOnly = dlg.querySelector('.truss-only');
   const trussDimsHint = dlg.querySelector('.truss-dims');
   const trussHint = dlg.querySelector('.truss-hint');
+  const trussWidthHint = dlg.querySelector('.truss-width-hint');
   const trussWidthCustomLabel = f.trussWidthCustom.parentElement;
   const truss0 = v.truss ?? TRUSS_DEFAULTS;
   const knownWidth = TRUSS_PROFILES.some(p => p.width === truss0.width);
@@ -96,10 +98,18 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
     const width = f.trussWidthProfile.value === 'custom' ? Number(f.trussWidthCustom.value) : Number(f.trussWidthProfile.value);
     return { length: Number(f.trussLength.value), width, count: Number(f.trussCount.value) };
   }
+  function trussFieldsValid(t) {
+    return t.length > 0 && t.width > 0 && t.count > 0;
+  }
   function updateTrussDims() {
     trussHint.hidden = true;
     const t = currentTruss();
-    if (t.length > 0 && t.width > 0 && t.count > 0) {
+    trussWidthHint.hidden = !(t.width > 40);
+    if (t.width > 40) {
+      trussDimsHint.textContent = '';
+      return;
+    }
+    if (trussFieldsValid(t)) {
       const d = trussDims(t);
       trussDimsHint.textContent = `→ im Truck ${d.l} × ${d.w} × ${d.h} cm`;
     } else {
@@ -111,11 +121,20 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
     for (const el of caseOnly) el.hidden = isT;
     trussOnly.hidden = !isT;
     f.l.required = !isT; f.w.required = !isT; f.h.required = !isT;
+    f.l.disabled = isT; f.w.disabled = isT; f.h.disabled = isT;
+    for (const el of trussOnly.querySelectorAll('input,select')) el.disabled = !isT;
     updateTrussDims();
   }
+  let prevKind = isTruss(v) ? 'truss' : 'case';
   for (const r of kindInputs) {
-    r.checked = r.value === (isTruss(v) ? 'truss' : 'case');
-    r.addEventListener('change', () => applyKind(r.value));
+    r.checked = r.value === prevKind;
+    r.addEventListener('change', () => {
+      if (prevKind === 'truss' && r.value === 'case' && Number(f.wheelH.value) === 0) {
+        f.wheelH.value = DEFAULT_WHEEL_H;
+      }
+      prevKind = r.value;
+      applyKind(r.value);
+    });
   }
   f.trussWidthProfile.addEventListener('change', () => {
     trussWidthCustomLabel.hidden = f.trussWidthProfile.value !== 'custom';
@@ -141,7 +160,10 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
     const kind = kindInputs.find(cb => cb.checked)?.value ?? 'case';
     if (kind === 'truss') {
       const t = currentTruss();
-      if (!(t.length > 0 && t.width > 0 && t.count > 0)) {
+      if (t.width > 40) {
+        e.preventDefault();
+        trussWidthHint.hidden = false;
+      } else if (!trussFieldsValid(t)) {
         e.preventDefault();
         trussHint.hidden = false;
       }

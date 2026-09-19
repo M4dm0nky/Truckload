@@ -1,5 +1,6 @@
 import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS } from '../model/geometry.js';
+import { trussDims } from '../model/truss.js';
 
 export const FORMAT = 'truckload';
 export const VERSION = 1;
@@ -28,9 +29,18 @@ function checkCase(c) {
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
   if (c.kind === 'truss') {
     const t = c.truss;
-    const trussOk = t && num(t.length) && t.length > 0 && num(t.width) && t.width > 0 && num(t.count) && t.count > 0;
+    const trussOk = t
+      && num(t.length) && t.length >= 1 && t.length <= 1000
+      && num(t.width) && t.width >= 1 && t.width <= 40
+      && Number.isInteger(t.count) && t.count >= 1 && t.count <= 12
+      && c.tippable !== true;
     if (!trussOk) throw new Error(`Case „${c.name}“ hat ungültige Traversenwagen-Werte.`);
   }
+}
+function normalizeCase(c) {
+  if (c.kind !== 'truss') return c;
+  const { l, w, h } = trussDims(c.truss);
+  return { ...c, l, w, h, wheelH: 0, tippable: false };
 }
 function checkArch(a) {
   return a && num(a.x) && a.x >= 0 && num(a.l) && a.l > 0 && num(a.w) && a.w > 0 && num(a.h) && a.h > 0
@@ -69,7 +79,7 @@ export function parseBundle(text) {
   const trucks = arr(data.trucks).filter(t => !isPreset(t));
   const plans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan);
-  return { cases, trucks, plans };
+  return { cases: cases.map(normalizeCase), trucks, plans };
 }
 
 export function mergeById(existing, incoming) {

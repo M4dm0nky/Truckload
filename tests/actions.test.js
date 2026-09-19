@@ -40,6 +40,11 @@ test('cycleTip nur bei tippbaren Cases', () => {
   assert.equal(find(A.cycleTip(plan([P('a','k',0,0,0)]), 'a', ctx()), 'a').orientation, 'standing');
   assert.equal(find(A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx()), 'a').orientation, 'tipLong');
 });
+test('cycleTip lässt Traversenwagen unverändert (auch bei fälschlich tippable:true)', () => {
+  const truss = mkCase('trs', 300, 60, 80, { kind: 'truss', tippable: true });
+  const trussCtx = { caseById: byId(K, T, truss), truck: mkTruck(), newId: counter('n') };
+  assert.equal(find(A.cycleTip(plan([P('a','trs',0,0,0)]), 'a', trussCtx), 'a').orientation, 'standing');
+});
 test('toTray und addUnplaced', () => {
   let pl = A.toTray(plan([P('a','k',0,0,0)]), 'a');
   assert.deepEqual(pl.unplaced, [{ id: 'a', caseId: 'k' }]);

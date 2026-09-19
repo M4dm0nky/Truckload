@@ -76,7 +76,7 @@ export const rotate = (plan, id, ctx) =>
   reorient(plan, id, ctx, p => ({ rot: ((p.rot ?? 0) + 90) % 360 }));
 
 export const cycleTip = (plan, id, ctx) =>
-  reorient(plan, id, ctx, (p, c) => c.tippable
+  reorient(plan, id, ctx, (p, c) => (c.tippable && c.kind !== 'truss')
     ? { orientation: ORIENTATIONS[(ORIENTATIONS.indexOf(p.orientation) + 1) % ORIENTATIONS.length] }
     : {});
 

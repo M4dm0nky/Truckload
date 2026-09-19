@@ -84,6 +84,21 @@ test('Case mit nur Lage 3 landet auf einem 2-hohen Stapel', () => {
   assert.equal(stacks.length, 1);
   assert.deepEqual(stacks[0].items.map(it => it.c.id), ['def', 'def', 'only3']);
 });
+test('Schwer auf leicht: ein 300 kg Case landet nie oben auf einem 30 kg Case gleicher Grundfläche', () => {
+  const light = mkCase('light', 120, 60, 60, { weight: 30, layers: [1, 2] });
+  const heavy = mkCase('heavy', 120, 60, 60, { weight: 300 });
+  const { stacks } = buildStacks([light, heavy], mkTruck());
+  for (const s of stacks) {
+    const idx = s.items.findIndex(it => it.c.id === 'heavy');
+    if (idx === -1) continue;
+    assert.equal(idx, 0, 'heavy muss unten (Lage 1) stehen, nie über light');
+  }
+  const lightStack = stacks.find(s => s.items.some(it => it.c.id === 'light'));
+  const heavyAboveLight = lightStack && lightStack.items.some((it, i) =>
+    it.c.id === 'heavy' && lightStack.items.slice(0, i).some(below => below.c.id === 'light'));
+  assert.ok(!heavyAboveLight, 'heavy darf nie über light im selben Stapel liegen');
+});
+
 test('Hindernisse werden umgangen', () => {
   const K = mkCase('k', 120, 60, 60);
   const obstacles = [{ x0: 0, y0: 0, z0: 0, x1: 120, y1: 248, z1: 60 }];

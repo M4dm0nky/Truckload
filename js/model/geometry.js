@@ -17,7 +17,8 @@ export function localDims(c, orientation) {
 }
 
 export function effectiveDims(c, p) {
-  const { a, b, c: h } = localDims(c, p.orientation);
+  const orientation = c.kind === 'truss' ? 'standing' : p.orientation;
+  const { a, b, c: h } = localDims(c, orientation);
   return (p.rot ?? 0) % 180 === 90 ? { dx: b, dy: a, dz: h } : { dx: a, dy: b, dz: h };
 }
 

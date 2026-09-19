@@ -37,4 +37,7 @@ export const PRESET_CASES = [
   T('truss-34-3m', 'Traversenwagen 34er 3 m (4 Stück)', 300, 29, 4),
   T('truss-34-2m', 'Traversenwagen 34er 2 m (4 Stück)', 200, 29, 4),
   T('truss-40-3m', 'Traversenwagen 40er 3 m (4 Stück)', 300, 40, 4),
+  // Legacy (V0.2) – nicht mehr in der Bibliothek gelistet, bleiben aber für alte Ladepläne bestehen.
+  P('truss-29-3m', 'Traverse 29er Dreipunkt 3 m', 'Rigging', 300, 29, 29, 15, { tippable: false, wheelH: 0, legacy: true }),
+  P('truss-dolly', 'Traversen-Dolly 29er (8× 2 m)', 'Rigging', 200, 60, 70, 180, { tippable: false, legacy: true }),
 ];
