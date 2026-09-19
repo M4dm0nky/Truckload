@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#15181d"/>
+  <!-- Laderaum -->
+  <rect x="72" y="136" width="300" height="220" rx="10" fill="none" stroke="#8b95a3" stroke-width="14"/>
+  <!-- Fahrerhaus -->
+  <path d="M372 196h52l40 56v104h-92z" fill="none" stroke="#8b95a3" stroke-width="14" stroke-linejoin="round"/>
+  <!-- gestapelte Cases -->
+  <rect x="96" y="276" width="84" height="64" rx="6" fill="#f0a500"/>
+  <rect x="96" y="206" width="84" height="64" rx="6" fill="#f0a500"/>
+  <rect x="186" y="276" width="84" height="64" rx="6" fill="#3b7dd8"/>
+  <rect x="186" y="220" width="84" height="50" rx="6" fill="#3b7dd8"/>
+  <rect x="276" y="286" width="80" height="54" rx="6" fill="#1fa67a"/>
+  <!-- Räder -->
+  <circle cx="150" cy="382" r="30" fill="#15181d" stroke="#e6e9ee" stroke-width="14"/>
+  <circle cx="410" cy="382" r="30" fill="#15181d" stroke="#e6e9ee" stroke-width="14"/>
+</svg>

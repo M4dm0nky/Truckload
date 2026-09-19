@@ -312,4 +312,9 @@ $('#import').onchange = async e => {
 $('#app-version').textContent = `V ${APP_VERSION}`;
 document.title = `Truckload V ${APP_VERSION}`;
 
+// Offline-Betrieb (nur über http/https, nicht über file://)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline-Modus nicht verfügbar:', err));
+}
+
 scheduleRender();

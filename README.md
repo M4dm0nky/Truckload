@@ -6,14 +6,17 @@ Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Auftei
 
 ## Start
 
-**Unter macOS:**
-Doppelklick auf `start.command` – öffnet einen lokalen HTTP-Server auf Port 8765 und startet den Browser automatisch.
+**Einfach öffnen:** https://m4dm0nky.github.io/Truckload/
 
-**Manuell:**
-```bash
-python3 -m http.server 8765
-```
-Dann im Browser öffnen: `http://localhost:8765`
+Nichts installieren, kein Terminal. Nach dem ersten Öffnen läuft die App auch offline.
+
+**Als App ins Dock (empfohlen):**
+- Safari: Seite öffnen → Menü *Ablage → Zum Dock hinzufügen*
+- Chrome: Seite öffnen → Installieren-Symbol rechts in der Adressleiste
+
+Updates kommen automatisch: Die neue Version ist beim übernächsten Öffnen aktiv.
+
+**Lokal ohne Internet-Adresse (für Entwicklung):** Doppelklick auf `start.command` bzw. `python3 -m http.server 8765` und `http://localhost:8765` öffnen. Achtung: Jede Adresse hat ihren eigenen Browser-Speicher – Daten zwischen `localhost` und der GitHub-Adresse mit „Sichern“ / „Importieren“ übertragen.
 
 ## Tests
 
@@ -25,9 +28,9 @@ npm test
 
 **Alle Daten liegen im Browser (IndexedDB)!** Es gibt keine Sicherung auf dem Server. Regelmäßig Daten exportieren:
 
-1. In der App auf „Sichern/Importieren" klicken
-2. JSON-Export herunterladen
-3. **In Dropbox ablegen** (z. B. in `/Dropbox/truckload-backups/`)
+1. In der App auf „Sichern“ klicken – die JSON-Datei wird heruntergeladen
+2. **In Dropbox ablegen** (z. B. in `/Dropbox/truckload-backups/`)
+3. Wiederherstellen oder auf einen anderen Rechner übertragen: „Importieren“
 
 So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gelöscht wird.
 
