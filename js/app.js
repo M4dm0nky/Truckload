@@ -7,6 +7,9 @@ import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js'
 import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
 import { stamp } from './store/repo.js';
+import { renderInspector } from './ui/inspector.js';
+import { openTruckEditor } from './ui/truck-editor.js';
+import { esc } from './ui/dom.js';
 
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
@@ -110,5 +113,124 @@ attachTopInteractions($('#svg-top'), {
 });
 attachSelect($('#svg-side'), select);
 attachSelect($('#svg-rear'), select);
+
+// Inspector
+renderHooks.push((s, d) => {
+  const selected = d.result.items.find(it => it.id === s.selectedId) ?? null;
+  renderInspector($('#inspector'), { selected, result: d.result, truck: d.truck });
+});
+const withSel = fn => { const id = store.get().selectedId; if (id) fn(id); };
+const ACTIONS = {
+  rotate: id => edit((p, c) => A.rotate(p, id, c)),
+  tip: id => edit((p, c) => A.cycleTip(p, id, c)),
+  dup: id => edit((p, c) => A.duplicate(p, id, c)),
+  tray: id => { edit(p => A.toTray(p, id)); select(null); },
+  delete: id => { edit(p => A.removePlacement(p, id)); select(null); },
+  'edit-case': id => editCase(store.get().plan.placements.find(p => p.id === id)?.caseId),
+};
+$('#inspector').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act) return withSel(ACTIONS[act]);
+  const target = e.target.closest('[data-select]')?.dataset.select;
+  if (target) select(target);
+});
+
+// Tastatur
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea, select') || document.querySelector('dialog[open]')) return;
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); return; }
+  if (e.key === 'Escape') return select(null);
+  const key = { r: 'rotate', t: 'tip', d: 'dup', Delete: 'delete', Backspace: 'delete' }[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+  if (key && !mod) { e.preventDefault(); return withSel(ACTIONS[key]); }
+  const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+  if (arrow) withSel(id => {
+    e.preventDefault();
+    const step = e.shiftKey ? 1 : 5;
+    const p = store.get().plan.placements.find(q => q.id === id);
+    edit((pl, c) => A.moveGroup(pl, id, p.x + arrow[0] * step, p.y + arrow[1] * step, c, { grid: step, edges: false }));
+  });
+});
+
+// Undo/Redo, Modus, Auto-Pack
+$('#undo').onclick = () => store.undo();
+$('#redo').onclick = () => store.redo();
+$('#pack-all').onclick = () => {
+  const s = store.get();
+  if (s.plan.placements.length && !confirm('Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)')) return;
+  edit((p, c) => A.packAll(p, c));
+};
+$('#pack-rest').onclick = () => edit((p, c) => A.packRest(p, c));
+function setMode(mode) {
+  store.update(s => ({ ...s, mode }));
+  $('#views2d').hidden = mode !== '2d';
+  $('#view3d').hidden = mode !== '3d';
+  $('#mode-2d').classList.toggle('on', mode === '2d');
+  $('#mode-3d').classList.toggle('on', mode === '3d');
+}
+$('#mode-2d').onclick = () => setMode('2d');
+$('#mode-3d').onclick = () => setMode('3d');
+
+// Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons
+const allPlans = s => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
+  .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+renderHooks.push((s, d) => {
+  $('#plan-select').innerHTML = allPlans(s).map(p =>
+    `<option value="${esc(p.id)}" ${p.id === s.plan.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  $('#truck-select').innerHTML = s.trucks.map(t =>
+    `<option value="${esc(t.id)}" ${t.id === d.truck.id ? 'selected' : ''}>${esc(t.name)}${t.builtin ? '' : ' ★'} – ${t.l}×${t.w}×${t.h}</option>`).join('');
+  $('#undo').disabled = !store.canUndo();
+  $('#redo').disabled = !store.canRedo();
+});
+
+// Ladepläne
+function switchPlan(plan) {
+  store.update(s => ({ ...s, plans: [s.plan, ...s.plans.filter(p => p.id !== s.plan.id && p.id !== plan.id)], plan, selectedId: null }));
+  store.resetHistory();
+}
+$('#plan-select').onchange = e => {
+  const next = store.get().plans.find(p => p.id === e.target.value);
+  if (next) switchPlan(next);
+};
+$('#plan-new').onclick = () => {
+  const name = prompt('Name des Ladeplans (z. B. Show / Datum / Truck 1):', 'Neuer Ladeplan');
+  if (name?.trim()) switchPlan(A.emptyPlan(uid(), name.trim(), ctx().truck.id));
+};
+$('#plan-rename').onclick = () => {
+  const name = prompt('Neuer Name:', store.get().plan.name);
+  if (name?.trim()) edit(p => ({ ...p, name: name.trim(), updatedAt: new Date().toISOString() }));
+};
+$('#plan-dup').onclick = () => {
+  const p = store.get().plan;
+  switchPlan({ ...structuredClone(p), id: uid(), name: `${p.name} (Kopie)`, updatedAt: new Date().toISOString() });
+};
+$('#plan-del').onclick = async () => {
+  const s = store.get();
+  if (!confirm(`Ladeplan „${s.plan.name}“ löschen?`)) return;
+  clearTimeout(saveTimer); // sonst speichert der Autosave den gelöschten Plan erneut
+  await repo.deletePlan(s.plan.id);
+  const rest = s.plans.filter(p => p.id !== s.plan.id);
+  const next = rest[0] ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK_ID);
+  store.update(st => ({ ...st, plans: rest.filter(p => p.id !== next.id), plan: next, selectedId: null }));
+  store.resetHistory();
+};
+
+// Fahrzeuge
+$('#truck-select').onchange = e => edit(p => ({ ...p, truckId: e.target.value, updatedAt: new Date().toISOString() }));
+async function editTruck(truck) {
+  const res = await openTruckEditor($('#dlg-truck'), truck);
+  if (!res) return;
+  if (res.action === 'delete') {
+    await repo.deleteTruck(truck.id);
+    store.update(s => ({ ...s, trucks: s.trucks.filter(t => t.id !== truck.id) }));
+    return;
+  }
+  const value = stamp(res.value);
+  await repo.saveTruck(value);
+  store.update(s => ({ ...s, trucks: [...s.trucks.filter(t => t.id !== value.id), value] }));
+  edit(p => ({ ...p, truckId: value.id, updatedAt: new Date().toISOString() }));
+}
+$('#truck-new').onclick = () => editTruck(null);
+$('#truck-edit').onclick = () => editTruck(ctx().truck);
 
 scheduleRender();
