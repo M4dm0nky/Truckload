@@ -11,6 +11,8 @@ import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
 import { createView3d } from './ui/view3d.js';
+import { buildPrint } from './ui/print.js';
+import { exportBundle, parseBundle, mergeById, backupFileName } from './store/io.js';
 
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
@@ -250,5 +252,46 @@ renderHooks.push(async (s, d) => {
     view3dLoading = null;
   }
 });
+
+// Drucken, Sichern, Importieren
+$('#print').onclick = () => {
+  const s = store.get(), d = derive(s);
+  buildPrint($('#print-root'), { plan: s.plan, truck: d.truck, result: d.result });
+  window.print();
+};
+
+$('#export').onclick = () => {
+  const s = store.get();
+  const plans = [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)];
+  const blob = new Blob([exportBundle({ cases: s.cases, trucks: s.trucks, plans })], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: backupFileName() });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+$('#import').onchange = async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const b = parseBundle(await file.text());
+    await Promise.all([
+      ...b.cases.map(repo.saveCase), ...b.trucks.map(repo.saveTruck), ...b.plans.map(repo.savePlan),
+    ]);
+    store.update(s => {
+      const plans = mergeById([s.plan, ...s.plans], b.plans);
+      return {
+        ...s,
+        cases: mergeById(s.cases, b.cases),
+        trucks: mergeById(s.trucks, b.trucks),
+        plans: plans.filter(p => p.id !== s.plan.id),
+        plan: plans.find(p => p.id === s.plan.id) ?? s.plan,
+      };
+    });
+    alert(`Importiert: ${b.cases.length} Cases, ${b.trucks.length} Fahrzeuge, ${b.plans.length} Ladepläne.`);
+  } catch (err) {
+    alert(`Import fehlgeschlagen: ${err.message}`);
+  }
+};
 
 scheduleRender();

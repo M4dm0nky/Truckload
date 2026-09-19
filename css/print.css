@@ -1,0 +1,15 @@
+@page { size: A4 landscape; margin: 10mm; }
+body { background: #fff; color: #000; height: auto; display: block; }
+body > *:not(#print-root) { display: none !important; }
+#print-root { display: block !important; font: 10pt/1.35 system-ui, sans-serif; }
+#print-root h1 { font-size: 16pt; margin: 0; }
+#print-root figure { margin: 4mm 0; }
+#print-root figcaption { font-weight: 600; font-size: 9pt; }
+#print-root svg { width: 100%; height: auto; max-height: 55mm; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+#print-root svg .truck { fill: #fff; stroke: #000; }
+#print-root svg .grid line { stroke: #ccc; }
+#print-root svg .tick { fill: #444; }
+#print-root .p-issues { border: 1px solid #c00; padding: 2mm; color: #c00; }
+#print-root table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+#print-root th, #print-root td { border-bottom: 1px solid #bbb; padding: 1mm 2mm; text-align: left; vertical-align: top; }
+#print-root tr { break-inside: avoid; }
