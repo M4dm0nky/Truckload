@@ -18,13 +18,19 @@ import { exportBundle, parseBundle, mergeById, backupFileName } from './store/io
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
 
+const CASE_COLORS_KEY = 'truckload.caseColors';
+function loadCaseColors() {
+  try { return localStorage.getItem(CASE_COLORS_KEY) === 'trade' ? 'trade' : 'black'; }
+  catch { return 'black'; }
+}
+
 const data = await repo.loadAll();
 const latest = [...data.plans].sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))[0];
 const initialPlan = latest ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK_ID);
 
 export const store = createStore({
   cases: data.cases, trucks: data.trucks, plans: data.plans,
-  plan: initialPlan, selectedId: null, mode: '2d',
+  plan: initialPlan, selectedId: null, mode: '2d', caseColors: loadCaseColors(),
 });
 
 export function ctx(s = store.get()) {
@@ -55,7 +61,7 @@ export function scheduleRender() {
 function render() {
   const s = store.get();
   const d = derive(s);
-  const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId };
+  const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors };
   if (s.mode === '2d') {
     renderView($('#svg-top'), 'top', opts);
     renderView($('#svg-side'), 'side', opts);
@@ -174,6 +180,16 @@ function setMode(mode) {
 }
 $('#mode-2d').onclick = () => setMode('2d');
 $('#mode-3d').onclick = () => setMode('3d');
+function setCaseColors(mode) {
+  store.update(s => ({ ...s, caseColors: mode }));
+  try { localStorage.setItem(CASE_COLORS_KEY, mode); } catch { /* kein Speicher verfügbar */ }
+  $('#colors-black').classList.toggle('on', mode === 'black');
+  $('#colors-trade').classList.toggle('on', mode === 'trade');
+}
+$('#colors-black').onclick = () => setCaseColors('black');
+$('#colors-trade').onclick = () => setCaseColors('trade');
+$('#colors-black').classList.toggle('on', store.get().caseColors === 'black');
+$('#colors-trade').classList.toggle('on', store.get().caseColors === 'trade');
 
 // Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons
 const allPlans = s => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
@@ -253,7 +269,7 @@ renderHooks.push(async (s, d) => {
   if (s.mode !== '3d') return;
   try {
     view3d ??= await (view3dLoading ??= createView3d($('#view3d')));
-    view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId });
+    view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors });
   } catch {
     $('#view3d').textContent = '3D-Ansicht konnte nicht geladen werden (vendor/ fehlt?).';
     view3d = null;
@@ -264,7 +280,7 @@ renderHooks.push(async (s, d) => {
 // Drucken, Sichern, Importieren
 $('#print').onclick = () => {
   const s = store.get(), d = derive(s);
-  buildPrint($('#print-root'), { plan: s.plan, truck: d.truck, result: d.result });
+  buildPrint($('#print-root'), { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
   window.print();
 };
 

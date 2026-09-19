@@ -26,6 +26,7 @@ const ASSETS = [
   'js/store/io.js',
   'js/store/repo.js',
   'js/ui/case-editor.js',
+  'js/ui/caseStyle.js',
   'js/ui/dom.js',
   'js/ui/inspector.js',
   'js/ui/library.js',
