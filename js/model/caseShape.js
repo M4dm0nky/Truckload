@@ -1,5 +1,8 @@
 import { wheelFace, wheelHOf } from './geometry.js';
 
+// Die zwei Achsen in der Rollenfläche (a1,a2) + die Normalenachse (n), aus der Case-Seite (face).
+export const wheelAxes = face => (face === 'bottom' ? ['x', 'y', 'z'] : face.endsWith('x') ? ['y', 'z', 'x'] : ['x', 'z', 'y']);
+
 // Zerlegt die Box eines platzierten Cases in Korpus und 4 Rollen (Truck-Koordinaten, cm).
 export function caseShape(c, p, box) {
   const wh = wheelHOf(c);
@@ -13,8 +16,8 @@ export function caseShape(c, p, box) {
   else if (face === '-y') body.y0 += wh;
   const d = wh * 0.8;                  // Raddurchmesser, Rest = Gabel/Platte
   const inset = Math.max(3, d * 0.4);  // Abstand von der Case-Ecke
-  // Die zwei Achsen in der Rollenfläche + Lage des Rollenstreifens entlang der Normalen
-  const [a1, a2, n] = face === 'bottom' ? ['x', 'y', 'z'] : face.endsWith('x') ? ['y', 'z', 'x'] : ['x', 'z', 'y'];
+  // Lage des Rollenstreifens entlang der Normalen
+  const [a1, a2, n] = wheelAxes(face);
   const slab0 = face === 'bottom' ? box.z0 : face[0] === '+' ? box[`${n}1`] - wh : box[`${n}0`];
   const pos = (axis, end) => (end ? box[`${axis}1`] - inset - d : box[`${axis}0`] + inset);
   const wheels = [];

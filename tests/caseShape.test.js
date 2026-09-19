@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { caseShape } from '../js/model/caseShape.js';
+import { caseShape, wheelAxes } from '../js/model/caseShape.js';
 import { boxOf, overlaps } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
@@ -37,6 +37,12 @@ test('tipLong rot 0: Rollen an +y, Korpus rückt von der Rollenseite weg', () =>
   assert.equal(wheels.length, 4);
   for (const w of wheels) assert.equal(w.y0, box.y1 - 12);
   pairwiseNoOverlap(wheels);
+});
+
+test('wheelAxes: Fläche → [a1, a2, n]', () => {
+  assert.deepEqual(wheelAxes('bottom'), ['x', 'y', 'z']);
+  assert.deepEqual(wheelAxes('+x'), ['y', 'z', 'x']);
+  assert.deepEqual(wheelAxes('-y'), ['x', 'z', 'y']);
 });
 
 test('wheelH 0: Korpus = Box, keine Rollen', () => {

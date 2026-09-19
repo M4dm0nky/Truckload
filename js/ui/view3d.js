@@ -1,9 +1,6 @@
 import { archBoxes } from '../model/validate.js';
-import { caseShape } from '../model/caseShape.js';
+import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors } from './caseStyle.js';
-
-// Achsen der Rollenfläche + Protrusionsachse, analog zu caseShape.js (a1,a2 = Fläche, n = Normale).
-const wheelAxes = face => (face === 'bottom' ? ['x', 'y', 'z'] : face.endsWith('x') ? ['y', 'z', 'x'] : ['x', 'z', 'y']);
 
 export async function createView3d(container) {
   const THREE = await import('three');
@@ -51,7 +48,8 @@ export async function createView3d(container) {
   const MAT_ARCH = shared(new THREE.MeshLambertMaterial({ color: 0x444a52 }));
   const MAT_ALU = shared(new THREE.MeshStandardMaterial({ color: 0xb8bec6, metalness: 0.6, roughness: 0.35 }));
   const MAT_CORNER = shared(new THREE.MeshStandardMaterial({ color: 0xd6dbe1, metalness: 0.5, roughness: 0.4 }));
-  const MAT_WHEEL = shared(new THREE.MeshStandardMaterial({ color: 0x2b2d31, roughness: 0.9 }));
+  const MAT_WHEEL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.9 }));
+  const MAT_HUB = shared(new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.4, roughness: 0.5 }));
   const MAT_EDGE_ALU = shared(new THREE.LineBasicMaterial({ color: 0xb8bec6 }));
   const MAT_EDGE_SEL = shared(new THREE.LineBasicMaterial({ color: 0xf0a500 }));
   const MAT_EDGE_ERR = shared(new THREE.LineBasicMaterial({ color: 0xe5484d }));
@@ -96,21 +94,45 @@ export async function createView3d(container) {
     return out;
   };
 
-  // Rolle: kleine Alu-Gabel (Original-Rollenbox) + Zylinder (Achse waagrecht, in der Rollenfläche).
+  // Rolle im Rollenschacht w (Höhe wh entlang der Normalen n, Fußabdruck d×d in a1/a2):
+  // Schwenkplatte an der Karosserieseite, Gabel (2 Bleche) hinunter zur Achse, Rad + Nabe.
   function wheelMesh(w, face) {
     const [a1, a2, n] = wheelAxes(face);
-    const d = w[`${a1}1`] - w[`${a1}0`];
-    const wh = w[`${n}1`] - w[`${n}0`];
-    const outerN = face === 'bottom' ? w[`${n}0`] : (face[0] === '+' ? w[`${n}1`] : w[`${n}0`]);
-    const cyl = new THREE.Mesh(GEO_CYL, MAT_WHEEL);
-    cyl.scale.set(d / 2, wh * 0.5, d / 2);
-    if (a1 === 'x') cyl.rotation.z = Math.PI / 2;
+    const n0 = w[`${n}0`], n1 = w[`${n}1`];
+    const wh = n1 - n0;
+    const outerN = face === 'bottom' ? n0 : (face[0] === '+' ? n1 : n0);
+    const innerN = outerN === n0 ? n1 : n0;
+    const towardOuter = outerN > innerN ? 1 : -1; // Richtung von der Karosserie zur Rollen-Außenseite
+
+    const r = wh * 0.42, t = r * 0.8;
+    const centerN = outerN - towardOuter * r; // r nach innen von der Außenfläche – berührt sie nur tangential
+
+    const a1_0 = w[`${a1}0`], a1_1 = w[`${a1}1`];
+    const a2_0 = w[`${a2}0`], a2_1 = w[`${a2}1`];
+    const mkBox = (a1r, a2r, nr) => ({
+      [`${a1}0`]: a1r[0], [`${a1}1`]: a1r[1],
+      [`${a2}0`]: a2r[0], [`${a2}1`]: a2r[1],
+      [`${n}0`]: Math.min(nr[0], nr[1]), [`${n}1`]: Math.max(nr[0], nr[1]),
+    });
+
+    const plate = mkBox([a1_0, a1_1], [a2_0, a2_1], [innerN, innerN + towardOuter * 1.2]);
+    const forkA = mkBox([a1_0, a1_0 + 0.8], [a2_0, a2_1], [innerN, centerN]);
+    const forkB = mkBox([a1_1 - 0.8, a1_1], [a2_0, a2_1], [innerN, centerN]);
+
     const pos = { x: 0, y: 0, z: 0 };
-    pos[a1] = (w[`${a1}0`] + w[`${a1}1`]) / 2;
-    pos[a2] = (w[`${a2}0`] + w[`${a2}1`]) / 2;
-    pos[n] = outerN;
-    cyl.position.set(pos.x, pos.y, pos.z);
-    return [boxMesh(w, MAT_ALU), cyl];
+    pos[a1] = (a1_0 + a1_1) / 2;
+    pos[a2] = (a2_0 + a2_1) / 2;
+    pos[n] = centerN;
+
+    const wheelCyl = new THREE.Mesh(GEO_CYL, MAT_WHEEL);
+    wheelCyl.scale.set(r, t, r);
+    const hubCyl = new THREE.Mesh(GEO_CYL, MAT_HUB);
+    hubCyl.scale.set(r * 0.35, t * 1.15, r * 0.35);
+    if (a1 === 'x') { wheelCyl.rotation.z = Math.PI / 2; hubCyl.rotation.z = Math.PI / 2; }
+    wheelCyl.position.set(pos.x, pos.y, pos.z);
+    hubCyl.position.copy(wheelCyl.position);
+
+    return [boxMesh(plate, MAT_ALU), boxMesh(forkA, MAT_ALU), boxMesh(forkB, MAT_ALU), wheelCyl, hubCyl];
   }
 
   function clear() {
