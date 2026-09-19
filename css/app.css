@@ -1,0 +1,63 @@
+:root {
+  --bg: #15181d; --panel: #1d2128; --line: #2e343d; --text: #e6e9ee; --muted: #8b95a3;
+  --accent: #f0a500; --danger: #e5484d; --ok: #30a46c; --truck: #232830; --grid: #2a3039;
+  --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #eef0f3; --panel: #fff; --line: #d6dbe1; --text: #1b1f24; --muted: #66707c; --truck: #f7f8fa; --grid: #e3e7ec; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+button, .btn, select, input, textarea { font: inherit; color: inherit; }
+button, .btn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button:hover, .btn:hover { border-color: var(--muted); }
+button:disabled { opacity: .4; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #111; font-weight: 600; }
+button.danger { color: var(--danger); }
+select, input, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+
+.topbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.topbar .group { display: flex; gap: 4px; align-items: center; }
+.brand { color: var(--accent); letter-spacing: .02em; }
+.grow { flex: 1; }
+.seg button.on { background: var(--accent); color: #111; border-color: var(--accent); }
+
+.layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 290px 1fr 300px; }
+.panel { background: var(--panel); overflow: auto; padding: 12px; }
+.library { border-right: 1px solid var(--line); }
+.inspector { border-left: 1px solid var(--line); }
+.stage { min-width: 0; min-height: 0; display: flex; }
+.views2d { flex: 1; display: grid; grid-template-columns: 3fr 1fr; grid-template-rows: 1.2fr 1fr; gap: 10px; padding: 10px; min-height: 0; }
+.view { margin: 0; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.view-top { grid-column: 1 / -1; }
+.view figcaption { padding: 6px 10px; font-weight: 600; }
+.view figcaption small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+.view svg { flex: 1; width: 100%; min-height: 0; touch-action: none; user-select: none; }
+.view3d { flex: 1; min-height: 0; }
+
+/* SVG – Einheiten sind cm */
+svg .truck { fill: var(--truck); stroke: var(--muted); stroke-width: 2; }
+svg .front-wall { stroke: var(--accent); stroke-width: 6; }
+svg .grid line { stroke: var(--grid); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-size: 14px; text-anchor: middle; }
+svg .arch { fill: var(--line); stroke: var(--muted); stroke-dasharray: 6 4; }
+svg .case rect.body { stroke: rgba(0,0,0,.55); stroke-width: 1.5; cursor: grab; }
+svg .case .wheels { fill: rgba(0,0,0,.45); pointer-events: none; }
+svg .case .label { fill: #111; font-size: 16px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+svg .case.bad rect.body { stroke: var(--danger); stroke-width: 4; stroke-dasharray: 10 5; }
+svg .case.sel rect.body { stroke: var(--text); stroke-width: 4; }
+svg .cog { fill: none; stroke: var(--danger); stroke-width: 3; }
+svg.drop-target .truck { stroke: var(--accent); stroke-width: 4; }
+
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(520px, 92vw); }
+dialog::backdrop { background: rgba(0,0,0,.5); }
+.editor { display: grid; gap: 10px; padding: 18px; }
+.editor h2 { margin: 0 0 4px; font-size: 18px; }
+.editor label { display: grid; gap: 4px; color: var(--muted); }
+.editor label > input, .editor label > select, .editor label > textarea { color: var(--text); }
+.editor .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.editor .check { display: flex; gap: 8px; align-items: center; color: var(--text); }
+.editor fieldset { border: 1px solid var(--line); border-radius: 8px; }
+.editor menu { display: flex; gap: 8px; padding: 0; margin: 8px 0 0; }
+.hint { color: var(--muted); font-size: 12px; margin: 0; }
+.print-root { display: none; }

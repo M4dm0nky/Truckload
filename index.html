@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Truckload</title>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/print.css" media="print">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <strong class="brand">Truckload</strong>
+    <div class="group">
+      <select id="plan-select" title="Ladeplan"></select>
+      <button id="plan-new">Neu</button>
+      <button id="plan-rename">Umbenennen</button>
+      <button id="plan-dup">Duplizieren</button>
+      <button id="plan-del" class="danger">Löschen</button>
+    </div>
+    <div class="group">
+      <select id="truck-select" title="Fahrzeug"></select>
+      <button id="truck-edit">Bearbeiten</button>
+      <button id="truck-new">+ Fahrzeug</button>
+    </div>
+    <div class="group">
+      <button id="pack-all" class="primary">Alles neu packen</button>
+      <button id="pack-rest">Rest einpacken</button>
+    </div>
+    <div class="group seg">
+      <button id="mode-2d" class="on">2D</button>
+      <button id="mode-3d">3D</button>
+    </div>
+    <span class="grow"></span>
+    <div class="group">
+      <button id="undo" title="Rückgängig (⌘Z)">↶</button>
+      <button id="redo" title="Wiederholen (⇧⌘Z)">↷</button>
+      <button id="export" title="Alles als JSON-Datei sichern">Sichern</button>
+      <label class="btn" title="JSON-Sicherung einlesen">Importieren<input id="import" type="file" accept=".json,application/json" hidden></label>
+      <button id="print">Drucken</button>
+    </div>
+  </header>
+  <main class="layout">
+    <aside id="library" class="panel library"></aside>
+    <section class="stage">
+      <div id="views2d" class="views2d">
+        <figure class="view view-top"><figcaption>Draufsicht <small>Stirnwand links · Tür rechts</small></figcaption><svg id="svg-top"></svg></figure>
+        <figure class="view view-side"><figcaption>Seitenansicht <small>von links</small></figcaption><svg id="svg-side"></svg></figure>
+        <figure class="view view-rear"><figcaption>Rückansicht <small>von der Tür</small></figcaption><svg id="svg-rear"></svg></figure>
+      </div>
+      <div id="view3d" class="view3d" hidden></div>
+    </section>
+    <aside id="inspector" class="panel inspector"></aside>
+  </main>
+  <dialog id="dlg-case"></dialog>
+  <dialog id="dlg-truck"></dialog>
+  <section id="print-root" class="print-root" aria-hidden="true"></section>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
