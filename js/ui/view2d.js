@@ -1,5 +1,5 @@
 import { svgEl } from './dom.js';
-import { project, drawOrder, wheelStrip, stripRect } from './projection.js';
+import { project, drawOrder, wheelStrip, stripRect, unproject } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
 import { archBoxes } from '../model/validate.js';
 
@@ -42,4 +42,55 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
   const cog = result.totals.cog;
   if (mode === 'top' && cog) svgEl('circle', { cx: cog.x, cy: truck.w - cog.y, r: 12, class: 'cog' }, svg)
     .appendChild(svgEl('title')).textContent = 'Schwerpunkt';
+}
+
+function toSvg(svg, e) {
+  return new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+}
+
+export function attachSelect(svg, onSelect) {
+  svg.addEventListener('pointerdown', e => onSelect(e.target.closest('g.case')?.dataset.id ?? null));
+}
+
+export function attachTopInteractions(svg, h) {
+  let drag = null;
+  const truckPt = e => { const p = toSvg(svg, e); return unproject(p.x, p.y, 'top', h.getTruck()); };
+
+  svg.addEventListener('pointerdown', e => {
+    const id = e.target.closest('g.case')?.dataset.id ?? null;
+    h.onSelect(id);
+    if (!id) return;
+    const it = h.getItem(id);
+    const pt = truckPt(e);
+    drag = { id, offX: pt.x - it.box.x0, offY: pt.y - it.box.y0, sx: e.clientX, sy: e.clientY, moved: false };
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.moved) {
+      if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+      drag.moved = true;
+      h.onDragStart();
+    }
+    const pt = truckPt(e);
+    h.onDrag(drag.id, pt.x - drag.offX, pt.y - drag.offY);
+  });
+  const end = () => { drag = null; };
+  svg.addEventListener('pointerup', end);
+  svg.addEventListener('pointercancel', end);
+
+  svg.addEventListener('dragover', e => {
+    if (!e.dataTransfer.types.includes('text/x-case')) return;
+    e.preventDefault();
+    svg.classList.add('drop-target');
+  });
+  svg.addEventListener('dragleave', () => svg.classList.remove('drop-target'));
+  svg.addEventListener('drop', e => {
+    e.preventDefault();
+    svg.classList.remove('drop-target');
+    const raw = e.dataTransfer.getData('text/x-case');
+    if (!raw) return;
+    const pt = truckPt(e);
+    h.onDropCase(JSON.parse(raw), pt.x, pt.y);
+  });
 }

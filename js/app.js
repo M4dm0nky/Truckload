@@ -3,7 +3,10 @@ import { createStore } from './state.js';
 import { validatePlan } from './model/validate.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
-import { renderView } from './ui/view2d.js';
+import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js';
+import { mountLibrary } from './ui/library.js';
+import { openCaseEditor } from './ui/case-editor.js';
+import { stamp } from './store/repo.js';
 
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
@@ -63,5 +66,49 @@ store.subscribe(s => {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => { lastSaved = s.plan; repo.savePlan(s.plan); }, 400);
 });
+
+const usage = (s, caseId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
+  .filter(p => [...p.placements, ...p.unplaced].some(x => x.caseId === caseId)).length;
+
+async function editCase(caseId) {
+  const s = store.get();
+  const c = caseId ? s.cases.find(x => x.id === caseId) : null;
+  const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId ? usage(s, caseId) : 0 });
+  if (!res) return;
+  if (res.action === 'delete') {
+    await repo.deleteCase(caseId);
+    store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
+  } else {
+    const value = stamp(res.value);
+    await repo.saveCase(value);
+    store.update(st => ({ ...st, cases: [...st.cases.filter(x => x.id !== value.id), value] }));
+  }
+}
+
+const library = mountLibrary($('#library'), {
+  onNew: () => editCase(null),
+  onEdit: id => editCase(id),
+  onAdd: id => {
+    const n = Number.parseInt(prompt('Wie viele Stück in die Ablage legen?', '1') ?? '', 10);
+    if (n > 0 && n <= 500) edit((p) => A.addUnplaced(p, id, n, uid));
+  },
+  onTrayRemove: id => edit(p => A.removeUnplaced(p, id)),
+});
+renderHooks.push(s => library.update(s));
+
+attachTopInteractions($('#svg-top'), {
+  getTruck: () => ctx().truck,
+  getItem: id => derive().result.items.find(it => it.id === id),
+  onSelect: select,
+  onDragStart: () => store.checkpoint(),
+  onDrag: (id, x, y) => edit((p, c) => A.moveGroup(p, id, x, y, c), false),
+  onDropCase: ({ caseId, unplacedId }, x, y) => {
+    const c = ctx().caseById.get(caseId);
+    if (!c) return;
+    edit((p, cx) => A.placeCase(p, caseId, x - c.l / 2, y - c.w / 2, cx, unplacedId));
+  },
+});
+attachSelect($('#svg-side'), select);
+attachSelect($('#svg-rear'), select);
 
 scheduleRender();
