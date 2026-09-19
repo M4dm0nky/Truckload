@@ -2,6 +2,8 @@ export const EPS = 0.5;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
 export const DEFAULT_WHEEL_H = 12;
 export const wheelHOf = c => (Number.isFinite(c.wheelH) ? c.wheelH : DEFAULT_WHEEL_H);
+export const DEFAULT_LAYERS = [1, 2, 3, 4];
+export const layersOf = c => (Array.isArray(c.layers) && c.layers.length ? c.layers : DEFAULT_LAYERS);
 const FACE_CYCLE = ['+x', '+y', '-x', '-y'];
 const BASE_WHEEL_FACE = { standing: 'bottom', tipLong: '+y', tipShort: '+x' };
 

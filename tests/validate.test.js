@@ -77,3 +77,27 @@ test('Kennzahlen und Reihenfolge', () => {
   assert.equal(r.sequence.get('vorn'), 1);
   assert.equal(r.sequence.get('hinten'), 2);
 });
+
+test('Lagen 1/2/3 im Stapel korrekt', () => {
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','k',0,94,60), P('c','k',0,94,120)]), byId(K), mkTruck());
+  assert.equal(r.layers.get('a'), 1);
+  assert.equal(r.layers.get('b'), 2);
+  assert.equal(r.layers.get('c'), 3);
+  assert.deepEqual(r.issues, []);
+});
+test('layer-Issue: nur Lage 1 erlaubt, steht aber in Lage 2', () => {
+  const RACK = mkCase('rack', 80, 60, 60, { layers: [1] });
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','rack',0,94,60)]), byId(K, RACK), mkTruck());
+  assert.deepEqual(codes(r,'b'), ['layer']);
+  assert.match(r.byPlacement.get('b')[0].message, /„rack“ darf nicht in Lage 2 stehen \(erlaubt: 1\)\./);
+});
+test('tooManyLayers bei 5er-Stapel flacher Cases', () => {
+  const F = mkCase('f', 120, 60, 50);
+  const r = validatePlan(plan([
+    P('a','f',0,94,0), P('b','f',0,94,50), P('c','f',0,94,100),
+    P('d','f',0,94,150), P('e','f',0,94,200),
+  ]), byId(F), mkTruck());
+  assert.equal(r.layers.get('e'), 5);
+  assert.deepEqual(codes(r,'e'), ['tooManyLayers']);
+  assert.match(r.byPlacement.get('e')[0].message, /„f“ steht in Lage 5 – mehr als 4 Lagen sind nicht vorgesehen\./);
+});

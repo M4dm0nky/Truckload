@@ -44,6 +44,30 @@ test('Sprinter mit Radkästen: fehlerfrei, nichts geht verloren', () => {
   assert.ok(placements.length > 20);
   assert.deepEqual(placementIssues(validatePlan(plan(placements), byId(S), SPRINTER)), []);
 });
+test('Stapel wird nie höher als 4 Lagen', () => {
+  const c = mkCase('a', 120, 60, 60);
+  const { stacks } = buildStacks(times(c, 5), mkTruck());
+  assert.deepEqual(stacks.map(s => s.items.length), [4, 1]);
+});
+test('Case mit nur Lage 1 kommt immer auf den Boden, nie auf ein anderes Case', () => {
+  const base = mkCase('base', 120, 60, 60, { layers: [1] });
+  const filler = mkCase('filler', 120, 60, 60);
+  const { stacks } = buildStacks([filler, filler, base], mkTruck());
+  const baseStack = stacks.find(s => s.items.some(it => it.c.id === 'base'));
+  assert.equal(baseStack.items[0].c.id, 'base');
+});
+test('Case, das Lage 1 nicht erlaubt, kommt nur auf bestehende Stapel oder wird unplaced', () => {
+  const onlyTop = mkCase('top', 120, 60, 60, { layers: [2] });
+  const { stacks: withoutBase, unplaced: withoutBaseUnplaced } = buildStacks([onlyTop], mkTruck());
+  assert.equal(withoutBase.length, 0);
+  assert.deepEqual(withoutBaseUnplaced.map(c => c.id), ['top']);
+
+  const base = mkCase('base', 120, 60, 60, { layers: [1] });
+  const { stacks: withBase, unplaced: withBaseUnplaced } = buildStacks([base, onlyTop], mkTruck());
+  assert.deepEqual(withBaseUnplaced, []);
+  assert.equal(withBase.length, 1);
+  assert.deepEqual(withBase[0].items.map(it => it.c.id), ['base', 'top']);
+});
 test('Hindernisse werden umgangen', () => {
   const K = mkCase('k', 120, 60, 60);
   const obstacles = [{ x0: 0, y0: 0, z0: 0, x1: 120, y1: 248, z1: 60 }];

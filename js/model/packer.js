@@ -1,4 +1,4 @@
-import { ORIENTATIONS, effectiveDims, overlaps } from './geometry.js';
+import { ORIENTATIONS, effectiveDims, overlaps, layersOf } from './geometry.js';
 import { archBoxes } from './validate.js';
 
 export function chooseOrientation(c, truck) {
@@ -34,17 +34,22 @@ export function buildStacks(caseList, truck) {
   const stacks = [], unplaced = [];
   const entries = caseList.map(c => ({ c, o: chooseOrientation(c, truck) }));
   for (const e of entries) if (!e.o) unplaced.push(e.c);
+  const maxLayer = c => Math.max(...layersOf(c));
   const ok = entries.filter(e => e.o).sort((a, b) =>
-    b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
+    maxLayer(a.c) - maxLayer(b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
   for (const { c, o } of ok) {
     const key = `${o.d.dx}x${o.d.dy}`;
-    const target = stacks.find(s => s.key === key && canAddToStack(s, c, o.d.dz, truck));
+    const allowed = layersOf(c);
+    const target = stacks.find(s => s.key === key && s.items.length < 4
+      && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
     if (target) {
       target.items.push({ c, o, z: target.height });
       target.height += o.d.dz;
       target.weight += c.weight;
-    } else {
+    } else if (allowed.includes(1)) {
       stacks.push({ key, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, items: [{ c, o, z: 0 }] });
+    } else {
+      unplaced.push(c);
     }
   }
   return { stacks, unplaced };

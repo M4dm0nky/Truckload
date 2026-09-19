@@ -16,10 +16,13 @@ function checkCase(c) {
   for (const k of ['l', 'w', 'h']) if (!num(c[k]) || c[k] <= 0) throw new Error(`Case „${c.name}“ hat ungültige Maße.`);
   if (!num(c.weight) || c.weight < 0) throw new Error(`Case „${c.name}“ hat ein ungültiges Gewicht.`);
   const wheelHOk = c.wheelH == null || (num(c.wheelH) && c.wheelH >= 0 && c.wheelH < c.h);
+  const layersOk = c.layers == null || (Array.isArray(c.layers) && c.layers.length > 0
+    && new Set(c.layers).size === c.layers.length
+    && c.layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4));
   const propsOk = numOrNull(c.maxTopLoad) && numOrNull(c.stock)
     && (c.tippable === undefined || typeof c.tippable === 'boolean')
     && (c.stackable === undefined || typeof c.stackable === 'boolean')
-    && wheelHOk;
+    && wheelHOk && layersOk;
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
 }
 function checkArch(a) {

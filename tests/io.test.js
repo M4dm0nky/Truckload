@@ -83,6 +83,26 @@ test('Datei ohne Versionsangabe wird abgelehnt', () => {
   const bad = JSON.stringify({ format: 'truckload', cases: [], trucks: [], plans: [] });
   assert.throws(() => parseBundle(bad), /keine gültige Versionsangabe/);
 });
+test('Case ohne layers wird akzeptiert (Fallback)', () => {
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].layers, undefined);
+});
+test('Case mit gültigen layers wird akzeptiert', () => {
+  const res = parseBundle(bundleWith({ cases: [{ ...own, layers: [1, 2] }], trucks: [], plans: [] }));
+  assert.deepEqual(res.cases[0].layers, [1, 2]);
+});
+test('Case mit leeren layers wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, layers: [] }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case mit layers außerhalb 1–4 wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, layers: [5] }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case mit doppelten layers wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, layers: [1, 1] }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
 test('Vorlagen (builtin/preset-*) werden beim Import verworfen', () => {
   const presetById = { ...mkCase('preset-y', 10, 10, 10), builtin: false };
   const bad = bundleWith({ cases: [own, builtin, presetById], trucks: [mkTruck(), { ...mkTruck({ id: 'preset-truck' }) }], plans: [] });

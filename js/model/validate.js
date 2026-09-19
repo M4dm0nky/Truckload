@@ -1,4 +1,4 @@
-import { EPS, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf } from './geometry.js';
+import { EPS, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, layersOf } from './geometry.js';
 
 export const SUPPORT_MIN = 0.8;
 export const IMBALANCE_RATIO = 0.1;
@@ -29,6 +29,18 @@ export function loadSequence(items) {
   const sorted = [...items].sort((a, b) =>
     a.box.x0 - b.box.x0 || a.box.y0 - b.box.y0 || a.box.z0 - b.box.z0);
   return new Map(sorted.map((it, i) => [it.id, i + 1]));
+}
+
+export function layerMap(items) {
+  const layers = new Map();
+  const sorted = [...items].sort((a, b) => a.box.z0 - b.box.z0);
+  for (const it of sorted) {
+    if (it.box.z0 <= EPS) { layers.set(it.id, 1); continue; }
+    const sup = supportersOf(it, items);
+    const maxSup = sup.length ? Math.max(...sup.map(s => layers.get(s.id) ?? 1)) : 0;
+    layers.set(it.id, 1 + maxSup);
+  }
+  return layers;
 }
 
 export function validatePlan(plan, caseById, truck) {
@@ -83,6 +95,16 @@ export function validatePlan(plan, caseById, truck) {
       add(it.id, 'overload', `Auf ${it.c.name} lasten ${Math.round(load.get(it.id))} kg (max. ${max} kg).`);
   }
 
+  const layers = layerMap(items);
+  for (const it of items) {
+    const n = layers.get(it.id);
+    if (n > 4) add(it.id, 'tooManyLayers', `„${it.c.name}“ steht in Lage ${n} – mehr als 4 Lagen sind nicht vorgesehen.`);
+    else {
+      const allowed = layersOf(it.c);
+      if (!allowed.includes(n)) add(it.id, 'layer', `„${it.c.name}“ darf nicht in Lage ${n} stehen (erlaubt: ${allowed.join(', ')}).`);
+    }
+  }
+
   const weight = items.reduce((s, it) => s + it.c.weight, 0);
   if (weight > truck.payload)
     add(null, 'tooHeavy', `Gesamtgewicht ${Math.round(weight)} kg überschreitet die Nutzlast von ${truck.payload} kg.`);
@@ -103,7 +125,7 @@ export function validatePlan(plan, caseById, truck) {
   }
 
   return {
-    issues, byPlacement, load, items, sequence: loadSequence(items),
+    issues, byPlacement, load, items, layers, sequence: loadSequence(items),
     totals: {
       weight, payload: truck.payload, cog,
       loadMeters: items.length ? Math.max(...items.map(it => it.box.x1)) / 100 : 0,
