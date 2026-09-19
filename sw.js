@@ -18,6 +18,7 @@ const ASSETS = [
   'js/data/preset-cases.js',
   'js/data/preset-trucks.js',
   'js/model/actions.js',
+  'js/model/caseShape.js',
   'js/model/geometry.js',
   'js/model/packer.js',
   'js/model/validate.js',
