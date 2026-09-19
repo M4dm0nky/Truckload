@@ -42,14 +42,14 @@ export async function createView3d(container) {
   for (const g of [GEO_BOX, GEO_BOX_EDGES, GEO_SPHERE, GEO_CYL]) g.userData.shared = true;
 
   const shared = mat => { mat.userData.shared = true; return mat; };
-  const MAT_FLOOR = shared(new THREE.MeshLambertMaterial({ color: 0x5a6068 }));
+  const MAT_FLOOR = shared(new THREE.MeshLambertMaterial({ color: 0x9aa1aa }));
   const MAT_ROOM_EDGE = shared(new THREE.LineBasicMaterial({ color: 0x8b95a3 }));
   const MAT_FRONT = shared(new THREE.MeshLambertMaterial({ color: 0xf0a500, transparent: true, opacity: 0.35 }));
   const MAT_ARCH = shared(new THREE.MeshLambertMaterial({ color: 0x444a52 }));
   const MAT_ALU = shared(new THREE.MeshStandardMaterial({ color: 0xb8bec6, metalness: 0.6, roughness: 0.35 }));
   const MAT_CORNER = shared(new THREE.MeshStandardMaterial({ color: 0xd6dbe1, metalness: 0.5, roughness: 0.4 }));
   const MAT_WHEEL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.9 }));
-  const MAT_HUB = shared(new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.4, roughness: 0.5 }));
+  const MAT_HUB = shared(new THREE.MeshStandardMaterial({ color: 0xd0d5db, metalness: 0.4, roughness: 0.5 }));
   const MAT_EDGE_ALU = shared(new THREE.LineBasicMaterial({ color: 0xb8bec6 }));
   const MAT_EDGE_SEL = shared(new THREE.LineBasicMaterial({ color: 0xf0a500 }));
   const MAT_EDGE_ERR = shared(new THREE.LineBasicMaterial({ color: 0xe5484d }));
@@ -127,7 +127,7 @@ export async function createView3d(container) {
     const wheelCyl = new THREE.Mesh(GEO_CYL, MAT_WHEEL);
     wheelCyl.scale.set(r, t, r);
     const hubCyl = new THREE.Mesh(GEO_CYL, MAT_HUB);
-    hubCyl.scale.set(r * 0.35, t * 1.15, r * 0.35);
+    hubCyl.scale.set(r * 0.5, t * 1.15, r * 0.5);
     if (a1 === 'x') { wheelCyl.rotation.z = Math.PI / 2; hubCyl.rotation.z = Math.PI / 2; }
     wheelCyl.position.set(pos.x, pos.y, pos.z);
     hubCyl.position.copy(wheelCyl.position);
