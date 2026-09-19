@@ -5,6 +5,7 @@ export const FORMAT = 'truckload';
 export const VERSION = 1;
 const ROTATIONS = [0, 90, 180, 270];
 const ARCH_SIDES = ['left', 'right', 'both'];
+const CASE_KINDS = ['case', 'truss'];
 
 const num = v => typeof v === 'number' && Number.isFinite(v);
 const arr = v => (Array.isArray(v) ? v : []);
@@ -19,11 +20,17 @@ function checkCase(c) {
   const layersOk = c.layers == null || (Array.isArray(c.layers) && c.layers.length > 0
     && new Set(c.layers).size === c.layers.length
     && c.layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4));
+  const kindOk = c.kind == null || CASE_KINDS.includes(c.kind);
   const propsOk = numOrNull(c.maxTopLoad) && numOrNull(c.stock)
     && (c.tippable === undefined || typeof c.tippable === 'boolean')
     && (c.stackable === undefined || typeof c.stackable === 'boolean')
-    && wheelHOk && layersOk;
+    && wheelHOk && layersOk && kindOk;
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
+  if (c.kind === 'truss') {
+    const t = c.truss;
+    const trussOk = t && num(t.length) && t.length > 0 && num(t.width) && t.width > 0 && num(t.count) && t.count > 0;
+    if (!trussOk) throw new Error(`Case „${c.name}“ hat ungültige Traversenwagen-Werte.`);
+  }
 }
 function checkArch(a) {
   return a && num(a.x) && a.x >= 0 && num(a.l) && a.l > 0 && num(a.w) && a.w > 0 && num(a.h) && a.h > 0

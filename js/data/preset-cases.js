@@ -1,10 +1,21 @@
 import { colorFor } from './categories.js';
+import { trussDims } from '../model/truss.js';
 
 const NOTE = 'Richtwert – Maße und Gewicht an dein Case anpassen';
 const P = (id, name, category, l, w, h, weight, opts = {}) => ({
   id: `preset-${id}`, builtin: true, name, content: '', category, color: colorFor(category),
   l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, wheelH: 12, note: NOTE, ...opts,
 });
+// F34 (34er) ≈ 6 kg/m, F44 (40er) ≈ 8 kg/m Traversengewicht; Wagen (Paar) ≈ 2 × 12 kg.
+const KG_PER_M = { 29: 6, 40: 8 };
+const DOLLY_KG = 2 * 12;
+const T = (id, name, length, width, count) => {
+  const truss = { length, width, count };
+  const { l, w, h } = trussDims(truss);
+  const weight = Math.round((length / 100) * count * KG_PER_M[width] + DOLLY_KG);
+  return P(id, name, 'Rigging', l, w, h, weight,
+    { kind: 'truss', truss, tippable: false, wheelH: 0, layers: [1, 2] });
+};
 
 // Truckmaß (EU): Breiten 60/80/120 cm, gehen in 240 cm Innenbreite auf (Megacase, Gäng-Case).
 // Truck Pack (US): 22,5″-Raster, Höhe 30″ inkl. Rollen (OSP, Gator, Brady).
@@ -23,6 +34,7 @@ export const PRESET_CASES = [
   P('led-8er', 'LED-Wall-Case (8 Panels)', 'Video', 120, 60, 110, 220, { tippable: false, layers: [1, 2] }),
   P('distro-63a', 'Stromverteiler 63 A', 'Strom', 80, 60, 90, 110, { tippable: false }),
   P('foh-pult', 'FOH-Pult-Case', 'Ton', 150, 80, 110, 160, { tippable: false, stackable: false, layers: [1] }),
-  P('truss-29-3m', 'Traverse 29er Dreipunkt 3 m', 'Rigging', 300, 29, 29, 15, { tippable: false, wheelH: 0 }),
-  P('truss-dolly', 'Traversen-Dolly 29er (8× 2 m)', 'Rigging', 200, 60, 70, 180, { tippable: false }),
+  T('truss-34-3m', 'Traversenwagen 34er 3 m (4 Stück)', 300, 29, 4),
+  T('truss-34-2m', 'Traversenwagen 34er 2 m (4 Stück)', 200, 29, 4),
+  T('truss-40-3m', 'Traversenwagen 40er 3 m (4 Stück)', 300, 40, 4),
 ];

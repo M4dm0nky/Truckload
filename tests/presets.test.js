@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { CATEGORIES, colorFor } from '../js/data/categories.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { PRESET_TRUCKS, DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
+import { trussDims, isTruss } from '../js/model/truss.js';
 
 const unique = xs => new Set(xs).size === xs.length;
 
@@ -21,9 +22,19 @@ test('Case-Vorlagen gültig', () => {
     assert.ok(c.wheelH >= 0 && c.wheelH < c.h, c.id);
   }
 });
-test('Traverse hat keine Rollen (wheelH 0)', () => {
-  const truss = PRESET_CASES.find(c => c.id === 'preset-truss-29-3m');
-  assert.equal(truss.wheelH, 0);
+test('Traversenwagen-Vorlagen sind vom Typ truss mit passenden Maßen', () => {
+  const trussCases = PRESET_CASES.filter(isTruss);
+  assert.equal(trussCases.length, 3);
+  for (const c of trussCases) {
+    assert.ok(c.truss && c.truss.length > 0 && c.truss.width > 0 && c.truss.count > 0, c.id);
+    const dims = trussDims(c.truss);
+    assert.equal(c.l, dims.l, c.id);
+    assert.equal(c.w, dims.w, c.id);
+    assert.equal(c.h, dims.h, c.id);
+    assert.equal(c.tippable, false, c.id);
+    assert.deepEqual(c.layers, [1, 2], c.id);
+    assert.equal(c.wheelH, 0, c.id);
+  }
 });
 test('Fahrzeug-Vorlagen gültig', () => {
   assert.ok(unique(PRESET_TRUCKS.map(t => t.id)));

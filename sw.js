@@ -21,6 +21,7 @@ const ASSETS = [
   'js/model/caseShape.js',
   'js/model/geometry.js',
   'js/model/packer.js',
+  'js/model/truss.js',
   'js/model/validate.js',
   'js/store/db.js',
   'js/store/io.js',

@@ -103,6 +103,28 @@ test('Case mit doppelten layers wird abgelehnt', () => {
   const bad = bundleWith({ cases: [{ ...own, layers: [1, 1] }], trucks: [], plans: [] });
   assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
 });
+test('Case mit gültigen Traversenwagen-Feldern wird akzeptiert', () => {
+  const truss = { ...own, kind: 'truss', truss: { length: 300, width: 29, count: 4 } };
+  const res = parseBundle(bundleWith({ cases: [truss], trucks: [], plans: [] }));
+  assert.deepEqual(res.cases[0].truss, { length: 300, width: 29, count: 4 });
+});
+test('Case mit kind truss ohne truss-Werte wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss' }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+test('Case mit kind truss und ungültiger Traversenlänge wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 0, width: 29, count: 4 } }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+test('Case mit unbekanntem kind wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'sonstwas' }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case ohne kind wird akzeptiert (Fallback case)', () => {
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].kind, undefined);
+});
+
 test('Vorlagen (builtin/preset-*) werden beim Import verworfen', () => {
   const presetById = { ...mkCase('preset-y', 10, 10, 10), builtin: false };
   const bad = bundleWith({ cases: [own, builtin, presetById], trucks: [mkTruck(), { ...mkTruck({ id: 'preset-truck' }) }], plans: [] });

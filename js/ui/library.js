@@ -1,7 +1,16 @@
 import { esc } from './dom.js';
 import { CATEGORIES } from '../data/categories.js';
 import { layersOf } from '../model/geometry.js';
+import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
 
+function trussProfileLabel(width) {
+  const p = TRUSS_PROFILES.find(p => p.width === width);
+  return p ? p.name.split(' ')[0] : `${width} cm`;
+}
+function trussLabel(c) {
+  const lengthM = (c.truss.length / 100).toFixed(2).replace('.', ',');
+  return `Traverse ${trussProfileLabel(c.truss.width)} · ${lengthM} m · ${c.truss.count} Stück · Wagen ${c.w}er`;
+}
 function layerLabel(c) {
   const layers = [...layersOf(c)].sort((a, b) => a - b);
   if (layers.length === 4) return '';
@@ -31,7 +40,9 @@ export function mountLibrary(el, h) {
     <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc(c.content || c.note || '')}">
       <span class="swatch" style="background:${esc(c.color)}"></span>
       <span class="lib-text"><b>${esc(c.name)}</b>
-        <small>${c.l}×${c.w}×${c.h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}</small></span>
+        <small>${isTruss(c)
+          ? esc(trussLabel(c))
+          : `${c.l}×${c.w}×${c.h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}</small></span>
       <button data-act="add" title="In die Ablage legen">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
     </div>`;

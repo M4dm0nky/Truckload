@@ -1,8 +1,11 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { wheelHOf, layersOf } from '../model/geometry.js';
+import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
+const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
+const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
 export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(c ?? {}) };
@@ -19,15 +22,34 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
         <label>Gewerk<select name="category">${CATEGORIES.map(k => `<option>${k.name}</option>`).join('')}</select></label>
         <label>Farbe<input type="color" name="color"></label>
       </div>
-      <fieldset><legend>Maße stehend, inkl. Rollen (cm)</legend>
+      <div class="row kind-switch">
+        <label><input type="radio" name="kind" value="case"> Case</label>
+        <label><input type="radio" name="kind" value="truss"> Traversenwagen</label>
+      </div>
+      <fieldset class="case-only"><legend>Maße stehend, inkl. Rollen (cm)</legend>
         <div class="row"><label>Länge<input ${dim('l')}></label><label>Breite<input ${dim('w')}></label><label>Höhe<input ${dim('h')}></label></div>
+      </fieldset>
+      <fieldset class="truss-only" hidden><legend>Traversenwagen</legend>
+        <div class="row">
+          <label>Traversenlänge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1"></label>
+        </div>
+        <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
+        <div class="row">
+          <label>Traversenbreite<select name="trussWidthProfile">
+            ${TRUSS_PROFILES.map(p => `<option value="${p.width}">${p.name} – ${p.width} cm</option>`).join('')}
+            <option value="custom">eigene …</option>
+          </select></label>
+          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="10" max="100" step="1" hidden></label>
+          <label>Anzahl Stück<input type="number" name="trussCount" min="1" max="12" step="1"></label>
+        </div>
+        <p class="hint truss-dims"></p>
       </fieldset>
       <div class="row">
         <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" step="0.5" required></label>
         <label>Bestand (Stück)<input type="number" name="stock" min="0" step="1"></label>
-        <label>Rollenhöhe (cm, 0 = ohne Rollen)<input type="number" name="wheelH" min="0" max="40" step="1"></label>
+        <label class="case-only">Rollenhöhe (cm, 0 = ohne Rollen)<input type="number" name="wheelH" min="0" max="40" step="1"></label>
       </div>
-      <label class="check"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
+      <label class="check case-only"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
       <label class="check"><input type="checkbox" name="stackable"> stapelbar (darf etwas obendrauf)</label>
       <label>Max. Last obendrauf (kg, leer = unbegrenzt)<input type="number" name="maxTopLoad" min="0" step="1"></label>
       <fieldset><legend>Erlaubte Lagen</legend>
@@ -54,6 +76,53 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   f.wheelH.value = wheelHOf(v);
   f.tippable.checked = v.tippable;
   f.stackable.checked = v.stackable;
+
+  const kindInputs = [...dlg.querySelectorAll('input[name="kind"]')];
+  const caseOnly = [...dlg.querySelectorAll('.case-only')];
+  const trussOnly = dlg.querySelector('.truss-only');
+  const trussDimsHint = dlg.querySelector('.truss-dims');
+  const truss0 = v.truss ?? TRUSS_DEFAULTS;
+  const knownWidth = TRUSS_PROFILES.some(p => p.width === truss0.width);
+  f.trussLength.value = truss0.length;
+  f.trussWidthProfile.value = knownWidth ? String(truss0.width) : 'custom';
+  f.trussWidthCustom.value = truss0.width;
+  f.trussWidthCustom.hidden = knownWidth;
+  f.trussCount.value = truss0.count;
+
+  function currentTruss() {
+    const width = f.trussWidthProfile.value === 'custom' ? Number(f.trussWidthCustom.value) : Number(f.trussWidthProfile.value);
+    return { length: Number(f.trussLength.value), width, count: Number(f.trussCount.value) };
+  }
+  function updateTrussDims() {
+    const t = currentTruss();
+    if (t.length > 0 && t.width > 0 && t.count > 0) {
+      const d = trussDims(t);
+      trussDimsHint.textContent = `→ im Truck ${d.l} × ${d.w} × ${d.h} cm`;
+    } else {
+      trussDimsHint.textContent = '';
+    }
+  }
+  function applyKind(kind) {
+    const isT = kind === 'truss';
+    for (const el of caseOnly) el.hidden = isT;
+    trussOnly.hidden = !isT;
+    f.l.required = !isT; f.w.required = !isT; f.h.required = !isT;
+    updateTrussDims();
+  }
+  for (const r of kindInputs) {
+    r.checked = r.value === (isTruss(v) ? 'truss' : 'case');
+    r.addEventListener('change', () => applyKind(r.value));
+  }
+  f.trussWidthProfile.addEventListener('change', () => {
+    f.trussWidthCustom.hidden = f.trussWidthProfile.value !== 'custom';
+    updateTrussDims();
+  });
+  for (const name of ['trussLength', 'trussWidthCustom', 'trussCount']) f[name].addEventListener('input', updateTrussDims);
+  for (const btn of dlg.querySelectorAll('.quick-len')) {
+    btn.addEventListener('click', () => { f.trussLength.value = btn.dataset.len; updateTrussDims(); });
+  }
+  applyKind(isTruss(v) ? 'truss' : 'case');
+
   const layerBoxes = [...dlg.querySelectorAll('.layer-check')];
   const initialLayers = layersOf(v);
   for (const cb of layerBoxes) cb.checked = initialLayers.includes(Number(cb.value));
@@ -81,18 +150,31 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
       }
       if (act !== 'save') return resolve(null);
       const numOrNull = s => (s === '' ? null : Number(s));
-      resolve({ action: 'save', value: {
+      const kind = kindInputs.find(cb => cb.checked)?.value ?? 'case';
+      const base = {
         ...v,
         id: isNew ? crypto.randomUUID() : v.id,
         builtin: false, note: undefined,
         name: f.name.value.trim(), content: f.content.value.trim(),
         category: f.category.value, color: f.color.value,
-        l: Number(f.l.value), w: Number(f.w.value), h: Number(f.h.value),
         weight: Number(f.weight.value), stock: numOrNull(f.stock.value),
-        maxTopLoad: numOrNull(f.maxTopLoad.value), wheelH: Number(f.wheelH.value),
-        tippable: f.tippable.checked, stackable: f.stackable.checked,
+        maxTopLoad: numOrNull(f.maxTopLoad.value), stackable: f.stackable.checked,
         layers: layerBoxes.filter(cb => cb.checked).map(cb => Number(cb.value)),
-      } });
+      };
+      if (kind === 'truss') {
+        const truss = currentTruss();
+        const d = trussDims(truss);
+        resolve({ action: 'save', value: {
+          ...base, kind: 'truss', truss,
+          l: d.l, w: d.w, h: d.h, wheelH: 0, tippable: false,
+        } });
+      } else {
+        resolve({ action: 'save', value: {
+          ...base, kind: undefined, truss: undefined,
+          l: Number(f.l.value), w: Number(f.w.value), h: Number(f.h.value),
+          wheelH: Number(f.wheelH.value), tippable: f.tippable.checked,
+        } });
+      }
     }, { once: true });
     dlg.returnValue = '';
     dlg.showModal();
