@@ -1,5 +1,5 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
-import { wheelHOf } from '../model/geometry.js';
+import { wheelHOf, layersOf } from '../model/geometry.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
@@ -30,6 +30,12 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
       <label class="check"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
       <label class="check"><input type="checkbox" name="stackable"> stapelbar (darf etwas obendrauf)</label>
       <label>Max. Last obendrauf (kg, leer = unbegrenzt)<input type="number" name="maxTopLoad" min="0" step="1"></label>
+      <fieldset><legend>Erlaubte Lagen</legend>
+        <div class="row">
+          ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" class="layer-check" value="${n}"> Lage ${n}</label>`).join('')}
+        </div>
+        <p class="hint layer-hint" hidden>Mindestens eine Lage muss ausgewählt sein.</p>
+      </fieldset>
       <menu>
         <button value="delete" class="danger" formnovalidate ${isNew ? 'hidden' : ''}>Löschen</button>
         <span class="grow"></span>
@@ -48,6 +54,18 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   f.wheelH.value = wheelHOf(v);
   f.tippable.checked = v.tippable;
   f.stackable.checked = v.stackable;
+  const layerBoxes = [...dlg.querySelectorAll('.layer-check')];
+  const initialLayers = layersOf(v);
+  for (const cb of layerBoxes) cb.checked = initialLayers.includes(Number(cb.value));
+  const layerHint = dlg.querySelector('.layer-hint');
+  dlg.querySelector('form').addEventListener('submit', e => {
+    const act = e.submitter?.value;
+    if ((act === 'save' || !act) && !layerBoxes.some(cb => cb.checked)) {
+      e.preventDefault();
+      layerHint.hidden = false;
+    }
+  });
+  for (const cb of layerBoxes) cb.addEventListener('change', () => { layerHint.hidden = true; });
   f.category.addEventListener('change', () => {
     if (f.color.value === colorFor(v.category) || f.color.value === colorFor(f.category.dataset.prev ?? v.category))
       f.color.value = colorFor(f.category.value);
@@ -73,6 +91,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
         weight: Number(f.weight.value), stock: numOrNull(f.stock.value),
         maxTopLoad: numOrNull(f.maxTopLoad.value), wheelH: Number(f.wheelH.value),
         tippable: f.tippable.checked, stackable: f.stackable.checked,
+        layers: layerBoxes.filter(cb => cb.checked).map(cb => Number(cb.value)),
       } });
     }, { once: true });
     dlg.returnValue = '';

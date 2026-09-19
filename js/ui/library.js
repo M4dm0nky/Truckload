@@ -1,5 +1,14 @@
 import { esc } from './dom.js';
 import { CATEGORIES } from '../data/categories.js';
+import { layersOf } from '../model/geometry.js';
+
+function layerLabel(c) {
+  const layers = [...layersOf(c)].sort((a, b) => a - b);
+  if (layers.length === 4) return '';
+  if (layers.length === 1) return `nur Lage ${layers[0]}`;
+  const contiguous = layers.every((n, i) => i === 0 || n === layers[i - 1] + 1);
+  return contiguous ? `Lage ${layers[0]}–${layers.at(-1)}` : `Lage ${layers.join(', ')}`;
+}
 
 export function mountLibrary(el, h) {
   el.innerHTML = `
@@ -22,7 +31,7 @@ export function mountLibrary(el, h) {
     <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc(c.content || c.note || '')}">
       <span class="swatch" style="background:${esc(c.color)}"></span>
       <span class="lib-text"><b>${esc(c.name)}</b>
-        <small>${c.l}×${c.w}×${c.h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}</small></span>
+        <small>${c.l}×${c.w}×${c.h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}</small></span>
       <button data-act="add" title="In die Ablage legen">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
     </div>`;

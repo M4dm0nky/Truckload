@@ -8,7 +8,7 @@ export function renderInspector(el, { selected, result, truck }) {
       <h2><span class="swatch" style="background:${esc(selected.c.color)}"></span>${result.sequence.get(selected.id)}. ${esc(selected.c.name)}</h2>
       ${selected.c.content ? `<p class="content">${esc(selected.c.content)}</p>` : ''}
       <dl>
-        <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}°</dd>
+        <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
         <dt>Maße stehend</dt><dd>${selected.c.l}×${selected.c.w}×${selected.c.h} cm</dd>
         <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
         <dt>Gewicht</dt><dd>${selected.c.weight} kg · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
