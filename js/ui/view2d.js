@@ -4,8 +4,35 @@ import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
 import { caseColors } from './caseStyle.js';
 import { archBoxes } from '../model/validate.js';
+import { isTruss } from '../model/truss.js';
 
 const PAD = 30;
+const FRAME_W = 3.5;      // cm, Breite des Alu-Hybridprofils
+const DETAIL_MIN = 40;    // cm, ab dieser Korpus-Kantenlänge werden Details gezeichnet
+
+// Verlaufs-/Musterdefinitionen einmal pro <svg>-Element anlegen (IDs an das Element gebunden,
+// damit mehrere gleichzeitig sichtbare Ansichten – App + Druck – sich nicht überschreiben).
+let uidSeq = 0;
+function svgUid(svg) {
+  if (!svg.dataset.tlUid) svg.dataset.tlUid = `tl${uidSeq++}`;
+  return svg.dataset.tlUid;
+}
+function addDefs(svg, uid) {
+  const defs = svgEl('defs', {}, svg);
+  const alu = svgEl('linearGradient', { id: `${uid}-alu`, x1: '0%', y1: '0%', x2: '100%', y2: '100%' }, defs);
+  svgEl('stop', { offset: '0%', 'stop-color': '#eef1f4' }, alu);
+  svgEl('stop', { offset: '55%', 'stop-color': '#aeb6bf' }, alu);
+  svgEl('stop', { offset: '100%', 'stop-color': '#7b838f' }, alu);
+
+  const ball = svgEl('radialGradient', { id: `${uid}-corner`, cx: '35%', cy: '30%', r: '70%' }, defs);
+  svgEl('stop', { offset: '0%', 'stop-color': '#ffffff' }, ball);
+  svgEl('stop', { offset: '35%', 'stop-color': '#cfd4da' }, ball);
+  svgEl('stop', { offset: '100%', 'stop-color': '#787f88' }, ball);
+
+  const lam = svgEl('pattern', { id: `${uid}-lam`, width: 5, height: 5, patternUnits: 'userSpaceOnUse' }, defs);
+  svgEl('circle', { cx: 1.2, cy: 1.2, r: 0.5, fill: '#ffffff', 'fill-opacity': 0.06 }, lam);
+  svgEl('circle', { cx: 3.6, cy: 3.6, r: 0.5, fill: '#ffffff', 'fill-opacity': 0.06 }, lam);
+}
 
 function drawWheel(g, box, mode, truck, fork) {
   const r = project(box, mode, truck);
@@ -29,7 +56,80 @@ function nearestEdgePoint(bodyRect, cx, cy) {
   return { x, y: v1 };
 }
 
-function drawCase(g, it, mode, truck, { colorMode, labels }) {
+// Einfache Darstellung (Traversenwagen – Task 6 ersetzt dies durch die echte Wagen-Geometrie;
+// auch die Fallback-Form für Cases, deren Korpusfläche für Details zu klein ist).
+function drawSimpleBody(g, bodyRect, colors) {
+  svgEl('rect', {
+    x: bodyRect.u0, y: bodyRect.v0, width: bodyRect.u1 - bodyRect.u0, height: bodyRect.v1 - bodyRect.v0,
+    fill: colors.body, class: 'body', rx: 2,
+  }, g);
+  if (colors.stripe) {
+    const w = bodyRect.u1 - bodyRect.u0;
+    svgEl('rect', {
+      x: bodyRect.u0 + 6, y: bodyRect.v0 + 6, width: Math.max(0, w - 12), height: 7,
+      fill: colors.stripe, class: 'stripe',
+    }, g);
+  }
+  for (const [cx, cy] of [
+    [bodyRect.u0, bodyRect.v0], [bodyRect.u1, bodyRect.v0],
+    [bodyRect.u0, bodyRect.v1], [bodyRect.u1, bodyRect.v1],
+  ]) svgEl('circle', { cx, cy, r: 4, class: 'corner' }, g);
+}
+
+// Flightcase-Look: Alu-Hybridprofil, Laminat-Korpus, Kugelecken, Deckelfuge mit Butterfly-
+// Verschlüssen und Schalengriffen. Details nur ab Korpusbreite ≥ DETAIL_MIN, sonst wie drawSimpleBody.
+function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid) {
+  const bw = bodyRect.u1 - bodyRect.u0, bh = bodyRect.v1 - bodyRect.v0;
+  if (Math.min(bw, bh) < DETAIL_MIN) return drawSimpleBody(g, bodyRect, colors);
+
+  svgEl('rect', {
+    x: bodyRect.u0, y: bodyRect.v0, width: bw, height: bh,
+    class: 'body framed', style: `fill:url(#${uid}-alu)`, rx: 2,
+  }, g);
+  const iw = Math.max(0, bw - 2 * FRAME_W), ih = Math.max(0, bh - 2 * FRAME_W);
+  svgEl('rect', {
+    x: bodyRect.u0 + FRAME_W, y: bodyRect.v0 + FRAME_W, width: iw, height: ih,
+    fill: colors.body, class: 'corpus', rx: 1,
+  }, g);
+  if (colorMode === 'black') svgEl('rect', {
+    x: bodyRect.u0 + FRAME_W, y: bodyRect.v0 + FRAME_W, width: iw, height: ih,
+    class: 'lam', style: `fill:url(#${uid}-lam)`, rx: 1,
+  }, g);
+
+  if (colors.stripe) svgEl('rect', {
+    x: bodyRect.u0 + FRAME_W + 6, y: bodyRect.v0 + FRAME_W + 6, width: Math.max(0, iw - 12), height: 7,
+    fill: colors.stripe, class: 'stripe',
+  }, g);
+
+  for (const [cx, cy] of [
+    [bodyRect.u0, bodyRect.v0], [bodyRect.u1, bodyRect.v0],
+    [bodyRect.u0, bodyRect.v1], [bodyRect.u1, bodyRect.v1],
+  ]) svgEl('circle', { cx, cy, r: 6, class: 'corner ball', style: `fill:url(#${uid}-corner)` }, g);
+
+  if (mode === 'top' || face !== 'bottom') return;
+
+  // Deckelfuge bei 25 % Höhe: doppelte Alu-Leiste + Butterfly-Verschlüsse (2 auf der Längsseite,
+  // 1 auf der Stirnseite – Ansicht 'side' zeigt die Längsseite, 'rear' die Stirnseite).
+  const y = bodyRect.v0 + bh * 0.25;
+  svgEl('line', { x1: bodyRect.u0, y1: y - 1.2, x2: bodyRect.u1, y2: y - 1.2, class: 'seam' }, g);
+  svgEl('line', { x1: bodyRect.u0, y1: y + 1.2, x2: bodyRect.u1, y2: y + 1.2, class: 'seam' }, g);
+  const latchXs = mode === 'side' ? [bodyRect.u0 + bw / 4, bodyRect.u0 + (bw * 3) / 4] : [bodyRect.u0 + bw / 2];
+  for (const lx of latchXs) {
+    svgEl('rect', { x: lx - 4.5, y: y - 3.5, width: 9, height: 7, rx: 1.5, class: 'latch' }, g);
+    svgEl('rect', { x: lx - 2.5, y: y - 1, width: 5, height: 2, rx: 1, class: 'latch-wing' }, g);
+  }
+
+  // Versenkte Schalengriffe: mittig auf der Stirnseite, ab 100 cm Länge zusätzlich 2 auf der Längsseite.
+  const hy = bodyRect.v0 + bh * 0.58;
+  const drawHandle = hx => {
+    svgEl('rect', { x: hx - 6, y: hy - 3.5, width: 12, height: 7, rx: 2, class: 'handle' }, g);
+    svgEl('rect', { x: hx - 3.5, y: hy - 1.5, width: 7, height: 3, rx: 1.5, class: 'handle-bracket' }, g);
+  };
+  if (mode === 'rear') drawHandle(bodyRect.u0 + bw / 2);
+  else if (bw >= 100) { drawHandle(bodyRect.u0 + bw / 4); drawHandle(bodyRect.u0 + (bw * 3) / 4); }
+}
+
+function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
   const r = project(it.box, mode, truck);
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
 
@@ -45,33 +145,11 @@ function drawCase(g, it, mode, truck, { colorMode, labels }) {
   }
 
   const colors = caseColors(it.c, colorMode);
-  svgEl('rect', {
-    x: bodyRect.u0, y: bodyRect.v0, width: bodyRect.u1 - bodyRect.u0, height: bodyRect.v1 - bodyRect.v0,
-    fill: colors.body, class: 'body', rx: 2,
-  }, g);
+  // Traversenwagen: Task 6 ersetzt diesen Zweig durch die echte Wagen-Darstellung.
+  if (isTruss(it.c)) drawSimpleBody(g, bodyRect, colors);
+  else drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid);
 
   if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
-
-  if (colors.stripe) {
-    const w = bodyRect.u1 - bodyRect.u0;
-    svgEl('rect', {
-      x: bodyRect.u0 + 6, y: bodyRect.v0 + 6, width: Math.max(0, w - 12), height: 7,
-      fill: colors.stripe, class: 'stripe',
-    }, g);
-  }
-
-  for (const [cx, cy] of [
-    [bodyRect.u0, bodyRect.v0], [bodyRect.u1, bodyRect.v0],
-    [bodyRect.u0, bodyRect.v1], [bodyRect.u1, bodyRect.v1],
-  ]) svgEl('circle', { cx, cy, r: 4, class: 'corner' }, g);
-
-  if (mode !== 'top' && face === 'bottom') {
-    const h = bodyRect.v1 - bodyRect.v0, w = bodyRect.u1 - bodyRect.u0;
-    const y = bodyRect.v0 + h * 0.22;
-    svgEl('line', { x1: bodyRect.u0, y1: y, x2: bodyRect.u1, y2: y, class: 'seam' }, g);
-    for (const cx of [bodyRect.u0 + w / 4, bodyRect.u0 + (w * 3) / 4])
-      svgEl('rect', { x: cx - 3, y: y - 2.5, width: 6, height: 5, class: 'latch' }, g);
-  }
 
   if (labels) svgEl('text', { x: (bodyRect.u0 + bodyRect.u1) / 2, y: (bodyRect.v0 + bodyRect.v1) / 2, class: 'label' }, g)
     .textContent = it.seq;
@@ -80,6 +158,8 @@ function drawCase(g, it, mode, truck, { colorMode, labels }) {
 
 export function renderView(svg, mode, { truck, result, selectedId, labels = true, colorMode = 'black' }) {
   svg.replaceChildren();
+  const uid = svgUid(svg);
+  addDefs(svg, uid);
   const W = mode === 'rear' ? truck.w : truck.l;
   const H = mode === 'top' ? truck.w : truck.h;
   svg.setAttribute('viewBox', `${-PAD} ${-PAD} ${W + 2 * PAD} ${H + 2 * PAD}`);
@@ -107,7 +187,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
       ...it,
       seq: result.sequence.get(it.id),
       title: `${result.sequence.get(it.id)}. ${it.c.name}${it.c.content ? ` – ${it.c.content}` : ''}`,
-    }, mode, truck, { colorMode, labels });
+    }, mode, truck, { colorMode, labels, uid });
     if (bad) {
       const r = project(it.box, mode, truck);
       svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'alert' }, g);
