@@ -185,6 +185,10 @@ renderHooks.push((s, d) => {
 
 // Ladepläne
 function switchPlan(plan) {
+  // ausstehende Änderungen des bisherigen Plans sofort sichern
+  const current = store.get().plan;
+  clearTimeout(saveTimer);
+  if (current !== lastSaved) { lastSaved = current; repo.savePlan(current); }
   store.update(s => ({ ...s, plans: [s.plan, ...s.plans.filter(p => p.id !== s.plan.id && p.id !== plan.id)], plan, selectedId: null }));
   store.resetHistory();
 }
