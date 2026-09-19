@@ -1,2 +1,3 @@
-// Anzeige-Version der App. Bei jedem Release hier, in package.json und im CHANGELOG erhöhen.
-export const APP_VERSION = '0.1';
+// Versionsnummer der App – überall gleich (Anzeige, package.json, CHANGELOG, README, index.html, sw.js).
+// Bei jedem Release an all diesen Stellen erhöhen; tests/version.test.js prüft den Gleichstand.
+export const APP_VERSION = '0.1.1';

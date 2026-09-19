@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.1** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.1.1** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder gekippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 

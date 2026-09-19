@@ -1,11 +1,12 @@
 # Changelog
 
-Versionierung: `V <Major>.<Minor>` in der App (js/version.js), `package.json` als `<Major>.<Minor>.<Patch>`.
+Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
 ## V 0.1.1 – 2026-09-19
 
 - Einfacher Start: App läuft über GitHub Pages (https://m4dm0nky.github.io/Truckload/), kein Terminal nötig
 - Installierbar als App (Dock), App-Symbol, läuft nach dem ersten Öffnen offline (Service-Worker)
+- Einheitliche Versionsnummer überall (App zeigt jetzt „V 0.1.1“), per Test abgesichert
 
 ## V 0.1 – 2026-09-19
 
