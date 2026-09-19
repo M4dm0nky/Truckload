@@ -1,3 +1,5 @@
+import { APP_VERSION } from '../version.js';
+
 export const FORMAT = 'truckload';
 export const VERSION = 1;
 
@@ -20,7 +22,7 @@ function checkPlan(p) {
 
 export function exportBundle({ cases, trucks, plans }, now = new Date()) {
   return JSON.stringify({
-    format: FORMAT, version: VERSION, exportedAt: now.toISOString(),
+    format: FORMAT, version: VERSION, appVersion: APP_VERSION, exportedAt: now.toISOString(),
     cases: cases.filter(c => !c.builtin), trucks: trucks.filter(t => !t.builtin), plans,
   }, null, 2);
 }

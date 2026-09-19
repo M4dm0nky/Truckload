@@ -1,3 +1,4 @@
+import { APP_VERSION } from './version.js';
 import * as repo from './store/repo.js';
 import { createStore } from './state.js';
 import { validatePlan } from './model/validate.js';
@@ -293,5 +294,9 @@ $('#import').onchange = async e => {
     alert(`Import fehlgeschlagen: ${err.message}`);
   }
 };
+
+// Version sichtbar machen (einzige Quelle: js/version.js)
+$('#app-version').textContent = `V ${APP_VERSION}`;
+document.title = `Truckload V ${APP_VERSION}`;
 
 scheduleRender();

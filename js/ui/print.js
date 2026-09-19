@@ -1,3 +1,4 @@
+import { APP_VERSION } from '../version.js';
 import { esc, fmtM, ORIENTATION_LABEL } from './dom.js';
 import { renderView } from './view2d.js';
 
@@ -9,7 +10,7 @@ export function buildPrint(root, { plan, truck, result }) {
       <h1>${esc(plan.name)}</h1>
       <p>${esc(truck.name)} · Innen ${truck.l}×${truck.w}×${truck.h} cm · ${new Date().toLocaleDateString('de-DE')}
         · ${Math.round(t.weight).toLocaleString('de-DE')} / ${truck.payload.toLocaleString('de-DE')} kg
-        · ${fmtM(t.loadMeters * 100)} Lademeter · ${t.count} Cases</p>
+        · ${fmtM(t.loadMeters * 100)} Lademeter · ${t.count} Cases · Truckload V ${APP_VERSION}</p>
     </header>
     <figure><figcaption>Draufsicht (Stirnwand links)</figcaption><svg class="p-top"></svg></figure>
     <figure><figcaption>Seitenansicht (von links)</figcaption><svg class="p-side"></svg></figure>

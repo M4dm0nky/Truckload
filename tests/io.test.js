@@ -10,6 +10,7 @@ test('Export enthält nur eigene Cases/Fahrzeuge und alle Pläne', () => {
   const json = JSON.parse(exportBundle({ cases: [own, builtin], trucks: [mkTruck(), { ...mkTruck(), id: 'b', builtin: true }], plans: [plan([])] }, new Date('2026-09-18T10:00:00Z')));
   assert.equal(json.format, 'truckload');
   assert.equal(json.version, 1);
+  assert.equal(json.appVersion, '0.1');
   assert.deepEqual(json.cases.map(c => c.id), ['own']);
   assert.deepEqual(json.trucks.map(t => t.id), ['t']);
   assert.equal(json.plans.length, 1);

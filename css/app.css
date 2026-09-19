@@ -19,6 +19,7 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .topbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .topbar .group { display: flex; gap: 4px; align-items: center; }
 .brand { color: var(--accent); letter-spacing: .02em; }
+.brand .version { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 4px; }
 .grow { flex: 1; }
 .seg button.on { background: var(--accent); color: #111; border-color: var(--accent); }
 
