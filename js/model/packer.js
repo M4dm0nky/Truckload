@@ -35,9 +35,14 @@ export function buildStacks(caseList, truck) {
   const entries = caseList.map(c => ({ c, o: chooseOrientation(c, truck) }));
   for (const e of entries) if (!e.o) unplaced.push(e.c);
   const maxLayer = c => Math.max(...layersOf(c));
-  const ok = entries.filter(e => e.o).sort((a, b) =>
+  const minLayer = c => Math.min(...layersOf(c));
+  const ready = entries.filter(e => e.o);
+  const withFloor = ready.filter(e => layersOf(e.c).includes(1)).sort((a, b) =>
     maxLayer(a.c) - maxLayer(b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
-  for (const { c, o } of ok) {
+  const withoutFloor = ready.filter(e => !layersOf(e.c).includes(1)).sort((a, b) =>
+    minLayer(a.c) - minLayer(b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
+
+  for (const { c, o } of withFloor) {
     const key = `${o.d.dx}x${o.d.dy}`;
     const allowed = layersOf(c);
     const target = stacks.find(s => s.key === key && s.items.length < 4
@@ -46,8 +51,19 @@ export function buildStacks(caseList, truck) {
       target.items.push({ c, o, z: target.height });
       target.height += o.d.dz;
       target.weight += c.weight;
-    } else if (allowed.includes(1)) {
+    } else {
       stacks.push({ key, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, items: [{ c, o, z: 0 }] });
+    }
+  }
+  for (const { c, o } of withoutFloor) {
+    const key = `${o.d.dx}x${o.d.dy}`;
+    const allowed = layersOf(c);
+    const target = stacks.find(s => s.key === key && s.items.length < 4
+      && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
+    if (target) {
+      target.items.push({ c, o, z: target.height });
+      target.height += o.d.dz;
+      target.weight += c.weight;
     } else {
       unplaced.push(c);
     }

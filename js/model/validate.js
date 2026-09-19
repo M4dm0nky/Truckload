@@ -101,7 +101,7 @@ export function validatePlan(plan, caseById, truck) {
     if (n > 4) add(it.id, 'tooManyLayers', `„${it.c.name}“ steht in Lage ${n} – mehr als 4 Lagen sind nicht vorgesehen.`);
     else {
       const allowed = layersOf(it.c);
-      if (!allowed.includes(n)) add(it.id, 'layer', `„${it.c.name}“ darf nicht in Lage ${n} stehen (erlaubt: ${allowed.join(', ')}).`);
+      if (!allowed.includes(n)) add(it.id, 'layer', `„${it.c.name}“ darf nicht in Lage ${n} stehen (erlaubt: ${[...allowed].sort((a, b) => a - b).join(', ')}).`);
     }
   }
 

@@ -68,6 +68,22 @@ test('Case, das Lage 1 nicht erlaubt, kommt nur auf bestehende Stapel oder wird 
   assert.equal(withBase.length, 1);
   assert.deepEqual(withBase[0].items.map(it => it.c.id), ['base', 'top']);
 });
+test('Case ohne Lage 1 findet einen später aufgebauten Basis-Stapel (unabhängig von der Eingabereihenfolge)', () => {
+  const def = mkCase('def', 120, 60, 60);
+  const top2 = mkCase('top2', 120, 60, 60, { layers: [2] });
+  const { stacks, unplaced } = buildStacks([def, top2], mkTruck());
+  assert.deepEqual(unplaced, []);
+  assert.equal(stacks.length, 1);
+  assert.deepEqual(stacks[0].items.map(it => it.c.id), ['def', 'top2']);
+});
+test('Case mit nur Lage 3 landet auf einem 2-hohen Stapel', () => {
+  const def = mkCase('def', 120, 60, 60);
+  const only3 = mkCase('only3', 120, 60, 60, { layers: [3] });
+  const { stacks, unplaced } = buildStacks([def, def, only3], mkTruck());
+  assert.deepEqual(unplaced, []);
+  assert.equal(stacks.length, 1);
+  assert.deepEqual(stacks[0].items.map(it => it.c.id), ['def', 'def', 'only3']);
+});
 test('Hindernisse werden umgangen', () => {
   const K = mkCase('k', 120, 60, 60);
   const obstacles = [{ x0: 0, y0: 0, z0: 0, x1: 120, y1: 248, z1: 60 }];

@@ -91,6 +91,12 @@ test('layer-Issue: nur Lage 1 erlaubt, steht aber in Lage 2', () => {
   assert.deepEqual(codes(r,'b'), ['layer']);
   assert.match(r.byPlacement.get('b')[0].message, /„rack“ darf nicht in Lage 2 stehen \(erlaubt: 1\)\./);
 });
+test('layer-Issue: erlaubte Lagen werden im Text numerisch sortiert', () => {
+  const LED = mkCase('led', 80, 60, 60, { layers: [2, 1] });
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','k',0,94,60), P('c','led',0,94,120)]), byId(K, LED), mkTruck());
+  assert.deepEqual(codes(r,'c'), ['layer']);
+  assert.match(r.byPlacement.get('c')[0].message, /„led“ darf nicht in Lage 3 stehen \(erlaubt: 1, 2\)\./);
+});
 test('tooManyLayers bei 5er-Stapel flacher Cases', () => {
   const F = mkCase('f', 120, 60, 50);
   const r = validatePlan(plan([
