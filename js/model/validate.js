@@ -45,7 +45,7 @@ export function validatePlan(plan, caseById, truck) {
       || b.x1 > truck.l + EPS || b.y1 > truck.w + EPS || b.z1 > truck.h + EPS)
       add(it.id, 'outOfBounds', `${n} ragt über den Laderaum hinaus.`);
     if (arches.some(a => overlaps(a, b))) add(it.id, 'arch', `${n} kollidiert mit einem Radkasten.`);
-    if (it.p.orientation !== 'standing' && !it.c.tippable) add(it.id, 'notTippable', `${n} darf nicht gekippt werden.`);
+    if (it.p.orientation !== 'standing' && !it.c.tippable) add(it.id, 'notTippable', `${n} darf nicht getippt werden.`);
   }
 
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {

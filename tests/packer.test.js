@@ -7,11 +7,11 @@ import { mkCase, mkTruck, SPRINTER, plan, byId, counter } from './fixtures.js';
 const times = (c, n) => Array.from({ length: n }, () => c);
 const placementIssues = r => r.issues.filter(i => i.placementId);
 
-test('nicht kippbar → stehend', () => {
+test('nicht tippbar → stehend', () => {
   const c = mkCase('a', 120, 60, 100, { tippable: false });
   assert.equal(chooseOrientation(c, mkTruck()).orientation, 'standing');
 });
-test('kippbar → gekippt, wenn es besser füllt', () => {
+test('tippbar → getippt, wenn es besser füllt', () => {
   const c = mkCase('a', 120, 60, 100, { tippable: true });
   assert.notEqual(chooseOrientation(c, mkTruck()).orientation, 'standing');
 });

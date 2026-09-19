@@ -15,7 +15,7 @@ export function renderInspector(el, { selected, result, truck }) {
       </dl>
       <div class="btns">
         <button data-act="rotate">Drehen <kbd>R</kbd></button>
-        <button data-act="tip" ${selected.c.tippable ? '' : 'disabled title="Case ist nicht kippbar"'}>Kippen <kbd>T</kbd></button>
+        <button data-act="tip" ${selected.c.tippable ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
         <button data-act="dup">Duplizieren <kbd>D</kbd></button>
         <button data-act="tray">In Ablage</button>
         <button data-act="edit-case">Case bearbeiten</button>
@@ -42,5 +42,5 @@ export function renderInspector(el, { selected, result, truck }) {
         i.placementId && result.sequence.has(i.placementId) ? `<b>${result.sequence.get(i.placementId)}.</b> ` : ''}${esc(i.message)}</p>`).join('')
         || '<p class="ok">Alles in Ordnung.</p>'}
     </section>
-    <p class="hint">Tasten: R drehen · T kippen · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
+    <p class="hint">Tasten: R drehen · T tippen · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
 }

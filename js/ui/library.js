@@ -22,7 +22,7 @@ export function mountLibrary(el, h) {
     <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc(c.content || c.note || '')}">
       <span class="swatch" style="background:${esc(c.color)}"></span>
       <span class="lib-text"><b>${esc(c.name)}</b>
-        <small>${c.l}×${c.w}×${c.h} cm · ${c.weight} kg${c.tippable ? ' · kippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}</small></span>
+        <small>${c.l}×${c.w}×${c.h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}</small></span>
       <button data-act="add" title="In die Ablage legen">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
     </div>`;

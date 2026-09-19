@@ -47,7 +47,7 @@ test('Überlast wird durchgereicht', () => {
   assert.equal(r.load.get('a'), 200);
   assert.deepEqual(codes(r,'a'), ['overload']);
 });
-test('gekippt, obwohl nicht kippbar', () => {
+test('getippt, obwohl nicht tippbar', () => {
   const r = validatePlan(plan([P('a','k',0,0,0,{ orientation: 'tipLong' })]), byId(K), mkTruck());
   assert.deepEqual(codes(r,'a'), ['notTippable']);
 });

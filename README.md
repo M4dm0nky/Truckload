@@ -2,7 +2,7 @@
 
 Version: **V 0.1.1** – siehe [CHANGELOG.md](CHANGELOG.md).
 
-Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder gekippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
+Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
 ## Start
 
@@ -39,7 +39,7 @@ So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gel�
 | Taste | Aktion |
 |-------|--------|
 | **R** | Gedrehte Case um 90° drehen |
-| **T** | Case kippen (tipLong / tipShort wechseln) |
+| **T** | Case tippen (tipLong / tipShort wechseln) |
 | **D** | Case duplizieren |
 | **Entf** | Case löschen |
 | **Pfeile (↑↓←→)** | Case in 5-cm-Schritten verschieben |

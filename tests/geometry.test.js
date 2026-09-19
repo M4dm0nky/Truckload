@@ -10,8 +10,8 @@ const B = (x0, y0, z0, x1, y1, z1) => ({ x0, y0, z0, x1, y1, z1 });
 test('stehend 0°', () => assert.deepEqual(effectiveDims(C, { orientation: 'standing', rot: 0 }), { dx: 120, dy: 60, dz: 80 }));
 test('stehend 90°', () => assert.deepEqual(effectiveDims(C, { orientation: 'standing', rot: 90 }), { dx: 60, dy: 120, dz: 80 }));
 test('180° = 0°', () => assert.deepEqual(effectiveDims(C, { orientation: 'standing', rot: 180 }), { dx: 120, dy: 60, dz: 80 }));
-test('gekippt Längsseite: Höhe wird Tiefe', () => assert.deepEqual(effectiveDims(C, { orientation: 'tipLong', rot: 0 }), { dx: 120, dy: 80, dz: 60 }));
-test('gekippt Stirnseite: Länge wird Höhe', () => assert.deepEqual(effectiveDims(C, { orientation: 'tipShort', rot: 0 }), { dx: 80, dy: 60, dz: 120 }));
+test('getippt Längsseite: Höhe wird Tiefe', () => assert.deepEqual(effectiveDims(C, { orientation: 'tipLong', rot: 0 }), { dx: 120, dy: 80, dz: 60 }));
+test('getippt Stirnseite: Länge wird Höhe', () => assert.deepEqual(effectiveDims(C, { orientation: 'tipShort', rot: 0 }), { dx: 80, dy: 60, dz: 120 }));
 test('unbekannte Lage wirft', () => assert.throws(() => effectiveDims(C, { orientation: 'x', rot: 0 })));
 
 test('boxOf', () => assert.deepEqual(boxOf(C, { x: 10, y: 20, z: 30, orientation: 'standing', rot: 0 }), B(10, 20, 30, 130, 80, 110)));

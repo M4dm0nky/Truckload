@@ -36,7 +36,7 @@ test('rotate dreht um 90°', () => {
   const pl = A.rotate(plan([P('a','k',0,0,0)]), 'a', ctx());
   assert.equal(find(pl,'a').rot, 90);
 });
-test('cycleTip nur bei kippbaren Cases', () => {
+test('cycleTip nur bei tippbaren Cases', () => {
   assert.equal(find(A.cycleTip(plan([P('a','k',0,0,0)]), 'a', ctx()), 'a').orientation, 'standing');
   assert.equal(find(A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx()), 'a').orientation, 'tipLong');
 });

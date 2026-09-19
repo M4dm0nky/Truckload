@@ -13,6 +13,6 @@ export const fmtM = cm => `${(cm / 100).toFixed(2).replace('.', ',')} m`;
 
 export const ORIENTATION_LABEL = {
   standing: 'stehend',
-  tipLong: 'gekippt (Längsseite)',
-  tipShort: 'gekippt (Stirnseite)',
+  tipLong: 'getippt (Längsseite)',
+  tipShort: 'getippt (Stirnseite)',
 };

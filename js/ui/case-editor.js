@@ -25,7 +25,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
         <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" step="0.5" required></label>
         <label>Bestand (Stück)<input type="number" name="stock" min="0" step="1"></label>
       </div>
-      <label class="check"><input type="checkbox" name="tippable"> kippbar (darf auf die Seite gelegt werden)</label>
+      <label class="check"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
       <label class="check"><input type="checkbox" name="stackable"> stapelbar (darf etwas obendrauf)</label>
       <label>Max. Last obendrauf (kg, leer = unbegrenzt)<input type="number" name="maxTopLoad" min="0" step="1"></label>
       <menu>
