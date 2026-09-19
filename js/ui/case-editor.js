@@ -39,7 +39,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
             ${TRUSS_PROFILES.map(p => `<option value="${p.width}">${p.name} – ${p.width} cm</option>`).join('')}
             <option value="custom">eigene …</option>
           </select></label>
-          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="10" max="100" step="1" required hidden></label>
+          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="10" max="100" step="1" required></label>
           <label>Anzahl Stück<input type="number" name="trussCount" min="1" max="12" step="1" required></label>
         </div>
         <p class="hint truss-dims"></p>
@@ -83,12 +83,13 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   const trussOnly = dlg.querySelector('.truss-only');
   const trussDimsHint = dlg.querySelector('.truss-dims');
   const trussHint = dlg.querySelector('.truss-hint');
+  const trussWidthCustomLabel = f.trussWidthCustom.parentElement;
   const truss0 = v.truss ?? TRUSS_DEFAULTS;
   const knownWidth = TRUSS_PROFILES.some(p => p.width === truss0.width);
   f.trussLength.value = truss0.length;
   f.trussWidthProfile.value = knownWidth ? String(truss0.width) : 'custom';
   f.trussWidthCustom.value = truss0.width;
-  f.trussWidthCustom.hidden = knownWidth;
+  trussWidthCustomLabel.hidden = knownWidth;
   f.trussCount.value = truss0.count;
 
   function currentTruss() {
@@ -117,7 +118,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
     r.addEventListener('change', () => applyKind(r.value));
   }
   f.trussWidthProfile.addEventListener('change', () => {
-    f.trussWidthCustom.hidden = f.trussWidthProfile.value !== 'custom';
+    trussWidthCustomLabel.hidden = f.trussWidthProfile.value !== 'custom';
     updateTrussDims();
   });
   for (const name of ['trussLength', 'trussWidthCustom', 'trussCount']) f[name].addEventListener('input', updateTrussDims);
