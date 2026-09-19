@@ -4,7 +4,7 @@ export const TRUSS_PROFILES = [{ name: '34er (F34)', width: 29 }, { name: '40er 
 
 export function trussDims({ length, width, count }) {
   const perRow = 2;
-  const w = perRow * width <= 60 ? 60 : 80;
+  const w = perRow * width <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1];
   const h = DOLLY_H + Math.ceil(count / perRow) * width;
   return { l: length, w, h };
 }

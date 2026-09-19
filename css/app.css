@@ -82,6 +82,14 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .hint { color: var(--muted); font-size: 12px; margin: 0; }
 .print-root { display: none; }
 
+.editor .kind-switch { display: flex; gap: 4px; }
+.editor .kind-switch label { display: flex; align-items: center; gap: 6px; margin: 0; padding: 5px 10px;
+  border: 1px solid var(--line); border-radius: 6px; cursor: pointer; color: var(--text); }
+.editor .kind-switch label:has(input:checked) { background: var(--accent); color: #111; border-color: var(--accent); }
+.editor .quick-lengths { display: flex; flex-wrap: wrap; gap: 6px; }
+.editor .quick-len { padding: 3px 10px; font-size: 12px; border-radius: 999px; }
+.editor .truss-dims { color: var(--muted); font-size: 12px; margin: 0; }
+
 .lib-head { display: flex; justify-content: space-between; align-items: center; }
 .library h2 { margin: 0; font-size: 16px; }
 .library h3 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }

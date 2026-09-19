@@ -31,7 +31,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
       </fieldset>
       <fieldset class="truss-only" hidden><legend>Traversenwagen</legend>
         <div class="row">
-          <label>Traversenlänge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1"></label>
+          <label>Traversenlänge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
         </div>
         <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
         <div class="row">
@@ -39,10 +39,11 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
             ${TRUSS_PROFILES.map(p => `<option value="${p.width}">${p.name} – ${p.width} cm</option>`).join('')}
             <option value="custom">eigene …</option>
           </select></label>
-          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="10" max="100" step="1" hidden></label>
-          <label>Anzahl Stück<input type="number" name="trussCount" min="1" max="12" step="1"></label>
+          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="10" max="100" step="1" required hidden></label>
+          <label>Anzahl Stück<input type="number" name="trussCount" min="1" max="12" step="1" required></label>
         </div>
         <p class="hint truss-dims"></p>
+        <p class="hint truss-hint" hidden>Traversenlänge, -breite und Stückzahl müssen größer als 0 sein.</p>
       </fieldset>
       <div class="row">
         <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" step="0.5" required></label>
@@ -81,6 +82,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   const caseOnly = [...dlg.querySelectorAll('.case-only')];
   const trussOnly = dlg.querySelector('.truss-only');
   const trussDimsHint = dlg.querySelector('.truss-dims');
+  const trussHint = dlg.querySelector('.truss-hint');
   const truss0 = v.truss ?? TRUSS_DEFAULTS;
   const knownWidth = TRUSS_PROFILES.some(p => p.width === truss0.width);
   f.trussLength.value = truss0.length;
@@ -94,6 +96,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
     return { length: Number(f.trussLength.value), width, count: Number(f.trussCount.value) };
   }
   function updateTrussDims() {
+    trussHint.hidden = true;
     const t = currentTruss();
     if (t.length > 0 && t.width > 0 && t.count > 0) {
       const d = trussDims(t);
@@ -129,9 +132,18 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   const layerHint = dlg.querySelector('.layer-hint');
   dlg.querySelector('form').addEventListener('submit', e => {
     const act = e.submitter?.value;
-    if ((act === 'save' || !act) && !layerBoxes.some(cb => cb.checked)) {
+    if (act !== 'save' && act) return;
+    if (!layerBoxes.some(cb => cb.checked)) {
       e.preventDefault();
       layerHint.hidden = false;
+    }
+    const kind = kindInputs.find(cb => cb.checked)?.value ?? 'case';
+    if (kind === 'truss') {
+      const t = currentTruss();
+      if (!(t.length > 0 && t.width > 0 && t.count > 0)) {
+        e.preventDefault();
+        trussHint.hidden = false;
+      }
     }
   });
   for (const cb of layerBoxes) cb.addEventListener('change', () => { layerHint.hidden = true; });
