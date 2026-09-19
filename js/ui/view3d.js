@@ -1,6 +1,9 @@
 import { archBoxes } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors } from './caseStyle.js';
+import { isTruss } from '../model/truss.js';
+
+const DETAIL_MIN = 40; // cm, ab dieser kleinsten Korpus-Kante werden Flightcase-Details gezeichnet
 
 export async function createView3d(container) {
   const THREE = await import('three');
@@ -54,13 +57,47 @@ export async function createView3d(container) {
   const MAT_EDGE_SEL = shared(new THREE.LineBasicMaterial({ color: 0xf0a500 }));
   const MAT_EDGE_ERR = shared(new THREE.LineBasicMaterial({ color: 0xe5484d }));
 
+  // Flightcase-Look: Alu-Profilstäbe (je Sorte ein InstancedMesh, Farbe je Instanz für Auswahl/Fehler),
+  // Kugelecken, Deckelfuge/Butterfly-Verschlüsse, Schalengriffe.
+  const MAT_PROFILE = shared(new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.7, roughness: 0.35 }));
+  const MAT_CHROME = shared(new THREE.MeshStandardMaterial({ color: 0xe2e6ea, metalness: 0.9, roughness: 0.15 }));
+  const MAT_SEAM_BAND = shared(new THREE.MeshStandardMaterial({ color: 0xb8bec6, metalness: 0.6, roughness: 0.35 }));
+  const MAT_HANDLE_SHELL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.85 }));
+  const COL_PROFILE_N = new THREE.Color(0xb8bec6);
+  const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
+  const COL_PROFILE_BAD = new THREE.Color(0xe5484d);
+
+  // Feine Körnung für den Laminat-Korpus – einmal prozedural erzeugt, geteilt über alle Cases.
+  function makeLaminateTexture() {
+    const size = 64;
+    const cnv = document.createElement('canvas');
+    cnv.width = cnv.height = size;
+    const ctx = cnv.getContext('2d');
+    const img = ctx.createImageData(size, size);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const n = 128 + (Math.random() - 0.5) * 50;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = n;
+      img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    const tex = new THREE.CanvasTexture(cnv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(6, 3);
+    tex.userData.shared = true;
+    return tex;
+  }
+  const LAM_TEX = makeLaminateTexture();
+
   // Korpus-/Band-Materialien pro Farbe gecacht (Case-Farbe wechselt selten, nie disposen).
   const bodyMatCache = new Map();
   const bodyMaterial = (color, bad) => {
     const key = `${color}|${bad}`;
     let m = bodyMatCache.get(key);
     if (!m) {
-      m = shared(new THREE.MeshStandardMaterial({ color, roughness: 0.7, emissive: bad ? 0x661111 : 0x000000 }));
+      m = shared(new THREE.MeshStandardMaterial({
+        color, roughness: 0.7, emissive: bad ? 0x661111 : 0x000000,
+        bumpMap: LAM_TEX, bumpScale: 0.12,
+      }));
       bodyMatCache.set(key, m);
     }
     return m;
@@ -135,8 +172,82 @@ export async function createView3d(container) {
     return [boxMesh(plate, MAT_ALU), boxMesh(forkA, MAT_ALU), boxMesh(forkB, MAT_ALU), wheelCyl, hubCyl];
   }
 
+  // Die 12 Kanten eines Korpus als Alu-Profilstäbe (3×3 cm, leicht über die Flächen hinausstehend).
+  function edgeBars(b, out) {
+    const t = 1.5, ext = 0.3;
+    for (const y of [b.y0, b.y1]) for (const z of [b.z0, b.z1])
+      out.push({ x0: b.x0 - ext, x1: b.x1 + ext, y0: y - t, y1: y + t, z0: z - t, z1: z + t });
+    for (const x of [b.x0, b.x1]) for (const z of [b.z0, b.z1])
+      out.push({ x0: x - t, x1: x + t, y0: b.y0 - ext, y1: b.y1 + ext, z0: z - t, z1: z + t });
+    for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1])
+      out.push({ x0: x - t, x1: x + t, y0: y - t, y1: y + t, z0: b.z0 - ext, z1: b.z1 + ext });
+  }
+
+  // Butterfly-Verschlüsse auf dem Deckelfuge-Band: 2 auf den Längsseiten (y0/y1), 1 auf jeder
+  // Stirnseite (x0/x1) – analog zur 2D-Darstellung (Ansicht 'side'/'rear').
+  function latchBoxes(b, zSeam, out) {
+    const hw = 2, d = 0.9, hh = 1.5;
+    for (const fx of [0.25, 0.75]) {
+      const cx = b.x0 + (b.x1 - b.x0) * fx;
+      out.push({ x0: cx - hw, x1: cx + hw, y0: b.y0 - d, y1: b.y0 + 0.3, z0: zSeam - hh, z1: zSeam + hh });
+      out.push({ x0: cx - hw, x1: cx + hw, y0: b.y1 - 0.3, y1: b.y1 + d, z0: zSeam - hh, z1: zSeam + hh });
+    }
+    const cy = (b.y0 + b.y1) / 2;
+    out.push({ x0: b.x0 - d, x1: b.x0 + 0.3, y0: cy - hw, y1: cy + hw, z0: zSeam - hh, z1: zSeam + hh });
+    out.push({ x0: b.x1 - 0.3, x1: b.x1 + d, y0: cy - hw, y1: cy + hw, z0: zSeam - hh, z1: zSeam + hh });
+  }
+
+  // Versenkte Schalengriffe mittig auf den Stirnseiten (x0/x1): dunkle, leicht vertiefte Schale
+  // + Chrom-Bügel, der leicht über die Fläche hinaussteht.
+  function handleMeshes(b) {
+    const cy = (b.y0 + b.y1) / 2, cz = b.z0 + (b.z1 - b.z0) * 0.55;
+    const hw = 6, hh = 3.5, depth = 3;
+    const out = [];
+    for (const side of [0, 1]) {
+      const outer = side === 0 ? b.x0 : b.x1;
+      const shell = side === 0
+        ? { x0: outer, x1: outer + depth, y0: cy - hw, y1: cy + hw, z0: cz - hh, z1: cz + hh }
+        : { x0: outer - depth, x1: outer, y0: cy - hw, y1: cy + hw, z0: cz - hh, z1: cz + hh };
+      const bracket = { x0: outer - 0.3, x1: outer + 0.3, y0: cy - hw * 0.55, y1: cy + hw * 0.55, z0: cz - 1, z1: cz + 1 };
+      out.push(boxMesh(shell, MAT_HANDLE_SHELL), boxMesh(bracket, MAT_CHROME));
+    }
+    return out;
+  }
+
+  const dummy = new THREE.Object3D();
+  function buildInstanced(geometry, material, boxes, colors) {
+    if (!boxes.length) return null;
+    const mesh = new THREE.InstancedMesh(geometry, material, boxes.length);
+    boxes.forEach((b, i) => {
+      dummy.position.set((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2);
+      dummy.scale.set(Math.max(b.x1 - b.x0, 0.001), Math.max(b.y1 - b.y0, 0.001), Math.max(b.z1 - b.z0, 0.001));
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      if (colors) mesh.setColorAt(i, colors[i]);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    return mesh;
+  }
+
+  // GEO_SPHERE hat Radius 2.5 – für Kugelecken mit Radius `radius` gleichmäßig skalieren.
+  function buildInstancedSpheres(positions, radius, material) {
+    if (!positions.length) return null;
+    const mesh = new THREE.InstancedMesh(GEO_SPHERE, material, positions.length);
+    const s = radius / 2.5;
+    positions.forEach((p, i) => {
+      dummy.position.set(p.x, p.y, p.z);
+      dummy.scale.set(s, s, s);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    return mesh;
+  }
+
   function clear() {
     content.traverse(o => {
+      if (o.isInstancedMesh) o.dispose();
       if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose();
       const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
       for (const m of mats) if (!m.userData.shared) m.dispose();
@@ -153,14 +264,43 @@ export async function createView3d(container) {
     content.add(boxMesh({ ...room, x1: 3 }, MAT_FRONT));
     for (const a of archBoxes(truck)) content.add(boxMesh(a, MAT_ARCH));
 
+    // Für die 3 instanzierten Sorten (Profilstäbe, Verschlüsse, Kugelecken) über alle Cases sammeln
+    // und am Ende je Sorte ein einziges InstancedMesh bauen.
+    const profileBoxes = [], profileColors = [], latchBoxesAll = [], cornerPositions = [];
+
     for (const it of result.items) {
       const bad = result.byPlacement.has(it.id);
       const colors = caseColors(it.c, colorMode);
       const { body, wheels, face } = caseShape(it.c, it.p, it.box);
 
       const bodyMesh = boxMesh(body, bodyMaterial(colors.body, bad));
-      const edgeMat = it.id === selectedId ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
-      content.add(bodyMesh, edges(body, edgeMat), ...cornerSpheres(body));
+      content.add(bodyMesh);
+
+      const bw = body.x1 - body.x0, bd = body.y1 - body.y0, bh = body.z1 - body.z0;
+      // Traversenwagen: Task 6 ersetzt diesen Zweig durch die echte Wagen-Darstellung.
+      // Zu kleine Korpusse bekommen ebenfalls die einfache Darstellung (keine überladenen Details).
+      const detailed = !isTruss(it.c) && Math.min(bw, bd, bh) >= DETAIL_MIN;
+
+      if (!detailed) {
+        const edgeMat = it.id === selectedId ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
+        content.add(edges(body, edgeMat), ...cornerSpheres(body));
+      } else {
+        edgeBars(body, profileBoxes);
+        const col = it.id === selectedId ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N;
+        for (let i = 0; i < 12; i++) profileColors.push(col);
+        for (const x of [body.x0, body.x1]) for (const y of [body.y0, body.y1]) for (const z of [body.z0, body.z1])
+          cornerPositions.push({ x, y, z });
+
+        if (face === 'bottom') {
+          const zSeam = body.z0 + bh * 0.25;
+          content.add(boxMesh({
+            x0: body.x0 - 0.3, x1: body.x1 + 0.3, y0: body.y0 - 0.3, y1: body.y1 + 0.3,
+            z0: zSeam - 1, z1: zSeam + 1,
+          }, MAT_SEAM_BAND));
+          latchBoxes(body, zSeam, latchBoxesAll);
+          content.add(...handleMeshes(body));
+        }
+      }
 
       if (colors.stripe) {
         const band = {
@@ -172,6 +312,13 @@ export async function createView3d(container) {
 
       for (const w of wheels) content.add(...wheelMesh(w, face));
     }
+
+    const profileMesh = buildInstanced(GEO_BOX, MAT_PROFILE, profileBoxes, profileColors);
+    if (profileMesh) content.add(profileMesh);
+    const latchMesh = buildInstanced(GEO_BOX, MAT_CHROME, latchBoxesAll, null);
+    if (latchMesh) content.add(latchMesh);
+    const cornerMesh = buildInstancedSpheres(cornerPositions, 4, MAT_CHROME);
+    if (cornerMesh) content.add(cornerMesh);
 
     const frameKey = `${truck.id}:${truck.l}x${truck.w}x${truck.h}`;
     if (framedFor !== frameKey) {
