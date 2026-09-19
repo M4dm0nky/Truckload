@@ -17,8 +17,8 @@ export async function createView3d(container) {
   scene.background = new THREE.Color(getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#15181d');
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 20000);
   camera.up.set(0, 0, 1); // Truck-Koordinaten: z = oben
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 2.2));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x606060, 3));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.8);
   sun.position.set(2000, -1500, 2500);
   scene.add(sun);
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -49,7 +49,7 @@ export async function createView3d(container) {
   const MAT_ROOM_EDGE = shared(new THREE.LineBasicMaterial({ color: 0x8b95a3 }));
   const MAT_FRONT = shared(new THREE.MeshLambertMaterial({ color: 0xf0a500, transparent: true, opacity: 0.35 }));
   const MAT_ARCH = shared(new THREE.MeshLambertMaterial({ color: 0x444a52 }));
-  const MAT_ALU = shared(new THREE.MeshStandardMaterial({ color: 0xb8bec6, metalness: 0.6, roughness: 0.35 }));
+  const MAT_ALU = shared(new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 0.25, roughness: 0.45 }));
   const MAT_CORNER = shared(new THREE.MeshStandardMaterial({ color: 0xd6dbe1, metalness: 0.5, roughness: 0.4 }));
   const MAT_WHEEL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.9 }));
   const MAT_HUB = shared(new THREE.MeshStandardMaterial({ color: 0xd0d5db, metalness: 0.4, roughness: 0.5 }));
@@ -59,11 +59,11 @@ export async function createView3d(container) {
 
   // Flightcase-Look: Alu-Profilstäbe (je Sorte ein InstancedMesh, Farbe je Instanz für Auswahl/Fehler),
   // Kugelecken, Deckelfuge/Butterfly-Verschlüsse, Schalengriffe.
-  const MAT_PROFILE = shared(new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.7, roughness: 0.35 }));
-  const MAT_CHROME = shared(new THREE.MeshStandardMaterial({ color: 0xe2e6ea, metalness: 0.9, roughness: 0.15 }));
-  const MAT_SEAM_BAND = shared(new THREE.MeshStandardMaterial({ color: 0xb8bec6, metalness: 0.6, roughness: 0.35 }));
+  const MAT_PROFILE = shared(new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.25, roughness: 0.45 }));
+  const MAT_CHROME = shared(new THREE.MeshStandardMaterial({ color: 0xe6e9ec, metalness: 0.4, roughness: 0.25 }));
+  const MAT_SEAM_BAND = shared(new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 0.25, roughness: 0.45 }));
   const MAT_HANDLE_SHELL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.85 }));
-  const COL_PROFILE_N = new THREE.Color(0xb8bec6);
+  const COL_PROFILE_N = new THREE.Color(0xc9ced4);
   const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
   const COL_PROFILE_BAD = new THREE.Color(0xe5484d);
 

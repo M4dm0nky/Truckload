@@ -78,9 +78,9 @@ function drawSimpleBody(g, bodyRect, colors) {
 
 // Flightcase-Look: Alu-Hybridprofil, Laminat-Korpus, Kugelecken, Deckelfuge mit Butterfly-
 // Verschlüssen und Schalengriffen. Details nur ab Korpusbreite ≥ DETAIL_MIN, sonst wie drawSimpleBody.
-function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid) {
+function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, detailed) {
   const bw = bodyRect.u1 - bodyRect.u0, bh = bodyRect.v1 - bodyRect.v0;
-  if (Math.min(bw, bh) < DETAIL_MIN) return drawSimpleBody(g, bodyRect, colors);
+  if (!detailed) return drawSimpleBody(g, bodyRect, colors);
 
   svgEl('rect', {
     x: bodyRect.u0, y: bodyRect.v0, width: bw, height: bh,
@@ -145,9 +145,12 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
   }
 
   const colors = caseColors(it.c, colorMode);
+  // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
+  // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
+  const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
   // Traversenwagen: Task 6 ersetzt diesen Zweig durch die echte Wagen-Darstellung.
   if (isTruss(it.c)) drawSimpleBody(g, bodyRect, colors);
-  else drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid);
+  else drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, detailed);
 
   if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
 
