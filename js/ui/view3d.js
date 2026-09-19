@@ -1,7 +1,7 @@
 import { archBoxes } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors } from './caseStyle.js';
-import { isTruss } from '../model/truss.js';
+import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 
 const DETAIL_MIN = 40; // cm, ab dieser kleinsten Korpus-Kante werden Flightcase-Details gezeichnet
 
@@ -245,6 +245,87 @@ export async function createView3d(container) {
     return mesh;
   }
 
+  // Beliebig orientierter Zylinder zwischen zwei Punkten (Gurtrohre/Diagonalen der Traverse) –
+  // GEO_CYL liegt lokal auf der Y-Achse, daher Rotation über setFromUnitVectors.
+  const cylQuat = new THREE.Quaternion();
+  const cylDir = new THREE.Vector3();
+  const cylUp = new THREE.Vector3(0, 1, 0);
+  function buildInstancedCylinders(material, segs, colors) {
+    if (!segs.length) return null;
+    const mesh = new THREE.InstancedMesh(GEO_CYL, material, segs.length);
+    segs.forEach((s, i) => {
+      cylDir.set(s.p2.x - s.p1.x, s.p2.y - s.p1.y, s.p2.z - s.p1.z);
+      const len = cylDir.length() || 0.001;
+      cylDir.normalize();
+      cylQuat.setFromUnitVectors(cylUp, cylDir);
+      dummy.position.set((s.p1.x + s.p2.x) / 2, (s.p1.y + s.p2.y) / 2, (s.p1.z + s.p2.z) / 2);
+      dummy.quaternion.copy(cylQuat);
+      dummy.scale.set(s.r, len, s.r);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      if (colors) mesh.setColorAt(i, colors[i]);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    return mesh;
+  }
+
+  // Traversenwagen-Geometrie (Task 6): Gurtrohre (4 pro Traversenstück, über die volle Länge) +
+  // Zickzack-Diagonalen auf allen 4 Seiten je Stück; Rollwagen als Alu-Rahmen + 4 Rollen (`wheelMesh`
+  // mit face 'bottom', da Wagen nie gekippt werden). Sammelt Segmente für die geteilten
+  // InstancedMeshes (`chordSegs`/`diagSegs`), gibt Nicht-Instanzierbares direkt an `content`.
+  function trussPoint(lenAxis, widAxis, lenVal, widVal, z) {
+    const p = { x: 0, y: 0, z };
+    p[lenAxis] = lenVal;
+    p[widAxis] = widVal;
+    return p;
+  }
+  function faceZigzag(lenAxis, widAxis, len0, len1, cornerA, cornerB, profileWidth, r, out) {
+    const length = len1 - len0;
+    const segs = Math.max(1, Math.round(length / Math.max(profileWidth, 1)));
+    const step = length / segs;
+    const at = (chord, i) => trussPoint(lenAxis, widAxis, len0 + i * step, chord.w, chord.z);
+    for (let i = 0; i < segs; i++) {
+      const [from, to] = i % 2 === 0 ? [cornerA, cornerB] : [cornerB, cornerA];
+      out.push({ p1: at(from, i), p2: at(to, i + 1), r });
+    }
+  }
+  function addTruss(it, bad, selected, chordSegs, chordColors, diagSegs) {
+    const { c, p, box } = it;
+    const shape = trussShape(c, p, box);
+    const { lenAxis, widAxis } = shape;
+
+    const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
+    content.add(edges(box, edgeMat));
+
+    for (const d of shape.dollies) {
+      content.add(boxMesh(d, MAT_ALU), edges(d, MAT_EDGE_ALU));
+      if (c.color) {
+        const stripe = { ...d, z0: d.z1 - 1.5, z1: d.z1 };
+        content.add(boxMesh(stripe, bandMaterial(c.color)));
+      }
+    }
+    for (const w of shape.wheels) content.add(...wheelMesh(w, 'bottom'));
+
+    const profileWidth = c.truss.width;
+    const chordR = profileWidth * TUBE_R_RATIO, diagR = profileWidth * DIAG_R_RATIO;
+    const col = selected ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N;
+    for (const pc of shape.pieces) {
+      const len0 = pc[`${lenAxis}0`], len1 = pc[`${lenAxis}1`];
+      const w0 = pc[`${widAxis}0`], w1 = pc[`${widAxis}1`];
+      const corners = [{ w: w0, z: pc.z0 }, { w: w1, z: pc.z0 }, { w: w0, z: pc.z1 }, { w: w1, z: pc.z1 }];
+      for (const cn of corners) {
+        chordSegs.push({ p1: trussPoint(lenAxis, widAxis, len0, cn.w, cn.z), p2: trussPoint(lenAxis, widAxis, len1, cn.w, cn.z), r: chordR });
+        chordColors.push(col);
+      }
+      const [c00, c10, c01, c11] = corners;
+      faceZigzag(lenAxis, widAxis, len0, len1, c00, c10, profileWidth, diagR, diagSegs); // unten
+      faceZigzag(lenAxis, widAxis, len0, len1, c01, c11, profileWidth, diagR, diagSegs); // oben
+      faceZigzag(lenAxis, widAxis, len0, len1, c00, c01, profileWidth, diagR, diagSegs); // Seite w0
+      faceZigzag(lenAxis, widAxis, len0, len1, c10, c11, profileWidth, diagR, diagSegs); // Seite w1
+    }
+  }
+
   function clear() {
     content.traverse(o => {
       if (o.isInstancedMesh) o.dispose();
@@ -264,22 +345,27 @@ export async function createView3d(container) {
     content.add(boxMesh({ ...room, x1: 3 }, MAT_FRONT));
     for (const a of archBoxes(truck)) content.add(boxMesh(a, MAT_ARCH));
 
-    // Für die 3 instanzierten Sorten (Profilstäbe, Verschlüsse, Kugelecken) über alle Cases sammeln
-    // und am Ende je Sorte ein einziges InstancedMesh bauen.
+    // Für die instanzierten Sorten (Profilstäbe, Verschlüsse, Kugelecken, Traversen-Gurtrohre/
+    // -Diagonalen) über alle Cases sammeln und am Ende je Sorte ein einziges InstancedMesh bauen.
     const profileBoxes = [], profileColors = [], latchBoxesAll = [], cornerPositions = [];
+    const chordSegs = [], chordColors = [], diagSegs = [];
 
     for (const it of result.items) {
       const bad = result.byPlacement.has(it.id);
       const colors = caseColors(it.c, colorMode);
+
+      if (isTruss(it.c)) {
+        addTruss(it, bad, it.id === selectedId, chordSegs, chordColors, diagSegs);
+        continue;
+      }
+
       const { body, wheels, face } = caseShape(it.c, it.p, it.box);
 
       const bodyMesh = boxMesh(body, bodyMaterial(colors.body, bad));
       content.add(bodyMesh);
 
       const bw = body.x1 - body.x0, bd = body.y1 - body.y0, bh = body.z1 - body.z0;
-      // Traversenwagen: Task 6 ersetzt diesen Zweig durch die echte Wagen-Darstellung.
-      // Zu kleine Korpusse bekommen ebenfalls die einfache Darstellung (keine überladenen Details).
-      const detailed = !isTruss(it.c) && Math.min(bw, bd, bh) >= DETAIL_MIN;
+      const detailed = Math.min(bw, bd, bh) >= DETAIL_MIN;
 
       if (!detailed) {
         const edgeMat = it.id === selectedId ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
@@ -319,6 +405,10 @@ export async function createView3d(container) {
     if (latchMesh) content.add(latchMesh);
     const cornerMesh = buildInstancedSpheres(cornerPositions, 4, MAT_CHROME);
     if (cornerMesh) content.add(cornerMesh);
+    const chordMesh = buildInstancedCylinders(MAT_PROFILE, chordSegs, chordColors);
+    if (chordMesh) content.add(chordMesh);
+    const diagMesh = buildInstancedCylinders(MAT_ALU, diagSegs, null);
+    if (diagMesh) content.add(diagMesh);
 
     const frameKey = `${truck.id}:${truck.l}x${truck.w}x${truck.h}`;
     if (framedFor !== frameKey) {

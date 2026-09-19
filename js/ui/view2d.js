@@ -4,7 +4,7 @@ import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
 import { caseColors } from './caseStyle.js';
 import { archBoxes } from '../model/validate.js';
-import { isTruss } from '../model/truss.js';
+import { isTruss, trussShape } from '../model/truss.js';
 
 const PAD = 30;
 const FRAME_W = 3.5;      // cm, Breite des Alu-Hybridprofils
@@ -56,8 +56,76 @@ function nearestEdgePoint(bodyRect, cx, cy) {
   return { x, y: v1 };
 }
 
-// Einfache Darstellung (Traversenwagen – Task 6 ersetzt dies durch die echte Wagen-Geometrie;
-// auch die Fallback-Form für Cases, deren Korpusfläche für Details zu klein ist).
+// Traversenwagen: zwei Rollwagen an den Enden + gestapelte Traversenstücke. In jeder Ansicht wird
+// pro Stück anhand der projizierten Seitenlängen entschieden, ob es „längs“ (Ober-/Untergurt-Linien
+// mit Zickzack-Diagonalen) oder „stirnseitig“ (Quadrat mit 4 Gurtrohr-Kreisen) erscheint – dadurch
+// funktioniert dieselbe Logik in allen drei Ansichten und für beide Rotationen (Länge entlang x oder y).
+const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (siehe js/model/truss.js)
+
+function drawChordBar(g, pr, horizontal, profileWidth) {
+  const inset = Math.max(1.5, Math.min(profileWidth * TUBE_R_RATIO, (horizontal ? pr.v1 - pr.v0 : pr.u1 - pr.u0) / 2));
+  if (horizontal) {
+    const y0 = pr.v0 + inset, y1 = pr.v1 - inset;
+    svgEl('line', { x1: pr.u0, y1: y0, x2: pr.u1, y2: y0, class: 'truss-chord' }, g);
+    svgEl('line', { x1: pr.u0, y1: y1, x2: pr.u1, y2: y1, class: 'truss-chord' }, g);
+    const len = pr.u1 - pr.u0;
+    const segs = Math.max(1, Math.round(len / Math.max(profileWidth, 1)));
+    const step = len / segs;
+    const pts = [];
+    for (let i = 0; i <= segs; i++) pts.push(`${pr.u0 + i * step},${i % 2 === 0 ? y0 : y1}`);
+    svgEl('polyline', { points: pts.join(' '), class: 'truss-diag' }, g);
+  } else {
+    const x0 = pr.u0 + inset, x1 = pr.u1 - inset;
+    svgEl('line', { x1: x0, y1: pr.v0, x2: x0, y2: pr.v1, class: 'truss-chord' }, g);
+    svgEl('line', { x1: x1, y1: pr.v0, x2: x1, y2: pr.v1, class: 'truss-chord' }, g);
+    const len = pr.v1 - pr.v0;
+    const segs = Math.max(1, Math.round(len / Math.max(profileWidth, 1)));
+    const step = len / segs;
+    const pts = [];
+    for (let i = 0; i <= segs; i++) pts.push(`${i % 2 === 0 ? x0 : x1},${pr.v0 + i * step}`);
+    svgEl('polyline', { points: pts.join(' '), class: 'truss-diag' }, g);
+  }
+}
+
+function drawEndSquare(g, pr, profileWidth) {
+  svgEl('rect', { x: pr.u0, y: pr.v0, width: pr.u1 - pr.u0, height: pr.v1 - pr.v0, class: 'truss-end' }, g);
+  const cr = Math.max(1.5, profileWidth * TUBE_R_RATIO);
+  for (const [cx, cy] of [[pr.u0, pr.v0], [pr.u1, pr.v0], [pr.u0, pr.v1], [pr.u1, pr.v1]])
+    svgEl('circle', { cx, cy, r: cr, class: 'truss-tube' }, g);
+}
+
+function drawTruss(g, it, mode, truck, colorMode) {
+  const { c, p, box } = it;
+  const shape = trussShape(c, p, box);
+
+  const outline = project(box, mode, truck);
+  svgEl('rect', {
+    x: outline.u0, y: outline.v0, width: outline.u1 - outline.u0, height: outline.v1 - outline.v0,
+    class: 'body truss-frame', fill: 'none', rx: 2,
+  }, g);
+
+  for (const d of shape.dollies) {
+    const dr = project(d, mode, truck);
+    svgEl('rect', { x: dr.u0, y: dr.v0, width: dr.u1 - dr.u0, height: dr.v1 - dr.v0, class: 'truss-dolly' }, g);
+    if (c.color) svgEl('rect', {
+      x: dr.u0 + 2, y: dr.v0 + 2, width: Math.max(0, dr.u1 - dr.u0 - 4), height: 3,
+      class: 'truss-mark', style: `fill:${c.color}`,
+    }, g);
+  }
+  for (const w of shape.wheels) drawWheel(g, w, mode, truck, null);
+
+  const profileWidth = c.truss.width;
+  for (const pc of shape.pieces) {
+    const pr = project(pc, mode, truck);
+    const uSpan = pr.u1 - pr.u0, vSpan = pr.v1 - pr.v0;
+    if (uSpan >= vSpan * 1.3) drawChordBar(g, pr, true, profileWidth);
+    else if (vSpan >= uSpan * 1.3) drawChordBar(g, pr, false, profileWidth);
+    else drawEndSquare(g, pr, profileWidth);
+  }
+  return shape;
+}
+
+// Fallback-Form für Cases, deren Korpusfläche für Details zu klein ist.
 function drawSimpleBody(g, bodyRect, colors) {
   svgEl('rect', {
     x: bodyRect.u0, y: bodyRect.v0, width: bodyRect.u1 - bodyRect.u0, height: bodyRect.v1 - bodyRect.v0,
@@ -144,17 +212,22 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
     drawWheel(g, w, mode, truck, fork);
   }
 
-  const colors = caseColors(it.c, colorMode);
-  // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
-  // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
-  const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
-  // Traversenwagen: Task 6 ersetzt diesen Zweig durch die echte Wagen-Darstellung.
-  if (isTruss(it.c)) drawSimpleBody(g, bodyRect, colors);
-  else drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, detailed);
+  let labelRect = bodyRect;
+  if (isTruss(it.c)) {
+    const shape = drawTruss(g, it, mode, truck, colorMode);
+    // Zahl auf dem Wagen (Wagenende), nicht mitten im Gurtrohr-/Diagonalen-Muster.
+    labelRect = project(shape.dollies[0], mode, truck);
+  } else {
+    const colors = caseColors(it.c, colorMode);
+    // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
+    // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
+    const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
+    drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, detailed);
+  }
 
   if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
 
-  if (labels) svgEl('text', { x: (bodyRect.u0 + bodyRect.u1) / 2, y: (bodyRect.v0 + bodyRect.v1) / 2, class: 'label' }, g)
+  if (labels) svgEl('text', { x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2, class: 'label' }, g)
     .textContent = it.seq;
   svgEl('title', {}, g).textContent = it.title;
 }

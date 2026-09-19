@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DOLLY_H, DOLLY_WIDTHS, TRUSS_PROFILES, trussDims, isTruss } from '../js/model/truss.js';
+import { DOLLY_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES, trussDims, isTruss, trussShape }
+  from '../js/model/truss.js';
+import { boxOf } from '../js/model/geometry.js';
+
+const mkTrussCase = (length, width, count) => {
+  const { l, w, h } = trussDims({ length, width, count });
+  return { kind: 'truss', truss: { length, width, count }, l, w, h };
+};
 
 test('trussDims: 34er (29 cm) passt zu zweit nebeneinander -> 60er Wagen', () => {
   const d = trussDims({ length: 300, width: 29, count: 4 });
@@ -34,4 +41,66 @@ test('isTruss erkennt kind truss', () => {
   assert.equal(isTruss({ kind: 'truss' }), true);
   assert.equal(isTruss({ kind: 'case' }), false);
   assert.equal(isTruss({}), false);
+});
+
+function checkInsideBox(box, sub) {
+  for (const ax of ['x', 'y', 'z']) {
+    assert.ok(sub[`${ax}0`] >= box[`${ax}0`] - 1e-9, `${ax}0 innerhalb der Box`);
+    assert.ok(sub[`${ax}1`] <= box[`${ax}1`] + 1e-9, `${ax}1 innerhalb der Box`);
+  }
+}
+
+test('trussShape 0°: 4 Stück -> 2 Lagen × 2 Spalten, alles innerhalb der Box, Wagen an beiden Enden', () => {
+  const c = mkTrussCase(300, 29, 4);
+  const p = { x: 10, y: 20, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  assert.equal(s.lenAxis, 'x');
+  assert.equal(s.widAxis, 'y');
+  assert.equal(s.dollies.length, 2);
+  assert.equal(s.wheels.length, 8);
+  assert.equal(s.pieces.length, 4);
+
+  for (const b of [...s.dollies, ...s.wheels, ...s.pieces]) checkInsideBox(box, b);
+
+  // Wagen an beiden Enden: einer beginnt am unteren Ende der Länge, der andere endet am oberen Ende.
+  assert.ok(s.dollies.some(d => Math.abs(d.x0 - box.x0) < 1e-9));
+  assert.ok(s.dollies.some(d => Math.abs(d.x1 - box.x1) < 1e-9));
+  for (const d of s.dollies) { assert.equal(d.z0, box.z0); assert.equal(d.z1, box.z0 + DOLLY_H); }
+
+  // 2 Lagen × 2 Spalten: 2 unterschiedliche z-Bänder mit je 2 Stücken.
+  const rowsZ = [...new Set(s.pieces.map(pc => pc.z0))];
+  assert.equal(rowsZ.length, 2);
+  for (const z of rowsZ) assert.equal(s.pieces.filter(pc => pc.z0 === z).length, 2);
+  // Jedes Stück läuft über die volle Länge (liegt auf beiden Wagen auf).
+  for (const pc of s.pieces) { assert.equal(pc.x0, box.x0); assert.equal(pc.x1, box.x1); }
+});
+
+test('trussShape 90°: Traversenlänge verläuft entlang y', () => {
+  const c = mkTrussCase(300, 29, 4);
+  const p = { x: 5, y: 15, z: 0, orientation: 'standing', rot: 90 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  assert.equal(s.lenAxis, 'y');
+  assert.equal(s.widAxis, 'x');
+  for (const b of [...s.dollies, ...s.wheels, ...s.pieces]) checkInsideBox(box, b);
+  assert.ok(s.dollies.some(d => Math.abs(d.y0 - box.y0) < 1e-9));
+  assert.ok(s.dollies.some(d => Math.abs(d.y1 - box.y1) < 1e-9));
+  for (const pc of s.pieces) { assert.equal(pc.y0, box.y0); assert.equal(pc.y1, box.y1); }
+});
+
+test('trussShape: ungerade Stückzahl -> letzte Lage nur 1 Stück, zentriert', () => {
+  const c = mkTrussCase(200, 29, 3);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+  assert.equal(s.pieces.length, 3);
+  const rowsZ = [...new Set(s.pieces.map(pc => pc.z0))].sort((a, b) => a - b);
+  assert.equal(rowsZ.length, 2);
+  const lastRow = s.pieces.filter(pc => pc.z0 === rowsZ[1]);
+  assert.equal(lastRow.length, 1);
+  const mid = (box.y0 + box.y1) / 2;
+  assert.ok(Math.abs((lastRow[0].y0 + lastRow[0].y1) / 2 - mid) < 1e-9);
 });
