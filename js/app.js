@@ -10,6 +10,7 @@ import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
+import { createView3d } from './ui/view3d.js';
 
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
@@ -236,5 +237,18 @@ async function editTruck(truck) {
 }
 $('#truck-new').onclick = () => editTruck(null);
 $('#truck-edit').onclick = () => editTruck(ctx().truck);
+
+// 3D-Ansicht
+let view3d = null, view3dLoading = null;
+renderHooks.push(async (s, d) => {
+  if (s.mode !== '3d') return;
+  try {
+    view3d ??= await (view3dLoading ??= createView3d($('#view3d')));
+    view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId });
+  } catch {
+    $('#view3d').textContent = '3D-Ansicht konnte nicht geladen werden (vendor/ fehlt?).';
+    view3dLoading = null;
+  }
+});
 
 scheduleRender();
