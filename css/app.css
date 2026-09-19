@@ -2,9 +2,11 @@
   --bg: #15181d; --panel: #1d2128; --line: #2e343d; --text: #e6e9ee; --muted: #8b95a3;
   --accent: #f0a500; --danger: #e5484d; --ok: #30a46c; --truck: #232830; --grid: #2a3039;
   --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  --case-body: #1c1d20; --alu: #b8bec6; --corner: #d6dbe1; --wheel: #2b2d31;
 }
 @media (prefers-color-scheme: light) {
   :root { --bg: #eef0f3; --panel: #fff; --line: #d6dbe1; --text: #1b1f24; --muted: #66707c; --truck: #f7f8fa; --grid: #e3e7ec; }
+  /* Cases sind immer schwarz mit Alu-Kanten, unabhängig vom Theme */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -43,11 +45,19 @@ svg .front-wall { stroke: var(--accent); stroke-width: 6; }
 svg .grid line { stroke: var(--grid); stroke-width: 1; }
 svg .tick { fill: var(--muted); font-size: 14px; text-anchor: middle; }
 svg .arch { fill: var(--line); stroke: var(--muted); stroke-dasharray: 6 4; }
-svg .case rect.body { stroke: rgba(0,0,0,.55); stroke-width: 1.5; cursor: grab; }
-svg .case .wheels { fill: rgba(0,0,0,.45); pointer-events: none; }
-svg .case .label { fill: #111; font-size: 16px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-svg .case.bad rect.body { stroke: var(--danger); stroke-width: 4; stroke-dasharray: 10 5; }
-svg .case.sel rect.body { stroke: var(--text); stroke-width: 4; }
+svg .case rect.hit { fill: transparent; cursor: grab; }
+svg .case rect.body { stroke: var(--alu); stroke-width: 3; pointer-events: none; }
+svg .case .stripe, svg .case .seam, svg .case .latch, svg .case .corner,
+svg .case .wheel, svg .case .hub, svg .case .fork { pointer-events: none; }
+svg .case .seam { stroke: var(--alu); stroke-width: 2; }
+svg .case .latch { fill: var(--alu); }
+svg .case .corner { fill: var(--corner); }
+svg .case .wheel { fill: var(--wheel); stroke: var(--alu); stroke-width: 1; }
+svg .case .hub { fill: var(--alu); }
+svg .case .fork { stroke: var(--alu); stroke-width: 2; }
+svg .case .label { fill: #fff; font-size: 16px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; paint-order: stroke; stroke: #000; stroke-width: 3; stroke-linejoin: round; }
+svg .case.bad rect.alert { fill: none; stroke: var(--danger); stroke-width: 4; stroke-dasharray: 10 5; pointer-events: none; }
+svg .case.sel rect.body { stroke: var(--accent); stroke-width: 5; }
 svg .cog { fill: none; stroke: var(--danger); stroke-width: 3; }
 svg.drop-target .truck { stroke: var(--accent); stroke-width: 4; }
 

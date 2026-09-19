@@ -26,6 +26,14 @@ const STRIP = {
 };
 export const wheelStrip = (mode, face) => STRIP[mode][face] ?? null;
 
+const FACING = { side: '-y', rear: '+x' };
+// Rollen an der Kante sichtbar (edge), direkt zum Betrachter zeigend (facing) oder verdeckt (hidden).
+export function wheelView(mode, face) {
+  if (wheelStrip(mode, face) !== null) return 'edge';
+  if (FACING[mode] === face) return 'facing';
+  return 'hidden';
+}
+
 export function stripRect(r, side, t) {
   const w = r.u1 - r.u0, h = r.v1 - r.v0;
   switch (side) {

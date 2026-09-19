@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { project, unproject, drawOrder, wheelStrip, stripRect } from '../js/ui/projection.js';
+import { project, unproject, drawOrder, wheelStrip, stripRect, wheelView } from '../js/ui/projection.js';
 import { esc, fmtM } from '../js/ui/dom.js';
 
 const truck = { l: 1000, w: 250, h: 270 };
@@ -24,6 +24,16 @@ test('Rollenstreifen', () => {
   assert.equal(wheelStrip('side', '+y'), null);
   assert.equal(wheelStrip('rear', '+y'), 'u1');
   assert.deepEqual(stripRect({ u0: 0, u1: 100, v0: 0, v1: 50 }, 'v1', 6), { x: 0, y: 44, width: 100, height: 6 });
+});
+test('wheelView', () => {
+  assert.equal(wheelView('top', '+y'), 'edge');
+  assert.equal(wheelView('side', 'bottom'), 'edge');
+  assert.equal(wheelView('rear', 'bottom'), 'edge');
+  assert.equal(wheelView('side', '-y'), 'facing');
+  assert.equal(wheelView('rear', '+x'), 'facing');
+  assert.equal(wheelView('top', 'bottom'), 'hidden');
+  assert.equal(wheelView('side', '+y'), 'hidden');
+  assert.equal(wheelView('rear', '-x'), 'hidden');
 });
 test('esc/fmtM', () => {
   assert.equal(esc('<a href="x">&</a>'), '&lt;a href=&quot;x&quot;&gt;&amp;&lt;/a&gt;');

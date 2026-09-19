@@ -2,7 +2,7 @@ import { APP_VERSION } from '../version.js';
 import { esc, fmtM, ORIENTATION_LABEL } from './dom.js';
 import { renderView } from './view2d.js';
 
-export function buildPrint(root, { plan, truck, result }) {
+export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
   const t = result.totals;
   const rows = [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
   root.innerHTML = `
@@ -23,7 +23,7 @@ export function buildPrint(root, { plan, truck, result }) {
         <td>${it.box.z0 > 0 ? `${Math.round(it.box.z0)} cm` : 'Boden'}</td><td>${it.c.weight}</td></tr>`).join('')}
       </tbody>
     </table>`;
-  const opts = { truck, result, selectedId: null };
+  const opts = { truck, result, selectedId: null, colorMode };
   renderView(root.querySelector('.p-top'), 'top', opts);
   renderView(root.querySelector('.p-side'), 'side', opts);
 }
