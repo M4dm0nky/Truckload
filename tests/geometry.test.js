@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
-  snap, snapToEdges, stackAbove, faceSlab } from '../js/model/geometry.js';
+  snap, snapToEdges, stackAbove, faceSlab, DEFAULT_WHEEL_H, wheelHOf } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80);
@@ -54,4 +54,10 @@ test('faceSlab', () => {
   assert.deepEqual(faceSlab(B(0,0,0,100,60,50), '+x', 3), B(97,0,0,100,60,50));
   assert.deepEqual(faceSlab(B(0,0,0,100,60,50), 'bottom', 3), B(0,0,0,100,60,3));
   assert.deepEqual(faceSlab(B(0,0,0,100,60,50), '-y', 3), B(0,0,0,100,3,50));
+});
+
+test('wheelHOf: Fallback DEFAULT_WHEEL_H wenn fehlend, sonst der Wert', () => {
+  assert.equal(wheelHOf({}), DEFAULT_WHEEL_H);
+  assert.equal(wheelHOf({ wheelH: 0 }), 0);
+  assert.equal(wheelHOf({ wheelH: 8 }), 8);
 });

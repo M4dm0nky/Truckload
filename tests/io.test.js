@@ -58,6 +58,22 @@ test('Case mit ungültigem maxTopLoad wird abgelehnt', () => {
   const bad = bundleWith({ cases: [{ ...own, maxTopLoad: 'viel' }], trucks: [], plans: [] });
   assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
 });
+test('Case mit negativem wheelH wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, wheelH: -1 }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case mit wheelH >= h wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, wheelH: own.h }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case ohne wheelH wird akzeptiert (Fallback)', () => {
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].wheelH, undefined);
+});
+test('Case mit gültigem wheelH wird akzeptiert', () => {
+  const res = parseBundle(bundleWith({ cases: [{ ...own, wheelH: 0 }], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].wheelH, 0);
+});
 test('Fahrzeug mit ungültiger Radkasten-Seite wird abgelehnt', () => {
   const t = mkTruck({ wheelArches: [{ x: 100, l: 50, w: 20, h: 30, side: 'top' }] });
   const bad = bundleWith({ cases: [], trucks: [t], plans: [] });

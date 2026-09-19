@@ -15,9 +15,11 @@ function checkCase(c) {
   if (!c || typeof c.id !== 'string' || typeof c.name !== 'string') throw new Error('Case ohne ID oder Name in der Datei.');
   for (const k of ['l', 'w', 'h']) if (!num(c[k]) || c[k] <= 0) throw new Error(`Case „${c.name}“ hat ungültige Maße.`);
   if (!num(c.weight) || c.weight < 0) throw new Error(`Case „${c.name}“ hat ein ungültiges Gewicht.`);
+  const wheelHOk = c.wheelH == null || (num(c.wheelH) && c.wheelH >= 0 && c.wheelH < c.h);
   const propsOk = numOrNull(c.maxTopLoad) && numOrNull(c.stock)
     && (c.tippable === undefined || typeof c.tippable === 'boolean')
-    && (c.stackable === undefined || typeof c.stackable === 'boolean');
+    && (c.stackable === undefined || typeof c.stackable === 'boolean')
+    && wheelHOk;
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
 }
 function checkArch(a) {

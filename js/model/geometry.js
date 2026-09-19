@@ -1,5 +1,7 @@
 export const EPS = 0.5;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
+export const DEFAULT_WHEEL_H = 12;
+export const wheelHOf = c => (Number.isFinite(c.wheelH) ? c.wheelH : DEFAULT_WHEEL_H);
 const FACE_CYCLE = ['+x', '+y', '-x', '-y'];
 const BASE_WHEEL_FACE = { standing: 'bottom', tipLong: '+y', tipShort: '+x' };
 

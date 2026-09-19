@@ -1,4 +1,5 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
+import { wheelHOf } from '../model/geometry.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
@@ -24,6 +25,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
       <div class="row">
         <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" step="0.5" required></label>
         <label>Bestand (Stück)<input type="number" name="stock" min="0" step="1"></label>
+        <label>Rollenhöhe (cm, 0 = ohne Rollen)<input type="number" name="wheelH" min="0" max="40" step="1"></label>
       </div>
       <label class="check"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
       <label class="check"><input type="checkbox" name="stackable"> stapelbar (darf etwas obendrauf)</label>
@@ -43,6 +45,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   for (const k of ['l', 'w', 'h', 'weight']) f[k].value = v[k];
   f.stock.value = v.stock ?? '';
   f.maxTopLoad.value = v.maxTopLoad ?? '';
+  f.wheelH.value = wheelHOf(v);
   f.tippable.checked = v.tippable;
   f.stackable.checked = v.stackable;
   f.category.addEventListener('change', () => {
@@ -68,7 +71,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
         category: f.category.value, color: f.color.value,
         l: Number(f.l.value), w: Number(f.w.value), h: Number(f.h.value),
         weight: Number(f.weight.value), stock: numOrNull(f.stock.value),
-        maxTopLoad: numOrNull(f.maxTopLoad.value),
+        maxTopLoad: numOrNull(f.maxTopLoad.value), wheelH: Number(f.wheelH.value),
         tippable: f.tippable.checked, stackable: f.stackable.checked,
       } });
     }, { once: true });

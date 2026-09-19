@@ -3,7 +3,7 @@ import { colorFor } from './categories.js';
 const NOTE = 'Richtwert – Maße und Gewicht an dein Case anpassen';
 const P = (id, name, category, l, w, h, weight, opts = {}) => ({
   id: `preset-${id}`, builtin: true, name, content: '', category, color: colorFor(category),
-  l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, note: NOTE, ...opts,
+  l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, wheelH: 12, note: NOTE, ...opts,
 });
 
 // Truckmaß (EU): Breiten 60/80/120 cm, gehen in 240 cm Innenbreite auf (Megacase, Gäng-Case).
@@ -23,6 +23,6 @@ export const PRESET_CASES = [
   P('led-8er', 'LED-Wall-Case (8 Panels)', 'Video', 120, 60, 110, 220, { tippable: false }),
   P('distro-63a', 'Stromverteiler 63 A', 'Strom', 80, 60, 90, 110, { tippable: false }),
   P('foh-pult', 'FOH-Pult-Case', 'Ton', 150, 80, 110, 160, { tippable: false, stackable: false }),
-  P('truss-29-3m', 'Traverse 29er Dreipunkt 3 m', 'Rigging', 300, 29, 29, 15, { tippable: false }),
+  P('truss-29-3m', 'Traverse 29er Dreipunkt 3 m', 'Rigging', 300, 29, 29, 15, { tippable: false, wheelH: 0 }),
   P('truss-dolly', 'Traversen-Dolly 29er (8× 2 m)', 'Rigging', 200, 60, 70, 180, { tippable: false }),
 ];

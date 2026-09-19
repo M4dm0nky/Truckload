@@ -18,7 +18,12 @@ test('Case-Vorlagen gültig', () => {
     assert.ok(c.l > 0 && c.w > 0 && c.h > 0 && c.weight >= 0, c.id);
     assert.ok(CATEGORIES.some(k => k.name === c.category), c.id);
     assert.ok(c.l <= mega.l && c.w <= mega.w && c.h <= mega.h, c.id);
+    assert.ok(c.wheelH >= 0 && c.wheelH < c.h, c.id);
   }
+});
+test('Traverse hat keine Rollen (wheelH 0)', () => {
+  const truss = PRESET_CASES.find(c => c.id === 'preset-truss-29-3m');
+  assert.equal(truss.wheelH, 0);
 });
 test('Fahrzeug-Vorlagen gültig', () => {
   assert.ok(unique(PRESET_TRUCKS.map(t => t.id)));
