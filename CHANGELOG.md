@@ -2,6 +2,13 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.3.0 – 2026-09-19
+
+- Flightcase-Look nach echtem Vorbild: breite Alu-Hybridprofile an allen Kanten, Chrom-Kugelecken, Deckelfuge mit Butterfly-Verschlüssen, versenkte Schalengriffe, Laminat-Oberfläche – in 2D, 3D und Druck
+- Traversenwagen als eigener Typ: Traversenlänge, Traversenbreite (34er / 40er) und Stückzahl eingeben, Wagenbreite 60er oder 80er wird automatisch bestimmt; Darstellung als echte Traverse (Gurtrohre, Streben) auf zwei Rollwagen
+- Lagen-Freigabe pro Case (Lage 1–4): Prüfung warnt bei falscher Lage und mehr als 4 Lagen, die Auto-Beladung hält sich daran; Lage im Inspector und in der Ladeliste
+- Vorlagen: FOH-Pult und Rack 20 HE nur Lage 1, LED-Wall-Case Lage 1–2, drei Traversenwagen-Vorlagen
+
 ## V 0.2.0 – 2026-09-19
 
 - Cases sehen aus wie echte Cases: Alu-Kanten, Kugelecken, Deckelfuge mit Verschlüssen – in Draufsicht, Seiten-, Rückansicht, 3D und Druck
