@@ -2,6 +2,7 @@ import { archBoxes } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors } from './caseStyle.js';
 import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
+import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 
 const DETAIL_MIN = 40; // cm, ab dieser kleinsten Korpus-Kante werden Flightcase-Details gezeichnet
 
@@ -214,15 +215,24 @@ export async function createView3d(container) {
     return out;
   }
 
-  const dummy = new THREE.Object3D();
+  // Alle drei Builder schreiben ihre Matrix über die reine `composeMatrix()`-Hilfsfunktion in ein
+  // einziges wiederverwendetes THREE.Matrix4 (`instMat.fromArray(...)` überschreibt alle 16
+  // Elemente vollständig) statt über ein geteiltes, mutierbares Object3D („dummy“) – so kann keine
+  // Rotation eines Aufrufs in den nächsten durchsickern (siehe instanceMatrix.js).
+  const instMat = new THREE.Matrix4();
+  const instArr = new Array(16);
+  const setMat = (mesh, i, px, py, pz, qx, qy, qz, qw, sx, sy, sz) => {
+    composeMatrix(px, py, pz, qx, qy, qz, qw, sx, sy, sz, instArr);
+    mesh.setMatrixAt(i, instMat.fromArray(instArr));
+  };
+
   function buildInstanced(geometry, material, boxes, colors) {
     if (!boxes.length) return null;
     const mesh = new THREE.InstancedMesh(geometry, material, boxes.length);
     boxes.forEach((b, i) => {
-      dummy.position.set((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2);
-      dummy.scale.set(Math.max(b.x1 - b.x0, 0.001), Math.max(b.y1 - b.y0, 0.001), Math.max(b.z1 - b.z0, 0.001));
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+      const [qx, qy, qz, qw] = IDENTITY_QUAT;
+      setMat(mesh, i, (b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2, qx, qy, qz, qw,
+        Math.max(b.x1 - b.x0, 0.001), Math.max(b.y1 - b.y0, 0.001), Math.max(b.z1 - b.z0, 0.001));
       if (colors) mesh.setColorAt(i, colors[i]);
     });
     mesh.instanceMatrix.needsUpdate = true;
@@ -236,10 +246,8 @@ export async function createView3d(container) {
     const mesh = new THREE.InstancedMesh(GEO_SPHERE, material, positions.length);
     const s = radius / 2.5;
     positions.forEach((p, i) => {
-      dummy.position.set(p.x, p.y, p.z);
-      dummy.scale.set(s, s, s);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+      const [qx, qy, qz, qw] = IDENTITY_QUAT;
+      setMat(mesh, i, p.x, p.y, p.z, qx, qy, qz, qw, s, s, s);
     });
     mesh.instanceMatrix.needsUpdate = true;
     return mesh;
@@ -258,11 +266,8 @@ export async function createView3d(container) {
       const len = cylDir.length() || 0.001;
       cylDir.normalize();
       cylQuat.setFromUnitVectors(cylUp, cylDir);
-      dummy.position.set((s.p1.x + s.p2.x) / 2, (s.p1.y + s.p2.y) / 2, (s.p1.z + s.p2.z) / 2);
-      dummy.quaternion.copy(cylQuat);
-      dummy.scale.set(s.r, len, s.r);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+      setMat(mesh, i, (s.p1.x + s.p2.x) / 2, (s.p1.y + s.p2.y) / 2, (s.p1.z + s.p2.z) / 2,
+        cylQuat.x, cylQuat.y, cylQuat.z, cylQuat.w, s.r, len, s.r);
       if (colors) mesh.setColorAt(i, colors[i]);
     });
     mesh.instanceMatrix.needsUpdate = true;

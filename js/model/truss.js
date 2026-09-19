@@ -44,14 +44,17 @@ export function trussShape(c, p, box) {
     mk([len1 - dollyLen, len1], [wid0, wid1], [z0, dollyZ1]),
   ];
 
-  const inset = Math.max(2, DOLLY_WHEEL_D * 0.3);
+  // Bei sehr kurzen Wagen (kurze Traverse -> kurzer dollyLen, s. o.) Rollen-Durchmesser und
+  // -Abstand so begrenzen, dass die 2 Rollen je Kante nie überlappen oder über den Wagen hinausragen.
+  const wheelD = Math.min(DOLLY_WHEEL_D, dollyLen / 3, dollyW / 3);
+  const inset = Math.max(0, Math.min(DOLLY_WHEEL_D * 0.3, (Math.min(dollyLen, dollyW) - 2 * wheelD) / 2));
   const wheels = [];
   for (const d of dollies) {
     const dLen0 = d[`${lenAxis}0`], dLen1 = d[`${lenAxis}1`];
     for (const le of [0, 1]) for (const wi of [0, 1]) {
-      const l0 = le ? dLen1 - inset - DOLLY_WHEEL_D : dLen0 + inset;
-      const w0 = wi ? wid1 - inset - DOLLY_WHEEL_D : wid0 + inset;
-      wheels.push(mk([l0, l0 + DOLLY_WHEEL_D], [w0, w0 + DOLLY_WHEEL_D], [z0, z0 + DOLLY_WHEEL_D]));
+      const l0 = le ? dLen1 - inset - wheelD : dLen0 + inset;
+      const w0 = wi ? wid1 - inset - wheelD : wid0 + inset;
+      wheels.push(mk([l0, l0 + wheelD], [w0, w0 + wheelD], [z0, z0 + wheelD]));
     }
   }
 

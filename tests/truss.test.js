@@ -104,3 +104,25 @@ test('trussShape: ungerade Stückzahl -> letzte Lage nur 1 Stück, zentriert', (
   const mid = (box.y0 + box.y1) / 2;
   assert.ok(Math.abs((lastRow[0].y0 + lastRow[0].y1) / 2 - mid) < 1e-9);
 });
+
+test('trussShape: sehr kurzer Wagen (40 cm Traverse) – Rollen überlappen nicht und bleiben im Wagen', () => {
+  const c = mkTrussCase(40, 29, 2);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  assert.equal(s.dollies.length, 2);
+  assert.equal(s.wheels.length, 8);
+  for (const w of s.wheels) checkInsideBox(box, w);
+
+  for (const d of s.dollies) {
+    const wheelsOnDolly = s.wheels.filter(w => w.x0 >= d.x0 - 1e-9 && w.x1 <= d.x1 + 1e-9);
+    assert.equal(wheelsOnDolly.length, 4);
+    for (const w of wheelsOnDolly) checkInsideBox(d, w);
+    // Die beiden Rollen entlang der Länge (gleiche y-Lage) dürfen sich nicht überlappen.
+    for (const y of [...new Set(wheelsOnDolly.map(w => w.y0))]) {
+      const [a, b] = wheelsOnDolly.filter(w => w.y0 === y).sort((p1, p2) => p1.x0 - p2.x0);
+      assert.ok(a.x1 <= b.x0 + 1e-9, 'Rollen entlang der Länge überlappen sich nicht');
+    }
+  }
+});
