@@ -5,6 +5,7 @@ const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, 
 
 export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(c ?? {}) };
+  if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';
   const isNew = !c || c.builtin;
   const dim = n => `type="number" name="${n}" min="1" max="2000" step="0.5" required`;
   dlg.innerHTML = `

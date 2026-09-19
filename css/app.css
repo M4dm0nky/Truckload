@@ -7,6 +7,7 @@
   :root { --bg: #eef0f3; --panel: #fff; --line: #d6dbe1; --text: #1b1f24; --muted: #66707c; --truck: #f7f8fa; --grid: #e3e7ec; }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
 button, .btn, select, input, textarea { font: inherit; color: inherit; }
 button, .btn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }

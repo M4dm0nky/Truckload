@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { exportBundle, parseBundle, mergeById, backupFileName } from '../js/store/io.js';
-import { mkCase, mkTruck, plan } from './fixtures.js';
+import { mkCase, mkTruck, plan, P } from './fixtures.js';
 
 const own = mkCase('own', 120, 60, 60);
 const builtin = { ...mkCase('preset-x', 1, 1, 1), builtin: true };
+const bundleWith = fields => JSON.stringify({ format: 'truckload', version: 1, ...fields });
 
 test('Export enthält nur eigene Cases/Fahrzeuge und alle Pläne', () => {
   const json = JSON.parse(exportBundle({ cases: [own, builtin], trucks: [mkTruck(), { ...mkTruck(), id: 'b', builtin: true }], plans: [plan([])] }, new Date('2026-09-18T10:00:00Z')));
@@ -36,3 +37,39 @@ test('Merge: neueres updatedAt gewinnt, Neues kommt dazu', () => {
   assert.deepEqual(mergeById([a], [b, c]), [b, c]);
 });
 test('Dateiname', () => assert.equal(backupFileName(new Date('2026-09-18T10:00:00Z')), 'truckload-backup-2026-09-18.json'));
+
+test('Ladeplan mit ungültiger Lage wird abgelehnt', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0, { orientation: 'sideways' })]);
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Ladeplan mit ungültiger Drehung wird abgelehnt', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0, { rot: 45 })]);
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Ladeplan mit nicht-numerischer Position wird abgelehnt', () => {
+  const p = plan([P('pl1', 'own', 'nan', 0, 0)]);
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Case mit ungültigem maxTopLoad wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, maxTopLoad: 'viel' }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Fahrzeug mit ungültiger Radkasten-Seite wird abgelehnt', () => {
+  const t = mkTruck({ wheelArches: [{ x: 100, l: 50, w: 20, h: 30, side: 'top' }] });
+  const bad = bundleWith({ cases: [], trucks: [t], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Radkästen/);
+});
+test('Datei ohne Versionsangabe wird abgelehnt', () => {
+  const bad = JSON.stringify({ format: 'truckload', cases: [], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /keine gültige Versionsangabe/);
+});
+test('Vorlagen (builtin/preset-*) werden beim Import verworfen', () => {
+  const presetById = { ...mkCase('preset-y', 10, 10, 10), builtin: false };
+  const bad = bundleWith({ cases: [own, builtin, presetById], trucks: [mkTruck(), { ...mkTruck({ id: 'preset-truck' }) }], plans: [] });
+  const res = parseBundle(bad);
+  assert.deepEqual(res.cases.map(c => c.id), ['own']);
+  assert.deepEqual(res.trucks.map(t => t.id), ['t']);
+});

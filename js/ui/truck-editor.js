@@ -1,4 +1,4 @@
-export function openTruckEditor(dlg, t) {
+export function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
   const isNew = !t || t.builtin;
   const arch = t?.wheelArches?.[0];
   dlg.innerHTML = `
@@ -31,13 +31,19 @@ export function openTruckEditor(dlg, t) {
   for (const k of ['l', 'w', 'h', 'payload']) f[k].value = t?.[k] ?? '';
   f.arches.checked = !!arch;
   [f.ax.value, f.al.value, f.aw.value, f.ah.value] = arch ? [arch.x, arch.l, arch.w, arch.h] : ['', 100, 22, 30];
-  const sync = () => dlg.querySelector('.arch-fields').hidden = !f.arches.checked;
+  const sync = () => {
+    dlg.querySelector('.arch-fields').hidden = !f.arches.checked;
+    for (const k of ['ax', 'al', 'aw', 'ah']) f[k].required = f.arches.checked;
+  };
   f.arches.addEventListener('change', sync); sync();
 
   return new Promise(resolve => {
     dlg.addEventListener('close', () => {
       const act = dlg.returnValue;
-      if (act === 'delete') return resolve(confirm(`„${t.name}“ löschen?`) ? { action: 'delete' } : null);
+      if (act === 'delete') {
+        const msg = usedIn ? `„${t.name}“ wird in ${usedIn} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${t.name}“ löschen?`;
+        return resolve(confirm(msg) ? { action: 'delete' } : null);
+      }
       if (act !== 'save') return resolve(null);
       const wheelArches = f.arches.checked && f.ax.value !== ''
         ? [{ x: +f.ax.value, l: +f.al.value, w: +f.aw.value, h: +f.ah.value, side: 'both' }] : [];

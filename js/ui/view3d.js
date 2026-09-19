@@ -5,6 +5,7 @@ export async function createView3d(container) {
   const THREE = await import('three');
   const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
 
+  container.replaceChildren();
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
@@ -66,11 +67,12 @@ export async function createView3d(container) {
       content.add(boxMesh(faceSlab(it.box, wheelFace(it.p), 3), new THREE.MeshLambertMaterial({ color: 0x222222 })));
     }
 
-    if (framedFor !== truck.id) {
+    const frameKey = `${truck.id}:${truck.l}x${truck.w}x${truck.h}`;
+    if (framedFor !== frameKey) {
       camera.position.set(truck.l * 1.25, -truck.w * 2.2, truck.h * 2.4);
       controls.target.set(truck.l / 2, truck.w / 2, truck.h / 3);
       controls.update();
-      framedFor = truck.id;
+      framedFor = frameKey;
     }
     resize();
     render();

@@ -69,8 +69,8 @@ let saveTimer;
 let lastSaved = store.get().plan;
 store.subscribe(s => {
   scheduleRender();
-  if (s.plan === lastSaved) return;
   clearTimeout(saveTimer);
+  if (s.plan === lastSaved) return;
   saveTimer = setTimeout(() => { lastSaved = s.plan; repo.savePlan(s.plan); }, 400);
 });
 
@@ -225,12 +225,18 @@ $('#plan-del').onclick = async () => {
 
 // Fahrzeuge
 $('#truck-select').onchange = e => edit(p => ({ ...p, truckId: e.target.value, updatedAt: new Date().toISOString() }));
+const truckUsage = (s, truckId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
+  .filter(p => p.truckId === truckId).length;
+
 async function editTruck(truck) {
-  const res = await openTruckEditor($('#dlg-truck'), truck);
+  const s0 = store.get();
+  const res = await openTruckEditor($('#dlg-truck'), truck, { usedIn: truck ? truckUsage(s0, truck.id) : 0 });
   if (!res) return;
   if (res.action === 'delete') {
     await repo.deleteTruck(truck.id);
+    const usedByCurrent = store.get().plan.truckId === truck.id;
     store.update(s => ({ ...s, trucks: s.trucks.filter(t => t.id !== truck.id) }));
+    if (usedByCurrent) edit(p => ({ ...p, truckId: DEFAULT_TRUCK_ID, updatedAt: new Date().toISOString() }));
     return;
   }
   const value = stamp(res.value);
@@ -250,6 +256,7 @@ renderHooks.push(async (s, d) => {
     view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId });
   } catch {
     $('#view3d').textContent = '3D-Ansicht konnte nicht geladen werden (vendor/ fehlt?).';
+    view3d = null;
     view3dLoading = null;
   }
 });
@@ -276,20 +283,26 @@ $('#import').onchange = async e => {
   if (!file) return;
   try {
     const b = parseBundle(await file.text());
+    const s0 = store.get();
+    const mergedCases = mergeById(s0.cases, b.cases);
+    const mergedTrucks = mergeById(s0.trucks, b.trucks);
+    const mergedPlans = mergeById([s0.plan, ...s0.plans], b.plans);
+    const wonCases = b.cases.filter(x => mergedCases.find(m => m.id === x.id) === x);
+    const wonTrucks = b.trucks.filter(x => mergedTrucks.find(m => m.id === x.id) === x);
+    const wonPlans = b.plans.filter(x => mergedPlans.find(m => m.id === x.id) === x);
     await Promise.all([
-      ...b.cases.map(repo.saveCase), ...b.trucks.map(repo.saveTruck), ...b.plans.map(repo.savePlan),
+      ...wonCases.map(repo.saveCase), ...wonTrucks.map(repo.saveTruck), ...wonPlans.map(repo.savePlan),
     ]);
-    store.update(s => {
-      const plans = mergeById([s.plan, ...s.plans], b.plans);
-      return {
-        ...s,
-        cases: mergeById(s.cases, b.cases),
-        trucks: mergeById(s.trucks, b.trucks),
-        plans: plans.filter(p => p.id !== s.plan.id),
-        plan: plans.find(p => p.id === s.plan.id) ?? s.plan,
-      };
-    });
-    alert(`Importiert: ${b.cases.length} Cases, ${b.trucks.length} Fahrzeuge, ${b.plans.length} Ladepläne.`);
+    const planChanged = mergedPlans.find(p => p.id === s0.plan.id) !== s0.plan;
+    store.update(s => ({
+      ...s,
+      cases: mergedCases,
+      trucks: mergedTrucks,
+      plans: mergedPlans.filter(p => p.id !== s.plan.id),
+      plan: mergedPlans.find(p => p.id === s.plan.id) ?? s.plan,
+    }));
+    if (planChanged) store.resetHistory();
+    alert(`Importiert: ${wonCases.length} Cases, ${wonTrucks.length} Fahrzeuge, ${wonPlans.length} Ladepläne (neuere lokale Stände behalten).`);
   } catch (err) {
     alert(`Import fehlgeschlagen: ${err.message}`);
   }
