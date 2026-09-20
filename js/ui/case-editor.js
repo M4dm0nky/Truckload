@@ -1,5 +1,5 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
-import { wheelHOf, layersOf, DEFAULT_WHEEL_H } from '../model/geometry.js';
+import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
@@ -7,10 +7,11 @@ const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, 
 const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
 const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
-export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
-  const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(c ?? {}) };
+export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
+  const src = c ?? draft ?? null;
+  const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
   if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';
-  const isNew = !c || c.builtin;
+  const isNew = !c || c.builtin || !!draft;
   const dim = n => `type="number" name="${n}" min="1" max="2000" step="0.5" required`;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
@@ -26,8 +27,23 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
         <label><input type="radio" name="kind" value="case"> Case</label>
         <label><input type="radio" name="kind" value="truss"> Traversenwagen</label>
       </div>
-      <fieldset class="case-only"><legend>Maße stehend, inkl. Rollen (cm)</legend>
+      <fieldset class="case-only"><legend>Maße stehend (cm)</legend>
         <div class="row"><label>Länge<input ${dim('l')}></label><label>Breite<input ${dim('w')}></label><label>Höhe<input ${dim('h')}></label></div>
+        <p class="hint outer-dims-hint"></p>
+      </fieldset>
+      <fieldset class="case-only"><legend>Rollen</legend>
+        <label class="check"><input type="checkbox" name="wheels"> mit Rollen</label>
+        <div class="row">
+          <label>Rollenhöhe<select name="wheelPreset">
+            ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${p.name} – ${p.h} cm</option>`).join('')}
+            <option value="custom">eigene …</option>
+          </select></label>
+          <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="40" step="1"></label>
+        </div>
+        <div class="row">
+          <label class="check"><input type="radio" name="dimsInclWheels" value="incl"> Maß ist inkl. Rollen</label>
+          <label class="check"><input type="radio" name="dimsInclWheels" value="excl"> Maß ist ohne Rollen – Rollen dazurechnen</label>
+        </div>
       </fieldset>
       <fieldset class="truss-only" hidden><legend>Traversenwagen</legend>
         <div class="row">
@@ -49,7 +65,6 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
       <div class="row">
         <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" step="0.5" required></label>
         <label>Bestand (Stück)<input type="number" name="stock" min="0" step="1"></label>
-        <label class="case-only">Rollenhöhe (cm, 0 = ohne Rollen)<input type="number" name="wheelH" min="0" max="40" step="1"></label>
       </div>
       <label class="check case-only"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
       <label class="check"><input type="checkbox" name="stackable"> stapelbar (darf etwas obendrauf)</label>
@@ -75,9 +90,52 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   for (const k of ['l', 'w', 'h', 'weight']) f[k].value = v[k];
   f.stock.value = v.stock ?? '';
   f.maxTopLoad.value = v.maxTopLoad ?? '';
-  f.wheelH.value = wheelHOf(v);
   f.tippable.checked = v.tippable;
   f.stackable.checked = v.stackable;
+
+  const wheelCustomLabel = f.wheelHCustom.parentElement;
+  const dimsInclRadios = [...dlg.querySelectorAll('input[name="dimsInclWheels"]')];
+  const outerDimsHint = dlg.querySelector('.outer-dims-hint');
+  function setWheelHValue(h) {
+    const match = WHEEL_PRESETS.some(p => p.h === h);
+    f.wheelPreset.value = match ? String(h) : 'custom';
+    f.wheelHCustom.value = h;
+    wheelCustomLabel.hidden = match;
+  }
+  const storedWheelH = Number.isFinite(v.wheelH) ? v.wheelH : null;
+  const rawWheelH = storedWheelH > 0 ? storedWheelH : (c ? DEFAULT_WHEEL_H : NEW_CASE_WHEEL_H);
+  f.wheels.checked = hasWheels(v);
+  setWheelHValue(rawWheelH);
+  const inclWheels = v.dimsInclWheels !== false;
+  for (const r of dimsInclRadios) r.checked = r.value === (inclWheels ? 'incl' : 'excl');
+
+  function currentWheelH() {
+    return f.wheelPreset.value === 'custom' ? Number(f.wheelHCustom.value) : Number(f.wheelPreset.value);
+  }
+  function updateOuterDimsHint() {
+    const l = Number(f.l.value), w = Number(f.w.value), h = Number(f.h.value);
+    if (!(l > 0 && w > 0 && h > 0)) { outerDimsHint.textContent = ''; return; }
+    const inclChecked = (dimsInclRadios.find(r => r.checked)?.value ?? 'incl') !== 'excl';
+    const d = outerDims({ l, w, h, wheels: f.wheels.checked, wheelH: currentWheelH(), dimsInclWheels: inclChecked });
+    outerDimsHint.textContent = `→ im Truck ${d.l} × ${d.w} × ${d.h} cm`;
+  }
+  function updateWheelsUi() {
+    const on = f.wheels.checked;
+    f.wheelPreset.disabled = !on;
+    f.wheelHCustom.disabled = !on || f.wheelPreset.value !== 'custom';
+    for (const r of dimsInclRadios) r.disabled = !on;
+    updateOuterDimsHint();
+  }
+  f.wheels.addEventListener('change', updateWheelsUi);
+  f.wheelPreset.addEventListener('change', () => {
+    wheelCustomLabel.hidden = f.wheelPreset.value !== 'custom';
+    f.wheelHCustom.disabled = !f.wheels.checked || f.wheelPreset.value !== 'custom';
+    updateOuterDimsHint();
+  });
+  f.wheelHCustom.addEventListener('input', updateOuterDimsHint);
+  for (const r of dimsInclRadios) r.addEventListener('change', updateOuterDimsHint);
+  for (const name of ['l', 'w', 'h']) f[name].addEventListener('input', updateOuterDimsHint);
+  updateWheelsUi();
 
   const kindInputs = [...dlg.querySelectorAll('input[name="kind"]')];
   const caseOnly = [...dlg.querySelectorAll('.case-only')];
@@ -129,11 +187,13 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
   for (const r of kindInputs) {
     r.checked = r.value === prevKind;
     r.addEventListener('change', () => {
-      if (prevKind === 'truss' && r.value === 'case' && Number(f.wheelH.value) === 0) {
-        f.wheelH.value = DEFAULT_WHEEL_H;
+      if (prevKind === 'truss' && r.value === 'case' && (!f.wheels.checked || !(currentWheelH() > 0))) {
+        f.wheels.checked = true;
+        setWheelHValue(DEFAULT_WHEEL_H);
       }
       prevKind = r.value;
       applyKind(r.value);
+      updateWheelsUi();
     });
   }
   f.trussWidthProfile.addEventListener('change', () => {
@@ -207,7 +267,9 @@ export function openCaseEditor(dlg, c, { usedIn = 0 } = {}) {
         resolve({ action: 'save', value: {
           ...base, kind: undefined, truss: undefined,
           l: Number(f.l.value), w: Number(f.w.value), h: Number(f.h.value),
-          wheelH: Number(f.wheelH.value), tippable: f.tippable.checked,
+          wheels: f.wheels.checked, wheelH: f.wheels.checked ? currentWheelH() : 0,
+          dimsInclWheels: (dimsInclRadios.find(r => r.checked)?.value ?? 'incl') !== 'excl',
+          tippable: f.tippable.checked,
         } });
       }
     }, { once: true });

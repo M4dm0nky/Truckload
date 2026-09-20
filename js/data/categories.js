@@ -6,6 +6,7 @@ export const CATEGORIES = [
   { name: 'Strom', color: '#e8741c' },
   { name: 'Bühne', color: '#a07845' },
   { name: 'Backline', color: '#1fa67a' },
+  { name: 'Sonderbau', color: '#c1443f' },
   { name: 'Sonstiges', color: '#9aa3ad' },
 ];
 export const colorFor = name =>
