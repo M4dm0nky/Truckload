@@ -102,8 +102,20 @@ export function duplicate(plan, id, ctx) {
   return touch({ ...plan, placements: [...plan.placements, copy] });
 }
 
+// Teilweise Änderung mit ausdrücklichem Löschen: ein Feld, das nicht übergeben
+// wird (Key fehlt oder `undefined`), bleibt unverändert. `null` oder `''`
+// entfernt das Feld ausdrücklich (Fallback auf Case-Name bzw. Gewerkfarbe).
+function applyField(it, key, value) {
+  if (value === undefined) return it;
+  if (value === null || value === '') {
+    const { [key]: _drop, ...rest } = it;
+    return rest;
+  }
+  return { ...it, [key]: value };
+}
+
 export function setItemLabel(plan, id, { label, color } = {}) {
-  const patch = it => it.id === id ? { ...it, label, color } : it;
+  const patch = it => it.id === id ? applyField(applyField(it, 'label', label), 'color', color) : it;
   return touch({
     ...plan,
     placements: plan.placements.map(patch),

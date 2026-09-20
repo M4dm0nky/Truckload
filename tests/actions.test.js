@@ -85,6 +85,28 @@ test('setItemLabel trifft auch Ablage-Einträge', () => {
   assert.equal(pl.unplaced[0].label, 'Ablage');
   assert.equal(pl.unplaced[0].color, '#abcdef');
 });
+test('setItemLabel: nur Label ändern lässt die Farbe stehen', () => {
+  const pl = A.setItemLabel(plan([P('a','k',0,0,0,{ label: 'Alt', color: '#123456' })]), 'a', { label: 'Neu' });
+  assert.equal(pl.placements[0].label, 'Neu');
+  assert.equal(pl.placements[0].color, '#123456');
+});
+test('setItemLabel: nur Farbe ändern lässt das Label stehen', () => {
+  const pl = A.setItemLabel(plan([P('a','k',0,0,0,{ label: 'Alt', color: '#123456' })]), 'a', { color: '#abcdef' });
+  assert.equal(pl.placements[0].label, 'Alt');
+  assert.equal(pl.placements[0].color, '#abcdef');
+});
+test('setItemLabel: color null entfernt die Farbe', () => {
+  const pl = A.setItemLabel(plan([P('a','k',0,0,0,{ label: 'Alt', color: '#123456' })]), 'a', { color: null });
+  assert.equal(pl.placements[0].label, 'Alt');
+  assert.equal(pl.placements[0].color, undefined);
+  assert.ok(!('color' in pl.placements[0]));
+});
+test('setItemLabel: label "" entfernt die Beschriftung', () => {
+  const pl = A.setItemLabel(plan([P('a','k',0,0,0,{ label: 'Alt', color: '#123456' })]), 'a', { label: '' });
+  assert.equal(pl.placements[0].label, undefined);
+  assert.ok(!('label' in pl.placements[0]));
+  assert.equal(pl.placements[0].color, '#123456');
+});
 test('packAll verlädt alles', () => {
   const pl = A.packAll(plan([P('a','k',700,0,0)], [{ id: 'u1', caseId: 'k' }, { id: 'u2', caseId: 't' }]), ctx());
   assert.equal(pl.placements.length, 3);
