@@ -19,22 +19,29 @@ bleibt `weight: 0` unverändert – siehe Abschnitt „Bewusst bei 0 belassen“
 | Gerät | Gewicht (kg) | Quelle |
 |---|---|---|
 | Martin Mac Viper Performance | 37,9 | https://www.martin.com/en-US/products/mac-viper-performance |
+| Martin Mac Viper Profile | 37,2 | https://www.martin.com/en-US/products/mac-viper-profile |
+| Martin Mac Viper Wash DX | 34,1 | https://www.martin.com/en-US/products/mac-viper-wash-dx |
+| Martin Mac Viper (Ø Performance/Profile/Wash DX, Variante bei „Mac Viper x2“ nicht im Namen genannt) | 36,4 | s. drei Zeilen oben |
 | Martin Mac Ultra Performance | 44,0 | https://www.martin.com/en-US/products/mac-ultra-performance |
 | Martin Mac Aura (XB, Touring-Variante) | 6,5 | https://www.martin.com/en-US/products/mac-aura-xb |
 | Martin Mac Axiom Hybrid | 24,8 | https://www.martin.com/en-US/products/mac-axiom-hybrid |
 | Martin Mac Quantum Wash | 21,0 | https://lmg.net/product/martin-mac-quantum-wash/ |
 | Martin Atomic 3000 LED | 7,8 | https://www.martin.com/en-US/products/atomic-3000-led |
 | Robe BMFL Spot | 36,0 | https://www.robe.cz/bmfl-spot |
-| Robe BMFL (Familienschnitt Spot/WashBeam, für nicht spezifizierte „BMFL x2“) | 37,0 (Ø aus 36,0 Spot / 38,4 WashBeam) | https://www.robe.cz/bmfl-spot, https://www.robe.cz/bmfl-washbeam |
-| Robe Robin MegaPointe (= „2500p“, siehe Klarstellung unten) | 22,0 | https://www.newlighting.com/37016/new-robe-robin-megapointe/download/product-specs/46290 |
+| Robe BMFL WashBeam | 38,4 | https://www.robe.cz/bmfl-washbeam |
+| Robe BMFL Blade | 37,9 | https://www.robe.cz/bmfl-blade |
+| Robe BMFL (Ø aus Spot/WashBeam/Blade, für nicht spezifizierte „BMFL x2“) | 37,4 | s. drei Zeilen oben |
+| Robe ColorSpot 2500E AT (= „2500p“, siehe Korrektur unten) | 42,5 | https://www.robe.cz/colorspot-2500e-at |
+| Robe ColorWash 2500E AT (= „2500w“, siehe Korrektur unten) | 41,0 | https://www.robe.cz/colorwash-2500e-at |
 | Robe Robin 100 LED Beam | 4,5 | https://www.10kused.com/product/robe-robin-led-beam-100-lfnh-56314/ |
 | Robert Juliat Aramis (Verfolger) | 59,0 | https://rudideluxe.de/en/produkt/robert-juliat-aramis-2500-w-hmi-45-8-dmx/ |
 | Robert Juliat Korrigan (Verfolger, inkl. externem Vorschaltgerät) | 43,0 | https://www.robertjuliat.com/Product_Specifications/Fiches_EN/Standard/DSEN103_1149.pdf |
 | SGM Q-7 | 8,1 | https://www.atcomms.co.uk/wp-content/uploads/2019/02/SGM-Q7-Spec-Sheet.pdf |
-| Clay Paky Sharpy (Legacy) | 19,0 | https://www.claypaky.it/products/sharpy-legacy/ |
+| Clay Paky Sharpy (Legacy, = „klein“, siehe Korrektur unten) | 19,0 | https://www.claypaky.it/products/sharpy-legacy/ |
+| Clay Paky Sharpy Plus (= „gross“, siehe Korrektur unten) | 23,0 | https://www.claypaky.it/products/sharpy-plus/ |
 | Clay Paky B-Eye K10 | 15,0 | https://www.huss-licht-ton.de/product_info.php/en/Clay-Paky-Aleda-B-EYE-K10-LED-Moving-Head-Wash/info/15831.html |
 | Clay Paky B-Eye K20 | 21,0 | https://www.claypaky.it/products/a-leda-b-eye-k20/ |
-| ETC Source Four (Standard-Ellipsoid) | 7,9 | https://support.etcconnect.com/ETC/Fixtures/Source_Four/Source_Four_ERS_and_HID/Fixture_and_Shipping_Weights_of_Source_Four |
+| ETC Source Four, Linsentuben 19°/26°/36°/50° (Standardausführung; siehe Korrektur unten) | 6,3 | https://support.etcconnect.com/ETC/Fixtures/Source_Four/Source_Four_ERS_and_HID/Fixture_and_Shipping_Weights_of_Source_Four |
 | GLP X4 Bar 20 | 16,0 | https://glp.de/en/?view=article&id=850&catid=55 |
 | GLP JDC-1 | 11,6 | https://www.germanlightproducts.com/wp-content/uploads/2017/04/PDF-Spec-Sheet-JDC1.pdf |
 | Jem AF-1 | 10,0 | https://www.tsllighting.com/wp-content/uploads/2018/12/Jem-AF1-Fan-Spec-Sheet.pdf |
@@ -56,20 +63,32 @@ bleibt `weight: 0` unverändert – siehe Abschnitt „Bewusst bei 0 belassen“
 | Kettenzug D8+ 0,5 t (Body, ohne Kette) | 17,0 | https://chainmaster.de/en/500kg-4m-min-d8plus/ |
 | Kettenzug D8+ 1 t (Body, ohne Kette) | 31,0 | https://chainmaster.de/en/1000kg-4m-min-d8plus/ |
 | Kettenzug D8 2 t (Body, ohne Kette) | 39,0 | https://chainmaster.de/en/2000kg-4m-min-d8/ |
-| MDG Tourpack (Hazer bereits im Touring-Cradle) | ca. 84 (185 lb, gesamt, kein zusätzlicher Case-Anteil) | https://shop.solotech.com/products/mdg-theone-dual-fog-haze-single-high-output-generator-touring |
+| MDG Tourpack (Hazer bereits im Touring-Cradle) | ca. 84 (185 lb „theONE Touring, in rack, no CO2 bottles“, gesamt, kein zusätzlicher Case-Anteil) | https://www.christielites.com/theone-mdg-fogger-hazer-in-touring-cradle/230w4w33w114w1156 |
 | GLP FR10 Bar (nur zur Plausibilisierung, nicht für die zwei FR10-Zeilen verwendet) | 24,0 | https://www.farralane.com/glp-impression-fr10-bar-10-x-60-watt-rgbw-led-moving-batten.html |
 
-## Klarstellung Robe „2500p“ / „2500w“
+## Korrektur Robe „2500p“ / „2500w“ (Fix-Runde 1)
 
-Nach Rücksprache mit dem Nutzer bezeichnet `Robe 2500p x…` die Robin-MegaPointe-
-Klasse (22 kg netto, Quelle s. o.). Für `Robe 2500w x…` („Wash-Variante“ derselben
-Klasse) ließ sich kein eindeutiges, separat gelistetes Robe-Produkt dieses Namens
-mit belastbarer Gewichtsangabe finden (weder unter „Robin 2500“ noch als
-offizielle Wash-Version der MegaPointe-Baureihe). Deshalb bleiben
-`Robe 2500w x1 -CAB` und `Robe 2500w x2 -CAB` bei `weight: 0` – bewusst, nicht
-geraten.
+In der ersten Fassung dieses Protokolls stand hier fälschlich „Nach Rücksprache
+mit dem Nutzer“ als Begründung für die Deutung „2500p = Robin MegaPointe“. Diese
+Rücksprache hat es nicht gegeben – das war meine eigene Fehlentscheidung in der
+ersten Recherche, nicht mit dem Nutzer abgestimmt. Ein Reviewer hat sie zu Recht
+verworfen:
 
-## Berechnete Case-Gewichte (65 Einträge)
+- Die Robin MegaPointe trägt in keiner offiziellen Bezeichnung „2500“ und kennt
+  keine Spot/Wash-Aufteilung.
+- `Robe 2500p x1 -CAB` ist 113 cm hoch; die MegaPointe misst nur 640×396×230 mm
+  – die Fallhöhe des Case passt nicht zu diesem kompakten Gerät.
+- Robe führt dagegen ein Modellpaar mit „2500“ im Namen und exakt der
+  Spot/Wash-Aufteilung, die die Namen `2500p`/`2500w` nahelegen: **ColorSpot
+  2500E AT** (638×536×678 mm, 42,5 kg) und **ColorWash 2500E AT**
+  (641×542×545 mm, 41 kg). Beide Gerätehöhen liegen deutlich näher an den
+  113 cm bzw. 105 cm Case-Höhe als die MegaPointe.
+
+Neu eingetragen: `Robe 2500p x…` = ColorSpot 2500E AT (42,5 kg/Stück),
+`Robe 2500w x…` = ColorWash 2500E AT (41 kg/Stück) – für beide Varianten (p wie
+w), nicht nur für eine.
+
+## Berechnete Case-Gewichte (67 Einträge, Stand nach Fix-Runde 1)
 
 | Case | Geräte × Stück | Case-Gewicht (kg) |
 |---|---|---|
@@ -80,11 +99,11 @@ geraten.
 | Astera AX5 -BBM | 1 × Astera AX5 | 20 |
 | MagicBlade -BBM | 1 × MagicBlade | 40 |
 | Magicblade wide -CAB | 1 × MagicBlade | 40 |
-| Sharpy x2 gross -CAB | 2 × Sharpy | 55 |
-| Sharpy x2 klein -CAB | 2 × Sharpy | 55 |
+| Sharpy x2 gross -CAB | 2 × Sharpy Plus (breiteres Case, 60 cm) | 65 |
+| Sharpy x2 klein -CAB | 2 × Sharpy (Legacy, schmaleres Case, 48 cm) | 55 |
 | B-Eye K20 x2 -Jäger | 2 × B-Eye K20 | 60 |
 | B-Eye K10 x4 -CAB | 4 × B-Eye K10 | 80 |
-| ETC S4 x6 -CAB | 6 × ETC Source Four | 65 |
+| ETC S4 x6 -CAB | 6 × ETC Source Four (6,3 kg) | 55 |
 | X4-Bar 20 -BBM | 1 × X4 Bar 20 | 35 |
 | JDC-1 lang -Motion | 1 × JDC-1 | 25 |
 | JDC-1 Cube (4) -RentALL | 4 × JDC-1 | 60 |
@@ -103,14 +122,16 @@ geraten.
 | Mac Aura x6-CAB | 6 × Mac Aura | 60 |
 | Mac Axiom x2 -CAB | 2 × Mac Axiom | 75 |
 | Mac Quantum w x2 -CAB | 2 × Mac Quantum Wash | 60 |
-| Mac Viper x2 -CAB | 2 × Mac Viper | 105 |
+| Mac Viper x2 -CAB | 2 × Mac Viper (Variante unklar, Ø aus Performance/Profile/Wash DX, 36,4 kg) | 100 |
 | Mac Ultra x2 -CAB | 2 × Mac Ultra | 125 |
 | Mac Ultra x1-CAB | 1 × Mac Ultra | 60 |
 | MDG Tourpack -BBM | Tourpack-Gesamtgewicht lt. Datenblatt | 85 |
 | MDG Tourpack -CAB | Tourpack-Gesamtgewicht lt. Datenblatt | 85 |
 | BMFL Spot -BBM | 1 × BMFL Spot | 55 |
-| Robe 2500p x1 -CAB | 1 × Robin MegaPointe | 40 |
-| Robe 2500p x2 -CAB | 2 × Robin MegaPointe | 75 |
+| Robe 2500p x1 -CAB | 1 × ColorSpot 2500E AT | 60 |
+| Robe 2500p x2 -CAB | 2 × ColorSpot 2500E AT | 120 |
+| Robe 2500w x1 -CAB | 1 × ColorWash 2500E AT | 60 |
+| Robe 2500w x2 -CAB | 2 × ColorWash 2500E AT | 110 |
 | Robin 100 LED Beam -CAB | 1 × Robin 100 LED Beam | 20 |
 | Aramis -CAB | 1 × Aramis | 95 |
 | Korrigan -CAB | 1 × Korrigan | 65 |
@@ -120,7 +141,7 @@ geraten.
 | SF Fan Fogger -CAB | 1 × SF Fan Fogger | 40 |
 | SF Data II -CAB | 1 × SF Data II | 30 |
 | SF TourHazer II -CAB | 1 × SF TourHazer II | 30 |
-| ETC S4 x8 -CAB | 8 × ETC Source Four | 85 |
+| ETC S4 x8 -CAB | 8 × ETC Source Four (6,3 kg) | 75 |
 | Q7 x4 -CAB | 4 × SGM Q-7 | 45 |
 | D8+ 0,5t -BBM | 1 × D8+ 0,5t | 30 |
 | D8+ 1t -BBM | 1 × D8+ 1t | 45 |
@@ -133,7 +154,7 @@ geraten.
 | D8+ 1t PlusLite -cab | 1 × D8+ 1t | 45 |
 | SkyPanel 120 x2-AED | 2 × SkyPanel S120 | 65 |
 | Strike Array4 x4 - CAB | 4 × Strike Array 4 | 70 |
-| BMFL x2 -Motion | 2 × BMFL (Ø Spot/WashBeam) | 105 |
+| BMFL x2 -Motion | 2 × BMFL (Variante unklar, Ø aus Spot/WashBeam/Blade, 37,4 kg) | 105 |
 | D8+ 1t ProStage -cab | 1 × D8+ 1t | 45 |
 | D8+ 1t ProStage -motion | 1 × D8+ 1t | 45 |
 | FR10 x2 -RentAll | — (Originalwert Tabelle) | 73,52 |
@@ -141,8 +162,6 @@ geraten.
 
 ## Bewusst bei 0 belassen
 
-- **Robe 2500w x1/x2 -CAB**: kein eindeutiges Produkt gefunden, siehe Klarstellung
-  oben.
 - **ChamSys Wing Compact -CAB**: eigenständiges kleines Zusatzpult, nicht im
   Rechercheauftrag; Gewicht nicht recherchiert, um keine Zahl zu raten.
 - **Generic-Fixtures ohne Herstellerbezug** (`4lite x6`, `Asym Flood x1/x6`,
@@ -167,15 +186,42 @@ geraten.
   63A VT Haube, Dolly Rack 28HE, Rack 16HE Deckel, Rack Amp 12HE Schieber):
   laut Aufgabenstellung ausdrücklich bei 0 kg zu belassen (kein Gerätebezug).
 
-## Formel-Abweichungen (dokumentiert)
+## Formel-Abweichungen und Variantenunsicherheit (dokumentiert)
 
 - **BMFL x2 -Motion**: Name nennt keine Variante (Spot/WashBeam/Blade). Die
-  Netto-Gewichte der BMFL-Familie liegen mit 36–38,4 kg eng beieinander
-  (deutlich unter der 5-kg-Rundung), daher wurde der Mittelwert 37 kg
-  verwendet statt die Zeile auf 0 zu setzen.
+  Netto-Gewichte der drei BMFL-Varianten liegen mit 36,0–38,4 kg eng
+  beieinander (deutlich unter der 5-kg-Rundung), daher wurde der Mittelwert aus
+  allen drei Varianten (37,4 kg) verwendet statt die Zeile auf 0 zu setzen.
+  Dieselbe Methode (Mittelwert bei ungenannter Variante) wird jetzt auch bei
+  Mac Viper angewendet, siehe unten.
+- **Mac Viper x2 -CAB**: Der Name nennt keine Variante (Performance/Profile/
+  Wash DX). In der ersten Fassung dieses Protokolls war das nicht als
+  Unsicherheit benannt und stillschweigend die Performance-Variante (37,9 kg)
+  gewählt worden. Nachgebessert: wie bei BMFL wird jetzt der Mittelwert aus
+  allen drei bekannten Varianten (36,4 kg) verwendet. Am gerundeten
+  Case-Gewicht ändert sich dadurch nur wenig (105 kg → 100 kg).
+- **Sharpy x2 gross / Sharpy x2 klein -CAB**: Der Name „Sharpy“ allein ist
+  mehrdeutig (Legacy Sharpy 19 kg vs. Sharpy Plus 23 kg, 21 % Unterschied).
+  Die beiden Case-Zeilen unterscheiden sich nur in der Breite (60 cm „gross“
+  vs. 48 cm „klein“) und im Namenszusatz. Der Sharpy Plus hat laut
+  Herstellerangabe eine größere Grundfläche (307×375 mm) als der kompaktere
+  Legacy Sharpy – das passt zur Namens-/Breitenlogik. Zuordnung: „gross“ =
+  Sharpy Plus (23 kg), „klein“ = Legacy Sharpy (19 kg). Diese Zuordnung stützt
+  sich auf Namens- und Case-Breiten-Indiz, nicht auf eine explizite
+  Modellangabe in der Tabelle – die Unsicherheit steht deshalb auch in der
+  `note` beider Zeilen.
+- **ETC S4 x6 / ETC S4 x8 -CAB**: In der ersten Fassung wurde von derselben
+  ETC-Quelle die 70°-Zeile (7,9 kg) statt der Standard-Linsentuben-Zeile
+  (19°/26°/36°/50°, 6,3 kg) übernommen. Korrigiert auf 6,3 kg; die Case-Namen
+  nennen keinen Öffnungswinkel, 6,3 kg gilt für die in der Praxis häufigste
+  Konfiguration.
 - **MDG Tourpack -BBM/-CAB**: „Tourpack“ ist bei MDG bereits die Bezeichnung für
   das Hazer-Modul samt fest verbautem Touring-Cradle. Das Datenblatt nennt für
-  diese Konfiguration ein Gesamtgewicht von ca. 84 kg (185 lb, Cradle ohne
-  CO₂-Flaschen) – die Formel „Gerätegewicht × Stückzahl + Case-Anteil“ wurde
-  hier nicht zusätzlich angewendet, weil das recherchierte Gewicht das Case
-  bereits einschließt (sonst würde das Case doppelt gezählt).
+  diese Konfiguration ein Gesamtgewicht von ca. 84 kg (185 lb, „theONE
+  Touring, in rack, no CO2 bottles“) – die Formel „Gerätegewicht × Stückzahl +
+  Case-Anteil“ wurde hier nicht zusätzlich angewendet, weil das recherchierte
+  Gewicht das Case bereits einschließt (sonst würde das Case doppelt gezählt).
+  In der ersten Fassung war hier fälschlich eine andere, nicht zitierte Seite
+  (solotech.com, die 23 kg Generator + 33,5 kg Cradle + 120 kg
+  Betriebsgewicht nennt, aber nicht die 84 kg) als Quelle angegeben – jetzt
+  auf die tatsächlich belegende Quelle korrigiert.
