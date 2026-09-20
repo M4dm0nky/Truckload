@@ -1,5 +1,6 @@
 import { esc } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
+import { outerDims } from '../model/geometry.js';
 import { isTruss } from '../model/truss.js';
 
 const MAX_ITEMS = 500;
@@ -7,7 +8,7 @@ const MAX_ITEMS = 500;
 function caseLine(c) {
   return isTruss(c)
     ? `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück`
-    : `${c.l}×${c.w}×${c.h} cm · ${c.weight} kg`;
+    : `${outerDims(c).l}×${outerDims(c).w}×${outerDims(c).h} cm · ${c.weight} kg`;
 }
 
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, presetCaseId, onNewCase(draft) }

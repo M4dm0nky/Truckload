@@ -1,6 +1,6 @@
 import { esc } from './dom.js';
 import { CATEGORIES } from '../data/categories.js';
-import { layersOf } from '../model/geometry.js';
+import { layersOf, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
 
 function trussProfileLabel(width) {
@@ -45,7 +45,7 @@ export function mountLibrary(el, h) {
       <span class="lib-text"><b>${esc(c.name)}</b>
         <small>${isTruss(c)
           ? esc(trussLabel(c))
-          : `${c.l}×${c.w}×${c.h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}</small></span>
+          : `${outerDims(c).l}×${outerDims(c).w}×${outerDims(c).h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}</small></span>
       <button data-act="add" title="In die Ablage legen">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
     </div>`;
@@ -64,14 +64,16 @@ export function mountLibrary(el, h) {
   }
 
   function renderTray() {
-    const counts = new Map();
-    for (const u of last.plan.unplaced) counts.set(u.caseId, [...(counts.get(u.caseId) ?? []), u.id]);
+    const groups = new Map(); // caseId -> unplaced-Einträge
+    for (const u of last.plan.unplaced) groups.set(u.caseId, [...(groups.get(u.caseId) ?? []), u]);
     const byId = new Map(last.cases.map(c => [c.id, c]));
-    tray.innerHTML = [...counts].map(([caseId, ids]) => {
+    tray.innerHTML = [...groups].map(([caseId, items]) => {
       const c = byId.get(caseId);
-      return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(ids[0])}">
+      const labels = items.map(u => u.label ?? c?.name ?? 'Unbekanntes Case').join(', ');
+      return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(items[0].id)}">
         <span class="swatch" style="background:${esc(c?.color ?? '#888')}"></span>
-        <span class="lib-text"><b>${ids.length}× ${esc(c?.name ?? 'Unbekanntes Case')}</b></span>
+        <span class="lib-text"><b>${items.length}× ${esc(c?.name ?? 'Unbekanntes Case')}</b>
+          <small>${esc(labels)}</small></span>
         <button data-act="tray-remove" title="Eins entfernen">−</button></div>`;
     }).join('') || '<p class="hint">Leer. Mit „+“ Cases hierher legen, dann ziehen oder „Rest einpacken“.</p>';
   }

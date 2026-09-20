@@ -10,6 +10,12 @@ const PAD = 30;
 const FRAME_W = 3.5;      // cm, Breite des Alu-Hybridprofils
 const DETAIL_MIN = 40;    // cm, ab dieser Korpus-Kantenlänge werden Details gezeichnet
 
+// Beschriftung: Schriftgröße aus der kleineren Korpus-Rechteckseite abgeleitet, auf 6–16 cm begrenzt.
+const LABEL_MIN = 6;
+const LABEL_MAX = 16;
+const LABEL_RATIO = 0.32;
+const LABEL_PAD = 3;
+
 // Verlaufs-/Musterdefinitionen einmal pro <svg>-Element anlegen (IDs an das Element gebunden,
 // damit mehrere gleichzeitig sichtbare Ansichten – App + Druck – sich nicht überschreiben).
 let uidSeq = 0;
@@ -197,6 +203,37 @@ function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, det
   else if (bw >= 100) { drawHandle(bodyRect.u0 + bw / 4); drawHandle(bodyRect.u0 + (bw * 3) / 4); }
 }
 
+// Passt den Textinhalt an eine maximale Breite an (binäre Suche über getComputedTextLength);
+// verkürzt notwendigenfalls mit „…“. Der volle Text bleibt im <title> des Case erhalten.
+function fitLabelText(el, full, maxWidth) {
+  el.textContent = full;
+  if (maxWidth <= 0 || typeof el.getComputedTextLength !== 'function') return;
+  if (el.getComputedTextLength() <= maxWidth) return;
+  let lo = 0, hi = full.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    el.textContent = mid > 0 ? `${full.slice(0, mid)}…` : '…';
+    if (el.getComputedTextLength() <= maxWidth) lo = mid; else hi = mid - 1;
+  }
+  el.textContent = lo > 0 ? `${full.slice(0, lo)}…` : '…';
+}
+
+function drawLabel(g, labelRect, it) {
+  const w = labelRect.u1 - labelRect.u0, h = labelRect.v1 - labelRect.v0;
+  const fontSize = Math.max(LABEL_MIN, Math.min(LABEL_MAX, Math.min(w, h) * LABEL_RATIO));
+  const label = svgEl('text', {
+    x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2,
+    class: 'label', style: `font-size:${fontSize}px`,
+  }, g);
+  fitLabelText(label, it.label, Math.max(0, w - LABEL_PAD * 2));
+
+  const seqSize = Math.max(LABEL_MIN, fontSize * 0.55);
+  svgEl('text', {
+    x: labelRect.u0 + LABEL_PAD, y: labelRect.v0 + LABEL_PAD,
+    class: 'label-seq', style: `font-size:${seqSize}px`,
+  }, g).textContent = it.seq;
+}
+
 function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
   const r = project(it.box, mode, truck);
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
@@ -218,7 +255,7 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
     // Zahl auf dem Wagen (Wagenende), nicht mitten im Gurtrohr-/Diagonalen-Muster.
     labelRect = project(shape.dollies[0], mode, truck);
   } else {
-    const colors = caseColors(it.c, colorMode);
+    const colors = caseColors(it.c, colorMode, it.color);
     // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
     // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
     const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
@@ -227,8 +264,7 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
 
   if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
 
-  if (labels) svgEl('text', { x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2, class: 'label' }, g)
-    .textContent = it.seq;
+  if (labels) drawLabel(g, labelRect, it);
   svgEl('title', {}, g).textContent = it.title;
 }
 
@@ -262,7 +298,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
     drawCase(g, {
       ...it,
       seq: result.sequence.get(it.id),
-      title: `${result.sequence.get(it.id)}. ${it.c.name}${it.c.content ? ` – ${it.c.content}` : ''}`,
+      title: `${result.sequence.get(it.id)}. ${it.label}${it.c.content ? ` – ${it.c.content}` : ''}`,
     }, mode, truck, { colorMode, labels, uid });
     if (bad) {
       const r = project(it.box, mode, truck);

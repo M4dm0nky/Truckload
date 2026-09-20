@@ -1,18 +1,42 @@
 import { esc, fmtM, ORIENTATION_LABEL } from './dom.js';
+import { outerDims, wheelFace, rotForWheelFace } from '../model/geometry.js';
+
+// Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
+// (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die
+// gegenüberliegende (großes y) als „rechts“ (siehe js/ui/projection.js / view2d.js).
+const WHEEL_FACE_ORDER = ['+x', '-x', '-y', '+y'];
+const WHEEL_FACE_LABEL = { '+x': 'Tür', '-x': 'Front', '-y': 'links', '+y': 'rechts' };
 
 export function renderInspector(el, { selected, result, truck }) {
   const t = result.totals;
   const pct = Math.min(100, Math.round(t.weight / t.payload * 100));
+  const tipped = selected && selected.p.orientation !== 'standing';
+  const wheelRow = tipped ? `
+      <div class="insp-wheels">
+        <span class="hint">Rollen zeigen nach:</span>
+        <div class="btns">
+          ${WHEEL_FACE_ORDER.map(face => {
+            const active = wheelFace(selected.p) === face;
+            const reachable = rotForWheelFace(selected.p.orientation, face) != null;
+            return `<button data-act="wheel-face" data-face="${face}" class="${active ? 'on' : ''}" ${reachable ? '' : 'disabled'}>${WHEEL_FACE_LABEL[face]}</button>`;
+          }).join('')}
+        </div>
+      </div>` : '';
   const sel = selected ? `
     <section class="insp-sel">
-      <h2><span class="swatch" style="background:${esc(selected.c.color)}"></span>${result.sequence.get(selected.id)}. ${esc(selected.c.name)}</h2>
+      <h2><span class="swatch" style="background:${esc(selected.color)}"></span>${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
       ${selected.c.content ? `<p class="content">${esc(selected.c.content)}</p>` : ''}
+      <div class="insp-label">
+        <label>Beschriftung<input type="text" name="label" maxlength="60" value="${esc(selected.label)}"></label>
+        <label>Farbe<input type="color" name="color" value="${esc(selected.color)}"></label>
+      </div>
       <dl>
         <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
-        <dt>Maße stehend</dt><dd>${selected.c.l}×${selected.c.w}×${selected.c.h} cm</dd>
+        <dt>Maße stehend</dt><dd>${outerDims(selected.c).l}×${outerDims(selected.c).w}×${outerDims(selected.c).h} cm</dd>
         <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
         <dt>Gewicht</dt><dd>${selected.c.weight} kg · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
       </dl>
+      ${wheelRow}
       <div class="btns">
         <button data-act="rotate">Drehen <kbd>R</kbd></button>
         <button data-act="tip" ${selected.c.tippable ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
@@ -42,5 +66,5 @@ export function renderInspector(el, { selected, result, truck }) {
         i.placementId && result.sequence.has(i.placementId) ? `<b>${result.sequence.get(i.placementId)}.</b> ` : ''}${esc(i.message)}</p>`).join('')
         || '<p class="ok">Alles in Ordnung.</p>'}
     </section>
-    <p class="hint">Tasten: R drehen · T tippen · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
+    <p class="hint">Tasten: R drehen · T tippen · W Rollenrichtung · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
 }

@@ -32,6 +32,7 @@ const ASSETS = [
   'js/ui/inspector.js',
   'js/ui/instanceMatrix.js',
   'js/ui/library.js',
+  'js/ui/load-wizard.js',
   'js/ui/print.js',
   'js/ui/projection.js',
   'js/ui/truck-editor.js',

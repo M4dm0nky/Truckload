@@ -16,9 +16,9 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
     <figure><figcaption>Seitenansicht (von links)</figcaption><svg class="p-side"></svg></figure>
     ${result.issues.length ? `<section class="p-issues"><b>Achtung:</b> ${result.issues.map(i => esc(i.message)).join(' · ')}</section>` : ''}
     <table>
-      <thead><tr><th>Nr.</th><th>Case</th><th>Inhalt</th><th>Ausrichtung</th><th>ab Stirnwand</th><th>Höhe</th><th>Lage</th><th>kg</th></tr></thead>
+      <thead><tr><th>Nr.</th><th>Beschriftung</th><th>Case</th><th>Inhalt</th><th>Ausrichtung</th><th>ab Stirnwand</th><th>Höhe</th><th>Lage</th><th>kg</th></tr></thead>
       <tbody>${rows.map(it => `<tr>
-        <td>${result.sequence.get(it.id)}</td><td>${esc(it.c.name)}</td><td>${esc(it.c.content)}</td>
+        <td>${result.sequence.get(it.id)}</td><td>${esc(it.label)}</td><td>${esc(it.c.name)}</td><td>${esc(it.c.content)}</td>
         <td>${ORIENTATION_LABEL[it.p.orientation]}</td><td>${fmtM(it.box.x0)}</td>
         <td>${it.box.z0 > 0 ? `${Math.round(it.box.z0)} cm` : 'Boden'}</td><td>${result.layers.get(it.id)}</td><td>${it.c.weight}</td></tr>`).join('')}
       </tbody>

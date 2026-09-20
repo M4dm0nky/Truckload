@@ -4,6 +4,7 @@ import { createStore } from './state.js';
 import { validatePlan } from './model/validate.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
+import { WHEEL_FACES, wheelFace } from './model/geometry.js';
 import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js';
 import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
@@ -169,12 +170,25 @@ const ACTIONS = {
   tray: id => { edit(p => A.toTray(p, id)); select(null); },
   delete: id => { edit(p => A.removePlacement(p, id)); select(null); },
   'edit-case': id => editCase(store.get().plan.placements.find(p => p.id === id)?.caseId),
+  wheelFace: id => {
+    const p = store.get().plan.placements.find(q => q.id === id);
+    if (!p) return;
+    const next = WHEEL_FACES[(WHEEL_FACES.indexOf(wheelFace(p)) + 1) % WHEEL_FACES.length];
+    edit((pl, c) => A.setWheelFace(pl, id, next, c));
+  },
 };
 $('#inspector').addEventListener('click', e => {
+  const wheelBtn = e.target.closest('[data-act="wheel-face"]');
+  if (wheelBtn) return withSel(id => edit((p, c) => A.setWheelFace(p, id, wheelBtn.dataset.face, c)));
   const act = e.target.closest('[data-act]')?.dataset.act;
   if (act) return withSel(ACTIONS[act]);
   const target = e.target.closest('[data-select]')?.dataset.select;
   if (target) select(target);
+});
+$('#inspector').addEventListener('change', e => {
+  const name = e.target.name;
+  if (name === 'label') return withSel(id => edit((p, c) => A.setItemLabel(p, id, { label: e.target.value.trim() })));
+  if (name === 'color') return withSel(id => edit((p, c) => A.setItemLabel(p, id, { color: e.target.value })));
 });
 
 // Tastatur
@@ -183,7 +197,7 @@ document.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); return; }
   if (e.key === 'Escape') return select(null);
-  const key = { r: 'rotate', t: 'tip', d: 'dup', Delete: 'delete', Backspace: 'delete' }[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+  const key = { r: 'rotate', t: 'tip', w: 'wheelFace', d: 'dup', Delete: 'delete', Backspace: 'delete' }[e.key.length === 1 ? e.key.toLowerCase() : e.key];
   if (key && !mod) { e.preventDefault(); return withSel(ACTIONS[key]); }
   const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
   if (arrow) withSel(id => {
