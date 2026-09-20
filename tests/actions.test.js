@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from '../js/model/actions.js';
 import { validatePlan } from '../js/model/validate.js';
+import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);
@@ -44,6 +45,21 @@ test('cycleTip lässt Traversenwagen unverändert (auch bei fälschlich tippable
   const truss = mkCase('trs', 300, 60, 80, { kind: 'truss', tippable: true });
   const trussCtx = { caseById: byId(K, T, truss), truck: mkTruck(), newId: counter('n') };
   assert.equal(find(A.cycleTip(plan([P('a','trs',0,0,0)]), 'a', trussCtx), 'a').orientation, 'standing');
+});
+test('cycleTip auf ein tippbares Case: Rollen zeigen zur Trucktür', () => {
+  const pl = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+  const p = find(pl, 'a');
+  assert.notEqual(p.orientation, 'standing');
+  assert.equal(wheelFace(p), DOOR_FACE);
+});
+test('setWheelFace dreht die Rollen eines getippten Cases in die gewünschte Richtung', () => {
+  const tipped = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+  const pl = A.setWheelFace(tipped, 'a', '-y', ctx());
+  assert.equal(wheelFace(find(pl, 'a')), '-y');
+});
+test('setWheelFace: unerreichbare Richtung (stehend, Rollen unten) ändert nichts', () => {
+  const pl = A.setWheelFace(plan([P('a','k',0,0,0)]), 'a', '+y', ctx());
+  assert.deepEqual(find(pl, 'a'), P('a','k',0,0,0));
 });
 test('toTray und addUnplaced', () => {
   let pl = A.toTray(plan([P('a','k',0,0,0)]), 'a');
@@ -119,4 +135,31 @@ test('packRest lässt Bestehendes stehen und kollidiert nicht', () => {
   assert.equal(pl.placements.length, 3);
   const r = validatePlan(pl, c.caseById, c.truck);
   assert.ok(!r.issues.some(i => i.code === 'collision'));
+});
+test('Regression: Labels und Farben überleben packAll', () => {
+  const pl0 = plan(
+    [P('a', 'k', 700, 0, 0, { label: 'A', color: '#111111' })],
+    [{ id: 'u1', caseId: 'k', label: 'B', color: '#222222' }],
+  );
+  const pl = A.packAll(pl0, ctx());
+  assert.equal(find(pl, 'a').label, 'A');
+  assert.equal(find(pl, 'a').color, '#111111');
+  assert.equal(find(pl, 'u1').label, 'B');
+  assert.equal(find(pl, 'u1').color, '#222222');
+});
+test('Regression: Labels und Farben überleben packRest, Bestehendes bleibt unverändert', () => {
+  const pl0 = plan(
+    [P('a', 'k', 0, 0, 0, { label: 'A', color: '#111111' })],
+    [{ id: 'u1', caseId: 'k', label: 'B', color: '#222222' }],
+  );
+  const pl = A.packRest(pl0, ctx());
+  assert.deepEqual(find(pl, 'a'), P('a', 'k', 0, 0, 0, { label: 'A', color: '#111111' }));
+  assert.equal(find(pl, 'u1').label, 'B');
+  assert.equal(find(pl, 'u1').color, '#222222');
+});
+test('Regression: „Alles neu packen“ vergibt keine neuen Stück-IDs mehr', () => {
+  const pl0 = plan([P('a', 'k', 700, 0, 0)], [{ id: 'u1', caseId: 'k' }]);
+  const pl = A.packAll(pl0, ctx());
+  assert.ok(find(pl, 'a'));
+  assert.ok(find(pl, 'u1'));
 });

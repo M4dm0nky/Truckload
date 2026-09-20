@@ -1,4 +1,4 @@
-import { ORIENTATIONS, boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove } from './geometry.js';
+import { ORIENTATIONS, boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, DOOR_FACE } from './geometry.js';
 import { archBoxes, buildItems } from './validate.js';
 import { autoPack } from './packer.js';
 
@@ -82,9 +82,22 @@ export const rotate = (plan, id, ctx) =>
   reorient(plan, id, ctx, p => ({ rot: ((p.rot ?? 0) + 90) % 360 }));
 
 export const cycleTip = (plan, id, ctx) =>
-  reorient(plan, id, ctx, (p, c) => (c.tippable && c.kind !== 'truss')
-    ? { orientation: ORIENTATIONS[(ORIENTATIONS.indexOf(p.orientation) + 1) % ORIENTATIONS.length] }
-    : {});
+  reorient(plan, id, ctx, (p, c) => {
+    if (!(c.tippable && c.kind !== 'truss')) return {};
+    const next = ORIENTATIONS[(ORIENTATIONS.indexOf(p.orientation) + 1) % ORIENTATIONS.length];
+    // Beim Tippen (aus „standing“ heraus) zeigen die Rollen zur Trucktür.
+    return p.orientation === 'standing'
+      ? { orientation: next, rot: rotForWheelFace(next, DOOR_FACE) }
+      : { orientation: next };
+  });
+
+// Dreht ein bereits getipptes Case so, dass die Rollen zur gewünschten Seite zeigen.
+// Ist die Richtung für die aktuelle Lage nicht erreichbar (z. B. „standing“), passiert nichts.
+export const setWheelFace = (plan, id, face, ctx) =>
+  reorient(plan, id, ctx, p => {
+    const rot = rotForWheelFace(p.orientation, face);
+    return rot == null ? {} : { rot };
+  });
 
 function nextLabel(label) {
   const m = /^(.*?)(\d+)$/.exec(label);
@@ -139,25 +152,32 @@ export function toTray(plan, id) {
 
 const orphans = (plan, ctx) => plan.unplaced.filter(u => !ctx.caseById.has(u.caseId));
 
+// Wandelt ein Placement/Unplaced-Eintrag in ein Packer-Stück mit aufgelöstem Case um.
+// Case nicht (mehr) in der Bibliothek → null (siehe orphans).
+function toPiece(x, ctx) {
+  const c = ctx.caseById.get(x.caseId);
+  if (!c) return null;
+  return { id: x.id, caseId: x.caseId, c, ...(x.label ? { label: x.label } : {}), ...(x.color ? { color: x.color } : {}) };
+}
+
 export function packAll(plan, ctx) {
-  const list = [...plan.placements, ...plan.unplaced]
-    .map(x => ctx.caseById.get(x.caseId)).filter(Boolean);
-  const { placements, unplaced } = autoPack(list, ctx.truck, { newId: ctx.newId });
+  const list = [...plan.placements, ...plan.unplaced].map(x => toPiece(x, ctx)).filter(Boolean);
+  const { placements, unplaced } = autoPack(list, ctx.truck);
   return touch({
     ...plan,
     placements: [...placements, ...plan.placements.filter(p => !ctx.caseById.has(p.caseId))],
-    unplaced: [...unplaced.map(caseId => ({ id: ctx.newId(), caseId })), ...orphans(plan, ctx)],
+    unplaced: [...unplaced, ...orphans(plan, ctx)],
   });
 }
 
 export function packRest(plan, ctx) {
   const { items } = buildItems(plan, ctx.caseById);
-  const list = plan.unplaced.map(u => ctx.caseById.get(u.caseId)).filter(Boolean);
+  const list = plan.unplaced.map(u => toPiece(u, ctx)).filter(Boolean);
   if (!list.length) return plan;
-  const { placements, unplaced } = autoPack(list, ctx.truck, { newId: ctx.newId, obstacles: items.map(it => it.box) });
+  const { placements, unplaced } = autoPack(list, ctx.truck, { obstacles: items.map(it => it.box) });
   return touch({
     ...plan,
     placements: [...plan.placements, ...placements],
-    unplaced: [...unplaced.map(caseId => ({ id: ctx.newId(), caseId })), ...orphans(plan, ctx)],
+    unplaced: [...unplaced, ...orphans(plan, ctx)],
   });
 }

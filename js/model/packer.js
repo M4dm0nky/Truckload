@@ -1,10 +1,10 @@
-import { ORIENTATIONS, effectiveDims, overlaps, layersOf } from './geometry.js';
+import { ORIENTATIONS, effectiveDims, overlaps, layersOf, wheelFace, DOOR_FACE } from './geometry.js';
 import { archBoxes } from './validate.js';
 
 export function chooseOrientation(c, truck) {
   const opts = [];
   for (const orientation of c.tippable ? ORIENTATIONS : ['standing']) {
-    for (const rot of [0, 90]) {
+    for (const rot of [0, 90, 180, 270]) {
       const d = effectiveDims(c, { orientation, rot });
       if (d.dx > truck.l || d.dy > truck.w || d.dz > truck.h) continue;
       const layers = c.stackable ? Math.floor(truck.h / d.dz) : 1;
@@ -13,7 +13,14 @@ export function chooseOrientation(c, truck) {
       opts.push({ orientation, rot, d, score });
     }
   }
-  const pref = o => (o.orientation === 'standing' ? 0 : 1) * 2 + (o.rot ? 1 : 0);
+  // Bei gleichem Score gewinnt zuerst „standing“, dann die Variante mit
+  // Rollen zur Tür, dann rot === 0.
+  const pref = o => {
+    if (o.orientation === 'standing') return 0;
+    if (wheelFace({ orientation: o.orientation, rot: o.rot }) === DOOR_FACE) return 1;
+    if (o.rot === 0) return 2;
+    return 3;
+  };
   opts.sort((p, q) => q.score - p.score || pref(p) - pref(q));
   return opts[0] ?? null;
 }
@@ -31,10 +38,11 @@ function canAddToStack(stack, c, dz, truck) {
   return true;
 }
 
-export function buildStacks(caseList, truck) {
+// itemList: Stücke { id, caseId, c, label?, color? } mit bereits aufgelöstem Case `c`.
+export function buildStacks(itemList, truck) {
   const stacks = [], unplaced = [];
-  const entries = caseList.map(c => ({ c, o: chooseOrientation(c, truck) }));
-  for (const e of entries) if (!e.o) unplaced.push(e.c);
+  const entries = itemList.map(it => ({ it, c: it.c, o: chooseOrientation(it.c, truck) }));
+  for (const e of entries) if (!e.o) unplaced.push(e.it);
   const maxLayer = c => Math.max(...layersOf(c));
   const minLayer = c => Math.min(...layersOf(c));
   const ready = entries.filter(e => e.o);
@@ -43,30 +51,30 @@ export function buildStacks(caseList, truck) {
   const withoutFloor = ready.filter(e => !layersOf(e.c).includes(1)).sort((a, b) =>
     minLayer(a.c) - minLayer(b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
 
-  for (const { c, o } of withFloor) {
+  for (const { it, c, o } of withFloor) {
     const key = `${o.d.dx}x${o.d.dy}`;
     const allowed = layersOf(c);
     const target = stacks.find(s => s.key === key && s.items.length < 4
       && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
     if (target) {
-      target.items.push({ c, o, z: target.height });
+      target.items.push({ it, c, o, z: target.height });
       target.height += o.d.dz;
       target.weight += c.weight;
     } else {
-      stacks.push({ key, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, items: [{ c, o, z: 0 }] });
+      stacks.push({ key, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, items: [{ it, c, o, z: 0 }] });
     }
   }
-  for (const { c, o } of withoutFloor) {
+  for (const { it, c, o } of withoutFloor) {
     const key = `${o.d.dx}x${o.d.dy}`;
     const allowed = layersOf(c);
     const target = stacks.find(s => s.key === key && s.items.length < 4
       && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
     if (target) {
-      target.items.push({ c, o, z: target.height });
+      target.items.push({ it, c, o, z: target.height });
       target.height += o.d.dz;
       target.weight += c.weight;
     } else {
-      unplaced.push(c);
+      unplaced.push(it);
     }
   }
   return { stacks, unplaced };
@@ -100,18 +108,23 @@ export function placeStacks(stacks, truck, obstacles = []) {
   return { placed, failed };
 }
 
-export function autoPack(caseList, truck, { obstacles = [], newId } = {}) {
-  const { stacks, unplaced } = buildStacks(caseList, truck);
+// items: Stücke { id, caseId, c, label?, color? } mit bereits aufgelöstem Case `c`.
+// Die erzeugten Placements übernehmen id/label/color des Stücks statt eine neue ID zu vergeben.
+export function autoPack(items, truck, { obstacles = [] } = {}) {
+  const { stacks, unplaced } = buildStacks(items, truck);
   const { placed, failed } = placeStacks(stacks, truck, obstacles);
   const placements = [];
   for (const { stack, box, swap } of placed) {
-    for (const it of stack.items) {
+    for (const { it, o, z } of stack.items) {
       placements.push({
-        id: newId(), caseId: it.c.id, x: box.x0, y: box.y0, z: it.z,
-        orientation: it.o.orientation, rot: swap ? (it.o.rot + 90) % 180 : it.o.rot,
+        id: it.id, caseId: it.caseId, x: box.x0, y: box.y0, z,
+        orientation: o.orientation, rot: swap ? (o.rot + 90) % 360 : o.rot,
+        ...(it.label ? { label: it.label } : {}),
+        ...(it.color ? { color: it.color } : {}),
       });
     }
   }
-  const left = [...unplaced, ...failed.flatMap(s => s.items.map(i => i.c))];
-  return { placements, unplaced: left.map(c => c.id) };
+  const stripCase = ({ c, ...rest }) => rest;
+  const left = [...unplaced, ...failed.flatMap(s => s.items.map(i => i.it))];
+  return { placements, unplaced: left.map(stripCase) };
 }

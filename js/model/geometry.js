@@ -16,7 +16,9 @@ export function outerDims(c) {
 }
 export const DEFAULT_LAYERS = [1, 2, 3, 4];
 export const layersOf = c => (Array.isArray(c.layers) && c.layers.length ? c.layers : DEFAULT_LAYERS);
-const FACE_CYCLE = ['+x', '+y', '-x', '-y'];
+export const WHEEL_FACES = ['+x', '+y', '-x', '-y'];   // +x = Trucktür/Heck
+export const DOOR_FACE = '+x';
+const FACE_CYCLE = WHEEL_FACES;
 const BASE_WHEEL_FACE = { standing: 'bottom', tipLong: '+y', tipShort: '+x' };
 
 export function localDims(c, orientation) {
@@ -45,6 +47,17 @@ export function wheelFace(p) {
   if (base === 'bottom') return 'bottom';
   const i = FACE_CYCLE.indexOf(base);
   return FACE_CYCLE[(i + (p.rot ?? 0) / 90) % 4];
+}
+
+// Umkehrung von wheelFace(): welche Rotation erzeugt für diese Ausrichtung
+// die gewünschte Rollenseite? null = unmöglich (z. B. „standing“, Rollen unten).
+export function rotForWheelFace(orientation, face) {
+  const base = BASE_WHEEL_FACE[orientation];
+  if (base === 'bottom') return null;
+  const i = FACE_CYCLE.indexOf(base);
+  const target = FACE_CYCLE.indexOf(face);
+  if (target === -1) return null;
+  return ((target - i + 4) % 4) * 90;
 }
 
 export function overlaps(A, B) {

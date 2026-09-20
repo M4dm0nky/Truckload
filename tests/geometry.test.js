@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
   snap, snapToEdges, stackAbove, faceSlab, DEFAULT_WHEEL_H, wheelHOf,
-  DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims } from '../js/model/geometry.js';
+  DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims,
+  ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80);
@@ -23,6 +24,26 @@ test('Rollenseite', () => {
   assert.equal(wheelFace({ orientation: 'tipLong', rot: 90 }), '-x');
   assert.equal(wheelFace({ orientation: 'tipShort', rot: 0 }), '+x');
   assert.equal(wheelFace({ orientation: 'tipShort', rot: 180 }), '-x');
+});
+
+test('WHEEL_FACES/DOOR_FACE: +x ist die Trucktür', () => {
+  assert.deepEqual(WHEEL_FACES, ['+x', '+y', '-x', '-y']);
+  assert.equal(DOOR_FACE, '+x');
+});
+
+test('rotForWheelFace ist die exakte Umkehrung von wheelFace für alle Ausrichtungen × rot-Werte', () => {
+  for (const orientation of ORIENTATIONS) {
+    for (const rot of [0, 90, 180, 270]) {
+      const face = wheelFace({ orientation, rot });
+      if (face === 'bottom') continue; // standing: keine Rollenseite ansteuerbar
+      assert.equal(rotForWheelFace(orientation, face), rot,
+        `rotForWheelFace(${orientation}, ${face}) sollte ${rot} ergeben`);
+    }
+  }
+});
+
+test('rotForWheelFace: „standing“ liefert für jede Richtung null (Rollen zeigen nach unten)', () => {
+  for (const face of WHEEL_FACES) assert.equal(rotForWheelFace('standing', face), null);
 });
 
 test('berührende Boxen überlappen nicht', () => assert.equal(overlaps(B(0,0,0,10,10,10), B(10,0,0,20,10,10)), false));
