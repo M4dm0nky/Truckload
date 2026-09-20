@@ -16,6 +16,10 @@
 // Gewerk-Zuordnung (Spalte „Family“ → Gewerk): Fixture/Desk → Licht,
 // Rigging → Rigging, DC/Cable → Strom, Rack → Ton, FOH → Video, Case → Sonstiges.
 //
+// Namens-Suffix: Das Firmenkürzel (Spalte „Company“) wird nur an den Namen
+// angehängt, wenn es darin noch gar nicht vorkommt – steht es schon irgendwo im
+// Namen (z. B. „D8+ 0,5t CAB x12“), bleibt der Name unverändert.
+//
 // Gewichte sind hier durchgehend 0 (Task 2 trägt recherchierte Schätzungen nach).
 
 import { colorFor } from './categories.js';
@@ -136,9 +140,9 @@ export const CASE_LIBRARY = [
   C('D8 2t CAB', 'Rigging', 80, 60, 60, 'CAB', 'Motor'),
   C('D8+ 0,25t CAB', 'Rigging', 60, 50, 56, 'CAB', 'Motor'),
   C('D8+ 0,5t CAB', 'Rigging', 60, 50, 56, 'CAB', 'Motor'),
-  C('D8+ 0,5t CAB x12 -CAB', 'Rigging', 150, 240, 56, 'CAB', 'Motor'),
-  C('D8+ 0,5t CAB x4 -CAB', 'Rigging', 50, 240, 56, 'CAB', 'Motor'),
-  C('D8+ 0,5t CAB x8 -CAB', 'Rigging', 100, 240, 56, 'CAB', 'Motor'),
+  C('D8+ 0,5t CAB x12', 'Rigging', 150, 240, 56, 'CAB', 'Motor'),
+  C('D8+ 0,5t CAB x4', 'Rigging', 50, 240, 56, 'CAB', 'Motor'),
+  C('D8+ 0,5t CAB x8', 'Rigging', 100, 240, 56, 'CAB', 'Motor'),
   C('D8+ 1t PlusLite -cab', 'Rigging', 69, 60, 71, 'CAB', 'Motor'),
   C('63A VT Haube -BBM', 'Ton', 60, 60, 73, 'BBM'),
   C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 85, 'CAB'),  // 16 HE: h = HE * 4,45 + 14 (Deckel + Boden), l/w geschätzt 60 x 60
@@ -170,5 +174,5 @@ export const CASE_LIBRARY = [
   C('Base Station -Motion', 'Licht', 120, 60, 66, 'Motion', 'Robe'),
   C('D8+ 1t ProStage -cab', 'Rigging', 60, 60, 61, 'CAB', 'Motor'),
   C('D8+ 1t ProStage -motion', 'Rigging', 60, 60, 61, 'Motion', 'Motor'),
-  C('motion Cam -Motion', 'Licht', 38, 34, 57, 'Motion', 'Robe'),
+  C('motion Cam', 'Licht', 38, 34, 57, 'Motion', 'Robe'),
 ];
