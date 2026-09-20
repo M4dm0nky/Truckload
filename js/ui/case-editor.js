@@ -265,7 +265,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
       const base = {
         ...v,
         id: isNew ? crypto.randomUUID() : v.id,
-        builtin: false, note: undefined,
+        builtin: false, note: undefined, company: undefined, source: undefined,
         name: f.name.value.trim(), content: f.content.value.trim(),
         category: f.category.value, color: f.color.value,
         weight: Number(f.weight.value), stock: numOrNull(f.stock.value),
