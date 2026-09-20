@@ -2,6 +2,13 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.4.0 – 2026-09-20
+
+- Wizard zum Zusammenstellen eines Loads: drei Schritte – Load (Name, Truck), Cases mit Stückzahl wählen, jedes Stück beschriften und einfärben; Knöpfe für neues Case und Sonderbau
+- Beschriftung und Farbe je einzelnem Stück, sichtbar auf allen Seiten in 2D, 3D und im Druck
+- Rollen pro Case an- oder abwählbar mit Rollenhöhe (Vorgabe 16 cm, Blue Wheel Ø 125 mm) und Wahl, ob das eingetragene Maß die Rollen schon enthält oder sie dazugerechnet werden
+- Getippt wird jetzt immer mit den Rollen zur Trucktür, mit vier Richtungsknöpfen im Inspector und der Taste W
+
 ## V 0.3.0 – 2026-09-19
 
 - Flightcase-Look nach echtem Vorbild: breite Alu-Hybridprofile an allen Kanten, Chrom-Kugelecken, Deckelfuge mit Butterfly-Verschlüssen, versenkte Schalengriffe, Laminat-Oberfläche – in 2D, 3D und Druck

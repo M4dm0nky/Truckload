@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.3.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.4.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -34,12 +34,23 @@ npm test
 
 So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gelöscht wird.
 
+## Neuen Load anlegen
+
+„Neuer Ladeplan“ öffnet einen Wizard mit drei Schritten:
+
+1. **Load** – Name und Fahrzeug (Truck) wählen.
+2. **Cases** – aus der Bibliothek Cases mit Stückzahl auswählen, oder über „+ Neues Case“ bzw. „⬛ Sonderbau“ direkt neue Cases anlegen.
+3. **Beschriften** – jedes einzelne Stück bekommt eine vorbelegte Beschriftung (z. B. „Kabelcase 1“ … „6“), die sich überschreiben lässt, sowie optional eine Gruppenfarbe. Ein Häkchen steuert, ob danach automatisch gepackt wird.
+
+„Fertig“ legt den Load an und packt ihn bei aktiviertem Häkchen automatisch in den Truck.
+
 ## Tastenkürzel
 
 | Taste | Aktion |
 |-------|--------|
 | **R** | Gedrehte Case um 90° drehen |
 | **T** | Case tippen (tipLong / tipShort wechseln) |
+| **W** | Rollenseite (Richtung) wechseln |
 | **D** | Case duplizieren |
 | **Entf** | Case löschen |
 | **Pfeile (↑↓←→)** | Case in 5-cm-Schritten verschieben |
