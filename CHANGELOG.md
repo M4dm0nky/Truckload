@@ -2,6 +2,11 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.5.0 – 2026-09-20
+
+- 137 Cases aus der eigenen Casemaße-Tabelle mitgeliefert, mit Hersteller im Feld „Inhalt“ und Firma; eigener Abschnitt „Cases aus deiner Liste“ in Bibliothek und Wizard samt Firmenfilter
+- Gewichtsschätzungen für 67 dieser Cases aus recherchierten Gerätegewichten, nachvollziehbar in `docs/casemasse-gewichte.md`; der Rest bleibt bei 0 kg zum Nachtragen
+
 ## V 0.4.0 – 2026-09-20
 
 - Wizard zum Zusammenstellen eines Loads: drei Schritte – Load (Name, Truck), Cases mit Stückzahl wählen, jedes Stück beschriften und einfärben; Knöpfe für neues Case und Sonderbau
