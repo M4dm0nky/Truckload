@@ -53,7 +53,7 @@ export function wheelFace(p) {
 // die gewünschte Rollenseite? null = unmöglich (z. B. „standing“, Rollen unten).
 export function rotForWheelFace(orientation, face) {
   const base = BASE_WHEEL_FACE[orientation];
-  if (base === 'bottom') return null;
+  if (base === undefined || base === 'bottom') return null;
   const i = FACE_CYCLE.indexOf(base);
   const target = FACE_CYCLE.indexOf(face);
   if (target === -1) return null;

@@ -123,6 +123,17 @@ test('autoPack übernimmt id, label und Farbe des Stücks statt neuer ID', () =>
   assert.equal(placements[0].color, '#ff0000');
 });
 
+test('autoPack: getippte Placements haben die Rollen zur Trucktür (Score-Vorrang + rot-%360-Fix)', () => {
+  const c = mkCase('a', 120, 60, 100, { tippable: true });
+  const { placements } = autoPack(items(c, 3), mkTruck());
+  assert.ok(placements.length > 0);
+  for (const p of placements) {
+    if (p.orientation === 'standing') continue;
+    assert.equal(wheelFace(p), DOOR_FACE,
+      `getipptes Placement ${p.id} (rot ${p.rot}) sollte Rollen zur Tür haben`);
+  }
+});
+
 test('autoPack: unplaced behält seine Einträge (id/label/color) statt sie zu verwerfen', () => {
   const big = mkCase('big', 2000, 60, 60);
   const { unplaced } = autoPack([mkItem(big, 'stück-2', { label: 'Zu groß', color: '#00ff00' })], mkTruck());

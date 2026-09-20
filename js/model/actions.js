@@ -85,16 +85,18 @@ export const cycleTip = (plan, id, ctx) =>
   reorient(plan, id, ctx, (p, c) => {
     if (!(c.tippable && c.kind !== 'truss')) return {};
     const next = ORIENTATIONS[(ORIENTATIONS.indexOf(p.orientation) + 1) % ORIENTATIONS.length];
-    // Beim Tippen (aus „standing“ heraus) zeigen die Rollen zur Trucktür.
-    return p.orientation === 'standing'
-      ? { orientation: next, rot: rotForWheelFace(next, DOOR_FACE) }
-      : { orientation: next };
+    // Jeder Übergang in eine getippte Lage setzt die Rollen zur Trucktür (auch
+    // tipLong → tipShort); die freie Wahl der Richtung danach läuft über setWheelFace.
+    return next === 'standing'
+      ? { orientation: next }
+      : { orientation: next, rot: rotForWheelFace(next, DOOR_FACE) };
   });
 
 // Dreht ein bereits getipptes Case so, dass die Rollen zur gewünschten Seite zeigen.
-// Ist die Richtung für die aktuelle Lage nicht erreichbar (z. B. „standing“), passiert nichts.
+// Ist die Richtung für die aktuelle Lage nicht erreichbar (z. B. „standing“, Traverse), passiert nichts.
 export const setWheelFace = (plan, id, face, ctx) =>
-  reorient(plan, id, ctx, p => {
+  reorient(plan, id, ctx, (p, c) => {
+    if (!(c.tippable && c.kind !== 'truss')) return {};
     const rot = rotForWheelFace(p.orientation, face);
     return rot == null ? {} : { rot };
   });

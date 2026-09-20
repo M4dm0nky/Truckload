@@ -13,16 +13,27 @@ export function chooseOrientation(c, truck) {
       opts.push({ orientation, rot, d, score });
     }
   }
+  const isDoorFacing = o => wheelFace({ orientation: o.orientation, rot: o.rot }) === DOOR_FACE;
+  // Für getippte Kandidaten hat die Rollenrichtung zur Tür Vorrang vor dem Füllgrad:
+  // Tür-taugliche Rotationen liegen oft in der anderen Grundfläche (anderer Score),
+  // daher würde ein reiner Score-Tie-Break sie in vielen Fällen aus dem Rennen werfen.
+  // Gibt es unter den getippten Kandidaten mindestens einen mit Rollen zur Tür,
+  // werden die übrigen getippten Kandidaten verworfen, bevor sortiert wird.
+  // Stehende Kandidaten sind davon nicht betroffen.
+  const standing = opts.filter(o => o.orientation === 'standing');
+  const tipped = opts.filter(o => o.orientation !== 'standing');
+  const doorTipped = tipped.filter(isDoorFacing);
+  const candidates = [...standing, ...(doorTipped.length ? doorTipped : tipped)];
   // Bei gleichem Score gewinnt zuerst „standing“, dann die Variante mit
   // Rollen zur Tür, dann rot === 0.
   const pref = o => {
     if (o.orientation === 'standing') return 0;
-    if (wheelFace({ orientation: o.orientation, rot: o.rot }) === DOOR_FACE) return 1;
+    if (isDoorFacing(o)) return 1;
     if (o.rot === 0) return 2;
     return 3;
   };
-  opts.sort((p, q) => q.score - p.score || pref(p) - pref(q));
-  return opts[0] ?? null;
+  candidates.sort((p, q) => q.score - p.score || pref(p) - pref(q));
+  return candidates[0] ?? null;
 }
 
 function canAddToStack(stack, c, dz, truck) {
@@ -90,6 +101,9 @@ export function placeStacks(stacks, truck, obstacles = []) {
     points.sort((p, q) => p.x - q.x || p.y - q.y);
     let hit = null;
     for (const pt of points) {
+      // swap dreht den Stapel im Grundriss um 90°, wenn er sonst nirgends passt.
+      // Das gibt eine zuvor gewählte Rollenrichtung bewusst auf — Platz geht vor
+      // Rollenrichtung, sonst wäre der Stapel gar nicht unterzubringen (siehe autoPack).
       for (const swap of s.dx === s.dy ? [false] : [false, true]) {
         const dx = swap ? s.dy : s.dx, dy = swap ? s.dx : s.dy;
         const box = { x0: pt.x, y0: pt.y, z0: 0, x1: pt.x + dx, y1: pt.y + dy, z1: s.height };
@@ -118,6 +132,8 @@ export function autoPack(items, truck, { obstacles = [] } = {}) {
     for (const { it, o, z } of stack.items) {
       placements.push({
         id: it.id, caseId: it.caseId, x: box.x0, y: box.y0, z,
+        // swap (Stapel im Grundriss um 90° platziert, siehe placeStacks) dreht rot
+        // mit — die Rollenrichtung ist dann nicht mehr garantiert zur Tür.
         orientation: o.orientation, rot: swap ? (o.rot + 90) % 360 : o.rot,
         ...(it.label ? { label: it.label } : {}),
         ...(it.color ? { color: it.color } : {}),

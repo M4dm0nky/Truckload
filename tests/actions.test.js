@@ -52,6 +52,13 @@ test('cycleTip auf ein tippbares Case: Rollen zeigen zur Trucktür', () => {
   assert.notEqual(p.orientation, 'standing');
   assert.equal(wheelFace(p), DOOR_FACE);
 });
+test('cycleTip: auch der zweite Tipp (tipLong → tipShort) zeigt wieder zur Trucktür', () => {
+  const once = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+  assert.equal(find(once, 'a').orientation, 'tipLong');
+  const twice = A.cycleTip(once, 'a', ctx());
+  assert.equal(find(twice, 'a').orientation, 'tipShort');
+  assert.equal(wheelFace(find(twice, 'a')), DOOR_FACE);
+});
 test('setWheelFace dreht die Rollen eines getippten Cases in die gewünschte Richtung', () => {
   const tipped = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
   const pl = A.setWheelFace(tipped, 'a', '-y', ctx());
