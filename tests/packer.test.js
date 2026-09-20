@@ -123,7 +123,7 @@ test('autoPack übernimmt id, label und Farbe des Stücks statt neuer ID', () =>
   assert.equal(placements[0].color, '#ff0000');
 });
 
-test('autoPack: getippte Placements haben die Rollen zur Trucktür (Score-Vorrang + rot-%360-Fix)', () => {
+test('autoPack: getippte Placements haben die Rollen zur Trucktür (breite Stichprobe)', () => {
   const c = mkCase('a', 120, 60, 100, { tippable: true });
   const { placements } = autoPack(items(c, 3), mkTruck());
   assert.ok(placements.length > 0);
@@ -132,6 +132,45 @@ test('autoPack: getippte Placements haben die Rollen zur Trucktür (Score-Vorran
     assert.equal(wheelFace(p), DOOR_FACE,
       `getipptes Placement ${p.id} (rot ${p.rot}) sollte Rollen zur Tür haben`);
   }
+});
+
+// Für 120×60×100 im Standard-Truck gewinnt score-bestens bereits rot 270 mit
+// Rollen zur Tür (kein Swap nötig) — der obige Test greift also nicht bei einem
+// Rückbau von `% 360` auf `% 180` oder beim Rückbau des Score-Vorrangs in
+// chooseOrientation. Die folgenden zwei Tests zielen gezielt auf genau diese
+// beiden Fixes.
+
+test('autoPack: Rotation bleibt nach einem Grundriss-Swap korrekt (Regression für % 360 statt % 180)', () => {
+  // Standing-only (nicht tippbar), damit die Türausrichtungs-Logik aus
+  // chooseOrientation hier keine Rolle spielt — reiner Test der rot-Arithmetik
+  // beim Swap in placeStacks/autoPack.
+  const c = mkCase('a', 30, 50, 30, { tippable: false });
+  const truck = mkTruck();
+  // chooseOrientation wählt für dieses Case/Truck standing/rot 90 (dx 50, dy 30).
+  // Das Hindernis überdeckt x 35–45 bei y 0–10: die ungeswappte Box (x 0–50,
+  // y 0–30) kollidiert damit, die geswappte Box (x 0–30, y 0–50) nicht mehr —
+  // placeStacks muss also tatsächlich swap: true wählen, um das Stück
+  // unterzubringen.
+  const obstacle = { x0: 35, y0: 0, x1: 45, y1: 10, z0: 0, z1: 1000 };
+  const { placements } = autoPack([mkItem(c, 'i1')], truck, { obstacles: [obstacle] });
+  assert.equal(placements.length, 1);
+  assert.equal(placements[0].x, 0);
+  assert.equal(placements[0].y, 0);
+  // (90 + 90) % 360 = 180 — mit dem alten Fehler % 180 würde hier 0 herauskommen.
+  assert.equal(placements[0].rot, 180);
+});
+
+test('autoPack: Türausrichtung gewinnt gegen den score-besten getippten Kandidaten (Regression für Score-Vorrang)', () => {
+  // Für 50×50×40 im Standard-Truck ist tipLong/rot 0 (Rollen zur linken Wand,
+  // wheelFace '+y') score-bester getippter Kandidat; tipLong/rot 270 (Rollen
+  // zur Tür) liegt score-mäßig klar dahinter, aber immer noch vor „standing“.
+  // Ohne den Score-Vorrang aus chooseOrientation würde rot 0 gewinnen und die
+  // Rollen zeigten nicht zur Tür.
+  const c = mkCase('a', 50, 50, 40, { tippable: true });
+  const { placements } = autoPack([mkItem(c, 'i1')], mkTruck());
+  assert.equal(placements.length, 1);
+  assert.notEqual(placements[0].orientation, 'standing');
+  assert.equal(wheelFace(placements[0]), DOOR_FACE);
 });
 
 test('autoPack: unplaced behält seine Einträge (id/label/color) statt sie zu verwerfen', () => {
