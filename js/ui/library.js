@@ -23,7 +23,10 @@ export function mountLibrary(el, h) {
   el.innerHTML = `
     <div class="lib-head">
       <h2>Cases</h2>
-      <button data-act="new" class="primary">+ Neues Case</button>
+      <div class="lib-head-btns">
+        <button data-act="load" class="primary">+ Cases hinzufügen</button>
+        <button data-act="new">+ Neues Case</button>
+      </div>
     </div>
     <input type="search" class="lib-search" placeholder="Suchen (Name oder Inhalt)">
     <select class="lib-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
@@ -80,7 +83,7 @@ export function mountLibrary(el, h) {
     if (!btn) return;
     const caseId = btn.closest('[data-case]')?.dataset.case;
     ({ new: () => h.onNew(), add: () => h.onAdd(caseId), edit: () => h.onEdit(caseId),
-       'tray-remove': () => h.onTrayRemove(caseId) })[btn.dataset.act]?.();
+       load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(caseId) })[btn.dataset.act]?.();
   });
   el.addEventListener('dragstart', e => {
     const item = e.target.closest('[data-case]');

@@ -7,6 +7,7 @@ import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
 import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js';
 import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
+import { openLoadWizard } from './ui/load-wizard.js';
 import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
@@ -83,6 +84,13 @@ store.subscribe(s => {
 const usage = (s, caseId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
   .filter(p => [...p.placements, ...p.unplaced].some(x => x.caseId === caseId)).length;
 
+async function saveCaseValue(rawValue) {
+  const value = stamp(rawValue);
+  await repo.saveCase(value);
+  store.update(st => ({ ...st, cases: [...st.cases.filter(x => x.id !== value.id), value] }));
+  return value;
+}
+
 async function editCase(caseId) {
   const s = store.get();
   const c = caseId ? s.cases.find(x => x.id === caseId) : null;
@@ -92,19 +100,43 @@ async function editCase(caseId) {
     await repo.deleteCase(caseId);
     store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
   } else {
-    const value = stamp(res.value);
-    await repo.saveCase(value);
-    store.update(st => ({ ...st, cases: [...st.cases.filter(x => x.id !== value.id), value] }));
+    await saveCaseValue(res.value);
   }
+}
+
+// Für den Load-Wizard: legt ein neues Case über den Case-Editor an (optional mit Vorbelegung,
+// z. B. für den „Sonderbau“-Schnellentwurf) und liefert es zurück, ohne den Wizard zu schließen.
+async function newCaseForWizard(draft) {
+  const res = await openCaseEditor($('#dlg-case'), null, { draft });
+  return res?.action === 'save' ? saveCaseValue(res.value) : null;
+}
+
+async function runLoadWizard(mode, presetCaseId = null) {
+  const s = store.get();
+  const res = await openLoadWizard($('#dlg-wizard'), {
+    mode,
+    cases: s.cases,
+    trucks: s.trucks,
+    defaultTruckId: ctx().truck.id,
+    defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
+    presetCaseId,
+    onNewCase: newCaseForWizard,
+  });
+  if (!res) return;
+  if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));
+  edit((p, c) => {
+    let next = res.items.reduce((pl, it) =>
+      A.addUnplaced(pl, it.caseId, 1, uid, { labels: it.label ? [it.label] : [], color: it.color ?? null }), p);
+    if (res.autoPack) next = A.packRest(next, c);
+    return next;
+  });
 }
 
 const library = mountLibrary($('#library'), {
   onNew: () => editCase(null),
   onEdit: id => editCase(id),
-  onAdd: id => {
-    const n = Number.parseInt(prompt('Wie viele Stück in die Ablage legen?', '1') ?? '', 10);
-    if (n > 0 && n <= 500) edit((p) => A.addUnplaced(p, id, n, uid));
-  },
+  onAdd: id => runLoadWizard('add', id),
+  onAddLoad: () => runLoadWizard('add'),
   onTrayRemove: id => edit(p => A.removeUnplaced(p, id)),
 });
 renderHooks.push(s => library.update(s));
@@ -216,10 +248,7 @@ $('#plan-select').onchange = e => {
   const next = store.get().plans.find(p => p.id === e.target.value);
   if (next) switchPlan(next);
 };
-$('#plan-new').onclick = () => {
-  const name = prompt('Name des Ladeplans (z. B. Show / Datum / Truck 1):', 'Neuer Ladeplan');
-  if (name?.trim()) switchPlan(A.emptyPlan(uid(), name.trim(), ctx().truck.id));
-};
+$('#plan-new').onclick = () => runLoadWizard('new');
 $('#plan-rename').onclick = () => {
   const name = prompt('Neuer Name:', store.get().plan.name);
   if (name?.trim()) edit(p => ({ ...p, name: name.trim(), updatedAt: new Date().toISOString() }));

@@ -101,7 +101,26 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .editor input:disabled, .editor select:disabled { opacity: .5; }
 .editor label:has(> input:disabled), .editor label:has(> select:disabled) { color: var(--muted); opacity: .6; }
 
+#dlg-wizard { width: min(760px, 96vw); }
+.wizard { max-height: 86vh; overflow: auto; }
+.wiz-progress { display: flex; gap: 6px; margin: -4px 0 4px; }
+.wiz-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.wiz-dot.on { background: var(--accent); }
+.wiz-step { display: grid; gap: 10px; }
+.wiz-cases-head { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+.wiz-totals { text-align: right; margin: 0; }
+.wiz-case-list { max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+.wiz-case-row { display: flex; gap: 8px; align-items: center; padding: 6px; border-radius: 6px; }
+.wiz-case-row:hover { background: var(--bg); }
+.stepper { display: flex; align-items: center; gap: 6px; flex: none; }
+.stepper .qty { min-width: 22px; text-align: center; }
+.wiz-groups { display: grid; gap: 12px; max-height: 420px; overflow: auto; }
+.wiz-group { display: grid; gap: 8px; }
+.wiz-group legend { display: flex; align-items: center; gap: 10px; color: var(--text); }
+.wiz-item { grid-template-columns: 1fr auto; align-items: center; }
+
 .lib-head { display: flex; justify-content: space-between; align-items: center; }
+.lib-head-btns { display: flex; gap: 6px; }
 .library h2 { margin: 0; font-size: 16px; }
 .library h3 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .lib-search, .lib-filter { width: 100%; margin-top: 8px; }
