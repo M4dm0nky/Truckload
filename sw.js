@@ -14,6 +14,7 @@ const ASSETS = [
   'js/app.js',
   'js/state.js',
   'js/version.js',
+  'js/data/case-library.js',
   'js/data/categories.js',
   'js/data/preset-cases.js',
   'js/data/preset-trucks.js',

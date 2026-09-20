@@ -13,7 +13,7 @@ const arr = v => (Array.isArray(v) ? v : []);
 const numOrNull = v => v == null || (num(v) && v >= 0);
 const isPreset = x => !!x?.builtin || (typeof x?.id === 'string' && x.id.startsWith('preset-'));
 
-function checkCase(c) {
+export function checkCase(c) {
   if (!c || typeof c.id !== 'string' || typeof c.name !== 'string') throw new Error('Case ohne ID oder Name in der Datei.');
   for (const k of ['l', 'w', 'h']) if (!num(c[k]) || c[k] <= 0) throw new Error(`Case „${c.name}“ hat ungültige Maße.`);
   if (!num(c.weight) || c.weight < 0) throw new Error(`Case „${c.name}“ hat ein ungültiges Gewicht.`);
