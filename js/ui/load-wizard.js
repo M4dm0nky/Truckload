@@ -160,7 +160,7 @@ export function openLoadWizard(dlg, opts = {}) {
           <legend>${esc(c.name)} <button type="button" data-act="color-all">Farbe auf alle übernehmen</button></legend>
           ${arr.map((it, i) => `
             <div class="row wiz-item" data-i="${i}">
-              <input name="label" value="${esc(it.label)}" maxlength="60">
+              <input name="label" value="${esc(it.label)}" maxlength="40">
               <input type="color" name="color" value="${esc(it.color)}">
             </div>`).join('')}
         </fieldset>`;

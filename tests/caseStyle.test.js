@@ -17,3 +17,14 @@ test('unbekannter Modus → schwarz', () => {
 test('COLOR_MODES enthält beide Modi', () => {
   assert.deepEqual(COLOR_MODES, ['black', 'trade']);
 });
+
+test('schwarz mit Stück-Farbe: Korpus bleibt schwarz, Streifen in Stück-Farbe (schlägt Gewerkfarbe)', () => {
+  assert.deepEqual(caseColors(C, 'black', '#3b7dd8'), { body: CASE_BLACK, stripe: '#3b7dd8' });
+});
+test('trade mit Stück-Farbe: Korpus in Stück-Farbe (schlägt Gewerkfarbe)', () => {
+  assert.deepEqual(caseColors(C, 'trade', '#3b7dd8'), { body: '#3b7dd8', stripe: null });
+});
+test('ohne itemColor bleibt es beim bisherigen Verhalten (Gewerkfarbe)', () => {
+  assert.deepEqual(caseColors(C, 'black', undefined), caseColors(C, 'black'));
+  assert.deepEqual(caseColors(C, 'trade', undefined), caseColors(C, 'trade'));
+});

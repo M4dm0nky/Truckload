@@ -28,7 +28,7 @@ export function renderInspector(el, { selected, result, truck }) {
       <h2><span class="swatch" style="background:${esc(selected.color)}"></span>${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
       ${selected.c.content ? `<p class="content">${esc(selected.c.content)}</p>` : ''}
       <div class="insp-label">
-        <label>Beschriftung<input type="text" name="label" maxlength="60" value="${esc(selected.label)}"></label>
+        <label>Beschriftung<input type="text" name="label" maxlength="40" value="${esc(selected.label)}"></label>
         <label>Farbe<input type="color" name="color" value="${esc(selected.color)}"></label>
       </div>
       <dl>

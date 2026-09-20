@@ -52,6 +52,7 @@ export async function createView3d(container) {
   const MAT_ROOM_EDGE = shared(new THREE.LineBasicMaterial({ color: 0x8b95a3 }));
   const MAT_FRONT = shared(new THREE.MeshLambertMaterial({ color: 0xf0a500, transparent: true, opacity: 0.35 }));
   const MAT_ARCH = shared(new THREE.MeshLambertMaterial({ color: 0x444a52 }));
+  const ALU_HEX = '#c9ced4';
   const MAT_ALU = shared(new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 0.25, roughness: 0.45 }));
   const MAT_CORNER = shared(new THREE.MeshStandardMaterial({ color: 0xd6dbe1, metalness: 0.5, roughness: 0.4 }));
   const MAT_WHEEL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.9 }));
@@ -369,15 +370,17 @@ export async function createView3d(container) {
 
     shape.dollies.forEach((d, i) => {
       content.add(boxMesh(d, MAT_ALU), edges(d, MAT_EDGE_ALU));
-      if (c.color) {
+      const dollyColor = it.color ?? c.color;
+      if (dollyColor) {
         const stripe = { ...d, z0: d.z1 - 1.5, z1: d.z1 };
-        content.add(boxMesh(stripe, bandMaterial(c.color)));
+        content.add(boxMesh(stripe, bandMaterial(dollyColor)));
       }
       // Beschriftung nur auf dem jeweils nach außen zeigenden Wagenende (nicht ringsum wie beim Case).
+      // Schriftfarbe aus dem tatsächlichen Hintergrund (Alu-Wagenende) ableiten, nicht aus der Stück-/Gewerkfarbe.
       if (it.label) {
         const endFace = `${lenAxis}${i}`;
         const pl = labelPlanes(d, 'bottom').find(p => p.face === endFace);
-        if (pl) content.add(labelMesh(pl, it.label, it.color || CASE_BLACK));
+        if (pl) content.add(labelMesh(pl, it.label, ALU_HEX));
       }
     });
     for (const w of shape.wheels) content.add(...wheelMesh(w, 'bottom'));
@@ -428,7 +431,7 @@ export async function createView3d(container) {
 
     for (const it of result.items) {
       const bad = result.byPlacement.has(it.id);
-      const colors = caseColors(it.c, colorMode);
+      const colors = caseColors(it.c, colorMode, it.color);
 
       if (isTruss(it.c)) {
         addTruss(it, bad, it.id === selectedId, chordSegs, chordColors, diagSegs);
@@ -474,8 +477,10 @@ export async function createView3d(container) {
 
       for (const w of wheels) content.add(...wheelMesh(w, face));
 
+      // Schriftfarbe aus dem tatsächlichen Korpus-Hintergrund ableiten, nicht aus der Stück-/Gewerkfarbe
+      // (die im Modus „Schwarz“ nur als Farbstreifen erscheint, nicht als Korpusfarbe).
       if (it.label) {
-        for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, it.label, it.color || colors.body));
+        for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, it.label, colors.body));
       }
     }
 
