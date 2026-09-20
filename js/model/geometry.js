@@ -1,17 +1,30 @@
 export const EPS = 0.5;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
-export const DEFAULT_WHEEL_H = 12;
-export const wheelHOf = c => (Number.isFinite(c.wheelH) ? c.wheelH : DEFAULT_WHEEL_H);
+export const DEFAULT_WHEEL_H = 12;   // Altdaten ohne Angabe
+export const NEW_CASE_WHEEL_H = 16;  // Blue Wheel Ø125 mm + Rollenbrett
+export const WHEEL_PRESETS = [
+  { name: 'Blue Wheel Ø 125 mm', h: 16 },
+  { name: 'Blue Wheel Ø 100 mm', h: 13 },
+];
+const wheelHRaw = c => (Number.isFinite(c.wheelH) ? c.wheelH : DEFAULT_WHEEL_H);
+export const hasWheels = c => c.wheels !== false && wheelHRaw(c) > 0;
+export const wheelHOf = c => (hasWheels(c) ? wheelHRaw(c) : 0);
+// Außenmaße inkl. Rollen: nur wenn das eingetragene Maß sie NICHT schon enthält.
+export function outerDims(c) {
+  const add = c.dimsInclWheels === false ? wheelHOf(c) : 0;
+  return { l: c.l, w: c.w, h: c.h + add };
+}
 export const DEFAULT_LAYERS = [1, 2, 3, 4];
 export const layersOf = c => (Array.isArray(c.layers) && c.layers.length ? c.layers : DEFAULT_LAYERS);
 const FACE_CYCLE = ['+x', '+y', '-x', '-y'];
 const BASE_WHEEL_FACE = { standing: 'bottom', tipLong: '+y', tipShort: '+x' };
 
 export function localDims(c, orientation) {
+  const { l, w, h } = outerDims(c);
   switch (orientation) {
-    case 'standing': return { a: c.l, b: c.w, c: c.h };
-    case 'tipLong':  return { a: c.l, b: c.h, c: c.w };
-    case 'tipShort': return { a: c.h, b: c.w, c: c.l };
+    case 'standing': return { a: l, b: w, c: h };
+    case 'tipLong':  return { a: l, b: h, c: w };
+    case 'tipShort': return { a: h, b: w, c: l };
     default: throw new Error(`Unbekannte Lage: ${orientation}`);
   }
 }

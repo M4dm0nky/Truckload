@@ -17,7 +17,8 @@ function checkCase(c) {
   if (!c || typeof c.id !== 'string' || typeof c.name !== 'string') throw new Error('Case ohne ID oder Name in der Datei.');
   for (const k of ['l', 'w', 'h']) if (!num(c[k]) || c[k] <= 0) throw new Error(`Case „${c.name}“ hat ungültige Maße.`);
   if (!num(c.weight) || c.weight < 0) throw new Error(`Case „${c.name}“ hat ein ungültiges Gewicht.`);
-  const wheelHOk = c.wheelH == null || (num(c.wheelH) && c.wheelH >= 0 && c.wheelH < c.h);
+  const wheelHOk = c.wheelH == null || (num(c.wheelH) && c.wheelH >= 0
+    && (c.dimsInclWheels === false || c.wheelH < c.h));
   const layersOk = c.layers == null || (Array.isArray(c.layers) && c.layers.length > 0
     && new Set(c.layers).size === c.layers.length
     && c.layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4));
@@ -25,6 +26,8 @@ function checkCase(c) {
   const propsOk = numOrNull(c.maxTopLoad) && numOrNull(c.stock)
     && (c.tippable === undefined || typeof c.tippable === 'boolean')
     && (c.stackable === undefined || typeof c.stackable === 'boolean')
+    && (c.wheels === undefined || typeof c.wheels === 'boolean')
+    && (c.dimsInclWheels === undefined || typeof c.dimsInclWheels === 'boolean')
     && wheelHOk && layersOk && kindOk;
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
   if (c.kind === 'truss') {

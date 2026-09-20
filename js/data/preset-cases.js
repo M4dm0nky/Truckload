@@ -4,7 +4,8 @@ import { trussDims } from '../model/truss.js';
 const NOTE = 'Richtwert – Maße und Gewicht an dein Case anpassen';
 const P = (id, name, category, l, w, h, weight, opts = {}) => ({
   id: `preset-${id}`, builtin: true, name, content: '', category, color: colorFor(category),
-  l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, wheelH: 12, note: NOTE, ...opts,
+  l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, wheelH: 12,
+  dimsInclWheels: true, note: NOTE, ...opts,
 });
 // F34 (34er) ≈ 6 kg/m, F44 (40er) ≈ 8 kg/m Traversengewicht; Wagen (Paar) ≈ 2 × 12 kg.
 const KG_PER_M = { 29: 6, 40: 8 };

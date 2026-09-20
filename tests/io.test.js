@@ -74,6 +74,22 @@ test('Case mit gültigem wheelH wird akzeptiert', () => {
   const res = parseBundle(bundleWith({ cases: [{ ...own, wheelH: 0 }], trucks: [], plans: [] }));
   assert.equal(res.cases[0].wheelH, 0);
 });
+test('Case mit wheelH >= h wird akzeptiert, wenn dimsInclWheels: false', () => {
+  const res = parseBundle(bundleWith({ cases: [{ ...own, wheelH: own.h, dimsInclWheels: false }], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].wheelH, own.h);
+});
+test('Case mit wheels: "ja" (kein Boolean) wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, wheels: 'ja' }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case mit dimsInclWheels: "ja" (kein Boolean) wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, dimsInclWheels: 'ja' }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case mit wheels: false wird akzeptiert', () => {
+  const res = parseBundle(bundleWith({ cases: [{ ...own, wheels: false }], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].wheels, false);
+});
 test('Fahrzeug mit ungültiger Radkasten-Seite wird abgelehnt', () => {
   const t = mkTruck({ wheelArches: [{ x: 100, l: 50, w: 20, h: 30, side: 'top' }] });
   const bad = bundleWith({ cases: [], trucks: [t], plans: [] });

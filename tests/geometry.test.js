@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
   snap, snapToEdges, stackAbove, faceSlab, DEFAULT_WHEEL_H, wheelHOf,
-  DEFAULT_LAYERS, layersOf } from '../js/model/geometry.js';
+  DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80);
@@ -74,4 +74,54 @@ test('layersOf: Fallback DEFAULT_LAYERS wenn fehlend, sonst der Wert', () => {
   assert.deepEqual(layersOf({}), DEFAULT_LAYERS);
   assert.deepEqual(layersOf({ layers: [1] }), [1]);
   assert.deepEqual(layersOf({ layers: [] }), DEFAULT_LAYERS);
+});
+
+test('NEW_CASE_WHEEL_H und WHEEL_PRESETS sind definiert', () => {
+  assert.equal(NEW_CASE_WHEEL_H, 16);
+  assert.deepEqual(WHEEL_PRESETS, [
+    { name: 'Blue Wheel Ø 125 mm', h: 16 },
+    { name: 'Blue Wheel Ø 100 mm', h: 13 },
+  ]);
+});
+
+test('hasWheels: false bei wheels:false oder wheelH<=0, sonst true', () => {
+  assert.equal(hasWheels({}), true);
+  assert.equal(hasWheels({ wheels: false }), false);
+  assert.equal(hasWheels({ wheelH: 0 }), false);
+  assert.equal(hasWheels({ wheels: true, wheelH: 8 }), true);
+});
+
+test('outerDims: Maß inkl. Rollen nur wenn dimsInclWheels === false', () => {
+  const c = mkCase('c', 200, 80, 200, { wheels: true, wheelH: 16, dimsInclWheels: false });
+  assert.deepEqual(outerDims(c), { l: 200, w: 80, h: 216 });
+});
+
+test('outerDims: dimsInclWheels true lässt Maß unverändert', () => {
+  const c = mkCase('c', 200, 80, 200, { wheels: true, wheelH: 16, dimsInclWheels: true });
+  assert.deepEqual(outerDims(c), { l: 200, w: 80, h: 200 });
+});
+
+test('outerDims: wheels:false ergibt unverändertes Maß und wheelHOf 0', () => {
+  const c = mkCase('c', 200, 80, 200, { wheels: false, wheelH: 16, dimsInclWheels: false });
+  assert.deepEqual(outerDims(c), { l: 200, w: 80, h: 200 });
+  assert.equal(wheelHOf(c), 0);
+});
+
+test('outerDims: Altdaten ohne neue Felder verhalten sich wie bisher (Regression)', () => {
+  const c = mkCase('c', 200, 80, 200);
+  assert.deepEqual(outerDims(c), { l: 200, w: 80, h: 200 });
+});
+
+test('localDims benutzt outerDims (Rollenhöhe fließt in Gesamtmaß ein)', () => {
+  const c = mkCase('c', 200, 80, 200, { wheels: true, wheelH: 16, dimsInclWheels: false });
+  assert.deepEqual(effectiveDims(c, { orientation: 'standing', rot: 0 }), { dx: 200, dy: 80, dz: 216 });
+});
+
+test('Traversenwagen: outerDims ändert die Maße nicht (wheelH ist 0, l/w/h fix)', () => {
+  const truss = { kind: 'truss', l: 300, w: 60, h: 80, wheelH: 0 };
+  assert.deepEqual(outerDims(truss), { l: 300, w: 60, h: 80 });
+  assert.deepEqual(effectiveDims(truss, { orientation: 'standing', rot: 0 }), { dx: 300, dy: 60, dz: 80 });
+  // dimsInclWheels === false darf trotzdem nichts ändern, da wheelHOf 0 ist (kein wheels-Flag gesetzt).
+  const trussExplicit = { ...truss, dimsInclWheels: false };
+  assert.deepEqual(outerDims(trussExplicit), { l: 300, w: 60, h: 80 });
 });
