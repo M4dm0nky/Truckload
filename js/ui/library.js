@@ -39,16 +39,19 @@ export function mountLibrary(el, h) {
   const tray = el.querySelector('.tray');
   let last = null;
 
-  const row = c => `
+  const row = c => {
+    const { l, w, h } = outerDims(c);
+    return `
     <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc(c.content || c.note || '')}">
       <span class="swatch" style="background:${esc(c.color)}"></span>
       <span class="lib-text"><b>${esc(c.name)}</b>
         <small>${isTruss(c)
           ? esc(trussLabel(c))
-          : `${outerDims(c).l}×${outerDims(c).w}×${outerDims(c).h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}</small></span>
+          : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}</small></span>
       <button data-act="add" title="In die Ablage legen">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
     </div>`;
+  };
 
   function renderList() {
     if (!last) return;

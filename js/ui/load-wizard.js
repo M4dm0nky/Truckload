@@ -6,9 +6,9 @@ import { isTruss } from '../model/truss.js';
 const MAX_ITEMS = 500;
 
 function caseLine(c) {
-  return isTruss(c)
-    ? `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück`
-    : `${outerDims(c).l}×${outerDims(c).w}×${outerDims(c).h} cm · ${c.weight} kg`;
+  if (isTruss(c)) return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück`;
+  const { l, w, h } = outerDims(c);
+  return `${l}×${w}×${h} cm · ${c.weight} kg`;
 }
 
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, presetCaseId, onNewCase(draft) }

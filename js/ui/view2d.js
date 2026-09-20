@@ -103,6 +103,7 @@ function drawEndSquare(g, pr, profileWidth) {
 function drawTruss(g, it, mode, truck, colorMode) {
   const { c, p, box } = it;
   const shape = trussShape(c, p, box);
+  const markColor = it.color ?? c.color;
 
   const outline = project(box, mode, truck);
   svgEl('rect', {
@@ -113,9 +114,9 @@ function drawTruss(g, it, mode, truck, colorMode) {
   for (const d of shape.dollies) {
     const dr = project(d, mode, truck);
     svgEl('rect', { x: dr.u0, y: dr.v0, width: dr.u1 - dr.u0, height: dr.v1 - dr.v0, class: 'truss-dolly' }, g);
-    if (c.color) svgEl('rect', {
+    if (markColor) svgEl('rect', {
       x: dr.u0 + 2, y: dr.v0 + 2, width: Math.max(0, dr.u1 - dr.u0 - 4), height: 3,
-      class: 'truss-mark', style: `fill:${c.color}`,
+      class: 'truss-mark', style: `fill:${markColor}`,
     }, g);
   }
   for (const w of shape.wheels) drawWheel(g, w, mode, truck, null);
@@ -206,8 +207,9 @@ function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, det
 // Passt den Textinhalt an eine maximale Breite an (binäre Suche über getComputedTextLength);
 // verkürzt notwendigenfalls mit „…“. Der volle Text bleibt im <title> des Case erhalten.
 function fitLabelText(el, full, maxWidth) {
+  if (maxWidth <= 0) { el.textContent = ''; return; }
   el.textContent = full;
-  if (maxWidth <= 0 || typeof el.getComputedTextLength !== 'function') return;
+  if (typeof el.getComputedTextLength !== 'function') return;
   if (el.getComputedTextLength() <= maxWidth) return;
   let lo = 0, hi = full.length;
   while (lo < hi) {
