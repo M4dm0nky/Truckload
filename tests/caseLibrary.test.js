@@ -40,7 +40,6 @@ test('feste Werte je Eintrag', () => {
   for (const c of CASE_LIBRARY) {
     assert.equal(c.builtin, true, c.name);
     assert.equal(c.source, 'liste', c.name);
-    assert.equal(c.weight, 0, c.name);
     assert.equal(c.tippable, true, c.name);
     assert.equal(c.stackable, true, c.name);
     assert.equal(c.maxTopLoad, null, c.name);
@@ -50,6 +49,25 @@ test('feste Werte je Eintrag', () => {
     assert.equal(c.layers, undefined, c.name);
     assert.equal(typeof c.company, 'string', c.name);
   }
+});
+
+test('kein Eintrag hat ein negatives Gewicht', () => {
+  for (const c of CASE_LIBRARY) assert.ok(c.weight >= 0, c.name);
+});
+
+test('jeder Eintrag mit Gewicht > 0 trägt „Gewicht geschätzt“ in note oder ist eine der beiden FR10-Zeilen', () => {
+  const fr10 = new Set(['FR10 x2 -RentAll', 'FR10 x6 -Motion']);
+  for (const c of CASE_LIBRARY) {
+    if (c.weight > 0) {
+      const isEstimateNote = typeof c.note === 'string' && c.note.includes('Gewicht geschätzt');
+      assert.ok(isEstimateNote || fr10.has(c.name), c.name);
+    }
+  }
+});
+
+test('die beiden FR10-Zeilen haben die unveränderten Originalgewichte', () => {
+  assert.equal(byName('FR10 x2 -RentAll').weight, 73.52);
+  assert.equal(byName('FR10 x6 -Motion').weight, 276);
 });
 
 test('Stichprobe: Mac Ultra x2 -CAB', () => {
