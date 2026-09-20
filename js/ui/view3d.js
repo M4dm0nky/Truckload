@@ -1,6 +1,6 @@
 import { archBoxes } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
-import { caseColors } from './caseStyle.js';
+import { caseColors, CASE_BLACK } from './caseStyle.js';
 import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
@@ -44,7 +44,8 @@ export async function createView3d(container) {
   const GEO_BOX_EDGES = new THREE.EdgesGeometry(GEO_BOX);
   const GEO_SPHERE = new THREE.SphereGeometry(2.5, 16, 12);
   const GEO_CYL = new THREE.CylinderGeometry(1, 1, 1, 16);
-  for (const g of [GEO_BOX, GEO_BOX_EDGES, GEO_SPHERE, GEO_CYL]) g.userData.shared = true;
+  const GEO_PLANE = new THREE.PlaneGeometry(1, 1);
+  for (const g of [GEO_BOX, GEO_BOX_EDGES, GEO_SPHERE, GEO_CYL, GEO_PLANE]) g.userData.shared = true;
 
   const shared = mat => { mat.userData.shared = true; return mat; };
   const MAT_FLOOR = shared(new THREE.MeshLambertMaterial({ color: 0x9aa1aa }));
@@ -97,7 +98,7 @@ export async function createView3d(container) {
   const labelTexCache = new Map(); // JSON.stringify([text, farbe]) -> { material, texture }
   let usedLabelKeys = new Set();
   function textColorFor(hex) {
-    const s = String(hex || '#1c1d20').replace('#', '');
+    const s = String(hex || CASE_BLACK).replace('#', '');
     const full = s.length === 3 ? s.split('').map(ch => ch + ch).join('') : s.padStart(6, '0').slice(0, 6);
     const r = parseInt(full.slice(0, 2), 16) || 0, g = parseInt(full.slice(2, 4), 16) || 0, b = parseInt(full.slice(4, 6), 16) || 0;
     const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -141,12 +142,12 @@ export async function createView3d(container) {
   const labelBasisM = new THREE.Matrix4();
   function labelMesh(pl, text, color) {
     const { material } = labelTextureFor(text, color);
-    const geo = new THREE.PlaneGeometry(Math.max(pl.width, 0.001), Math.max(pl.height, 0.001));
     labelNormalV.set(pl.normal.x, pl.normal.y, pl.normal.z);
     labelUpV.set(pl.up.x, pl.up.y, pl.up.z);
     labelRightV.crossVectors(labelUpV, labelNormalV).normalize();
     labelBasisM.makeBasis(labelRightV, labelUpV, labelNormalV);
-    const mesh = new THREE.Mesh(geo, material);
+    const mesh = new THREE.Mesh(GEO_PLANE, material);
+    mesh.scale.set(Math.max(pl.width, 0.001), Math.max(pl.height, 0.001), 1);
     mesh.position.set(pl.center.x, pl.center.y, pl.center.z);
     mesh.quaternion.setFromRotationMatrix(labelBasisM);
     return mesh;
@@ -376,7 +377,7 @@ export async function createView3d(container) {
       if (it.label) {
         const endFace = `${lenAxis}${i}`;
         const pl = labelPlanes(d, 'bottom').find(p => p.face === endFace);
-        if (pl) content.add(labelMesh(pl, it.label, it.color || '#1c1d20'));
+        if (pl) content.add(labelMesh(pl, it.label, it.color || CASE_BLACK));
       }
     });
     for (const w of shape.wheels) content.add(...wheelMesh(w, 'bottom'));
