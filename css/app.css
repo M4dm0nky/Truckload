@@ -108,7 +108,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .wiz-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .wiz-dot.on { background: var(--accent); }
 .wiz-step { display: grid; gap: 10px; }
-.wiz-cases-head { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+.wiz-cases-head { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
 .wiz-totals { text-align: right; margin: 0; }
 .wiz-case-list { max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
 .wiz-case-row { display: flex; gap: 8px; align-items: center; padding: 6px; border-radius: 6px; }

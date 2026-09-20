@@ -2,13 +2,15 @@ import { esc } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { outerDims } from '../model/geometry.js';
 import { isTruss } from '../model/truss.js';
+import { companiesOf, groupCases } from './caseGroups.js';
 
 const MAX_ITEMS = 500;
 
 function caseLine(c) {
-  if (isTruss(c)) return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück`;
+  const company = c.company ? ` · ${c.company}` : '';
+  if (isTruss(c)) return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück${company}`;
   const { l, w, h } = outerDims(c);
-  return `${l}×${w}×${h} cm · ${c.weight} kg`;
+  return `${l}×${w}×${h} cm · ${c.weight} kg${company}`;
 }
 
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, presetCaseId, onNewCase(draft) }
@@ -37,6 +39,7 @@ export function openLoadWizard(dlg, opts = {}) {
         <div class="wiz-cases-head">
           <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
+          <select class="wiz-filter-company"><option value="">Alle Firmen</option>${companiesOf(cases).map(name => `<option>${esc(name)}</option>`).join('')}</select>
         </div>
         <p class="hint wiz-totals">0 Stück · 0 kg</p>
         <div class="wiz-case-list"></div>
@@ -65,6 +68,7 @@ export function openLoadWizard(dlg, opts = {}) {
   const dots = [...dlg.querySelectorAll('.wiz-dot')];
   const search = dlg.querySelector('.wiz-search');
   const filterSel = dlg.querySelector('.wiz-filter');
+  const companyFilterSel = dlg.querySelector('.wiz-filter-company');
   const totalsEl = dlg.querySelector('.wiz-totals');
   const list = dlg.querySelector('.wiz-case-list');
   const limitHint = dlg.querySelector('.wiz-limit-hint');
@@ -103,14 +107,13 @@ export function openLoadWizard(dlg, opts = {}) {
   }
 
   function renderCaseList() {
-    const q = search.value.trim().toLowerCase();
-    const cat = filterSel.value;
-    const match = c => (!cat || c.category === cat) && (!q || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(q));
-    const own = cases.filter(c => !c.builtin && match(c));
-    const presets = cases.filter(c => c.builtin && !c.legacy && match(c));
+    const { own, presets, list: fromList } = groupCases(cases, {
+      q: search.value, cat: filterSel.value, company: companyFilterSel.value,
+    });
     list.innerHTML = `
       <h3>Eigene Cases (${own.length})</h3>${own.map(caseRow).join('') || '<p class="hint">Keine Treffer.</p>'}
-      <h3>Vorlagen</h3>${presets.map(caseRow).join('')}`;
+      <h3>Vorlagen</h3>${presets.map(caseRow).join('')}
+      <h3>Cases aus deiner Liste (${fromList.length})</h3>${fromList.map(caseRow).join('')}`;
     updateTotals();
   }
   list.addEventListener('click', e => {
@@ -128,6 +131,7 @@ export function openLoadWizard(dlg, opts = {}) {
   });
   search.addEventListener('input', renderCaseList);
   filterSel.addEventListener('change', renderCaseList);
+  companyFilterSel.addEventListener('change', renderCaseList);
 
   async function addNewCase(draft) {
     const c = await opts.onNewCase?.(draft);

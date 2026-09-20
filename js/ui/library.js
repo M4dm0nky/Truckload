@@ -2,6 +2,7 @@ import { esc } from './dom.js';
 import { CATEGORIES } from '../data/categories.js';
 import { layersOf, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
+import { companiesOf, groupCases } from './caseGroups.js';
 
 function trussProfileLabel(width) {
   const p = TRUSS_PROFILES.find(p => p.width === width);
@@ -29,41 +30,49 @@ export function mountLibrary(el, h) {
       </div>
     </div>
     <input type="search" class="lib-search" placeholder="Suchen (Name oder Inhalt)">
-    <select class="lib-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
+    <select class="lib-filter lib-filter-cat"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
+    <select class="lib-filter lib-filter-company"><option value="">Alle Firmen</option></select>
     <div class="lib-list"></div>
     <h3>Noch nicht verladen</h3>
     <div class="tray"></div>`;
   const search = el.querySelector('.lib-search');
-  const filter = el.querySelector('.lib-filter');
+  const filter = el.querySelector('.lib-filter-cat');
+  const companyFilter = el.querySelector('.lib-filter-company');
   const list = el.querySelector('.lib-list');
   const tray = el.querySelector('.tray');
   let last = null;
 
   const row = c => {
     const { l, w, h } = outerDims(c);
+    const companySuffix = c.company ? ` · ${esc(c.company)}` : '';
     return `
     <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc(c.content || c.note || '')}">
       <span class="swatch" style="background:${esc(c.color)}"></span>
       <span class="lib-text"><b>${esc(c.name)}</b>
         <small>${isTruss(c)
           ? esc(trussLabel(c))
-          : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}</small></span>
+          : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}${companySuffix}</small></span>
       <button data-act="add" title="In die Ablage legen">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
     </div>`;
   };
 
+  function renderCompanyOptions() {
+    const prev = companyFilter.value;
+    const companies = companiesOf(last.cases);
+    companyFilter.innerHTML = `<option value="">Alle Firmen</option>${companies.map(name => `<option${name === prev ? ' selected' : ''}>${esc(name)}</option>`).join('')}`;
+    if (!companies.includes(prev)) companyFilter.value = '';
+  }
+
   function renderList() {
     if (!last) return;
-    const q = search.value.trim().toLowerCase();
-    const cat = filter.value;
-    const match = c => (!cat || c.category === cat)
-      && (!q || `${c.name} ${c.content}`.toLowerCase().includes(q));
-    const own = last.cases.filter(c => !c.builtin && match(c));
-    const presets = last.cases.filter(c => c.builtin && !c.legacy && match(c));
+    const { own, presets, list: fromList } = groupCases(last.cases, {
+      q: search.value, cat: filter.value, company: companyFilter.value,
+    });
     list.innerHTML = `
       <h3>Eigene Cases (${own.length})</h3>${own.map(row).join('') || '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>'}
-      <h3>Vorlagen <small>(Richtwerte)</small></h3>${presets.map(row).join('')}`;
+      <h3>Vorlagen <small>(Richtwerte)</small></h3>${presets.map(row).join('')}
+      <h3>Cases aus deiner Liste (${fromList.length})</h3>${fromList.map(row).join('')}`;
   }
 
   function renderTray() {
@@ -83,6 +92,7 @@ export function mountLibrary(el, h) {
 
   search.addEventListener('input', renderList);
   filter.addEventListener('change', renderList);
+  companyFilter.addEventListener('change', renderList);
   el.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
@@ -101,6 +111,7 @@ export function mountLibrary(el, h) {
     update(state) {
       const casesChanged = !last || last.cases !== state.cases;
       last = state;
+      if (casesChanged) renderCompanyOptions();
       if (casesChanged) renderList();
       renderTray();
     },
