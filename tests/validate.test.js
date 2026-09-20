@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePlan, archBoxes } from '../js/model/validate.js';
+import { validatePlan, archBoxes, buildItems } from '../js/model/validate.js';
 import { mkCase, mkTruck, SPRINTER, P, plan, byId } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);
@@ -12,6 +12,16 @@ test('leerer Plan', () => {
   assert.deepEqual(r.issues, []);
   assert.equal(r.totals.weight, 0);
   assert.equal(r.totals.cog, null);
+});
+test('buildItems legt label/color mit Fallback auf den Case-Typ frei', () => {
+  const { items } = buildItems(plan([P('a','k',0,0,0)]), byId(K));
+  assert.equal(items[0].label, K.name);
+  assert.equal(items[0].color, K.color);
+});
+test('buildItems bevorzugt Stück-Label/Farbe vor dem Case-Typ', () => {
+  const { items } = buildItems(plan([P('a','k',0,0,0,{ label: 'Custom', color: '#123456' })]), byId(K));
+  assert.equal(items[0].label, 'Custom');
+  assert.equal(items[0].color, '#123456');
 });
 test('Kollision auf beiden Cases', () => {
   const r = validatePlan(plan([P('a','k',0,0,0), P('b','k',60,0,0)]), byId(K), mkTruck());

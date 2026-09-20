@@ -168,6 +168,39 @@ test('Truss wird beim Import normalisiert (l/w/h, wheelH, tippable)', () => {
   assert.equal(c.tippable, false);
 });
 
+test('Ladeplan mit 60-Zeichen-Label wird abgelehnt', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0, { label: 'x'.repeat(60) })]);
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Ladeplan mit ungültiger Farbe wird abgelehnt', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0, { color: 'rot' })]);
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Ladeplan mit gültigem Label/Farbe wird akzeptiert', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0, { label: 'Kabelcase 1', color: '#ff00aa' })]);
+  const ok = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  const res = parseBundle(ok);
+  assert.equal(res.plans[0].placements[0].label, 'Kabelcase 1');
+});
+test('Ablage mit ungültigem Label wird abgelehnt', () => {
+  const p = { ...plan([]), unplaced: [{ id: 'u1', caseId: 'own', label: 'x'.repeat(60) }] };
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Ablage mit ungültiger Farbe wird abgelehnt', () => {
+  const p = { ...plan([]), unplaced: [{ id: 'u1', caseId: 'own', color: 'rot' }] };
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Ladeplan ohne Label/Farbe-Felder lädt unverändert', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0)]);
+  const ok = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  const res = parseBundle(ok);
+  assert.equal(res.plans[0].placements[0].label, undefined);
+});
+
 test('Vorlagen (builtin/preset-*) werden beim Import verworfen', () => {
   const presetById = { ...mkCase('preset-y', 10, 10, 10), builtin: false };
   const bad = bundleWith({ cases: [own, builtin, presetById], trucks: [mkTruck(), { ...mkTruck({ id: 'preset-truck' }) }], plans: [] });

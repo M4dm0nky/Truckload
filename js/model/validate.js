@@ -20,7 +20,7 @@ export function buildItems(plan, caseById) {
   for (const p of plan.placements) {
     const c = caseById.get(p.caseId);
     if (!c) { missing.push(p); continue; }
-    items.push({ id: p.id, p, c, box: boxOf(c, p) });
+    items.push({ id: p.id, p, c, box: boxOf(c, p), label: p.label ?? c.name, color: p.color ?? c.color });
   }
   return { items, missing };
 }

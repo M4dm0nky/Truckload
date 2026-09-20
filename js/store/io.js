@@ -54,13 +54,15 @@ function checkTruck(t) {
   for (const k of ['l', 'w', 'h', 'payload']) if (!num(t[k]) || t[k] <= 0) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Werte.`);
   if (!arr(t.wheelArches ?? []).every(checkArch)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
 }
+const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.label.length <= 40);
+const colorOk = x => x.color === undefined || /^#[0-9a-fA-F]{6}$/.test(x.color);
 function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
     throw new Error('Ungültiger Ladeplan in der Datei.');
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
-    && num(pl.x) && num(pl.y) && num(pl.z);
-  const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string';
+    && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl);
+  const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u);
   if (!p.placements.every(placementOk) || !arr(p.unplaced).every(unplacedOk))
     throw new Error(`Ladeplan „${p.name}“ enthält ungültige Platzierungen.`);
 }

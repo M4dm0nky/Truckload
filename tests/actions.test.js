@@ -53,9 +53,37 @@ test('toTray und addUnplaced', () => {
   pl = A.removeUnplaced(pl, 'k');
   assert.equal(pl.unplaced.length, 3);
 });
+test('addUnplaced übernimmt Labels und Farbe', () => {
+  const pl = A.addUnplaced(plan([]), 'k', 3, counter('u'), { labels: ['A', 'B', 'C'], color: '#ff0000' });
+  assert.deepEqual(pl.unplaced.map(u => u.label), ['A', 'B', 'C']);
+  assert.deepEqual(pl.unplaced.map(u => u.color), ['#ff0000', '#ff0000', '#ff0000']);
+});
+test('addUnplaced ohne Optionen bleibt abwärtskompatibel', () => {
+  const pl = A.addUnplaced(plan([]), 'k', 2, counter('u'));
+  assert.deepEqual(pl.unplaced, [{ id: 'u1', caseId: 'k' }, { id: 'u2', caseId: 'k' }]);
+});
 test('duplicate setzt daneben', () => {
   const pl = A.duplicate(plan([P('a','k',0,0,0)]), 'a', ctx());
   assert.equal(pl.placements[1].x, 120);
+});
+test('duplicate kopiert Label/Farbe und zählt hoch', () => {
+  const pl = A.duplicate(plan([P('a','k',0,0,0,{ label: 'Kabelcase 3', color: '#00ff00' })]), 'a', ctx());
+  assert.equal(pl.placements[1].label, 'Kabelcase 4');
+  assert.equal(pl.placements[1].color, '#00ff00');
+});
+test('duplicate ohne Zahl am Ende hängt keine Nummer an', () => {
+  const pl = A.duplicate(plan([P('a','k',0,0,0,{ label: 'Kabelcase' })]), 'a', ctx());
+  assert.equal(pl.placements[1].label, 'Kabelcase');
+});
+test('setItemLabel ändert eine Platzierung', () => {
+  const pl = A.setItemLabel(plan([P('a','k',0,0,0)]), 'a', { label: 'Neu', color: '#123456' });
+  assert.equal(pl.placements[0].label, 'Neu');
+  assert.equal(pl.placements[0].color, '#123456');
+});
+test('setItemLabel trifft auch Ablage-Einträge', () => {
+  const pl = A.setItemLabel(plan([], [{ id: 'u1', caseId: 'k' }]), 'u1', { label: 'Ablage', color: '#abcdef' });
+  assert.equal(pl.unplaced[0].label, 'Ablage');
+  assert.equal(pl.unplaced[0].color, '#abcdef');
 });
 test('packAll verlädt alles', () => {
   const pl = A.packAll(plan([P('a','k',700,0,0)], [{ id: 'u1', caseId: 'k' }, { id: 'u2', caseId: 't' }]), ctx());

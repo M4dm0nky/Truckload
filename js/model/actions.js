@@ -16,8 +16,12 @@ function settle(p, c, others) {
   return { ...p, z: gravityZ(boxOf(c, { ...p, z: 0 }), others) };
 }
 
-export function addUnplaced(plan, caseId, n, newId) {
-  const extra = Array.from({ length: n }, () => ({ id: newId(), caseId }));
+export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null } = {}) {
+  const extra = Array.from({ length: n }, (_, i) => ({
+    id: newId(), caseId,
+    ...(labels[i] ? { label: labels[i] } : {}),
+    ...(color ? { color } : {}),
+  }));
   return touch({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
 
@@ -30,7 +34,9 @@ export function removeUnplaced(plan, caseId) {
 export function placeCase(plan, caseId, x, y, ctx, fromUnplacedId = null) {
   const c = ctx.caseById.get(caseId);
   if (!c) return plan;
-  const base = { id: fromUnplacedId ?? ctx.newId(), caseId, x: snap(x), y: snap(y), z: 0, orientation: 'standing', rot: 0 };
+  const src = fromUnplacedId ? plan.unplaced.find(u => u.id === fromUnplacedId) : null;
+  const { id: _srcId, caseId: _srcCaseId, ...srcExtra } = src ?? {};
+  const base = { id: fromUnplacedId ?? ctx.newId(), caseId, x: snap(x), y: snap(y), z: 0, orientation: 'standing', rot: 0, ...srcExtra };
   const p = settle(base, c, otherBoxes(plan, ctx, []));
   return touch({
     ...plan,
@@ -80,12 +86,29 @@ export const cycleTip = (plan, id, ctx) =>
     ? { orientation: ORIENTATIONS[(ORIENTATIONS.indexOf(p.orientation) + 1) % ORIENTATIONS.length] }
     : {});
 
+function nextLabel(label) {
+  const m = /^(.*?)(\d+)$/.exec(label);
+  if (!m) return label;
+  return `${m[1]}${Number(m[2]) + 1}`;
+}
+
 export function duplicate(plan, id, ctx) {
   const p = plan.placements.find(q => q.id === id);
   const c = p && ctx.caseById.get(p.caseId);
   if (!c) return plan;
-  const copy = settle({ ...p, id: ctx.newId(), x: p.x + effectiveDims(c, p).dx }, c, otherBoxes(plan, ctx, []));
+  const patch = { id: ctx.newId(), x: p.x + effectiveDims(c, p).dx };
+  if (p.label) patch.label = nextLabel(p.label);
+  const copy = settle({ ...p, ...patch }, c, otherBoxes(plan, ctx, []));
   return touch({ ...plan, placements: [...plan.placements, copy] });
+}
+
+export function setItemLabel(plan, id, { label, color } = {}) {
+  const patch = it => it.id === id ? { ...it, label, color } : it;
+  return touch({
+    ...plan,
+    placements: plan.placements.map(patch),
+    unplaced: plan.unplaced.map(patch),
+  });
 }
 
 export const removePlacement = (plan, id) =>
@@ -94,10 +117,11 @@ export const removePlacement = (plan, id) =>
 export function toTray(plan, id) {
   const p = plan.placements.find(q => q.id === id);
   if (!p) return plan;
+  const { label, color } = p;
   return touch({
     ...plan,
     placements: plan.placements.filter(q => q.id !== id),
-    unplaced: [...plan.unplaced, { id: p.id, caseId: p.caseId }],
+    unplaced: [...plan.unplaced, { id: p.id, caseId: p.caseId, ...(label ? { label } : {}), ...(color ? { color } : {}) }],
   });
 }
 
