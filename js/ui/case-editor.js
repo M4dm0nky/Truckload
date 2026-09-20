@@ -11,7 +11,8 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
   const src = c ?? draft ?? null;
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
   if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';
-  const isNew = !c || c.builtin || !!draft;
+  if (src && src.color == null) v.color = colorFor(v.category);
+  const isNew = !c || c.builtin;
   const dim = n => `type="number" name="${n}" min="1" max="2000" step="0.5" required`;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
@@ -184,12 +185,27 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
     updateTrussDims();
   }
   let prevKind = isTruss(v) ? 'truss' : 'case';
+  let caseWheelsSnapshot = null; // vom Nutzer gesetzter Rollen-Zustand, gemerkt beim Verlassen von "Case"
   for (const r of kindInputs) {
     r.checked = r.value === prevKind;
     r.addEventListener('change', () => {
-      if (prevKind === 'truss' && r.value === 'case' && (!f.wheels.checked || !(currentWheelH() > 0))) {
-        f.wheels.checked = true;
-        setWheelHValue(DEFAULT_WHEEL_H);
+      if (prevKind === 'case' && r.value === 'truss') {
+        caseWheelsSnapshot = {
+          wheels: f.wheels.checked, preset: f.wheelPreset.value, custom: f.wheelHCustom.value,
+          dimsIncl: dimsInclRadios.find(x => x.checked)?.value ?? 'incl',
+        };
+      }
+      if (prevKind === 'truss' && r.value === 'case') {
+        if (caseWheelsSnapshot) {
+          f.wheels.checked = caseWheelsSnapshot.wheels;
+          f.wheelPreset.value = caseWheelsSnapshot.preset;
+          f.wheelHCustom.value = caseWheelsSnapshot.custom;
+          wheelCustomLabel.hidden = caseWheelsSnapshot.preset !== 'custom';
+          for (const x of dimsInclRadios) x.checked = x.value === caseWheelsSnapshot.dimsIncl;
+        } else if (!f.wheels.checked || !(currentWheelH() > 0)) {
+          f.wheels.checked = true;
+          setWheelHValue(DEFAULT_WHEEL_H);
+        }
       }
       prevKind = r.value;
       applyKind(r.value);
