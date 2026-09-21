@@ -8,6 +8,13 @@ import { checkCase } from '../js/store/io.js';
 const unique = xs => new Set(xs).size === xs.length;
 const byName = name => CASE_LIBRARY.find(c => c.name === name);
 
+// Die kleinen 19"-Racks ohne Rollen: wheelH ist bei denen 0 statt der sonst
+// festen 12 cm, weil sie laut Name und Maßen keine Rollen haben (siehe
+// js/data/case-library.js).
+const RACKS_OHNE_ROLLEN = new Set([
+  '19" 1HE -CAB', '19" 2HE -CAB', '19" 3HE -CAB', '19" 4HE -CAB', '19" 5HE -CAB', '19" 6HE -CAB',
+]);
+
 test('genau 137 Cases aus der Liste', () => {
   assert.equal(CASE_LIBRARY.length, 137);
 });
@@ -44,7 +51,8 @@ test('feste Werte je Eintrag', () => {
     assert.equal(c.stackable, true, c.name);
     assert.equal(c.maxTopLoad, null, c.name);
     assert.equal(c.stock, null, c.name);
-    assert.equal(c.wheelH, 12, c.name);
+    // Rollenhöhe ist überall 12 cm, außer bei den kleinen 19"-Racks ohne Rollen – die tragen 0.
+    assert.equal(c.wheelH, RACKS_OHNE_ROLLEN.has(c.name) ? 0 : 12, c.name);
     assert.equal(c.dimsInclWheels, true, c.name);
     assert.equal(c.layers, undefined, c.name);
     assert.equal(typeof c.company, 'string', c.name);
@@ -118,6 +126,27 @@ test('gefüllte Maße aus der Quelle werden nie durch eine Rack-Formel überschr
     assert.ok(c, name);
     assert.ok(!Object.values(gemessen).includes(c.h), `${name} darf keinen der gemessenen Werte tragen`);
   }
+});
+
+test('Stichprobe: 19" 1HE -CAB hat die aus den drei gemessenen Racks abgeleitete Höhe', () => {
+  const c = byName('19" 1HE -CAB');
+  assert.ok(c);
+  assert.equal(c.h, 10.1);
+  assert.equal(c.l, 60);
+  assert.equal(c.w, 60);
+});
+
+test('kleine 19" -Racks (1-6 HE) haben keine Rollen, der 16-HE-Eintrag „on wheels“ schon', () => {
+  for (const name of RACKS_OHNE_ROLLEN) {
+    const c = byName(name);
+    assert.ok(c, name);
+    assert.equal(c.wheels, false, name);
+    assert.equal(c.wheelH, 0, name);
+  }
+  const mitRollen = byName('19" 16HE on wheels-CAB');
+  assert.ok(mitRollen);
+  assert.notEqual(mitRollen.wheels, false);
+  assert.equal(mitRollen.wheelH, 12);
 });
 
 test('die fünf unbrauchbaren Rigging-Zeilen fehlen', () => {
