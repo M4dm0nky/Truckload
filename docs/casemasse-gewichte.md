@@ -154,7 +154,7 @@ w), nicht nur für eine.
 | D8+ 1t PlusLite -cab | 1 × D8+ 1t | 45 |
 | SkyPanel 120 x2-AED | 2 × SkyPanel S120 | 65 |
 | Strike Array4 x4 - CAB | 4 × Strike Array 4 | 70 |
-| BMFL x2 -Motion | 2 × BMFL (Variante unklar, Ø aus Spot/WashBeam/Blade, 37,4 kg) | 105 |
+| BMFL x2 -Motion | 2 × BMFL Spot (Variante vom Nutzer bestätigt, 36,0 kg) | 105 |
 | D8+ 1t ProStage -cab | 1 × D8+ 1t | 45 |
 | D8+ 1t ProStage -motion | 1 × D8+ 1t | 45 |
 | FR10 x2 -RentAll | — (Originalwert Tabelle) | 73,52 |
@@ -189,11 +189,11 @@ Q-7 eindeutig identifiziert), keine Ausnahme.
 
 ## Formel-Abweichungen und Variantenunsicherheit (dokumentiert)
 
-- **BMFL x2 -Motion**: Name nennt keine Variante (Spot/WashBeam/Blade). Die
-  Netto-Gewichte der drei BMFL-Varianten liegen mit 36,0–38,4 kg eng
-  beieinander (deutlich unter der 5-kg-Rundung), daher wurde der Mittelwert aus
-  allen drei Varianten (37,4 kg) verwendet statt die Zeile auf 0 zu setzen.
-  Dieselbe Methode (Mittelwert bei ungenannter Variante) wird jetzt auch bei
+- **BMFL x2 -Motion**: Der Name nennt keine Variante (Spot/WashBeam/Blade),
+  daher wurde zunächst der Mittelwert aus allen drei Varianten (37,4 kg)
+  verwendet. Der Nutzer hat die Variante inzwischen bestätigt: **Spot**
+  (36,0 kg). Das gerundete Case-Gewicht bleibt dadurch unverändert bei 105 kg.
+  Die Methode „Mittelwert bei ungenannter Variante“ wird weiterhin bei
   Mac Viper angewendet, siehe unten.
 - **Mac Viper x2 -CAB**: Der Name nennt keine Variante (Performance/Profile/
   Wash DX). In der ersten Fassung dieses Protokolls war das nicht als

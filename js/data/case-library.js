@@ -189,7 +189,7 @@ export const CASE_LIBRARY = [
   C('Strike Array4 x4 - CAB', 'Licht', 100, 60, 80, 'CAB', 'Chauvet', { weight: 70, note: 'Gewicht geschätzt: 4 × Strike Array 4 à 13 kg + Case' }),
   C('FR10 x2 -RentAll', 'Licht', 100, 60, 66, 'RentAll', 'GLP', { weight: 73.52 }),
   C('FR10 x6 -Motion', 'Licht', 110, 80, 113, 'Motion', 'GLP', { weight: 276 }),
-  C('BMFL x2 -Motion', 'Licht', 145, 60, 88, 'Motion', 'Robe', { weight: 105, note: 'Gewicht geschätzt (Variante unklar, Ø aus Spot/WashBeam/Blade): 2 × BMFL à 37.4 kg + Case' }),
+  C('BMFL x2 -Motion', 'Licht', 145, 60, 88, 'Motion', 'Robe', { weight: 105, note: 'Gewicht geschätzt: 2 × BMFL Spot à 36 kg + Case' }),
   C('Base Station -Motion', 'Licht', 120, 60, 66, 'Motion', 'Robe'),
   C('D8+ 1t ProStage -cab', 'Rigging', 60, 60, 61, 'CAB', 'Motor', { weight: 45, note: 'Gewicht geschätzt: 1 × D8+ 1t à 31 kg + Case' }),
   C('D8+ 1t ProStage -motion', 'Rigging', 60, 60, 61, 'Motion', 'Motor', { weight: 45, note: 'Gewicht geschätzt: 1 × D8+ 1t à 31 kg + Case' }),

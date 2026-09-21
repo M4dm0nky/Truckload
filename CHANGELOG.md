@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.5.1 – 2026-09-21
+
+- „BMFL x2 -Motion“: Variante vom Nutzer bestätigt – es sind BMFL Spot (36 kg je Gerät) statt des bisherigen Mittelwerts über Spot, WashBeam und Blade; das Case-Gewicht bleibt bei 105 kg
+
 ## V 0.5.0 – 2026-09-20
 
 - 137 Cases aus der eigenen Casemaße-Tabelle mitgeliefert, mit Hersteller im Feld „Inhalt“ und Firma; eigener Abschnitt „Cases aus deiner Liste“ in Bibliothek und Wizard samt Firmenfilter
