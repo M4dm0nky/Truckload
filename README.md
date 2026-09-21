@@ -52,10 +52,12 @@ Excel-Tabelle „Casemaße Complete.xlsx“ (Blatt „Data Cases“), in der die
 gepflegt wurden. Jeder Eintrag zeigt den Hersteller im Feld „Inhalt“ sowie die Firma, und
 beide Listen lassen sich zusätzlich nach Firma filtern.
 
-Für 67 dieser Cases gibt es ein recherchiertes Schätzgewicht (Netto-Gerätegewicht plus
+Für 65 dieser Cases gibt es ein recherchiertes Schätzgewicht (Netto-Gerätegewicht plus
 Case-Anteil, nachvollziehbar mit Quellen in [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)).
-Die restlichen 70 stehen bewusst bei 0 kg – lieber ehrlich 0 kg als eine erfundene Zahl –
-und lassen sich im Inspector jederzeit nachtragen.
+Zwei weitere Cases (die beiden FR10-Zeilen) tragen ihr unverändertes Originalgewicht aus
+der Tabelle und zählen ausdrücklich nicht als Schätzung. Die restlichen 70 stehen bewusst
+bei 0 kg – lieber ehrlich 0 kg als eine erfundene Zahl – und lassen sich im Inspector
+jederzeit nachtragen.
 
 ## Tastenkürzel
 

@@ -160,16 +160,17 @@ w), nicht nur für eine.
 | FR10 x2 -RentAll | — (Originalwert Tabelle) | 73,52 |
 | FR10 x6 -Motion | — (Originalwert Tabelle) | 276 |
 
+**Q7 x4 / SGM Q7 x4 / SGM Q7 x6 / Q7 lang**: alle mit Gewicht versehen (SGM
+Q-7 eindeutig identifiziert), keine Ausnahme.
+
 ## Bewusst bei 0 belassen
 
 - **ChamSys Wing Compact -CAB**: eigenständiges kleines Zusatzpult, nicht im
   Rechercheauftrag; Gewicht nicht recherchiert, um keine Zahl zu raten.
 - **Generic-Fixtures ohne Herstellerbezug** (`4lite x6`, `Asym Flood x1/x6`,
   `2-light x12`, `8-light x6`, `4-light HORZ x8`, alle `Dolly …`-Einträge mit
-  Company „Generic“): Firmenfeld ist „Generic“, kein recherchierbares
-  Gerätemodell dahinter.
-- **Q7 x4 / SGM Q7 x4 / SGM Q7 x6 / Q7 lang**: alle mit Gewicht versehen (SGM
-  Q-7 eindeutig identifiziert), keine Ausnahme.
+  Hersteller „Generic“ im Feld „Inhalt“; Firmenfeld ist bei diesen Einträgen
+  „CAB“): kein recherchierbares Gerätemodell hinter „Generic“.
 - **„Das K – Annahme“ -Kraftklub**: Bandspezifisches Sonderequipment ohne
   identifizierbares Katalogprodukt.
 - **Intellipix -BBM**, **Sunstrips Sandwich -CAB**: kein Herstellerfeld, Gerät

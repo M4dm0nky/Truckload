@@ -46,7 +46,7 @@ export function mountLibrary(el, h) {
     const { l, w, h } = outerDims(c);
     const companySuffix = c.company ? ` · ${esc(c.company)}` : '';
     return `
-    <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc(c.content || c.note || '')}">
+    <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc([c.content, c.note].filter(Boolean).join(' · '))}">
       <span class="swatch" style="background:${esc(c.color)}"></span>
       <span class="lib-text"><b>${esc(c.name)}</b>
         <small>${isTruss(c)
@@ -71,7 +71,7 @@ export function mountLibrary(el, h) {
     });
     list.innerHTML = `
       <h3>Eigene Cases (${own.length})</h3>${own.map(row).join('') || '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>'}
-      <h3>Vorlagen <small>(Richtwerte)</small></h3>${presets.map(row).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}
+      <h3>Vorlagen (${presets.length}) <small>(Richtwerte)</small></h3>${presets.map(row).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}
       <h3>Cases aus deiner Liste (${fromList.length})</h3>${fromList.map(row).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}`;
   }
 

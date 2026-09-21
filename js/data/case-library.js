@@ -5,11 +5,14 @@
 // lief im Scratchpad); dieses Modul ist das Ergebnis und wird von Hand gepflegt.
 //
 // 142 Zeilen hatten einen Typ, 137 sind hier gelandet:
-// - Sechs 19″-Racks (1, 2, 4, 5, 6, 16 HE) hatten keine oder unbrauchbare Maße
-//   in der Tabelle (leere Zellen bzw. die Zeichenketten „-“/„x“) und wurden aus
-//   der Höheneinheit gerechnet: h = HE × 4,45 cm + 14 cm (Deckel + Boden),
-//   l = w = 60 cm geschätzt (siehe Kommentare unten).
-// - Fünf Rigging-Zeilen ohne jedes brauchbare Maß entfallen ersatzlos:
+// - Sechs 19″-Racks (1, 2, 4, 5, 6, 16 HE) hatten in der Tabelle leere Zellen für
+//   l und w; l = w = 60 cm ist dafür geschätzt. Bei h war die Zelle bei vier
+//   Racks (1, 4, 5, 16 HE) ebenfalls leer und wurde aus der Höheneinheit
+//   gerechnet (siehe Kommentare unten); bei zwei Racks (2, 6 HE) stand dort
+//   dagegen bereits eine gemessene Zahl (15 bzw. 32 cm) — die wird unverändert
+//   übernommen, es wird nur gerechnet, was in der Quelle wirklich fehlt.
+// - Fünf Rigging-Zeilen ohne brauchbares Höhenmaß (leere Zellen bzw. die
+//   Zeichenketten „-“/„x“) entfallen ersatzlos:
 //   „Motorsteuerung (Koffer -BBM“, „Bolzenkoffer -BBM“, „FD34 x2 -CAB“,
 //   „HOF BOLT -CAB“, „Dolly "Drohne" -CAB“.
 //
@@ -148,13 +151,21 @@ export const CASE_LIBRARY = [
   C('D8+ 0,5t CAB x8', 'Rigging', 100, 240, 56, 'CAB', 'Motor', { weight: 190, note: 'Gewicht geschätzt: 8 × D8+ 0,5t à 17 kg + Case' }),
   C('D8+ 1t PlusLite -cab', 'Rigging', 69, 60, 71, 'CAB', 'Motor', { weight: 45, note: 'Gewicht geschätzt: 1 × D8+ 1t à 31 kg + Case' }),
   C('63A VT Haube -BBM', 'Ton', 60, 60, 73, 'BBM'),
-  C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 85, 'CAB'),  // 16 HE: h = HE * 4,45 + 14 (Deckel + Boden), l/w geschätzt 60 x 60
-  C('19" 1HE -CAB', 'Ton', 60, 60, 18.5, 'CAB'),  // 1 HE: h = HE * 4,45 + 14 (Deckel + Boden), l/w geschätzt 60 x 60
-  C('19" 2HE -CAB', 'Ton', 60, 60, 23, 'CAB'),  // 2 HE: h = HE * 4,45 + 14 (Deckel + Boden), l/w geschätzt 60 x 60
+  // Aufschlag für Deckel + Boden aus den drei gemessenen Racks abgeleitet
+  // (h_gemessen − HE × 4,45 cm): 2 HE → 15 − 8,9 = 6,1 cm; 3 HE → 19 − 13,35 =
+  // 5,65 cm; 6 HE → 32 − 26,7 = 5,3 cm. Mittelwert ≈ 5,68 cm — damit für die
+  // Racks ohne gemessene Höhe gerechnet: h = HE × 4,45 + 5,68. Ausnahme 1 HE:
+  // das ergäbe 10,1 cm und läge damit unter der Rollenhöhe von 12 cm (wheelH),
+  // was mit eingerechneten Rollen (dimsInclWheels) physisch nicht geht – dort
+  // bleibt darum der bisherige, mit dem alten Aufschlag von 14 cm gerechnete
+  // Wert als konservative Obergrenze stehen, bis eine echte Messung vorliegt.
+  C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 76.9, 'CAB'),  // 16 HE: h = 16 * 4,45 + 5,68, l/w geschätzt 60 x 60
+  C('19" 1HE -CAB', 'Ton', 60, 60, 18.5, 'CAB'),  // 1 HE: h = 1 * 4,45 + 14 (alter Aufschlag, siehe Kommentar oben), l/w geschätzt 60 x 60
+  C('19" 2HE -CAB', 'Ton', 60, 60, 15, 'CAB'),  // 2 HE: h = 15 cm gemessen (Quelle), l/w geschätzt 60 x 60
   C('19" 3HE -CAB', 'Ton', 63, 54, 19, 'CAB'),
-  C('19" 4HE -CAB', 'Ton', 60, 60, 32, 'CAB'),  // 4 HE: h = HE * 4,45 + 14 (Deckel + Boden), l/w geschätzt 60 x 60
-  C('19" 5HE -CAB', 'Ton', 60, 60, 36, 'CAB'),  // 5 HE: h = HE * 4,45 + 14 (Deckel + Boden), l/w geschätzt 60 x 60
-  C('19" 6HE -CAB', 'Ton', 60, 60, 40.5, 'CAB'),  // 6 HE: h = HE * 4,45 + 14 (Deckel + Boden), l/w geschätzt 60 x 60
+  C('19" 4HE -CAB', 'Ton', 60, 60, 23.5, 'CAB'),  // 4 HE: h = 4 * 4,45 + 5,68, l/w geschätzt 60 x 60
+  C('19" 5HE -CAB', 'Ton', 60, 60, 27.9, 'CAB'),  // 5 HE: h = 5 * 4,45 + 5,68, l/w geschätzt 60 x 60
+  C('19" 6HE -CAB', 'Ton', 60, 60, 32, 'CAB'),  // 6 HE: h = 32 cm gemessen (Quelle), l/w geschätzt 60 x 60
   C('Rack 16HE Deckel -CAB', 'Ton', 75, 60, 95, 'CAB'),
   C('Rack Amp 12 HE Schieber -CAB', 'Ton', 80, 60, 85, 'CAB'),
   C('Schubladencase 90 -CAB', 'Ton', 60, 61, 90, 'CAB'),

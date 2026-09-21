@@ -112,7 +112,7 @@ export function openLoadWizard(dlg, opts = {}) {
     });
     list.innerHTML = `
       <h3>Eigene Cases (${own.length})</h3>${own.map(caseRow).join('') || '<p class="hint">Keine Treffer.</p>'}
-      <h3>Vorlagen</h3>${presets.map(caseRow).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}
+      <h3>Vorlagen (${presets.length})</h3>${presets.map(caseRow).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}
       <h3>Cases aus deiner Liste (${fromList.length})</h3>${fromList.map(caseRow).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}`;
     updateTotals();
   }

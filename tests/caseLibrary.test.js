@@ -87,12 +87,37 @@ test('Stichprobe: Atomic 3000 x4 no wheels -CAB hat wheels: false', () => {
   assert.equal(c.wheels, false);
 });
 
-test('Stichprobe: 19" 6HE -CAB hat die gerechnete Höhe (6 x 4,45 + 14)', () => {
+test('Stichprobe: 19" 6HE -CAB hat die gemessene Höhe aus der Quelle, nicht die gerechnete', () => {
   const c = byName('19" 6HE -CAB');
   assert.ok(c);
-  assert.equal(c.h, 40.5);
+  assert.equal(c.h, 32);
   assert.equal(c.l, 60);
   assert.equal(c.w, 60);
+});
+
+test('Stichprobe: 19" 2HE -CAB hat die gemessene Höhe aus der Quelle, nicht die gerechnete', () => {
+  const c = byName('19" 2HE -CAB');
+  assert.ok(c);
+  assert.equal(c.h, 15);
+  assert.equal(c.l, 60);
+  assert.equal(c.w, 60);
+});
+
+test('gefüllte Maße aus der Quelle werden nie durch eine Rack-Formel überschrieben', () => {
+  // Regressionstest für den Fehler, bei dem gemessene Rack-Höhen (2 HE, 6 HE)
+  // verworfen und durch h = HE * 4,45 + Aufschlag ersetzt wurden. Die vier
+  // tatsächlich gerechneten Racks (1, 4, 5, 16 HE) dürfen dagegen nicht mit den
+  // gemessenen Werten der 2/3/6-HE-Racks kollidieren.
+  const gemessen = { '19" 2HE -CAB': 15, '19" 3HE -CAB': 19, '19" 6HE -CAB': 32 };
+  for (const [name, h] of Object.entries(gemessen)) {
+    assert.equal(byName(name).h, h, name);
+  }
+  const gerechnet = ['19" 1HE -CAB', '19" 4HE -CAB', '19" 5HE -CAB', '19" 16HE on wheels-CAB'];
+  for (const name of gerechnet) {
+    const c = byName(name);
+    assert.ok(c, name);
+    assert.ok(!Object.values(gemessen).includes(c.h), `${name} darf keinen der gemessenen Werte tragen`);
+  }
 });
 
 test('die fünf unbrauchbaren Rigging-Zeilen fehlen', () => {

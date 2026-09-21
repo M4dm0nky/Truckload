@@ -5,7 +5,7 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 ## V 0.5.0 – 2026-09-20
 
 - 137 Cases aus der eigenen Casemaße-Tabelle mitgeliefert, mit Hersteller im Feld „Inhalt“ und Firma; eigener Abschnitt „Cases aus deiner Liste“ in Bibliothek und Wizard samt Firmenfilter
-- Gewichtsschätzungen für 67 dieser Cases aus recherchierten Gerätegewichten, nachvollziehbar in `docs/casemasse-gewichte.md`; der Rest bleibt bei 0 kg zum Nachtragen
+- Gewichtsschätzungen für 65 dieser Cases aus recherchierten Gerätegewichten, nachvollziehbar in `docs/casemasse-gewichte.md`; zwei weitere Cases (FR10 x2/x6) tragen ihr unverändertes Originalgewicht aus der Tabelle statt einer Schätzung; der Rest bleibt bei 0 kg zum Nachtragen
 
 ## V 0.4.0 – 2026-09-20
 
