@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, mergeById, backupFileName } from '../js/store/io.js';
+import { exportBundle, parseBundle, mergeById, backupFileName, CASE_LIMITS } from '../js/store/io.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -208,4 +208,192 @@ test('Vorlagen (builtin/preset-*) werden beim Import verworfen', () => {
   const res = parseBundle(bad);
   assert.deepEqual(res.cases.map(c => c.id), ['own']);
   assert.deepEqual(res.trucks.map(t => t.id), ['t']);
+});
+
+// --- Daten-1 (blocking): updatedAt muss, falls vorhanden, ein String sein ---
+
+test('Ladeplan mit numerischem updatedAt wird abgelehnt (Absturzpfad app.js:30)', () => {
+  const p = { ...plan([]), updatedAt: 5 };
+  const bad = bundleWith({ cases: [], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültigen Zeitstempel/);
+});
+test('Case mit Objekt als updatedAt wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, updatedAt: {} }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültigen Zeitstempel/);
+});
+test('Fahrzeug mit numerischem updatedAt wird abgelehnt', () => {
+  const t = mkTruck({ updatedAt: 12345 });
+  const bad = bundleWith({ cases: [], trucks: [t], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültigen Zeitstempel/);
+});
+test('Case/Fahrzeug/Ladeplan mit String-updatedAt werden akzeptiert', () => {
+  const c = { ...own, updatedAt: '2026-09-18T10:00:00.000Z' };
+  const t = mkTruck({ updatedAt: '2026-09-18T10:00:00.000Z' });
+  const p = { ...plan([]), updatedAt: '2026-09-18T10:00:00.000Z' };
+  const res = parseBundle(bundleWith({ cases: [c], trucks: [t], plans: [p] }));
+  assert.equal(res.cases[0].updatedAt, '2026-09-18T10:00:00.000Z');
+});
+
+// --- UI-B2 (blocking): Case-Farbe wird geprüft wie Stückfarben ---
+
+test('Case mit CSS-Einschleusung über die Farbe wird abgelehnt', () => {
+  const evil = { ...own, color: 'red;position:fixed;inset:0;width:100vw;height:100vw;z-index:9999;background-image:url(http://evil.example/x)' };
+  const bad = bundleWith({ cases: [evil], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Farbe/);
+});
+test('Case mit gültiger Hex-Farbe wird akzeptiert', () => {
+  const res = parseBundle(bundleWith({ cases: [{ ...own, color: '#ff00aa' }], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].color, '#ff00aa');
+});
+
+// --- Daten-6: Obergrenzen für Case-Werte ---
+
+test('Case mit riesigen Maßen (1e9 cm) wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, l: 1e9 }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Maße/);
+});
+test('Case mit Maß genau an der Obergrenze wird akzeptiert, darüber abgelehnt', () => {
+  const ok = parseBundle(bundleWith({ cases: [{ ...own, l: CASE_LIMITS.l }], trucks: [], plans: [] }));
+  assert.equal(ok.cases[0].l, CASE_LIMITS.l);
+  const bad = bundleWith({ cases: [{ ...own, l: CASE_LIMITS.l + 1 }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Maße/);
+});
+test('Case mit riesigem Gewicht (100 Tonnen) wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, weight: 100000 }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültiges Gewicht/);
+});
+test('Case mit riesigem maxTopLoad wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, maxTopLoad: CASE_LIMITS.maxTopLoad + 1 }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case mit riesigem stock wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, stock: CASE_LIMITS.stock + 1 }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+test('Case mit riesiger wheelH wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, wheelH: CASE_LIMITS.wheelH + 1, dimsInclWheels: false }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+});
+
+// --- Daten-14: eindeutige Stück-IDs innerhalb eines Plans ---
+
+test('Ladeplan mit doppelter Stück-ID wird abgelehnt', () => {
+  const p = plan([P('dup', 'own', 0, 0, 0), P('dup', 'own', 200, 0, 0)]);
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /doppelte Stück-IDs/);
+});
+test('Doppelte Stück-ID zwischen Platzierung und Ablage wird abgelehnt', () => {
+  const p = { ...plan([P('dup', 'own', 0, 0, 0)]), unplaced: [{ id: 'dup', caseId: 'own' }] };
+  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /doppelte Stück-IDs/);
+});
+
+// --- Daten-17: plan.notes wird geprüft ---
+
+test('Ladeplan mit notes als Objekt wird abgelehnt', () => {
+  const p = { ...plan([]), notes: { evil: true } };
+  const bad = bundleWith({ cases: [], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Notizen/);
+});
+test('Ladeplan mit zu langen notes wird abgelehnt', () => {
+  const p = { ...plan([]), notes: 'x'.repeat(2001) };
+  const bad = bundleWith({ cases: [], trucks: [], plans: [p] });
+  assert.throws(() => parseBundle(bad), /ungültige Notizen/);
+});
+test('Ladeplan mit gültigen notes wird akzeptiert', () => {
+  const p = { ...plan([]), notes: 'Vorsicht beim Ausladen.' };
+  const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
+  assert.equal(res.plans[0].notes, 'Vorsicht beim Ausladen.');
+});
+
+// --- Daten-4 (important): mergeById vergleicht updatedAt nur bei zwei Strings ---
+
+test('mergeById: Objekt als updatedAt gewinnt nicht gegen einen lokalen String-Stand', () => {
+  const local = { id: '1', v: 'lokal', updatedAt: '2026-01-01' };
+  const evil = { id: '1', v: 'fremd', updatedAt: {} };
+  assert.deepEqual(mergeById([local], [evil]), [local]);
+});
+test('mergeById: fehlender lokaler Zeitstempel gewinnt trotzdem gegen einen gültigen fremden', () => {
+  const local = { id: '1', v: 'lokal' };
+  const incoming = { id: '1', v: 'fremd', updatedAt: '2026-09-01' };
+  assert.deepEqual(mergeById([local], [incoming]), [local]);
+});
+test('mergeById: neuer Eintrag ohne lokales Gegenstück wird trotzdem übernommen', () => {
+  const incoming = { id: '2', v: 'neu', updatedAt: {} };
+  assert.deepEqual(mergeById([], [incoming]), [incoming]);
+});
+
+// --- Daten-20: lib-… IDs werden wie preset-… beim Import verworfen ---
+
+test('Ein Case mit lib-…-ID wird beim Import verworfen (verdeckt sonst die Bibliothek)', () => {
+  const fakeLib = { ...mkCase('lib-lakabaum-flach-bbm', 10, 10, 10), builtin: false };
+  const bad = bundleWith({ cases: [own, fakeLib], trucks: [], plans: [] });
+  const res = parseBundle(bad);
+  assert.deepEqual(res.cases.map(c => c.id), ['own']);
+});
+
+// --- Daten-21: Verweise auf unbekannte Cases/Fahrzeuge werden gemeldet ---
+
+test('Ladeplan mit Verweis auf unbekanntes Case wird gemeldet, aber importiert', () => {
+  const p = plan([P('pl1', 'geist-case-123', 0, 0, 0)]);
+  const ok = bundleWith({ cases: [], trucks: [], plans: [p] });
+  const res = parseBundle(ok);
+  assert.equal(res.plans.length, 1);
+  assert.ok(res.warnings.some(w => /unbekannt|weder in der Datei/.test(w)));
+});
+test('Ladeplan mit Verweis auf unbekanntes Fahrzeug wird gemeldet, aber importiert', () => {
+  const p = { ...plan([]), truckId: 'geist-truck-123' };
+  const ok = bundleWith({ cases: [], trucks: [], plans: [p] });
+  const res = parseBundle(ok);
+  assert.equal(res.plans.length, 1);
+  assert.ok(res.warnings.some(w => /unbekanntes Fahrzeug/.test(w)));
+});
+test('Ladeplan ohne fremde Verweise erzeugt keine Warnung', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0)]);
+  const ok = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] });
+  const res = parseBundle(ok);
+  assert.deepEqual(res.warnings, []);
+});
+test('Verweis auf ein Bibliotheks-Case (lib-…) gilt als bekannt, keine Warnung', () => {
+  const p = plan([P('pl1', 'lib-lakabaum-flach-bbm', 0, 0, 0)]);
+  const ok = bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] });
+  const res = parseBundle(ok);
+  assert.deepEqual(res.warnings, []);
+});
+
+// --- Daten-15: kaputte Felder werden gemeldet statt zu leerem Import zu werden ---
+
+test('Bundle mit kaputtem cases-Feld (kein Array) wird als Fehler gemeldet', () => {
+  const bad = '{"format":"truckload","version":1,"cases":"boom","trucks":[],"plans":[]}';
+  assert.throws(() => parseBundle(bad), /Cases.*beschädigt/);
+});
+test('Bundle ganz ohne Daten wird als Fehler gemeldet, nicht als leerer Import', () => {
+  const bad = bundleWith({ cases: [], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /enthält keine Daten/);
+});
+
+// --- Regression: altes Schema (V 0.5/V 0.6, ohne die neuen optionalen Felder) lädt weiter ---
+
+test('Regression: Bundle im alten Schema ohne updatedAt/notes/color/Obergrenzen-Felder lädt unverändert', () => {
+  const legacyCase = {
+    id: 'legacy-case', name: 'Altes Case', content: '', category: 'Sonstiges',
+    l: 80, w: 60, h: 50, weight: 42, tippable: false, stackable: true,
+    // kein color, kein updatedAt, kein wheelH, kein layers, kein kind, kein maxTopLoad/stock
+  };
+  const legacyTruck = {
+    id: 'legacy-truck', name: 'Alter Sattel', l: 1360, w: 248, h: 270, payload: 24000,
+    // kein wheelArches, kein updatedAt
+  };
+  const legacyPlan = {
+    id: 'legacy-plan', name: 'Alte Tour', truckId: 'legacy-truck',
+    placements: [{ id: 'p1', caseId: 'legacy-case', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 }],
+    // kein unplaced, kein notes, kein updatedAt
+  };
+  const legacy = JSON.stringify({ format: 'truckload', version: 1, cases: [legacyCase], trucks: [legacyTruck], plans: [legacyPlan] });
+  const res = parseBundle(legacy);
+  assert.equal(res.cases[0].id, 'legacy-case');
+  assert.equal(res.trucks[0].id, 'legacy-truck');
+  assert.equal(res.plans[0].unplaced.length, 0);
+  assert.equal(res.plans[0].notes, '');
+  assert.equal(res.plans[0].placements[0].id, 'p1');
 });
