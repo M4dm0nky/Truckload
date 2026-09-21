@@ -6,6 +6,7 @@ import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
 
 const DETAIL_MIN = 40; // cm, ab dieser kleinsten Korpus-Kante werden Flightcase-Details gezeichnet
+const DOLLY_MARK_W = 4; // cm, Breite der Gewerk-/Stückfarb-Markierung auf dem Traversen-Rollbrett
 
 export async function createView3d(container) {
   const THREE = await import('three');
@@ -375,7 +376,18 @@ export async function createView3d(container) {
       content.add(boxMesh(b, MAT_DOLLY_BOARD), edges(b, MAT_EDGE_ALU));
       const dollyColor = it.color ?? c.color;
       if (dollyColor) {
-        const stripe = { ...b, z0: b.z1 - 1.5, z1: b.z1 };
+        // Nur eine schmale Kennzeichnung an der nach außen zeigenden Stirnkante des Bretts (analog
+        // zur `truss-mark`-Marke in 2D), nicht die volle Brettfläche – sonst sieht das schwarze
+        // Kunststoff-Rollbrett wie eine lackierte Platte aus. An den Längskanten (in Fahrtrichtung)
+        // laufen die Gurtrohre der Traverse fast über die gesamte Brettbreite entlang – eine Marke
+        // dort würde meist unter einem Rohr verschwinden. An der Stirnkante (quer zur Fahrtrichtung,
+        // wo auch die Beschriftung sitzt) kreuzen die Rohre die Marke nur an 2–3 schmalen Stellen,
+        // der Rest bleibt aus jedem Blickwinkel sichtbar.
+        const boardLen = b[`${lenAxis}1`] - b[`${lenAxis}0`];
+        const markL = Math.min(DOLLY_MARK_W, boardLen / 3);
+        const l0 = i === 0 ? b[`${lenAxis}0`] : b[`${lenAxis}1`] - markL;
+        const l1 = i === 0 ? b[`${lenAxis}0`] + markL : b[`${lenAxis}1`];
+        const stripe = { ...b, z0: b.z1 - 0.3, z1: b.z1, [`${lenAxis}0`]: l0, [`${lenAxis}1`]: l1 };
         content.add(boxMesh(stripe, bandMaterial(dollyColor)));
       }
       // Beschriftung nur auf dem jeweils nach außen zeigenden Wagenende (nicht ringsum wie beim Case).
