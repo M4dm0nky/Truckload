@@ -24,6 +24,14 @@ Updates kommen automatisch: Die neue Version ist beim übernächsten Öffnen akt
 npm test
 ```
 
+## Weiterentwickeln
+
+- [CLAUDE.md](CLAUDE.md) – wie in diesem Projekt gearbeitet wird: Regeln, Prüfablauf, Veröffentlichung
+- [docs/architektur.md](docs/architektur.md) – Datenmodell, Schichten und die Invarianten, die man vorher kennen muss
+- [docs/offene-punkte.md](docs/offene-punkte.md) – bekannte Schwächen und Ideen, nach Nützlichkeit sortiert
+- [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md) – Herleitung und Quellen der geschätzten Case-Gewichte
+- [docs/superpowers/plans/](docs/superpowers/plans/) – die Pläne aller bisherigen Versionen
+
 ## Wichtig: Datensicherung
 
 **Alle Daten liegen im Browser (IndexedDB)!** Es gibt keine Sicherung auf dem Server. Regelmäßig Daten exportieren:
