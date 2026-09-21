@@ -111,15 +111,29 @@ function drawTruss(g, it, mode, truck, colorMode) {
     class: 'body truss-frame', fill: 'none', rx: 2,
   }, g);
 
-  for (const d of shape.dollies) {
-    const dr = project(d, mode, truck);
-    svgEl('rect', { x: dr.u0, y: dr.v0, width: dr.u1 - dr.u0, height: dr.v1 - dr.v0, class: 'truss-dolly' }, g);
+  const boardRects = shape.boards.map(b => project(b, mode, truck));
+  boardRects.forEach(br => {
+    svgEl('rect', { x: br.u0, y: br.v0, width: br.u1 - br.u0, height: br.v1 - br.v0, class: 'truss-board' }, g);
     if (markColor) svgEl('rect', {
-      x: dr.u0 + 2, y: dr.v0 + 2, width: Math.max(0, dr.u1 - dr.u0 - 4), height: 3,
+      x: br.u0 + 2, y: br.v0 + 2, width: Math.max(0, br.u1 - br.u0 - 4), height: 3,
       class: 'truss-mark', style: `fill:${markColor}`,
     }, g);
+  });
+  for (const r of shape.rails) {
+    const rr = project(r, mode, truck);
+    svgEl('rect', { x: rr.u0, y: rr.v0, width: rr.u1 - rr.u0, height: rr.v1 - rr.v0, class: 'truss-rail' }, g);
   }
-  for (const w of shape.wheels) drawWheel(g, w, mode, truck, null);
+
+  // Rollen je Wagen zur zugehörigen Platte zuordnen (4 Rollen je Wagen, gleiche Reihenfolge wie
+  // in trussShape()), damit die Gabel-Linie zur Platte statt ins Leere zeigt.
+  shape.dollies.forEach((d, i) => {
+    const boardRect = boardRects[i];
+    for (const w of shape.wheels.slice(i * 4, i * 4 + 4)) {
+      const wr = project(w, mode, truck);
+      const fork = nearestEdgePoint(boardRect, (wr.u0 + wr.u1) / 2, (wr.v0 + wr.v1) / 2);
+      drawWheel(g, w, mode, truck, fork);
+    }
+  });
 
   const profileWidth = c.truss.width;
   for (const pc of shape.pieces) {

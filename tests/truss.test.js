@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DOLLY_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES, trussDims, isTruss, trussShape }
+import { DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES, trussDims, isTruss, trussShape }
   from '../js/model/truss.js';
 import { boxOf } from '../js/model/geometry.js';
 
@@ -124,5 +124,93 @@ test('trussShape: sehr kurzer Wagen (40 cm Traverse) – Rollen überlappen nich
       const [a, b] = wheelsOnDolly.filter(w => w.y0 === y).sort((p1, p2) => p1.x0 - p2.x0);
       assert.ok(a.x1 <= b.x0 + 1e-9, 'Rollen entlang der Länge überlappen sich nicht');
     }
+  }
+});
+
+test('DOLLY_H setzt sich aus Rollenbereich und Plattenstärke zusammen', () => {
+  assert.equal(DOLLY_H, DOLLY_WHEEL_H + DOLLY_BOARD_H);
+});
+
+test('trussShape: boards – je Wagen eine Platte, volle Breite/Länge, oben auf dem Wagen', () => {
+  const c = mkTrussCase(300, 29, 4);
+  const p = { x: 10, y: 20, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  assert.equal(s.boards.length, 2);
+  for (const b of s.boards) checkInsideBox(box, b);
+  s.boards.forEach((b, i) => {
+    const d = s.dollies[i];
+    // Platte deckt denselben Wagen-Grundriss ab (Länge/Breite wie der Wagen).
+    assert.equal(b[`${s.lenAxis}0`], d[`${s.lenAxis}0`]);
+    assert.equal(b[`${s.lenAxis}1`], d[`${s.lenAxis}1`]);
+    assert.equal(b[`${s.widAxis}0`], d[`${s.widAxis}0`]);
+    assert.equal(b[`${s.widAxis}1`], d[`${s.widAxis}1`]);
+    // Platte ist die oberste Schicht des Wagens (Rollenbereich darunter) und exakt DOLLY_BOARD_H dick.
+    assert.equal(b.z1, d.z1);
+    assert.equal(b.z1 - b.z0, DOLLY_BOARD_H);
+    assert.ok(b.z0 >= d.z0 - 1e-9, 'Platte liegt über dem Rollenbereich');
+  });
+});
+
+test('trussShape: rails – 2 Leisten je Traversenspur und Wagen, auf der Platte, volle Wagenlänge', () => {
+  const c = mkTrussCase(300, 29, 4); // 2 Spuren nebeneinander -> 4 Leisten je Wagen, 8 insgesamt
+  const p = { x: 10, y: 20, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  assert.equal(s.rails.length, 8);
+  for (const r of s.rails) checkInsideBox(box, r);
+
+  for (const r of s.rails) {
+    // Leiste sitzt auf der Platte des jeweiligen Wagens.
+    const board = s.boards.find(b => r[`${s.lenAxis}0`] >= b[`${s.lenAxis}0`] - 1e-9 && r[`${s.lenAxis}1`] <= b[`${s.lenAxis}1`] + 1e-9);
+    assert.ok(board, 'Leiste gehört zu einer Platte');
+    assert.equal(r.z0, board.z1);
+    // Leiste läuft über die volle Wagenlänge.
+    assert.equal(r[`${s.lenAxis}0`], board[`${s.lenAxis}0`]);
+    assert.equal(r[`${s.lenAxis}1`], board[`${s.lenAxis}1`]);
+  }
+
+  // Je Wagen: die 4 Leisten liegen an genau 2 Spuren (4 verschiedene widAxis-Startwerte).
+  for (const d of s.dollies) {
+    const railsOnDolly = s.rails.filter(r => r[`${s.lenAxis}0`] === d[`${s.lenAxis}0`]);
+    assert.equal(railsOnDolly.length, 4);
+  }
+});
+
+test('trussShape: sehr kurzer/schmaler Wagen – Leisten überlappen sich nicht und ragen nicht aus der Box', () => {
+  const c = mkTrussCase(100, 29, 4); // sehr kurze Traverse, testet die Kürzungslogik
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  for (const r of s.rails) checkInsideBox(box, r);
+
+  // Innerhalb einer Spur dürfen sich die beiden Leisten (an den Kanten) nicht überlappen.
+  for (const d of s.dollies) {
+    const railsOnDolly = s.rails.filter(r => r[`${s.lenAxis}0`] === d[`${s.lenAxis}0`]);
+    const byWidStart = [...railsOnDolly].sort((a, b) => a[`${s.widAxis}0`] - b[`${s.widAxis}0`]);
+    for (let i = 0; i < byWidStart.length - 1; i++) {
+      assert.ok(byWidStart[i][`${s.widAxis}1`] <= byWidStart[i + 1][`${s.widAxis}0`] + 1e-9,
+        'Leisten überlappen sich nicht');
+    }
+  }
+});
+
+test('trussShape: schmale Spur begrenzt die Leistenbreite statt zu überlappen', () => {
+  // Sehr schmales Traversenprofil (2 cm), nur 1 Stück -> 1 Spur -> Nenn-Leistenbreite (3 cm) muss
+  // begrenzt werden, sonst würden sich die beiden Leisten dieser Spur überlappen.
+  const c = mkTrussCase(300, 2, 1);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  assert.equal(s.rails.length, 4); // 1 Spur × 2 Leisten × 2 Wagen
+  for (const d of s.dollies) {
+    const railsOnDolly = s.rails.filter(r => r[`${s.lenAxis}0`] === d[`${s.lenAxis}0`]);
+    const [a, b] = [...railsOnDolly].sort((p1, p2) => p1[`${s.widAxis}0`] - p2[`${s.widAxis}0`]);
+    assert.ok(a[`${s.widAxis}1`] <= b[`${s.widAxis}0`] + 1e-9, 'Leisten in schmaler Spur überlappen sich nicht');
+    for (const r of railsOnDolly) checkInsideBox(box, r);
   }
 });

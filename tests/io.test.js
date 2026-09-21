@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { exportBundle, parseBundle, mergeById, backupFileName } from '../js/store/io.js';
 import { APP_VERSION } from '../js/version.js';
+import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
 
 const own = mkCase('own', 120, 60, 60);
@@ -163,7 +164,7 @@ test('Truss wird beim Import normalisiert (l/w/h, wheelH, tippable)', () => {
   const c = res.cases[0];
   assert.equal(c.l, 300);
   assert.equal(c.w, 60);
-  assert.equal(c.h, 22 + 2 * 29);
+  assert.equal(c.h, DOLLY_H + 2 * 29);
   assert.equal(c.wheelH, 0);
   assert.equal(c.tippable, false);
 });

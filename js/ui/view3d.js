@@ -67,6 +67,9 @@ export async function createView3d(container) {
   const MAT_CHROME = shared(new THREE.MeshStandardMaterial({ color: 0xe6e9ec, metalness: 0.4, roughness: 0.25 }));
   const MAT_SEAM_BAND = shared(new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 0.25, roughness: 0.45 }));
   const MAT_HANDLE_SHELL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.85 }));
+  // Traversen-Rollbrett: Kunststoff-Platte (schwarz) mit etwas helleren Auflageleisten obenauf.
+  const MAT_DOLLY_BOARD = shared(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.85 }));
+  const MAT_DOLLY_RAIL = shared(new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.8 }));
   const COL_PROFILE_N = new THREE.Color(0xc9ced4);
   const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
   const COL_PROFILE_BAD = new THREE.Color(0xe5484d);
@@ -368,21 +371,24 @@ export async function createView3d(container) {
     const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
     content.add(edges(box, edgeMat));
 
-    shape.dollies.forEach((d, i) => {
-      content.add(boxMesh(d, MAT_ALU), edges(d, MAT_EDGE_ALU));
+    shape.boards.forEach((b, i) => {
+      content.add(boxMesh(b, MAT_DOLLY_BOARD), edges(b, MAT_EDGE_ALU));
       const dollyColor = it.color ?? c.color;
       if (dollyColor) {
-        const stripe = { ...d, z0: d.z1 - 1.5, z1: d.z1 };
+        const stripe = { ...b, z0: b.z1 - 1.5, z1: b.z1 };
         content.add(boxMesh(stripe, bandMaterial(dollyColor)));
       }
       // Beschriftung nur auf dem jeweils nach außen zeigenden Wagenende (nicht ringsum wie beim Case).
+      // Bezugsfläche bleibt das volle Wagenvolumen (shape.dollies), nicht nur die Platte.
       // Schriftfarbe aus dem tatsächlichen Hintergrund (Alu-Wagenende) ableiten, nicht aus der Stück-/Gewerkfarbe.
       if (it.label) {
+        const d = shape.dollies[i];
         const endFace = `${lenAxis}${i}`;
         const pl = labelPlanes(d, 'bottom').find(p => p.face === endFace);
         if (pl) content.add(labelMesh(pl, it.label, ALU_HEX));
       }
     });
+    for (const r of shape.rails) content.add(boxMesh(r, MAT_DOLLY_RAIL));
     for (const w of shape.wheels) content.add(...wheelMesh(w, 'bottom'));
 
     const profileWidth = c.truss.width;

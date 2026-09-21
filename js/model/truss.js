@@ -1,4 +1,6 @@
-export const DOLLY_H = 22;       // Wagen inkl. Rollen (cm)
+export const DOLLY_WHEEL_H = 13; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
+export const DOLLY_BOARD_H = 4;  // Plattenstärke des Rollbretts (cm)
+export const DOLLY_H = DOLLY_WHEEL_H + DOLLY_BOARD_H; // Wagen inkl. Rollen (cm)
 export const DOLLY_WIDTHS = [60, 80];
 export const TRUSS_PROFILES = [{ name: '34er (F34)', width: 29 }, { name: '40er (F44)', width: 40 }];
 
@@ -16,11 +18,16 @@ export const DOLLY_WHEEL_D = 10;   // Rollen-Durchmesser am Wagen (cm)
 export const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (F34: 50 mm Ø / 29 cm)
 export const DIAG_R_RATIO = 0.035; // Diagonalen-Radius (F34: 20 mm Ø / 29 cm)
 const PER_ROW = 2;                 // Traversenstücke nebeneinander pro Lage
+const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei schmalen Spuren begrenzt
+const RAIL_H = 3;                  // Höhe einer Auflageleiste (cm)
 
 // Reine Geometrie eines platzierten Traversenwagens: zwei Rollwagen an den Enden (über die volle
 // Wagenbreite, mit je 4 Rollen), darauf `count` Traversenstücke – 2 nebeneinander, Lagen übereinander,
-// jedes Stück über die volle Länge (liegt auf beiden Wagen auf). `box` ist die platzierte Box
-// (x0…z1, Truck-Koordinaten); `p.rot` bestimmt, ob die Traversenlänge entlang x oder y verläuft.
+// jedes Stück über die volle Länge (liegt auf beiden Wagen auf). Jeder Rollwagen ist ein flaches
+// Rollbrett: unten der Rollenbereich (`DOLLY_WHEEL_H`), obenauf die Platte (`DOLLY_BOARD_H`) mit
+// Auflageleisten je Traversenspur. `dollies` bleibt das volle Wagenvolumen (Bezugsfläche/Beschriftung).
+// `box` ist die platzierte Box (x0…z1, Truck-Koordinaten); `p.rot` bestimmt, ob die Traversenlänge
+// entlang x oder y verläuft.
 export function trussShape(c, p, box) {
   const { width, count } = c.truss;
   const rot90 = ((p.rot ?? 0) % 180) === 90;
@@ -60,6 +67,7 @@ export function trussShape(c, p, box) {
 
   const rows = Math.max(1, Math.ceil(count / PER_ROW));
   const pieces = [];
+  const tracks = []; // Spurbreiten [w0, w1] der untersten Lage, für die Auflageleisten
   let remaining = count;
   for (let row = 0; row < rows; row++) {
     const inRow = Math.min(PER_ROW, remaining);
@@ -70,8 +78,27 @@ export function trussShape(c, p, box) {
     for (let col = 0; col < inRow; col++) {
       const w0 = wid0 + offset + col * width, w1 = w0 + width;
       pieces.push(mk([len0, len1], [w0, w1], [rowZ0, rowZ1]));
+      if (row === 0) tracks.push([w0, w1]);
     }
   }
 
-  return { lenAxis, widAxis, dollies, wheels, pieces };
+  // Platte (Rollbrett) je Wagen: volle Wagenbreite/-länge, oberste `DOLLY_BOARD_H` des Wagens.
+  const boards = dollies.map(d => ({ ...d, z0: dollyZ1 - DOLLY_BOARD_H, z1: dollyZ1 }));
+
+  // Auflageleisten obenauf der Platte: je Spur der untersten Lage 2 Leisten an den Längskanten,
+  // über die volle Wagenlänge. Breite bei schmalen Spuren begrenzt (Leisten einer Spur überlappen
+  // nie), Höhe bei sehr schmalem Traversenprofil begrenzt (Leiste ragt nie über die erste Lage hinaus).
+  const railH = Math.min(RAIL_H, width);
+  const rails = [];
+  for (const d of dollies) {
+    const dLen0 = d[`${lenAxis}0`], dLen1 = d[`${lenAxis}1`];
+    for (const [tw0, tw1] of tracks) {
+      const railW = Math.max(0, Math.min(RAIL_W, (tw1 - tw0) / 2));
+      if (railW <= 0) continue;
+      rails.push(mk([dLen0, dLen1], [tw0, tw0 + railW], [dollyZ1, dollyZ1 + railH]));
+      rails.push(mk([dLen0, dLen1], [tw1 - railW, tw1], [dollyZ1, dollyZ1 + railH]));
+    }
+  }
+
+  return { lenAxis, widAxis, dollies, wheels, pieces, boards, rails };
 }

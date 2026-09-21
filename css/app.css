@@ -68,10 +68,12 @@ svg .case .label-seq { fill: #fff; font-weight: 600; text-anchor: start; dominan
 svg .case.bad rect.alert { fill: none; stroke: var(--danger); stroke-width: 4; stroke-dasharray: 10 5; pointer-events: none; }
 svg .case.sel rect.body, svg .case.sel rect.body.framed { stroke: var(--accent); stroke-width: 5; }
 
-/* Traversenwagen (Task 6): immer Alu-Look, Gewerk-Farbe nur als dünne Kennzeichnung am Wagen. */
-svg .case .truss-dolly, svg .case .truss-chord, svg .case .truss-diag, svg .case .truss-end,
-svg .case .truss-tube, svg .case .truss-mark { pointer-events: none; }
-svg .case rect.truss-dolly { fill: var(--alu); fill-opacity: .55; stroke: var(--alu); stroke-width: 2; }
+/* Traversenwagen: Rollbrett (Kunststoff, schwarz) mit Auflageleisten, Gewerk-Farbe nur als dünne
+   Kennzeichnung auf der Platte. */
+svg .case .truss-board, svg .case .truss-rail, svg .case .truss-chord, svg .case .truss-diag,
+svg .case .truss-end, svg .case .truss-tube, svg .case .truss-mark { pointer-events: none; }
+svg .case rect.truss-board { fill: var(--case-body); stroke: var(--alu); stroke-width: 2; }
+svg .case rect.truss-rail { fill: var(--wheel); stroke: none; }
 svg .case .truss-chord { stroke: var(--corner); stroke-width: 2.5; stroke-linecap: round; }
 svg .case .truss-diag { fill: none; stroke: var(--alu); stroke-width: 1.5; }
 svg .case rect.truss-end { fill: none; stroke: var(--corner); stroke-width: 2; }

@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.6.0 – 2026-09-21
+
+- Traversenwagen-Rollwagen nach echtem Vorbild überarbeitet: statt eines massiven Alu-Blocks jetzt ein flaches Rollbrett (Kunststoff, schwarz) mit zwei Auflageleisten je Traversenspur, darunter die vier Lenkrollen – dadurch werden die Wagen 5 cm niedriger (22 → 17 cm); die Rollen selbst bleiben unverändert. Gespeicherte Pläne behalten ihre bisherige Höhe, bis das jeweilige Case neu gespeichert oder die Datei neu importiert wird.
+
 ## V 0.5.1 – 2026-09-21
 
 - „BMFL x2 -Motion“: Variante vom Nutzer bestätigt – es sind BMFL Spot (36 kg je Gerät) statt des bisherigen Mittelwerts über Spot, WashBeam und Blade; das Case-Gewicht bleibt bei 105 kg
