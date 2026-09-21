@@ -4,7 +4,7 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 
 ## V 0.6.0 – 2026-09-21
 
-- Traversenwagen-Rollwagen nach echtem Vorbild überarbeitet: statt eines massiven Alu-Blocks jetzt ein flaches Rollbrett (Kunststoff, schwarz) mit zwei Auflageleisten je Traversenspur, darunter die vier Lenkrollen – dadurch werden die Wagen 5 cm niedriger (22 → 17 cm); die Rollen selbst bleiben unverändert. Gespeicherte Pläne behalten ihre bisherige Höhe, bis das jeweilige Case neu gespeichert oder die Datei neu importiert wird.
+- Traversenwagen-Rollwagen nach echtem Vorbild überarbeitet: statt eines massiven Alu-Blocks jetzt ein flaches Rollbrett (Kunststoff, schwarz) mit zwei Auflageleisten je Traversenspur, darunter die vier Lenkrollen – dadurch werden die Wagen 5 cm niedriger (22 → 17 cm); die Rollen selbst bleiben unverändert. Bestehende eigene Traversenwagen rechnen ihre Höhe beim nächsten Laden automatisch neu, keine manuelle Anpassung nötig.
 
 ## V 0.5.1 – 2026-09-21
 

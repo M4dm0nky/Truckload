@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
+import { DOLLY_H, trussDims } from '../js/model/truss.js';
 
 // js/ui/library.js baut aus dem Ergebnis von loadAll() eine `new Map(cases.map(c =>
 // [c.id, c]))`, wo bei doppelten IDs der letzte Array-Eintrag gewinnt. Legt der Nutzer
@@ -31,4 +32,30 @@ test('mergeOwnWithBuiltins: ohne Kollision bleiben alle Cases erhalten', () => {
   const merged = mergeOwnWithBuiltins(own, [...PRESET_CASES, ...CASE_LIBRARY]);
   assert.equal(merged.length, own.length + PRESET_CASES.length + CASE_LIBRARY.length);
   assert.ok(merged.includes(own[0]));
+});
+
+// Ein vor der Rollbrett-Umstellung gespeichertes eigenes Traversenwagen-Case trägt noch die alte
+// Höhe (h nach altem DOLLY_H-Schema) in der Datenbank. Ohne Normalisierung beim Laden wäre der
+// gezeichnete Umriss (aus dem gespeicherten c.h) höher als der tatsächlich gezeichnete Stapel (aus
+// dem aktuellen DOLLY_H) – sichtbar als Lücke in Seiten-/Rückansicht und 3D. loadAll() muss eigene
+// Cases deshalb genauso normalisieren wie der Datei-Import (normalizeCase() in io.js).
+test('normalizeOwnCases: eigener Traversenwagen bekommt seine Maße neu aus den Traversen-Parametern', () => {
+  const truss = { length: 300, width: 29, count: 4 };
+  const current = trussDims(truss);
+  const stale = {
+    id: 'own-truss', name: 'Alter Wagen', builtin: false, kind: 'truss', truss,
+    l: current.l, w: current.w, h: current.h + 5, // veraltete Höhe (z. B. nach altem DOLLY_H-Schema)
+    weight: 100, tippable: true, wheelH: 12, dimsInclWheels: true,
+  };
+  const [normalized] = normalizeOwnCases([stale]);
+  assert.equal(normalized.h, current.h);
+  assert.equal(normalized.h, DOLLY_H + 2 * truss.width);
+  assert.equal(normalized.wheelH, 0);
+  assert.equal(normalized.tippable, false);
+});
+
+test('normalizeOwnCases: normale (Nicht-Traversen-)Cases bleiben unberührt', () => {
+  const own = { id: 'own-case', name: 'Eigenes Case', builtin: false, l: 80, w: 60, h: 60, weight: 40 };
+  const [normalized] = normalizeOwnCases([own]);
+  assert.equal(normalized, own, 'wird unverändert durchgereicht, keine Kopie/Änderung');
 });

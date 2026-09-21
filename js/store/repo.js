@@ -2,6 +2,7 @@ import * as db from './db.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
+import { normalizeCase } from './io.js';
 
 export const stamp = obj => ({ ...obj, updatedAt: new Date().toISOString() });
 
@@ -16,10 +17,18 @@ export function mergeOwnWithBuiltins(ownCases, builtinCases) {
   return [...ownCases, ...builtinCases.filter(b => !ownIds.has(b.id))];
 }
 
+// Eigene Traversenwagen-Cases beziehen ihre Maße immer neu aus den Traversen-Parametern (dieselbe
+// Normalisierung wie beim Datei-Import, s. `normalizeCase()` in io.js) – so bekommt ein vor einer
+// Rollbrett-/Höhenänderung angelegtes eigenes Case keinen veralteten `h`-Wert, der dann größer als
+// der gezeichnete Stapel wäre. Normale Cases sind davon nicht betroffen, da normalizeCase() nur
+// `kind === 'truss'` anfasst; Vorlagen (PRESET_CASES/CASE_LIBRARY) berechnen ihre Maße ohnehin bei
+// jedem Start neu und laufen hier nicht mit durch.
+export const normalizeOwnCases = cases => cases.map(normalizeCase);
+
 export async function loadAll() {
   await db.persist();
   const [cases, trucks, plans] = await Promise.all([db.getAll('cases'), db.getAll('trucks'), db.getAll('plans')]);
-  const mergedCases = mergeOwnWithBuiltins(cases, [...PRESET_CASES, ...CASE_LIBRARY]);
+  const mergedCases = mergeOwnWithBuiltins(normalizeOwnCases(cases), [...PRESET_CASES, ...CASE_LIBRARY]);
   return { cases: mergedCases, trucks: [...PRESET_TRUCKS, ...trucks], plans };
 }
 export const saveCase = c => db.put('cases', c);

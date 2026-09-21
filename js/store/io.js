@@ -40,7 +40,7 @@ export function checkCase(c) {
     if (!trussOk) throw new Error(`Case „${c.name}“ hat ungültige Traversenwagen-Werte.`);
   }
 }
-function normalizeCase(c) {
+export function normalizeCase(c) {
   if (c.kind !== 'truss') return c;
   const { l, w, h } = trussDims(c.truss);
   return { ...c, l, w, h, wheelH: 0, tippable: false };

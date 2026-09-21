@@ -129,6 +129,17 @@ test('trussShape: sehr kurzer Wagen (40 cm Traverse) – Rollen überlappen nich
   }
 });
 
+// Harte Literale statt nur relativer Zusammenhänge: Die anderen Tests leiten Erwartungswerte aus
+// denselben Konstanten ab, die sie prüfen sollen, und blieben bei einem versehentlichen Rückbau
+// (z. B. DOLLY_RAIL_H wieder auf 0) grün. Diese Werte sind das freigegebene Maß (Rollenbereich 12 cm,
+// Platte 3 cm, Leisten 2 cm, zusammen 17 cm) und müssen als konkrete Zahlen absichern.
+test('Höhen-Konstanten haben die freigegebenen Werte (12 + 3 + 2 = 17 cm)', () => {
+  assert.equal(DOLLY_WHEEL_H, 12);
+  assert.equal(DOLLY_BOARD_H, 3);
+  assert.equal(DOLLY_RAIL_H, 2);
+  assert.equal(DOLLY_H, 17);
+});
+
 test('DOLLY_H setzt sich aus Rollenbereich, Plattenstärke und Leistenhöhe zusammen', () => {
   assert.equal(DOLLY_H, DOLLY_WHEEL_H + DOLLY_BOARD_H + DOLLY_RAIL_H);
 });
