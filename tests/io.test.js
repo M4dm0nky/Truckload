@@ -96,6 +96,19 @@ test('Fahrzeug mit ungültiger Radkasten-Seite wird abgelehnt', () => {
   const bad = bundleWith({ cases: [], trucks: [t], plans: [] });
   assert.throws(() => parseBundle(bad), /ungültige Radkästen/);
 });
+test('Fahrzeug mit wheelArches als Nicht-Array wird abgelehnt (statt still zu [] zu werden)', () => {
+  // Vorher: arr(t.wheelArches ?? []) machte "boom" zu [], die Prüfung bestand, und der
+  // kaputte Wert landete unverändert im Fahrzeug-Objekt. archBoxes() ruft später
+  // .flatMap() auf truck.wheelArches auf und stürzt dann ungefangen ab.
+  const t = { ...mkTruck(), wheelArches: 'boom' };
+  const bad = bundleWith({ cases: [], trucks: [t], plans: [] });
+  assert.throws(() => parseBundle(bad), /ungültige Radkästen/);
+});
+test('Fahrzeug mit wheelArches: null wird weiterhin akzeptiert (wie fehlendes Feld)', () => {
+  const t = { ...mkTruck(), wheelArches: null };
+  const res = parseBundle(bundleWith({ cases: [], trucks: [t], plans: [] }));
+  assert.equal(res.trucks[0].id, t.id);
+});
 test('Datei ohne Versionsangabe wird abgelehnt', () => {
   const bad = JSON.stringify({ format: 'truckload', cases: [], trucks: [], plans: [] });
   assert.throws(() => parseBundle(bad), /keine gültige Versionsangabe/);

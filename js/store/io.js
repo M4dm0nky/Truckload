@@ -72,6 +72,7 @@ function checkTruck(t) {
   if (!t || typeof t.id !== 'string' || typeof t.name !== 'string') throw new Error('Fahrzeug ohne ID oder Name in der Datei.');
   for (const k of ['l', 'w', 'h', 'payload']) if (!num(t[k]) || t[k] <= 0) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Werte.`);
   if (!updatedAtOk(t)) throw new Error(`Fahrzeug „${t.name}“ hat einen ungültigen Zeitstempel.`);
+  if (t.wheelArches != null && !Array.isArray(t.wheelArches)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
   if (!arr(t.wheelArches ?? []).every(checkArch)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
 }
 const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.label.length <= 40);
