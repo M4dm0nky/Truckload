@@ -29,6 +29,7 @@ npm test
 - [CLAUDE.md](CLAUDE.md) – wie in diesem Projekt gearbeitet wird: Regeln, Prüfablauf, Veröffentlichung
 - [docs/architektur.md](docs/architektur.md) – Datenmodell, Schichten und die Invarianten, die man vorher kennen muss
 - [docs/offene-punkte.md](docs/offene-punkte.md) – bekannte Schwächen und Ideen, nach Nützlichkeit sortiert
+- [docs/code-review-2026-09-21.md](docs/code-review-2026-09-21.md) – vollständige Code-Review zum Meilenstein V 0.6.0
 - [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md) – Herleitung und Quellen der geschätzten Case-Gewichte
 - [docs/superpowers/plans/](docs/superpowers/plans/) – die Pläne aller bisherigen Versionen
 
