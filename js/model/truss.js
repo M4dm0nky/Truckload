@@ -1,6 +1,7 @@
-export const DOLLY_WHEEL_H = 13; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
-export const DOLLY_BOARD_H = 4;  // Plattenstärke des Rollbretts (cm)
-export const DOLLY_H = DOLLY_WHEEL_H + DOLLY_BOARD_H; // Wagen inkl. Rollen (cm)
+export const DOLLY_WHEEL_H = 12; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
+export const DOLLY_BOARD_H = 3;  // Plattenstärke des Rollbretts (cm, entspricht 20–25 mm real)
+export const DOLLY_RAIL_H = 2;   // Höhe der Auflageleisten obenauf der Platte (cm)
+export const DOLLY_H = DOLLY_WHEEL_H + DOLLY_BOARD_H + DOLLY_RAIL_H; // Wagen inkl. Rollen (cm)
 export const DOLLY_WIDTHS = [60, 80];
 export const TRUSS_PROFILES = [{ name: '34er (F34)', width: 29 }, { name: '40er (F44)', width: 40 }];
 
@@ -19,15 +20,17 @@ export const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Fakto
 export const DIAG_R_RATIO = 0.035; // Diagonalen-Radius (F34: 20 mm Ø / 29 cm)
 const PER_ROW = 2;                 // Traversenstücke nebeneinander pro Lage
 const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei schmalen Spuren begrenzt
-const RAIL_H = 3;                  // Höhe einer Auflageleiste (cm)
 
 // Reine Geometrie eines platzierten Traversenwagens: zwei Rollwagen an den Enden (über die volle
 // Wagenbreite, mit je 4 Rollen), darauf `count` Traversenstücke – 2 nebeneinander, Lagen übereinander,
 // jedes Stück über die volle Länge (liegt auf beiden Wagen auf). Jeder Rollwagen ist ein flaches
-// Rollbrett: unten der Rollenbereich (`DOLLY_WHEEL_H`), obenauf die Platte (`DOLLY_BOARD_H`) mit
-// Auflageleisten je Traversenspur. `dollies` bleibt das volle Wagenvolumen (Bezugsfläche/Beschriftung).
-// `box` ist die platzierte Box (x0…z1, Truck-Koordinaten); `p.rot` bestimmt, ob die Traversenlänge
-// entlang x oder y verläuft.
+// Rollbrett: unten der Rollenbereich (`DOLLY_WHEEL_H`), darüber die Platte (`DOLLY_BOARD_H`) und
+// obenauf die Auflageleisten (`DOLLY_RAIL_H`) je Traversenspur – die Traverse liegt AUF den Leisten
+// (nicht zwischen ihnen), die Leisten heben sie von der Platte ab, damit ein Gurt darunterpasst, und
+// sitzen unter den beiden Gurtrohr-Linien (nach innen versetzt von den Spurkanten), damit sie die
+// Rohre sichtbar tragen statt mit ihnen zu kollidieren. `dollies` bleibt das volle Wagenvolumen
+// (Bezugsfläche/Beschriftung). `box` ist die platzierte Box (x0…z1, Truck-Koordinaten); `p.rot`
+// bestimmt, ob die Traversenlänge entlang x oder y verläuft.
 export function trussShape(c, p, box) {
   const { width, count } = c.truss;
   const rot90 = ((p.rot ?? 0) % 180) === 90;
@@ -82,21 +85,25 @@ export function trussShape(c, p, box) {
     }
   }
 
-  // Platte (Rollbrett) je Wagen: volle Wagenbreite/-länge, oberste `DOLLY_BOARD_H` des Wagens.
-  const boards = dollies.map(d => ({ ...d, z0: dollyZ1 - DOLLY_BOARD_H, z1: dollyZ1 }));
+  // Platte (Rollbrett) je Wagen: volle Wagenbreite/-länge, zwischen Rollenbereich und Leisten.
+  const boardZ0 = z0 + DOLLY_WHEEL_H, boardZ1 = boardZ0 + DOLLY_BOARD_H; // = dollyZ1 - DOLLY_RAIL_H
+  const boards = dollies.map(d => ({ ...d, z0: boardZ0, z1: boardZ1 }));
 
-  // Auflageleisten obenauf der Platte: je Spur der untersten Lage 2 Leisten an den Längskanten,
-  // über die volle Wagenlänge. Breite bei schmalen Spuren begrenzt (Leisten einer Spur überlappen
-  // nie), Höhe bei sehr schmalem Traversenprofil begrenzt (Leiste ragt nie über die erste Lage hinaus).
-  const railH = Math.min(RAIL_H, width);
+  // Auflageleisten obenauf der Platte, unter den beiden Gurtrohr-Linien der jeweiligen Spur (nach
+  // innen versetzt von den Spurkanten um den Gurtrohr-Radius, statt bündig auf den Kanten) – sie
+  // tragen die Traverse, die genau auf ihrer Oberkante beginnt (`dollyZ1`), statt in sie hineinzuragen.
+  // Breite begrenzt, damit sich die beiden Leisten einer Spur nie überlappen oder über sie hinausragen.
+  const chordInset = Math.min(width * TUBE_R_RATIO, width / 2); // Versatz der Gurtrohr-Linie von der Spurkante
   const rails = [];
   for (const d of dollies) {
     const dLen0 = d[`${lenAxis}0`], dLen1 = d[`${lenAxis}1`];
     for (const [tw0, tw1] of tracks) {
-      const railW = Math.max(0, Math.min(RAIL_W, (tw1 - tw0) / 2));
+      const gap = (tw1 - tw0) - 2 * chordInset; // Abstand zwischen den beiden Gurtrohr-Linien
+      const railW = Math.max(0, Math.min(RAIL_W, gap, 2 * chordInset));
       if (railW <= 0) continue;
-      rails.push(mk([dLen0, dLen1], [tw0, tw0 + railW], [dollyZ1, dollyZ1 + railH]));
-      rails.push(mk([dLen0, dLen1], [tw1 - railW, tw1], [dollyZ1, dollyZ1 + railH]));
+      const c0 = tw0 + chordInset, c1 = tw1 - chordInset;
+      rails.push(mk([dLen0, dLen1], [c0 - railW / 2, c0 + railW / 2], [boardZ1, dollyZ1]));
+      rails.push(mk([dLen0, dLen1], [c1 - railW / 2, c1 + railW / 2], [boardZ1, dollyZ1]));
     }
   }
 

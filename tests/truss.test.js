@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES, trussDims, isTruss, trussShape }
-  from '../js/model/truss.js';
+import {
+  DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_RAIL_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES,
+  TUBE_R_RATIO, trussDims, isTruss, trussShape,
+} from '../js/model/truss.js';
 import { boxOf } from '../js/model/geometry.js';
 
 const mkTrussCase = (length, width, count) => {
@@ -127,11 +129,11 @@ test('trussShape: sehr kurzer Wagen (40 cm Traverse) – Rollen überlappen nich
   }
 });
 
-test('DOLLY_H setzt sich aus Rollenbereich und Plattenstärke zusammen', () => {
-  assert.equal(DOLLY_H, DOLLY_WHEEL_H + DOLLY_BOARD_H);
+test('DOLLY_H setzt sich aus Rollenbereich, Plattenstärke und Leistenhöhe zusammen', () => {
+  assert.equal(DOLLY_H, DOLLY_WHEEL_H + DOLLY_BOARD_H + DOLLY_RAIL_H);
 });
 
-test('trussShape: boards – je Wagen eine Platte, volle Breite/Länge, oben auf dem Wagen', () => {
+test('trussShape: boards – je Wagen eine Platte, volle Breite/Länge, zwischen Rollenbereich und Leisten', () => {
   const c = mkTrussCase(300, 29, 4);
   const p = { x: 10, y: 20, z: 0, orientation: 'standing', rot: 0 };
   const box = boxOf(c, p);
@@ -146,14 +148,15 @@ test('trussShape: boards – je Wagen eine Platte, volle Breite/Länge, oben auf
     assert.equal(b[`${s.lenAxis}1`], d[`${s.lenAxis}1`]);
     assert.equal(b[`${s.widAxis}0`], d[`${s.widAxis}0`]);
     assert.equal(b[`${s.widAxis}1`], d[`${s.widAxis}1`]);
-    // Platte ist die oberste Schicht des Wagens (Rollenbereich darunter) und exakt DOLLY_BOARD_H dick.
-    assert.equal(b.z1, d.z1);
+    // Platte sitzt über dem Rollenbereich (DOLLY_WHEEL_H) und ist exakt DOLLY_BOARD_H dick.
+    assert.equal(b.z0 - d.z0, DOLLY_WHEEL_H);
     assert.equal(b.z1 - b.z0, DOLLY_BOARD_H);
-    assert.ok(b.z0 >= d.z0 - 1e-9, 'Platte liegt über dem Rollenbereich');
+    // Über der Platte ist noch Platz für die Leisten (DOLLY_RAIL_H) bis zum Wagenende.
+    assert.equal(d.z1 - b.z1, DOLLY_RAIL_H);
   });
 });
 
-test('trussShape: rails – 2 Leisten je Traversenspur und Wagen, auf der Platte, volle Wagenlänge', () => {
+test('trussShape: rails – 2 Leisten je Traversenspur und Wagen, auf der Platte, unter den Gurtrohr-Linien', () => {
   const c = mkTrussCase(300, 29, 4); // 2 Spuren nebeneinander -> 4 Leisten je Wagen, 8 insgesamt
   const p = { x: 10, y: 20, z: 0, orientation: 'standing', rot: 0 };
   const box = boxOf(c, p);
@@ -163,19 +166,48 @@ test('trussShape: rails – 2 Leisten je Traversenspur und Wagen, auf der Platte
   for (const r of s.rails) checkInsideBox(box, r);
 
   for (const r of s.rails) {
-    // Leiste sitzt auf der Platte des jeweiligen Wagens.
+    // Leiste sitzt auf der Platte des jeweiligen Wagens (Unterkante = Plattenoberkante).
     const board = s.boards.find(b => r[`${s.lenAxis}0`] >= b[`${s.lenAxis}0`] - 1e-9 && r[`${s.lenAxis}1`] <= b[`${s.lenAxis}1`] + 1e-9);
     assert.ok(board, 'Leiste gehört zu einer Platte');
-    assert.equal(r.z0, board.z1);
+    assert.equal(r.z0, board.z1, 'Leiste beginnt an der Plattenoberkante');
+    // Oberkante der Leiste ist die Unterkante der untersten Lage (Traverse liegt auf den Leisten auf).
+    const dolly = s.dollies.find(d => d[`${s.lenAxis}0`] === board[`${s.lenAxis}0`]);
+    assert.equal(r.z1, dolly.z1, 'Leistenoberkante = Wagenoberkante = Unterkante der untersten Lage');
     // Leiste läuft über die volle Wagenlänge.
     assert.equal(r[`${s.lenAxis}0`], board[`${s.lenAxis}0`]);
     assert.equal(r[`${s.lenAxis}1`], board[`${s.lenAxis}1`]);
   }
 
-  // Je Wagen: die 4 Leisten liegen an genau 2 Spuren (4 verschiedene widAxis-Startwerte).
+  // Je Wagen: die 4 Leisten liegen an genau 2 Spuren (4 verschiedene widAxis-Startwerte), jeweils
+  // nach innen versetzt von den Spurkanten (nicht bündig auf ihnen).
   for (const d of s.dollies) {
     const railsOnDolly = s.rails.filter(r => r[`${s.lenAxis}0`] === d[`${s.lenAxis}0`]);
     assert.equal(railsOnDolly.length, 4);
+    for (const r of railsOnDolly) {
+      assert.ok(r[`${s.widAxis}0`] > d[`${s.widAxis}0`] + 1e-9, 'Leiste ist von der Spurkante nach innen versetzt');
+    }
+  }
+});
+
+test('trussShape: keine Leiste überlappt ein Traversenstück – Traverse liegt auf den Leisten auf', () => {
+  const c = mkTrussCase(300, 29, 4);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  const overlaps1D = (a0, a1, b0, b1) => a0 < b1 - 1e-9 && b0 < a1 - 1e-9;
+  const overlapsBox = (a, b, ax1, ax2) =>
+    overlaps1D(a[`${ax1}0`], a[`${ax1}1`], b[`${ax1}0`], b[`${ax1}1`]) &&
+    overlaps1D(a[`${ax2}0`], a[`${ax2}1`], b[`${ax2}0`], b[`${ax2}1`]) &&
+    overlaps1D(a.z0, a.z1, b.z0, b.z1);
+
+  for (const r of s.rails) {
+    for (const pc of s.pieces) {
+      assert.ok(!overlapsBox(r, pc, s.lenAxis, s.widAxis), 'Leiste und Traversenstück überlappen sich nicht');
+    }
+    // Oberkante der Leiste ist die Unterkante der untersten Lage (z0 der Lage-0-Stücke).
+    const row0Z = Math.min(...s.pieces.map(pc => pc.z0));
+    assert.equal(r.z1, row0Z);
   }
 });
 
