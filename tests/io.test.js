@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, mergeById, backupFileName, CASE_LIMITS } from '../js/store/io.js';
+import { exportBundle, parseBundle, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS } from '../js/store/io.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -39,6 +39,13 @@ test('Merge: neueres updatedAt gewinnt, Neues kommt dazu', () => {
   assert.deepEqual(mergeById([a], [b, c]), [b, c]);
 });
 test('Dateiname', () => assert.equal(backupFileName(new Date('2026-09-18T10:00:00Z')), 'truckload-backup-2026-09-18.json'));
+
+// --- Daten-10: Name der stillen Sicherung, die app.js vor jedem Import anlegt ---
+test('Dateiname der Vor-Import-Sicherung: wie backupFileName, kenntlich gemacht', () => {
+  const now = new Date('2026-09-21T10:00:00Z');
+  assert.equal(preImportBackupFileName(now), 'truckload-backup-2026-09-21-vor-import.json');
+  assert.equal(backupFileName(now), 'truckload-backup-2026-09-21.json', 'die reguläre Sicherung bleibt unverändert');
+});
 
 test('Ladeplan mit ungültiger Lage wird abgelehnt', () => {
   const p = plan([P('pl1', 'own', 0, 0, 0, { orientation: 'sideways' })]);

@@ -16,8 +16,11 @@
   </script>
 </head>
 <body>
+  <div id="storage-warning" class="banner banner-warn" hidden></div>
+  <div id="tab-warning" class="banner banner-warn" hidden>Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.</div>
   <header class="topbar">
     <strong class="brand">Truckload <span id="app-version" class="version">V 0.6.0</span></strong>
+    <span id="save-status" class="save-status" hidden></span>
     <div class="group">
       <select id="plan-select" title="Ladeplan"></select>
       <button id="plan-new">Neu</button>

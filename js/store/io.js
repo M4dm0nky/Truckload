@@ -147,3 +147,9 @@ export function mergeById(existing, incoming) {
 
 export const backupFileName = (now = new Date()) =>
   `truckload-backup-${now.toISOString().slice(0, 10)}.json`;
+
+// Name der stillen Sicherung, die die App vor jedem Import des aktuellen Stands anlegt
+// (Befund Daten-10) – derselbe Name wie beim „Sichern“-Knopf, nur kenntlich gemacht, damit
+// er nicht mit einer bewusst vom Nutzer erzeugten Sicherung verwechselt wird.
+export const preImportBackupFileName = (now = new Date()) =>
+  backupFileName(now).replace(/\.json$/, '-vor-import.json');
