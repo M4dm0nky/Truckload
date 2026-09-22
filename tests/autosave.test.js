@@ -271,6 +271,182 @@ test('markDirty: trägt einen Plan unbedingt ein, auch wenn seine Referenz schon
   assert.deepEqual(calls, ['p1']);
 });
 
+// --- Fix-Runde 3, Befund [blocking]: exclude() muss auch einen schon WARTENDEN Eintrag
+// aus der Buchhaltung herausnehmen, nicht nur künftige Änderungen abweisen. Rückbau-Nachweis:
+// exclude() auf `excluded.add(id)` reduziert (die vorherige Fassung) lässt genau diese Tests
+// rot werden, weil der schon ausstehende Eintrag weiter in `pending` steht und flush() ihn
+// trotz Exklusion schreibt.
+
+test('exclude(): nimmt einen bereits AUSSTEHENDEN Plan aus pending/Timer heraus, kein Schreiben während der Exklusion', async () => {
+  const clock = makeClock();
+  const calls = [];
+  const auto = createAutosave({
+    savePlan: p => { calls.push(p.id); return Promise.resolve(); },
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+  });
+  auto.noticeChange({ id: 'p1', name: 'eigene Änderung vor dem Import' });
+  assert.equal(auto.has('p1'), true);
+
+  auto.exclude('p1'); // z. B. weil ein Import genau jetzt startet
+  assert.equal(auto.has('p1'), false, 'exclude() muss einen schon wartenden Eintrag sofort herausnehmen');
+
+  await clock.advanceTo(2500); // weit über debounceMs UND maxWaitMs hinaus - der alte Timer hätte längst gefeuert
+  assert.deepEqual(calls, [], 'während der Exklusion darf der alte, ausstehende Stand nicht geschrieben werden');
+});
+
+test('exclude(): nimmt einen gerade FEHLSCHLAGENDEN (retrying) Plan ebenfalls heraus', async () => {
+  const clock = makeClock();
+  const calls = [];
+  const auto = createAutosave({
+    savePlan: p => { calls.push(p.id); return Promise.reject(new Error('Quota')); },
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+    retryMs: 500,
+  });
+  auto.noticeChange({ id: 'p1', v: 1 });
+  await clock.advanceTo(400); // erster Schreibversuch schlägt fehl, p1 ist jetzt "retrying"
+  assert.equal(calls.length, 1);
+
+  auto.exclude('p1'); // Import startet, während p1 gerade an der Quota hängt
+  calls.length = 0;
+  await clock.advanceTo(3000); // mehrere Retry-Zyklen (retryMs=500) würden sonst dazwischenfunken
+  assert.deepEqual(calls, [], 'ein geparkter, vorher fehlschlagender Plan darf während der Exklusion nicht erneut versucht werden');
+});
+
+test('include() ohne restore verwirft den geparkten Stand (erfolgreicher Import hat ihn überholt)', async () => {
+  const clock = makeClock();
+  const calls = [];
+  const auto = createAutosave({
+    savePlan: p => { calls.push(p.id); return Promise.resolve(); },
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+  });
+  auto.noticeChange({ id: 'p1', name: 'vor dem Import' });
+  auto.exclude('p1');
+  auto.include('p1'); // Standard: kein restore
+  await clock.advanceTo(2500);
+  assert.deepEqual(calls, [], 'ohne restore darf der geparkte (überholte) Stand nicht doch noch geschrieben werden');
+  assert.equal(auto.has('p1'), false);
+});
+
+test('include(id, { restore: true }) legt den geparkten Stand zurück (Import fehlgeschlagen oder lokal gewonnen)', async () => {
+  const clock = makeClock();
+  const calls = [];
+  const auto = createAutosave({
+    savePlan: p => { calls.push(p.id); return Promise.resolve(); },
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+  });
+  const parked = { id: 'p1', name: 'vor dem Import' };
+  auto.noticeChange(parked);
+  auto.exclude('p1');
+  auto.include('p1', { restore: true });
+  assert.equal(auto.has('p1'), true, 'nach restore:true muss der Plan sofort wieder als ausstehend gelten');
+  await clock.advanceTo(1000);
+  assert.deepEqual(calls, ['p1'], 'und tatsächlich (wieder) geschrieben werden');
+});
+
+// --- Fix-Runde 3, Befund [important]: drei ungetestete Regeln, je ein eigener Nachweis.
+
+// Rückbau-Nachweis: forget() als No-Op (`function forget() {}`) lässt genau diesen Test rot
+// werden - der gelöschte Plan bliebe ausstehend und würde beim nächsten Flush wieder
+// geschrieben, obwohl er in der Datenbank gar nicht mehr existiert.
+test('forget(): trägt einen erfolgreich anderweitig behandelten Plan (z. B. gelöscht) aus, ohne ihn zu schreiben', async () => {
+  const clock = makeClock();
+  const calls = [];
+  const auto = createAutosave({
+    savePlan: p => { calls.push(p.id); return Promise.resolve(); },
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+  });
+  const plan = { id: 'p1', name: 'wird gleich gelöscht' };
+  auto.noticeChange(plan);
+  assert.equal(auto.has('p1'), true);
+
+  auto.forget('p1'); // repo.deletePlan('p1') war erfolgreich
+
+  await clock.advanceTo(1000);
+  assert.equal(auto.has('p1'), false);
+  assert.deepEqual(calls, [], 'ein gelöschter Plan darf beim nächsten Flush nicht wieder angelegt werden');
+});
+
+// Rückbau-Nachweis: die Zeile `if (planRef !== undefined && pending.get(id) !== planRef)
+// return;` entfernt lässt genau diesen Test rot werden - forget() würde dann auch einen
+// INZWISCHEN NEUEREN, noch ungesicherten Stand mit derselben planId stillschweigend
+// austragen, nur weil ein alter Erfolg (mit dem alten Verweis) das noch aufräumen wollte.
+test('forget(id, planRef): der Referenzschutz verhindert, dass ein neuerer ausstehender Stand fälschlich ausgetragen wird', async () => {
+  const clock = makeClock();
+  const auto = createAutosave({
+    savePlan: () => Promise.resolve(),
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+  });
+  const v1 = { id: 'p1', name: 'v1' };
+  const v2 = { id: 'p1', name: 'v2 (neuer, noch ungesichert)' };
+  auto.noticeChange(v1);
+  auto.noticeChange(v2); // zwischenzeitlich kam schon die nächste Änderung dazu
+
+  auto.forget('p1', v1); // ein verspäteter Erfolgs-Callback für den ALTEN Stand v1
+
+  assert.equal(auto.peek('p1'), v2, 'v2 muss weiterhin als ausstehend gelten, forget() mit dem alten Verweis darf es nicht löschen');
+});
+
+// Rückbau-Nachweis: `retrying.delete(plan.id)` in markDirty() auskommentiert lässt genau
+// diesen Test rot werden - der Plan bliebe nach der erneuten Bearbeitung in `retrying`,
+// zählte für scheduleFlush() nicht mehr als "frisch" und bekäme keinen normalen Debounce
+// mehr, sondern hinge am (viel selteneren) retryMs fest.
+test('markDirty(): eine erneute Bearbeitung nach einem Fehlschlag befreit den Plan aus "retrying" und bekommt den normalen Debounce zurück', async () => {
+  const clock = makeClock();
+  const calls = [];
+  let fail = true;
+  const auto = createAutosave({
+    savePlan: p => {
+      calls.push({ id: p.id, t: clock.now() });
+      if (fail) return Promise.reject(new Error('Quota'));
+      return Promise.resolve();
+    },
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+    debounceMs: 400, maxWaitMs: 2000, retryMs: 5000, // absichtlich weit auseinander
+  });
+  auto.noticeChange({ id: 'p1', v: 1 });
+  await clock.advanceTo(400); // erster Versuch schlägt fehl, p1 ist jetzt "retrying"
+  assert.equal(calls.length, 1);
+
+  fail = false;
+  calls.length = 0;
+  auto.noticeChange({ id: 'p1', v: 2 }); // der Nutzer bearbeitet den Plan weiter
+  await clock.advanceTo(800); // normaler Debounce (400ms) seit DIESER Änderung - nicht retryMs (5000ms)
+  assert.equal(calls.length, 1, 'muss über den normalen Debounce geschrieben werden, nicht erst nach retryMs');
+});
+
+// Rückbau-Nachweis: der `scheduleFlush()`-Aufruf im Fehlerzweig von flush() entfernt lässt
+// genau diesen Test (in dieser Richtung: B wartet schon VOR A's Fehlschlag im selben Batch)
+// rot werden - B bekäme nach dem gemeinsamen flush()-Durchlauf keinen neuen Timer und bliebe
+// bis zum nächsten zufälligen Ereignis unbehandelt liegen.
+test('scheduleFlush() im Fehlerzweig: B (schon im selben Batch wartend) bekommt trotz A\'s Fehlschlag einen Folge-Timer', async () => {
+  const clock = makeClock();
+  const calls = [];
+  const auto = createAutosave({
+    savePlan: p => {
+      calls.push(p.id);
+      return p.id === 'a' ? Promise.reject(new Error('kaputt')) : Promise.resolve();
+    },
+    now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer,
+    debounceMs: 400, retryMs: 5000,
+  });
+  auto.noticeChange({ id: 'a', v: 1 });
+  auto.noticeChange({ id: 'b', v: 1 }); // B wartet im SELBEN Batch wie A, bevor überhaupt geflusht wurde
+  await clock.advanceTo(400); // ein gemeinsamer flush()-Durchlauf: A scheitert, B gelingt
+  assert.deepEqual(calls.sort(), ['a', 'b']);
+  assert.equal(auto.has('b'), false, 'B muss trotz A\'s Fehlschlag im selben Durchlauf erfolgreich geschrieben worden sein');
+
+  // Jetzt kommt eine NEUE, unabhängige Änderung an B dazu - sie braucht ihren eigenen,
+  // ganz normalen Debounce-Timer, keinen hängengebliebenen Zustand von eben. (A ist noch
+  // in "retrying" und wird beim selben flush()-Lauf zwangsläufig mitversucht - das ist
+  // erwünscht, flush() unterscheidet Batches nicht; wichtig ist NUR, dass B nicht erst mit
+  // A's viel selterem retryMs mitgezogen wird, sondern seinen eigenen, normalen Debounce
+  // bekommt.)
+  calls.length = 0;
+  auto.noticeChange({ id: 'b', v: 2 });
+  await clock.advanceTo(800);
+  assert.ok(calls.includes('b'), 'B muss nach seinem eigenen (normalen) Debounce erneut geschrieben werden, nicht erst nach retryMs (5000ms)');
+});
+
 // --- „Zuordnung“ in saveImportWinners (repo.js) - reine Logik, separat getestet in
 // tests/repo.test.js (buildImportWinnerItems). Hier nur die Randnotiz, dass dieses Modul
 // dafür nichts wissen muss - es bekommt nur einzelne Pläne über savePlan().

@@ -480,32 +480,25 @@ $('#import').onchange = async e => {
   const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: [s0.plan, ...s0.plans] });
   lastPreImportBackup = { name: backupName, text: backupText };
   downloadJSON(backupName, backupText);
-  // Falls der aktuelle Plan schon VOR dem Import eine eigene, noch nicht geschriebene
-  // Änderung hatte: exclude() unten würde sie für die Dauer des Imports unsichtbar machen,
-  // ohne dass sie danach von selbst wiederkehrt (anders als bei einer echten neuen Änderung,
-  // die über eine andere Objekt-Referenz erkannt würde) – deshalb separat merken.
-  const pendingBeforeImport = autosave.has(s0.plan.id) ? autosave.peek(s0.plan.id) : null;
 
   // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen (Befund: „der
-  // Import läuft gegen den eigenen Autosave“). saveImportWinners() schreibt diesen Plan
-  // (falls die Datei ihn gewinnt) selbst; ohne exclude() würde der optimistische
-  // store.update() gleich darunter den Plan zusätzlich als normale Änderung anmelden – der
-  // Autosave könnte dann parallel oder sogar NACH einem fehlgeschlagenen
-  // saveImportWinners() (das die Oberfläche zurückrollt) unbemerkt doch noch denselben
-  // Stand in die Datenbank schreiben, obwohl "Stand von vorher wiederhergestellt" gemeldet
-  // wurde.
+  // Import läuft gegen den eigenen Autosave“). exclude() nimmt einen schon wartenden oder
+  // gerade fehlschlagenden Eintrag vollständig aus der Buchhaltung heraus (parkt ihn) –
+  // sonst könnte sein Timer (oder ein pagehide/visibilitychange-Flush) währenddessen den
+  // alten, ungesicherten Stand über den frisch importierten schreiben, ohne dass jemand es
+  // bemerkt. saveImportWinners() schreibt diesen Plan (falls die Datei ihn gewinnt) selbst.
   autosave.exclude(s0.plan.id);
-
-  // Das Mischen passiert synchron im Store-Updater, auf dem Zustand zum Zeitpunkt des
-  // Updates – nicht auf einem vor den beiden obigen await-Grenzen genommenen Schnappschuss
-  // (Befund Daten-5). Zwischenzeitliche Änderungen des Nutzers gehen so nicht verloren.
   let merge;
-  store.update(s => {
-    merge = repo.mergeImportedBundle(s, bundle);
-    return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan };
-  });
-
+  let importFailed = false;
+  let importErr = null;
   try {
+    // Das Mischen passiert synchron im Store-Updater, auf dem Zustand zum Zeitpunkt des
+    // Updates – nicht auf einem vor den beiden obigen await-Grenzen genommenen Schnappschuss
+    // (Befund Daten-5). Zwischenzeitliche Änderungen des Nutzers gehen so nicht verloren.
+    store.update(s => {
+      merge = repo.mergeImportedBundle(s, bundle);
+      return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan };
+    });
     // Eine einzige Transaktion statt unabhängiger Promise.all-Schreibvorgänge (Befund:
     // „Teil-Import lässt Store und Datenbank auseinanderlaufen“ ging tiefer, als es zuerst
     // aussah – unabhängige db.put()-Aufrufe je Datensatz können TEILWEISE erfolgreich sein,
@@ -513,28 +506,32 @@ $('#import').onchange = async e => {
     // mehr zur Datenbank passt. saveImportWinners() schreibt alles oder nichts.)
     await repo.saveImportWinners(merge.winners);
   } catch (err) {
+    importFailed = true;
+    importErr = err;
     // Teilfehlschlag: Store und Datenbank sind jetzt auseinandergelaufen, die Oberfläche
     // zeigt möglicherweise Daten, die nicht (vollständig) geschrieben wurden. Zurück auf
     // den Stand vor dem Import – der ist noch da (s0) und stimmt mit der Datenbank überein
     // (Befund: „Teil-Import lässt Store und Datenbank auseinanderlaufen“).
     store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan }));
-    autosave.include(s0.plan.id);
-    // Eine schon vor dem Import ausstehende eigene Änderung wieder als ausstehend
-    // eintragen (siehe oben) – mit markDirty() statt noticeChange(), weil der Store gerade
-    // exakt auf s0.plan zurückgerollt wurde und dieselbe Referenz sonst als "keine
-    // Änderung" durchgehen würde.
-    if (pendingBeforeImport) autosave.markDirty(pendingBeforeImport);
+  } finally {
+    // include() gehört in ein finally: würfe irgendetwas zwischen exclude() und hier, bliebe
+    // der Autosave für diesen Plan sonst den Rest der Sitzung stumm tot. restore:true, wenn
+    // entweder der Import fehlschlug ODER der lokale Stand gewonnen hat (merge.planChanged
+    // === false) – in beiden Fällen wurde ein vorher geparkter, ausstehender eigener Stand
+    // NICHT mitgeschrieben und muss weiter als ausstehend gelten. `merge` kann bei einem
+    // Fehler vor der Zuweisung undefined geblieben sein, daher der sichere Optional-Chain.
+    autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
+  }
+
+  if (importFailed) {
     const retry = confirm(
-      `Import: Schreiben in die Datenbank fehlgeschlagen (${err?.message ?? 'unbekannter Fehler'}). ` +
+      `Import: Schreiben in die Datenbank fehlgeschlagen (${importErr?.message ?? 'unbekannter Fehler'}). ` +
       'Der Stand von vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
     );
     if (retry) downloadJSON(lastPreImportBackup.name, lastPreImportBackup.text);
     return;
   }
-  // Erst NACH dem bestätigten Schreiben den Autosave für diesen Plan wieder freigeben
-  // (dieselbe Regel wie beim normalen Autosave, Befund Daten-2/Daten-5: nichts vor dem
-  // Erfolg als gesichert behandeln).
-  autosave.include(s0.plan.id);
+
   if (merge.planChanged) store.resetHistory();
   alert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne (neuere lokale Stände behalten).`);
 };

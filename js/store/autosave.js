@@ -26,9 +26,14 @@
 //  - Trifft während eines Schreibvorgangs (auch eines erfolgreichen) eine weitere Änderung
 //    ein, bleibt der Status "speichert" – es wird kein Fehler vorgetäuscht, nur weil danach
 //    wieder etwas aussteht.
-//  - `exclude(id)`/`include(id)`: ein Plan, dessen Schreiben gerade außerhalb dieses Moduls
-//    läuft (Import), kann für die Dauer davon von der automatischen Buchhaltung
-//    ausgenommen werden, ohne den Rest zu berühren.
+//  - `exclude(id)`/`include(id, { restore })`: ein Plan, dessen Schreiben gerade außerhalb
+//    dieses Moduls läuft (Import), wird für die Dauer davon vollständig aus der
+//    Buchhaltung herausgenommen (nicht nur vor NEUEN Änderungen geschützt) – ein schon
+//    wartender Eintrag samt Timer/Fehlschlag-Zustand wird "geparkt", statt weiter in
+//    `pending` zu stehen. `include(id)` verwirft den geparkten Stand (er wurde ja gerade
+//    erfolgreich geschrieben oder ist durch den Import überholt); `include(id, { restore:
+//    true })` legt ihn zurück (Import fehlgeschlagen oder der lokale Stand hat gewonnen und
+//    wurde NICHT mitgeschrieben – er ist weiterhin ungesichert).
 //
 // createAutosave({ savePlan, now, setTimer, clearTimer, debounceMs, maxWaitMs, retryMs, onStatus })
 export function createAutosave({
@@ -44,7 +49,8 @@ export function createAutosave({
   const pending = new Map();       // planId -> Plan
   const pendingSince = new Map();  // planId -> Zeitpunkt, seit dem er OHNE aktiven Fehlschlag aussteht
   const retrying = new Set();      // planIds, die gerade über den eigenen Fehlschlag-Timer laufen
-  const excluded = new Set();      // planIds, die noticeChange() ignorieren soll
+  const excluded = new Set();      // planIds, die noticeChange()/markDirty() ignorieren sollen
+  const parked = new Map();        // planId -> Plan, per exclude() aus `pending` herausgenommen
   let lastKnownPlan;
   let timer = null;
   let retryTimer = null;
@@ -95,8 +101,39 @@ export function createAutosave({
   // Änderung werten und den (u. U. veralteten) Plan zurückschreiben.
   function markKnown(plan) { lastKnownPlan = plan; }
 
-  function exclude(id) { excluded.add(id); }
-  function include(id) { excluded.delete(id); }
+  // Nimmt einen Plan vollständig aus der Buchhaltung heraus – auch einen, der GERADE
+  // wartet oder gerade fehlschlägt –, statt nur künftige noticeChange()/markDirty()-Aufrufe
+  // abzuweisen. Ohne das bliebe ein schon vor dem Import ausstehender oder gerade an der
+  // Quota scheiternder Plan in `pending`/`retrying` stehen: sein Timer liefe während des
+  // Imports weiter (auch pagehide/visibilitychange rufen flush() auf) und könnte den
+  // importierten Stand mit dem alten, noch ungesicherten überschreiben (Befund: „exclude()
+  // legt den Autosave nur für NEUE Änderungen still, nicht für eine bereits wartende“).
+  function exclude(id) {
+    excluded.add(id);
+    if (!pending.has(id)) return;
+    parked.set(id, pending.get(id));
+    pending.delete(id);
+    pendingSince.delete(id);
+    retrying.delete(id);
+    if (pending.size === 0) {
+      clearMainTimer();
+      clearRetryTimer();
+      onStatus('idle');
+    } else {
+      scheduleFlush(); // andere, nicht ausgeschlossene Pläne könnten jetzt allein übrig sein
+    }
+  }
+
+  // restore:true legt einen zuvor geparkten Stand zurück (Import fehlgeschlagen, oder der
+  // lokale Stand hat gewonnen und wurde deshalb NICHT mitgeschrieben – er ist weiterhin
+  // ungesichert). Ohne restore (Standard) wird der geparkte Stand verworfen, weil er entweder
+  // gerade erfolgreich geschrieben wurde oder vom Import überholt ist.
+  function include(id, { restore = false } = {}) {
+    excluded.delete(id);
+    const parkedPlan = parked.get(id);
+    parked.delete(id);
+    if (restore && parkedPlan !== undefined) markDirty(parkedPlan);
+  }
 
   function has(id) { return pending.has(id); }
   function peek(id) { return pending.get(id); }
@@ -152,7 +189,5 @@ export function createAutosave({
     return savePendingChain;
   }
 
-  function cancelTimer() { clearMainTimer(); }
-
-  return { noticeChange, markKnown, markDirty, exclude, include, has, peek, forget, flush, cancelTimer };
+  return { noticeChange, markKnown, markDirty, exclude, include, has, peek, forget, flush };
 }
