@@ -1,6 +1,7 @@
 import { ORIENTATIONS, boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, DOOR_FACE } from './geometry.js';
 import { archBoxes, buildItems } from './validate.js';
 import { autoPack } from './packer.js';
+import { MAX_LABEL } from '../store/io.js';
 
 const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
 
@@ -19,7 +20,7 @@ function settle(p, c, others) {
 export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null } = {}) {
   const extra = Array.from({ length: n }, (_, i) => ({
     id: newId(), caseId,
-    ...(labels[i] ? { label: labels[i] } : {}),
+    ...(labels[i] ? { label: labels[i].slice(0, MAX_LABEL) } : {}),
     ...(color ? { color } : {}),
   }));
   return touch({ ...plan, unplaced: [...plan.unplaced, ...extra] });
@@ -126,7 +127,7 @@ function applyField(it, key, value) {
     const { [key]: _drop, ...rest } = it;
     return rest;
   }
-  return { ...it, [key]: value };
+  return { ...it, [key]: key === 'label' ? value.slice(0, MAX_LABEL) : value };
 }
 
 export function setItemLabel(plan, id, { label, color } = {}) {

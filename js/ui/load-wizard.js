@@ -3,6 +3,7 @@ import { CATEGORIES, colorFor } from '../data/categories.js';
 import { outerDims } from '../model/geometry.js';
 import { isTruss } from '../model/truss.js';
 import { companiesOf, groupCases } from './caseGroups.js';
+import { MAX_LABEL } from '../store/io.js';
 
 const MAX_ITEMS = 500;
 
@@ -149,7 +150,7 @@ export function openLoadWizard(dlg, opts = {}) {
       const n = counts.get(c.id) ?? 0;
       if (n <= 0) { itemsState.delete(c.id); continue; }
       const prev = itemsState.get(c.id) ?? [];
-      const next = Array.from({ length: n }, (_, i) => prev[i] ?? { label: `${c.name} ${i + 1}`, color: colorFor(c.category) });
+      const next = Array.from({ length: n }, (_, i) => prev[i] ?? { label: `${c.name} ${i + 1}`.slice(0, MAX_LABEL), color: colorFor(c.category) });
       itemsState.set(c.id, next);
     }
   }
@@ -164,7 +165,7 @@ export function openLoadWizard(dlg, opts = {}) {
           <legend>${esc(c.name)} <button type="button" data-act="color-all">Farbe auf alle übernehmen</button></legend>
           ${arr.map((it, i) => `
             <div class="row wiz-item" data-i="${i}">
-              <input name="label" value="${esc(it.label)}" maxlength="40">
+              <input name="label" value="${esc(it.label)}" maxlength="${MAX_LABEL}">
               <input type="color" name="color" value="${esc(it.color)}">
             </div>`).join('')}
         </fieldset>`;

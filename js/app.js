@@ -244,8 +244,10 @@ $('#inspector').addEventListener('click', e => {
 });
 $('#inspector').addEventListener('change', e => {
   const name = e.target.name;
-  if (name === 'label') return withSel(id => edit((p, c) => A.setItemLabel(p, id, { label: e.target.value.trim() })));
-  if (name === 'color') return withSel(id => edit((p, c) => A.setItemLabel(p, id, { color: e.target.value })));
+  const id = e.target.closest('[data-id]')?.dataset.id;
+  if (!id) return;
+  if (name === 'label') return edit((p, c) => A.setItemLabel(p, id, { label: e.target.value.trim() }));
+  if (name === 'color') return edit((p, c) => A.setItemLabel(p, id, { color: e.target.value }));
 });
 
 // Tastatur
@@ -424,6 +426,7 @@ renderHooks.push(async (s, d) => {
       console.error('3D-Ansicht: Laden fehlgeschlagen', err);
       $('#view3d').textContent = '3D-Ansicht konnte nicht geladen werden (vendor/ fehlt?).';
       view3dFailed = true;
+      view3d?.dispose(); // vor dem Verwerfen aufräumen, sonst bleibt der WebGL-Kontext hängen (Befund I6)
       view3d = null;
       view3dLoading = null;
       return;

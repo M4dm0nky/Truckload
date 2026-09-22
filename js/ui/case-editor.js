@@ -1,6 +1,7 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
+import { CASE_LIMITS } from '../store/io.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
@@ -13,7 +14,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
   if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';
   if (src && src.color == null) v.color = colorFor(v.category);
   const isNew = !c || c.builtin;
-  const dim = n => `type="number" name="${n}" min="1" max="2000" step="0.5" required`;
+  const dim = n => `type="number" name="${n}" min="1" max="${CASE_LIMITS[n]}" step="0.5" required`;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
       <h2>${isNew ? 'Neues Case' : 'Case bearbeiten'}</h2>
@@ -39,12 +40,13 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
             ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${p.name} – ${p.h} cm</option>`).join('')}
             <option value="custom">eigene …</option>
           </select></label>
-          <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="40" step="1"></label>
+          <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="${CASE_LIMITS.wheelH}" step="1"></label>
         </div>
         <div class="row">
           <label class="check"><input type="radio" name="dimsInclWheels" value="incl"> Maß ist inkl. Rollen</label>
           <label class="check"><input type="radio" name="dimsInclWheels" value="excl"> Maß ist ohne Rollen – Rollen dazurechnen</label>
         </div>
+        <p class="hint wheel-h-hint" hidden>Rollenhöhe muss kleiner als die Case-Höhe sein (Maß ist inkl. Rollen).</p>
       </fieldset>
       <fieldset class="truss-only" hidden><legend>Traversenwagen</legend>
         <div class="row">
@@ -64,12 +66,12 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
         <p class="hint truss-width-hint" hidden>Traversenbreite max. 40 cm (Wagen 60er oder 80er)</p>
       </fieldset>
       <div class="row">
-        <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" step="0.5" required></label>
-        <label>Bestand (Stück)<input type="number" name="stock" min="0" step="1"></label>
+        <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" max="${CASE_LIMITS.weight}" step="0.5" required></label>
+        <label>Bestand (Stück)<input type="number" name="stock" min="0" max="${CASE_LIMITS.stock}" step="1"></label>
       </div>
       <label class="check case-only"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
       <label class="check"><input type="checkbox" name="stackable"> stapelbar (darf etwas obendrauf)</label>
-      <label>Max. Last obendrauf (kg, leer = unbegrenzt)<input type="number" name="maxTopLoad" min="0" step="1"></label>
+      <label>Max. Last obendrauf (kg, leer = unbegrenzt)<input type="number" name="maxTopLoad" min="0" max="${CASE_LIMITS.maxTopLoad}" step="1"></label>
       <fieldset><legend>Erlaubte Lagen</legend>
         <div class="row">
           ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" class="layer-check" value="${n}"> Lage ${n}</label>`).join('')}
@@ -97,6 +99,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
   const wheelCustomLabel = f.wheelHCustom.parentElement;
   const dimsInclRadios = [...dlg.querySelectorAll('input[name="dimsInclWheels"]')];
   const outerDimsHint = dlg.querySelector('.outer-dims-hint');
+  const wheelHHint = dlg.querySelector('.wheel-h-hint');
   function setWheelHValue(h) {
     const match = WHEEL_PRESETS.some(p => p.h === h);
     f.wheelPreset.value = match ? String(h) : 'custom';
@@ -113,10 +116,17 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
   function currentWheelH() {
     return f.wheelPreset.value === 'custom' ? Number(f.wheelHCustom.value) : Number(f.wheelPreset.value);
   }
+  function inclWheelsChecked() {
+    return (dimsInclRadios.find(r => r.checked)?.value ?? 'incl') !== 'excl';
+  }
+  function wheelHInvalid() {
+    return f.wheels.checked && inclWheelsChecked() && currentWheelH() >= Number(f.h.value);
+  }
   function updateOuterDimsHint() {
     const l = Number(f.l.value), w = Number(f.w.value), h = Number(f.h.value);
+    wheelHHint.hidden = !(h > 0 && wheelHInvalid());
     if (!(l > 0 && w > 0 && h > 0)) { outerDimsHint.textContent = ''; return; }
-    const inclChecked = (dimsInclRadios.find(r => r.checked)?.value ?? 'incl') !== 'excl';
+    const inclChecked = inclWheelsChecked();
     const d = outerDims({ l, w, h, wheels: f.wheels.checked, wheelH: currentWheelH(), dimsInclWheels: inclChecked });
     outerDimsHint.textContent = `→ im Truck ${d.l} × ${d.w} × ${d.h} cm`;
   }
@@ -150,7 +160,13 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
   f.trussLength.value = truss0.length;
   f.trussWidthProfile.value = knownWidth ? String(truss0.width) : 'custom';
   f.trussWidthCustom.value = truss0.width;
-  trussWidthCustomLabel.hidden = knownWidth;
+  function syncTrussWidthCustom() {
+    const custom = f.trussWidthProfile.value === 'custom';
+    trussWidthCustomLabel.hidden = !custom;
+    f.trussWidthCustom.disabled = !custom;
+    f.trussWidthCustom.required = custom;
+  }
+  syncTrussWidthCustom();
   f.trussCount.value = truss0.count;
 
   function currentTruss() {
@@ -182,6 +198,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
     f.l.required = !isT; f.w.required = !isT; f.h.required = !isT;
     f.l.disabled = isT; f.w.disabled = isT; f.h.disabled = isT;
     for (const el of trussOnly.querySelectorAll('input,select')) el.disabled = !isT;
+    if (isT) syncTrussWidthCustom();
     updateTrussDims();
   }
   let prevKind = isTruss(v) ? 'truss' : 'case';
@@ -213,7 +230,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
     });
   }
   f.trussWidthProfile.addEventListener('change', () => {
-    trussWidthCustomLabel.hidden = f.trussWidthProfile.value !== 'custom';
+    syncTrussWidthCustom();
     updateTrussDims();
   });
   for (const name of ['trussLength', 'trussWidthCustom', 'trussCount']) f[name].addEventListener('input', updateTrussDims);
@@ -243,6 +260,9 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
         e.preventDefault();
         trussHint.hidden = false;
       }
+    } else if (wheelHInvalid()) {
+      e.preventDefault();
+      wheelHHint.hidden = false;
     }
   });
   for (const cb of layerBoxes) cb.addEventListener('change', () => { layerHint.hidden = true; });

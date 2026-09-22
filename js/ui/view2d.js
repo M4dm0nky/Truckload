@@ -2,13 +2,13 @@ import { svgEl } from './dom.js';
 import { project, unproject, drawOrder, wheelView } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
-import { caseColors } from './caseStyle.js';
+import { caseColors, DETAIL_MIN } from './caseStyle.js';
 import { archBoxes } from '../model/validate.js';
-import { isTruss, trussShape } from '../model/truss.js';
+import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
+import { estimateTextWidth } from './labelTexture.js';
 
 const PAD = 30;
 const FRAME_W = 3.5;      // cm, Breite des Alu-Hybridprofils
-const DETAIL_MIN = 40;    // cm, ab dieser Korpus-Kantenlänge werden Details gezeichnet
 
 // Beschriftung: Schriftgröße aus der kleineren Korpus-Rechteckseite abgeleitet, auf 6–16 cm begrenzt.
 const LABEL_MIN = 6;
@@ -66,7 +66,6 @@ function nearestEdgePoint(bodyRect, cx, cy) {
 // pro Stück anhand der projizierten Seitenlängen entschieden, ob es „längs“ (Ober-/Untergurt-Linien
 // mit Zickzack-Diagonalen) oder „stirnseitig“ (Quadrat mit 4 Gurtrohr-Kreisen) erscheint – dadurch
 // funktioniert dieselbe Logik in allen drei Ansichten und für beide Rotationen (Länge entlang x oder y).
-const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (siehe js/model/truss.js)
 
 function drawChordBar(g, pr, horizontal, profileWidth) {
   const inset = Math.max(1.5, Math.min(profileWidth * TUBE_R_RATIO, (horizontal ? pr.v1 - pr.v0 : pr.u1 - pr.u0) / 2));
@@ -218,18 +217,25 @@ function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, det
   else if (bw >= 100) { drawHandle(bodyRect.u0 + bw / 4); drawHandle(bodyRect.u0 + (bw * 3) / 4); }
 }
 
-// Passt den Textinhalt an eine maximale Breite an (binäre Suche über getComputedTextLength);
-// verkürzt notwendigenfalls mit „…“. Der volle Text bleibt im <title> des Case erhalten.
-function fitLabelText(el, full, maxWidth) {
+// Passt den Textinhalt an eine maximale Breite an (binäre Suche); verkürzt notwendigenfalls mit
+// „…“. Der volle Text bleibt im <title> des Case erhalten. Misst wo möglich über
+// `getComputedTextLength()` (exakt) – ein ungerendertes SVG (z. B. `#print-root` vor
+// `window.print()`, siehe I2) liefert dafür aber immer 0, was die Kürzung sonst stillschweigend
+// unterließe. In dem Fall wird stattdessen mit `estimateTextWidth()` (labelTexture.js, dieselbe
+// Schätzung wie in 3D) ohne DOM-Messung gekürzt.
+function fitLabelText(el, full, maxWidth, fontSize) {
   if (maxWidth <= 0) { el.textContent = ''; return; }
   el.textContent = full;
-  if (typeof el.getComputedTextLength !== 'function') return;
-  if (el.getComputedTextLength() <= maxWidth) return;
+  const rendered = typeof el.getComputedTextLength === 'function' && el.getComputedTextLength() > 0;
+  const widthOf = rendered
+    ? text => { el.textContent = text; return el.getComputedTextLength(); }
+    : text => estimateTextWidth(text, fontSize);
+  if (widthOf(full) <= maxWidth) { el.textContent = full; return; }
   let lo = 0, hi = full.length;
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
-    el.textContent = mid > 0 ? `${full.slice(0, mid)}…` : '…';
-    if (el.getComputedTextLength() <= maxWidth) lo = mid; else hi = mid - 1;
+    const candidate = mid > 0 ? `${full.slice(0, mid)}…` : '…';
+    if (widthOf(candidate) <= maxWidth) lo = mid; else hi = mid - 1;
   }
   el.textContent = lo > 0 ? `${full.slice(0, lo)}…` : '…';
 }
@@ -241,7 +247,7 @@ function drawLabel(g, labelRect, it) {
     x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2,
     class: 'label', style: `font-size:${fontSize}px`,
   }, g);
-  fitLabelText(label, it.label, Math.max(0, w - LABEL_PAD * 2));
+  fitLabelText(label, it.label, Math.max(0, w - LABEL_PAD * 2), fontSize);
 
   const seqSize = Math.max(LABEL_MIN, fontSize * 0.55);
   svgEl('text', {

@@ -1,5 +1,6 @@
 import { esc, fmtM, ORIENTATION_LABEL } from './dom.js';
-import { outerDims, wheelFace, rotForWheelFace } from '../model/geometry.js';
+import { outerDims, wheelFace } from '../model/geometry.js';
+import { MAX_LABEL } from '../store/io.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
 // (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die
@@ -17,18 +18,17 @@ export function renderInspector(el, { selected, result, truck }) {
         <div class="btns">
           ${WHEEL_FACE_ORDER.map(face => {
             const active = wheelFace(selected.p) === face;
-            const reachable = rotForWheelFace(selected.p.orientation, face) != null;
-            return `<button data-act="wheel-face" data-face="${face}" class="${active ? 'on' : ''}" ${reachable ? '' : 'disabled'}>${WHEEL_FACE_LABEL[face]}</button>`;
+            return `<button data-act="wheel-face" data-face="${face}" class="${active ? 'on' : ''}">${WHEEL_FACE_LABEL[face]}</button>`;
           }).join('')}
         </div>
       </div>` : '';
   const dims = selected ? outerDims(selected.c) : null;
   const sel = selected ? `
-    <section class="insp-sel">
+    <section class="insp-sel" data-id="${esc(selected.id)}">
       <h2><span class="swatch" style="background:${esc(selected.color)}"></span>${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
       ${selected.c.content ? `<p class="content">${esc(selected.c.content)}</p>` : ''}
       <div class="insp-label">
-        <label>Beschriftung<input type="text" name="label" maxlength="40" value="${esc(selected.label)}"></label>
+        <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selected.label)}"></label>
         <label>Farbe<input type="color" name="color" value="${esc(selected.color)}"></label>
       </div>
       <dl>

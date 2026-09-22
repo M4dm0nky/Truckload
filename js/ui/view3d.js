@@ -1,11 +1,10 @@
 import { archBoxes } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
-import { caseColors, CASE_BLACK } from './caseStyle.js';
+import { caseColors, CASE_BLACK, DETAIL_MIN } from './caseStyle.js';
 import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
 
-const DETAIL_MIN = 40; // cm, ab dieser kleinsten Korpus-Kante werden Flightcase-Details gezeichnet
 const DOLLY_MARK_W = 4; // cm, Breite der Gewerk-/Stückfarb-Markierung auf dem Traversen-Rollbrett
 
 export async function createView3d(container) {
@@ -38,7 +37,8 @@ export async function createView3d(container) {
     camera.updateProjectionMatrix();
     render();
   };
-  new ResizeObserver(resize).observe(container);
+  const resizeObserver = new ResizeObserver(resize);
+  resizeObserver.observe(container);
 
   // Geteilte Geometrien (nie disposen) – jede Box/Kugel/Rolle ist ein skalierter Einheits-Body.
   const GEO_BOX = new THREE.BoxGeometry(1, 1, 1);
@@ -96,11 +96,12 @@ export async function createView3d(container) {
   }
   const LAM_TEX = makeLaminateTexture();
 
-  // Beschriftungs-Texturen: pro einzigartiger Kombination aus Text und Farbe eine Canvas-Textur
-  // (quadratisch, Text mittig über `fitFontSize()` umgebrochen/skaliert), gecacht über Updates hinweg.
-  // Material + Textur sind `userData.shared`, damit `clear()` sie nicht mit den Case-Meshes verwirft –
-  // nicht mehr benutzte Einträge werden am Ende von `update()` selbst disposed (siehe `usedLabelKeys`).
-  const labelTexCache = new Map(); // JSON.stringify([text, farbe]) -> { material, texture }
+  // Beschriftungs-Texturen: pro einzigartiger Kombination aus Text, Farbe und Seitenverhältnis
+  // eine Canvas-Textur (Text mittig über `fitFontSize()` umgebrochen/skaliert), gecacht über
+  // Updates hinweg. Material + Textur sind `userData.shared`, damit `clear()` sie nicht mit den
+  // Case-Meshes verwirft – nicht mehr benutzte Einträge werden am Ende von `update()` selbst
+  // disposed (siehe `usedLabelKeys`).
+  const labelTexCache = new Map(); // JSON.stringify([text, farbe, ratioBucket]) -> { material, texture }
   let usedLabelKeys = new Set();
   function textColorFor(hex) {
     const s = String(hex || CASE_BLACK).replace('#', '');
@@ -109,30 +110,33 @@ export async function createView3d(container) {
     const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return lum > 0.55 ? '#111214' : '#f5f5f5';
   }
-  // Referenzmaß (cm) für die quadratische Textur-Vorlage - unabhängig von der tatsächlichen,
-  // je Fläche unterschiedlichen Größe (labelPlanes() liefert die reale Größe erst pro Fläche/
-  // Case; dieselbe Textur wird über alle fünf Flächen hinweg wiederverwendet, s. o.). 15% Rand
-  // verhindert, dass Text bis an die Kante reicht.
-  const LABEL_REF = 40, LABEL_PAD = 0.85;
-  function labelTextureFor(text, color) {
-    const key = JSON.stringify([text, color]);
+  const LABEL_PAD = 0.85; // 15% Rand verhindert, dass Text bis an die Kante reicht.
+  const LABEL_TEX_W = 256; // px, feste Basisbreite der Textur
+  // Die Textur wird für die reale Fläche (`width`×`height`, cm) erzeugt statt für ein Quadrat –
+  // eine feste 40×40-Vorlage, über die tatsächliche (oft nicht-quadratische) Fläche gestreckt,
+  // verzerrt sowohl den Zeilenumbruch als auch die Buchstaben (s. Befund I1). Das Seitenverhältnis
+  // geht gerundet (auf 0,25) in den Cache-Schlüssel ein, damit nicht jede Case-Größe eine eigene
+  // Textur bekommt.
+  function labelTextureFor(text, color, width, height) {
+    const ratio = Math.min(4, Math.max(0.25, Math.round((width / height) / 0.25) * 0.25));
+    const key = JSON.stringify([text, color, ratio]);
     usedLabelKeys.add(key);
     let entry = labelTexCache.get(key);
     if (entry) return entry;
-    const size = 256;
     const cnv = document.createElement('canvas');
-    cnv.width = cnv.height = size;
+    cnv.width = LABEL_TEX_W;
+    cnv.height = Math.max(1, Math.round(LABEL_TEX_W / ratio));
     const ctx = cnv.getContext('2d');
-    const box = LABEL_REF * LABEL_PAD;
-    const { fontSize, lines } = fitFontSize(text, box, box);
-    const px = (fontSize / LABEL_REF) * size;
+    const { fontSize, lines } = fitFontSize(text, width * LABEL_PAD, height * LABEL_PAD);
+    const scale = cnv.width / width; // px je cm
+    const px = fontSize * scale;
     ctx.fillStyle = textColorFor(color);
     ctx.font = `700 ${px}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const lineH = px * 1.15;
-    let y = size / 2 - ((lines.length - 1) * lineH) / 2;
-    for (const l of lines) { ctx.fillText(l, size / 2, y); y += lineH; }
+    let y = cnv.height / 2 - ((lines.length - 1) * lineH) / 2;
+    for (const l of lines) { ctx.fillText(l, cnv.width / 2, y); y += lineH; }
     const texture = shared(new THREE.CanvasTexture(cnv));
     const material = shared(new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false }));
     entry = { material, texture };
@@ -146,13 +150,14 @@ export async function createView3d(container) {
   const labelRightV = new THREE.Vector3();
   const labelBasisM = new THREE.Matrix4();
   function labelMesh(pl, text, color) {
-    const { material } = labelTextureFor(text, color);
+    const w = Math.max(pl.width, 0.001), h = Math.max(pl.height, 0.001);
+    const { material } = labelTextureFor(text, color, w, h);
     labelNormalV.set(pl.normal.x, pl.normal.y, pl.normal.z);
     labelUpV.set(pl.up.x, pl.up.y, pl.up.z);
     labelRightV.crossVectors(labelUpV, labelNormalV).normalize();
     labelBasisM.makeBasis(labelRightV, labelUpV, labelNormalV);
     const mesh = new THREE.Mesh(GEO_PLANE, material);
-    mesh.scale.set(Math.max(pl.width, 0.001), Math.max(pl.height, 0.001), 1);
+    mesh.scale.set(w, h, 1);
     mesh.position.set(pl.center.x, pl.center.y, pl.center.z);
     mesh.quaternion.setFromRotationMatrix(labelBasisM);
     return mesh;
@@ -364,7 +369,7 @@ export async function createView3d(container) {
       out.push({ p1: at(from, i), p2: at(to, i + 1), r });
     }
   }
-  function addTruss(it, bad, selected, chordSegs, chordColors, diagSegs) {
+  function addTruss(it, bad, selected, chordSegs, chordColors, diagSegs, seq) {
     const { c, p, box } = it;
     const shape = trussShape(c, p, box);
     const { lenAxis, widAxis } = shape;
@@ -397,7 +402,7 @@ export async function createView3d(container) {
         const d = shape.dollies[i];
         const endFace = `${lenAxis}${i}`;
         const pl = labelPlanes(d, 'bottom').find(p => p.face === endFace);
-        if (pl) content.add(labelMesh(pl, it.label, ALU_HEX));
+        if (pl) content.add(labelMesh(pl, `${seq}. ${it.label}`, ALU_HEX));
       }
     });
     for (const r of shape.rails) content.add(boxMesh(r, MAT_DOLLY_RAIL));
@@ -432,6 +437,32 @@ export async function createView3d(container) {
     content.clear();
   }
 
+  // Vollständiger Abbau der Ansicht: ResizeObserver, Controls und WebGL-Kontext freigeben, dazu
+  // alle geteilten Geometrien/Materialien/Texturen (die `clear()` bewusst überspringt, weil sie
+  // über Updates hinweg wiederverwendet werden) und die Farb-/Beschriftungs-Caches. Ohne das bleibt
+  // bei jedem Neuaufbau nach einem Fehler (app.js, `catch`) ein WebGL-Kontext hängen – Chrome hält
+  // nur rund 16 davon (s. Befund I6).
+  function dispose() {
+    resizeObserver.disconnect();
+    controls.dispose();
+    clear();
+    for (const g of [GEO_BOX, GEO_BOX_EDGES, GEO_SPHERE, GEO_CYL, GEO_PLANE]) g.dispose();
+    LAM_TEX.dispose();
+    for (const m of [
+      MAT_FLOOR, MAT_ROOM_EDGE, MAT_FRONT, MAT_ARCH, MAT_ALU, MAT_CORNER, MAT_WHEEL, MAT_HUB,
+      MAT_EDGE_ALU, MAT_EDGE_SEL, MAT_EDGE_ERR, MAT_PROFILE, MAT_CHROME, MAT_SEAM_BAND,
+      MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL,
+    ]) m.dispose();
+    for (const { material, texture } of labelTexCache.values()) { material.dispose(); texture.dispose(); }
+    labelTexCache.clear();
+    for (const m of bodyMatCache.values()) m.dispose();
+    bodyMatCache.clear();
+    for (const m of bandMatCache.values()) m.dispose();
+    bandMatCache.clear();
+    renderer.dispose();
+    renderer.forceContextLoss();
+  }
+
   let framedFor = null;
   function update({ truck, result, selectedId, colorMode = 'black' }) {
     clear();
@@ -452,7 +483,7 @@ export async function createView3d(container) {
       const colors = caseColors(it.c, colorMode, it.color);
 
       if (isTruss(it.c)) {
-        addTruss(it, bad, it.id === selectedId, chordSegs, chordColors, diagSegs);
+        addTruss(it, bad, it.id === selectedId, chordSegs, chordColors, diagSegs, result.sequence.get(it.id));
         continue;
       }
 
@@ -498,7 +529,8 @@ export async function createView3d(container) {
       // Schriftfarbe aus dem tatsächlichen Korpus-Hintergrund ableiten, nicht aus der Stück-/Gewerkfarbe
       // (die im Modus „Schwarz“ nur als Farbstreifen erscheint, nicht als Korpusfarbe).
       if (it.label) {
-        for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, it.label, colors.body));
+        const labelText = `${result.sequence.get(it.id)}. ${it.label}`;
+        for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, labelText, colors.body));
       }
     }
 
@@ -533,5 +565,5 @@ export async function createView3d(container) {
     resize();
     render();
   }
-  return { update };
+  return { update, dispose };
 }

@@ -13,6 +13,12 @@ const CASE_KINDS = ['case', 'truss'];
 // Obergrenzen für Case-Werte aus fremden Dateien. Großzügig, aber so, dass Unsinn
 // (ein 100 m langes, 100 t schweres Case) auffällt. Task 5 übernimmt dieselbe Konstante
 // für die `max=`-Attribute im Case-Editor, damit Oberfläche und Import nicht auseinanderlaufen.
+// Höchstlänge einer Beschriftung (Platzierung oder Ablage-Eintrag). Quelle für `maxlength`
+// in der Oberfläche UND für die Kürzung beim Bilden vorbelegter Texte (js/model/actions.js) –
+// beide müssen dieselbe Zahl benutzen, sonst erzeugt die App Beschriftungen, die ihr eigener
+// Import ablehnt.
+export const MAX_LABEL = 40;
+
 export const CASE_LIMITS = {
   l: 2000, w: 2000, h: 2000, // cm
   weight: 50000, // kg
@@ -87,7 +93,7 @@ function checkTruck(t) {
   if (t.wheelArches != null && !Array.isArray(t.wheelArches)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
   if (!arr(t.wheelArches ?? []).every(checkArch)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
 }
-const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.label.length <= 40);
+const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.label.length <= MAX_LABEL);
 function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
     throw new Error('Ungültiger Ladeplan in der Datei.');
