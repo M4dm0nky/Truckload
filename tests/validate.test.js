@@ -88,6 +88,41 @@ test('Kennzahlen und Reihenfolge', () => {
   assert.equal(r.sequence.get('hinten'), 2);
 });
 
+test('sind alle Cases gewogen, bleibt der Schwerpunkt gewichtsbasiert und als solcher gekennzeichnet', () => {
+  const r = validatePlan(plan([P('hinten','k',120,0,0), P('vorn','k',0,0,0)]), byId(K), mkTruck());
+  assert.equal(r.totals.withoutWeight, 0);
+  assert.equal(r.totals.cog.source, 'weight');
+});
+
+test('Cases ohne Gewicht werden gezählt (totals.withoutWeight)', () => {
+  const Z = mkCase('z', 60, 60, 60, { weight: 0 });
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','z',60,94,0), P('c','z',120,94,0)]), byId(K, Z), mkTruck());
+  assert.equal(r.totals.withoutWeight, 2);
+});
+
+test('Schwerpunkt fällt auf Volumen zurück, wenn kein Case ein Gewicht hat', () => {
+  const Z = mkCase('z', 60, 60, 60, { weight: 0 });
+  // zwei gleich große Cases, Mittelpunkte bei x=30 und x=150 -> Volumen-Schwerpunkt bei 90
+  const r = validatePlan(plan([P('a','z',0,94,0), P('b','z',120,94,0)]), byId(Z), mkTruck());
+  assert.equal(r.totals.cog.source, 'volume');
+  assert.equal(r.totals.cog.x, 90);
+});
+
+test('Schwerpunkt fällt auf Volumen zurück, sobald irgendein Stück in einer gemischten Ladung ohne Gewicht ist', () => {
+  // Ein Fall mit Gewicht, einer ohne – ein gewichtsbasierter Schwerpunkt würde hier nur aus
+  // dem gewogenen Case bestehen und einen falschen Eindruck von Genauigkeit erwecken.
+  const Z = mkCase('z', 60, 60, 60, { weight: 0 });
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','z',120,94,0)]), byId(K, Z), mkTruck());
+  assert.equal(r.totals.withoutWeight, 1);
+  assert.equal(r.totals.cog.source, 'volume');
+});
+
+test('Einseitigkeit wird auch ganz ohne Gewichte über das Volumen erkannt', () => {
+  const Z = mkCase('z', 60, 60, 60, { weight: 0 });
+  const r = validatePlan(plan([P('a','z',0,0,0)]), byId(Z), mkTruck());
+  assert.ok(planCodes(r).includes('imbalance'));
+});
+
 test('Lagen 1/2/3 im Stapel korrekt', () => {
   const r = validatePlan(plan([P('a','k',0,94,0), P('b','k',0,94,60), P('c','k',0,94,120)]), byId(K), mkTruck());
   assert.equal(r.layers.get('a'), 1);

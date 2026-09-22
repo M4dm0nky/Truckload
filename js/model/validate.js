@@ -123,14 +123,37 @@ export function validatePlan(plan, caseById, truck) {
   if (weight > truck.payload)
     add(null, 'tooHeavy', `Gesamtgewicht ${Math.round(weight)} kg überschreitet die Nutzlast von ${truck.payload} kg.`);
 
-  const cog = weight ? {
-    x: items.reduce((s, it) => s + it.c.weight * (it.box.x0 + it.box.x1) / 2, 0) / weight,
-    y: items.reduce((s, it) => s + it.c.weight * (it.box.y0 + it.box.y1) / 2, 0) / weight,
-  } : null;
+  // Cases ohne recherchiertes Gewicht tragen 0 kg ein (bewusst, statt geraten – siehe
+  // CLAUDE.md „Haltung“). Ein gewichtsbasierter Schwerpunkt, der solche Stücke einfach mit
+  // 0 gewichtet, wäre nur der Schwerpunkt der bekannten Teilmenge – er sieht aus wie ein
+  // echter Wert, ist es aber nicht, sobald auch nur ein Stück ohne Gewicht dabei ist. Wir
+  // schalten deshalb für die GANZE Ladung auf einen Volumen-Schwerpunkt um, sobald
+  // mindestens ein Stück ohne Gewicht dabei ist – nicht erst, wenn alle ohne Gewicht sind.
+  // Kosten: Ist die tatsächliche Gewichtsverteilung deutlich anders als die Volumenverteilung
+  // (z. B. ein kleines, schweres Case in der Ecke neben vielen leichten, großen), kann der
+  // Volumen-Schwerpunkt eine Einseitigkeit verschweigen oder eine erfinden, die es beim
+  // echten Gewicht nicht gäbe. Das wird über `source: 'volume'` in der Oberfläche kenntlich
+  // gemacht, damit der Nutzer weiß, dass die Zahl eine Näherung ist.
+  const withoutWeight = items.filter(it => !it.c.weight).length;
+  const vol = b => (b.x1 - b.x0) * (b.y1 - b.y0) * (b.z1 - b.z0);
+  const volume = items.reduce((s, { box: b }) => s + vol(b), 0);
+
+  let cog = null;
+  if (withoutWeight === 0 && weight) {
+    cog = {
+      x: items.reduce((s, it) => s + it.c.weight * (it.box.x0 + it.box.x1) / 2, 0) / weight,
+      y: items.reduce((s, it) => s + it.c.weight * (it.box.y0 + it.box.y1) / 2, 0) / weight,
+      source: 'weight',
+    };
+  } else if (withoutWeight > 0 && volume > 0) {
+    cog = {
+      x: items.reduce((s, it) => s + vol(it.box) * (it.box.x0 + it.box.x1) / 2, 0) / volume,
+      y: items.reduce((s, it) => s + vol(it.box) * (it.box.y0 + it.box.y1) / 2, 0) / volume,
+      source: 'volume',
+    };
+  }
   if (cog && Math.abs(cog.y - truck.w / 2) > IMBALANCE_RATIO * truck.w)
     add(null, 'imbalance', `Ladung ist einseitig: Schwerpunkt ${Math.round(Math.abs(cog.y - truck.w / 2))} cm aus der Mitte.`);
-
-  const volume = items.reduce((s, { box: b }) => s + (b.x1 - b.x0) * (b.y1 - b.y0) * (b.z1 - b.z0), 0);
 
   const byPlacement = new Map();
   for (const is of issues) if (is.placementId) {
@@ -141,7 +164,7 @@ export function validatePlan(plan, caseById, truck) {
   return {
     issues, byPlacement, load, items, layers, sequence: loadSequence(items),
     totals: {
-      weight, payload: truck.payload, cog,
+      weight, payload: truck.payload, cog, withoutWeight,
       loadMeters: items.length ? Math.max(...items.map(it => it.box.x1)) / 100 : 0,
       volumeRatio: truck.l > 0 && truck.w > 0 && truck.h > 0 ? volume / (truck.l * truck.w * truck.h) : 0,
       count: items.length,

@@ -53,12 +53,12 @@ export function renderInspector(el, { selected, result, truck }) {
     <section class="insp-totals">
       <h3>Ladung – ${esc(truck.name)}</h3>
       <div class="bar ${t.weight > t.payload ? 'over' : ''}"><span style="width:${pct}%"></span></div>
-      <p>${Math.round(t.weight).toLocaleString('de-DE')} / ${t.payload.toLocaleString('de-DE')} kg Nutzlast</p>
+      <p>${Math.round(t.weight).toLocaleString('de-DE')} / ${t.payload.toLocaleString('de-DE')} kg Nutzlast${t.withoutWeight ? ` · <span class="hint">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig</span>` : ''}</p>
       <dl>
         <dt>Cases</dt><dd>${t.count}</dd>
         <dt>Lademeter</dt><dd>${fmtM(t.loadMeters * 100)} von ${fmtM(truck.l)}</dd>
         <dt>Volumen</dt><dd>${Math.round(t.volumeRatio * 100)} %</dd>
-        <dt>Schwerpunkt</dt><dd>${t.cog ? `${fmtM(t.cog.x)} ab Stirnwand, ${Math.round(t.cog.y - truck.w / 2)} cm aus der Mitte` : '–'}</dd>
+        <dt>Schwerpunkt</dt><dd>${t.cog ? `${fmtM(t.cog.x)} ab Stirnwand, ${Math.round(t.cog.y - truck.w / 2)} cm aus der Mitte${t.cog.source === 'volume' ? ' (ersatzweise über das Volumen geschätzt, da Gewichte fehlen)' : ''}` : '–'}</dd>
       </dl>
     </section>
     <section class="insp-issues">

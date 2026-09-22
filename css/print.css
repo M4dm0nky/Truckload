@@ -10,6 +10,7 @@ body > *:not(#print-root) { display: none !important; }
 #print-root svg .grid line { stroke: #ccc; }
 #print-root svg .tick { fill: #444; }
 #print-root .p-issues { border: 1px solid #c00; padding: 2mm; color: #c00; }
+#print-root .p-noweight { margin: 0; font-size: 9pt; color: #555; }
 #print-root table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
 #print-root th, #print-root td { border-bottom: 1px solid #bbb; padding: 1mm 2mm; text-align: left; vertical-align: top; }
 #print-root tr { break-inside: avoid; }

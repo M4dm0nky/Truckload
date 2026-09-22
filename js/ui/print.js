@@ -11,6 +11,7 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
       <p>${esc(truck.name)} · Innen ${truck.l}×${truck.w}×${truck.h} cm · ${new Date().toLocaleDateString('de-DE')}
         · ${Math.round(t.weight).toLocaleString('de-DE')} / ${truck.payload.toLocaleString('de-DE')} kg
         · ${fmtM(t.loadMeters * 100)} Lademeter · ${t.count} Cases · Truckload V ${APP_VERSION}</p>
+      ${t.withoutWeight ? `<p class="p-noweight">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig${t.cog && t.cog.source === 'volume' ? '; Schwerpunkt ersatzweise über das Volumen geschätzt' : ''}.</p>` : ''}
     </header>
     <figure><figcaption>Draufsicht (Stirnwand links)</figcaption><svg class="p-top"></svg></figure>
     <figure><figcaption>Seitenansicht (von links)</figcaption><svg class="p-side"></svg></figure>
