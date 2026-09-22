@@ -76,6 +76,17 @@ export const deleteTruck = id => db.del('trucks', id);
 export const savePlan = p => db.put('plans', p);
 export const deletePlan = id => db.del('plans', id);
 
+// Die reine Zuordnung „welcher Gewinner gehört in welchen Object Store“ – ohne IndexedDB,
+// deshalb mit node --test prüfbar (anders als der eigentliche Schreibvorgang, der echtes
+// IndexedDB braucht und nur im Browser verifiziert werden kann).
+export function buildImportWinnerItems(winners) {
+  return [
+    ...winners.cases.map(value => ({ store: 'cases', value })),
+    ...winners.trucks.map(value => ({ store: 'trucks', value })),
+    ...winners.plans.map(value => ({ store: 'plans', value })),
+  ];
+}
+
 // Schreibt die Gewinner eines Imports (siehe mergeImportedBundle) in EINER Transaktion:
 // entweder landen alle drin, oder – schlägt einer der Schreibvorgänge fehl – keiner.
 // Unabhängige db.put()-Aufrufe je Datensatz könnten sonst teilweise erfolgreich sein, bevor
@@ -83,9 +94,5 @@ export const deletePlan = id => db.del('plans', id);
 // weder ein Rollback der Oberfläche auf den Vor-Import-Zustand noch der Import selbst je
 // vorgesehen hatte (Befund: „Teil-Import lässt Store und Datenbank auseinanderlaufen“).
 export function saveImportWinners(winners) {
-  return db.putMany([
-    ...winners.cases.map(value => ({ store: 'cases', value })),
-    ...winners.trucks.map(value => ({ store: 'trucks', value })),
-    ...winners.plans.map(value => ({ store: 'plans', value })),
-  ]);
+  return db.putMany(buildImportWinnerItems(winners));
 }

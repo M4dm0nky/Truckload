@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
@@ -139,4 +139,41 @@ test('mergeImportedBundle: Cases und Fahrzeuge werden unabhängig vom Plan gemis
   assert.deepEqual(result.winners.trucks, [], 'älterer Datei-Stand von t1 verliert gegen den lokalen');
   assert.equal(result.cases.find(c => c.id === 'c1').name, 'Aus Datei');
   assert.equal(result.trucks.find(t => t.id === 't1').name, 'Lokal');
+});
+
+// --- Fix-Runde 2 (Task 2): die reine Zuordnung „welcher Gewinner gehört in welchen
+// Object Store“, die repo.saveImportWinners() an db.putMany() übergibt. Das ist die
+// „Zuordnung in saveImportWinners“, die sich ohne IndexedDB mit node --test prüfen lässt -
+// der eigentliche Schreibvorgang (db.putMany) braucht echtes IndexedDB und ist nur im
+// Browser verifizierbar (siehe CDP-Szenarien im Task-Bericht).
+
+test('buildImportWinnerItems: jeder Gewinner wird seinem eigenen Object Store zugeordnet', () => {
+  const winners = {
+    cases: [{ id: 'c1' }, { id: 'c2' }],
+    trucks: [{ id: 't1' }],
+    plans: [{ id: 'p1' }],
+  };
+  const items = buildImportWinnerItems(winners);
+  assert.deepEqual(items, [
+    { store: 'cases', value: { id: 'c1' } },
+    { store: 'cases', value: { id: 'c2' } },
+    { store: 'trucks', value: { id: 't1' } },
+    { store: 'plans', value: { id: 'p1' } },
+  ]);
+});
+
+test('buildImportWinnerItems: leere Gewinnerlisten erzeugen keine Einträge', () => {
+  assert.deepEqual(buildImportWinnerItems({ cases: [], trucks: [], plans: [] }), []);
+});
+
+test('buildImportWinnerItems: nur die tatsächlichen Gewinner landen in der Liste, nicht alle Cases/Fahrzeuge/Pläne', () => {
+  // Regression gegen eine naheliegende Verwechslung: buildImportWinnerItems bekommt
+  // absichtlich schon das `winners`-Ergebnis von mergeImportedBundle übergeben, nicht den
+  // gesamten gemischten Bestand - sonst würde jeder Import den kompletten lokalen Stand
+  // erneut in die Datenbank schreiben, statt nur das, was tatsächlich aus der Datei kam.
+  const state = { cases: [{ id: 'local', updatedAt: '2026-01-01T00:00:00.000Z' }], trucks: [], plans: [], plan: { id: 'p', updatedAt: '2026-01-01T00:00:00.000Z' } };
+  const bundle = { cases: [{ id: 'new-from-file' }], trucks: [], plans: [] };
+  const merge = mergeImportedBundle(state, bundle);
+  const items = buildImportWinnerItems(merge.winners);
+  assert.deepEqual(items.map(i => i.value.id), ['new-from-file'], 'nur das neue Case aus der Datei, nicht das lokale');
 });

@@ -24,6 +24,7 @@ const ASSETS = [
   'js/model/packer.js',
   'js/model/truss.js',
   'js/model/validate.js',
+  'js/store/autosave.js',
   'js/store/db.js',
   'js/store/io.js',
   'js/store/repo.js',

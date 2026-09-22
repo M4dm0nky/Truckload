@@ -16,6 +16,7 @@ import { esc } from './ui/dom.js';
 import { createView3d } from './ui/view3d.js';
 import { buildPrint } from './ui/print.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
+import { createAutosave } from './store/autosave.js';
 
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
@@ -85,22 +86,12 @@ export const renderHooks = []; // Task 10–13 hängen hier Bibliothek, Inspecto
 
 // --- Speichern -------------------------------------------------------------------------
 //
-// Fix-Runde 1 (Task 2) hat vier tatsächliche Datenverlustpfade in der ersten Fassung
-// gefunden – alle hingen daran, dass ein einzelnes `lastSaved` sowohl "welcher Plan ist
-// der aktuelle" als auch "ist er gesichert" gleichzeitig ausdrücken sollte. Jetzt:
-// `pendingPlans` (Map planId -> Plan) führt Buch über JEDEN Plan mit ungesichertem Stand,
-// unabhängig davon, welcher gerade angezeigt wird oder was danach erfolgreich gespeichert
-// wurde. `lastConsideredPlan` ist reine Änderungserkennung ("ist s.plan seit dem letzten
-// Blick noch derselbe Objekt-Verweis") – getrennt von "gesichert oder nicht".
-let pendingPlans = new Map();
-let firstPendingAt = null;
-let saveTimer = null;
-let savePending = Promise.resolve();
-let lastConsideredPlan = store.get().plan;
-
-const FLUSH_DEBOUNCE_MS = 400;
-const FLUSH_MAX_WAIT_MS = 2000; // spätestens so lange nach der ERSTEN ausstehenden Änderung wird geschrieben
-
+// Die Buchhaltung selbst (welcher Plan ist ausstehend, Debounce mit Obergrenze,
+// Wiederholung nach Fehlschlag) steckt jetzt in js/store/autosave.js – reine Logik ohne
+// DOM/IndexedDB, mit node --test prüfbar (Fix-Runde 2: sechs gezielte Rückbauten dieser
+// Regeln blieben bei 275/275 grün, solange sie nur hier in app.js lagen). Hier wird nur
+// noch verdrahtet: die Statusanzeige, wann ein Plan als "bekannt" statt "geändert" gilt,
+// und wann der Autosave für einen Plan stillgelegt wird (Import).
 function setSaveStatus(status, err) {
   const el = $('#save-status');
   if (!el) return;
@@ -119,85 +110,36 @@ function setSaveStatus(status, err) {
   }
 }
 
-// Einen Plan als "nicht mehr zu speichern" austragen – nur, wenn er nicht zwischenzeitlich
-// erneut geändert wurde (Vergleich per Referenz), sonst würde ein frischerer, noch
-// ungesicherter Stand mit demselben planId fälschlich als erledigt gelten.
-function forgetPending(id, planRef) {
-  if (planRef !== undefined && pendingPlans.get(id) !== planRef) return;
-  pendingPlans.delete(id);
-  if (pendingPlans.size === 0) {
-    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-    firstPendingAt = null;
-    setSaveStatus('idle');
-  }
-}
-
-function scheduleFlush() {
-  if (saveTimer) clearTimeout(saveTimer);
-  const elapsed = firstPendingAt === null ? 0 : Date.now() - firstPendingAt;
-  const wait = Math.max(0, Math.min(FLUSH_DEBOUNCE_MS, FLUSH_MAX_WAIT_MS - elapsed));
-  saveTimer = setTimeout(flushSave, wait);
-}
-
-// Schreibt ALLE ausstehenden Pläne (nicht nur den aktuellen) – ein zuvor fehlgeschlagener
-// Schreibvorgang für einen inzwischen verlassenen Plan bleibt so in `pendingPlans` stehen
-// und wird beim nächsten Flush mit versucht, statt beim nächsten erfolgreichen Speichern
-// eines ANDEREN Plans stillschweigend als erledigt zu gelten (Befund: „ein fehlgeschlagener
-// Schreibvorgang wird beim nächsten Planwechsel spurlos vergessen“). savePending verkettet
-// aufeinanderfolgende Aufrufe, damit zwei schnell hintereinander ausgelöste Flushes (z. B.
-// pagehide direkt nach einer Änderung) nicht gleichzeitig in IndexedDB schreiben.
-function flushSave() {
-  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-  if (pendingPlans.size === 0) return savePending;
-  const batch = [...pendingPlans.entries()];
-  setSaveStatus('saving');
-  savePending = savePending.catch(() => {}).then(async () => {
-    let lastErr = null;
-    for (const [id, plan] of batch) {
-      try {
-        await repo.savePlan(plan);
-        forgetPending(id, plan);
-      } catch (err) {
-        lastErr = err;
-      }
-    }
-    if (pendingPlans.size === 0) setSaveStatus('idle');
-    else {
-      setSaveStatus('error', lastErr);
-      saveTimer = setTimeout(flushSave, FLUSH_DEBOUNCE_MS); // erneuter Versuch, Fehler bleibt sichtbar
-    }
-  });
-  return savePending;
-}
+const autosave = createAutosave({ savePlan: repo.savePlan, onStatus: setSaveStatus });
 
 store.subscribe(s => {
   scheduleRender();
-  // Nur zurücksetzen/neu planen, wenn sich der PLAN seit dem letzten Blick geändert hat –
-  // nicht bei jeder Store-Änderung (Auswahl, Modus, Fahrzeugliste, …). Sonst startet jede
-  // Selektion den Debounce neu und ein Plan bleibt beliebig lange ungeschrieben, solange
-  // der Nutzer nur klickt (Befund: „Timer feuert bei jeder Zustandsänderung“).
-  if (s.plan === lastConsideredPlan) return;
-  lastConsideredPlan = s.plan;
-  pendingPlans.set(s.plan.id, s.plan);
-  if (firstPendingAt === null) firstPendingAt = Date.now();
-  scheduleFlush();
+  autosave.noticeChange(s.plan);
 });
 
 // Flush beim Verlassen der Seite (Befund Daten-3): ein reiner Debounce ohne das hier würde
 // die letzten <400 ms an Änderungen beim Schließen des Tabs oder beim Wegwechseln auf dem
 // Tablet verwerfen. visibilitychange ist der verlässliche Haken (beforeunload wird auf
 // Mobilgeräten oft nicht gefeuert), pagehide zusätzlich für den Fall eines echten Unloads.
-window.addEventListener('pagehide', flushSave);
+window.addEventListener('pagehide', () => autosave.flush());
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') flushSave();
+  if (document.visibilityState === 'hidden') autosave.flush();
 });
 
 const usage = (s, caseId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
   .filter(p => [...p.placements, ...p.unplaced].some(x => x.caseId === caseId)).length;
 
+// Bug F (nit, Fix-Runde 2): dieselbe Klasse wie die schon behobenen Löschzweige - eine
+// abgelehnte repo.saveCase() darf nicht unbehandelt bleiben, sonst zeigt die Oberfläche im
+// Erfolgsfall stillschweigend nichts an und im Fehlerfall gar nichts.
 async function saveCaseValue(rawValue) {
   const value = stamp(rawValue);
-  await repo.saveCase(value);
+  try {
+    await repo.saveCase(value);
+  } catch (err) {
+    alert(`Case konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
+    return undefined;
+  }
   store.update(st => ({ ...st, cases: [...st.cases.filter(x => x.id !== value.id), value] }));
   return value;
 }
@@ -208,7 +150,12 @@ async function editCase(caseId) {
   const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId ? usage(s, caseId) : 0 });
   if (!res) return;
   if (res.action === 'delete') {
-    await repo.deleteCase(caseId);
+    try {
+      await repo.deleteCase(caseId);
+    } catch (err) {
+      alert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
+      return;
+    }
     store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
   } else {
     await saveCaseValue(res.value);
@@ -360,19 +307,23 @@ renderHooks.push((s, d) => {
 });
 
 // Ladepläne
-// dirty:true nur für einen Plan, der wirklich neu ist (Duplikat) und sein erstes
-// Speichern über den normalen Dirty-Mechanismus bekommen soll. Im Normalfall (Standard,
-// dirty:false) ist ein Wechsel keine Änderung AM Plan: lastConsideredPlan wird deshalb
-// VOR dem store.update() vorbelegt, damit der generische Dirty-Check in store.subscribe()
-// ihn nicht selbst als "geändert" wertet. Ohne das schreibt der Autosave 400 ms später den
-// lokal zwischengespeicherten (u. U. veralteten) Plan zurück – mit einem zweiten Tab wird
-// daraus echter Datenverlust: Tab 2 speichert eine Änderung, Tab 1 wechselt nur auf
-// denselben Plan aus seinem eigenen, älteren `s.plans`-Cache und überschreibt sie wieder
-// (Befund: „ein reiner Planwechsel schreibt und überschreibt den neueren Stand eines
-// zweiten Tabs“).
-function switchPlan(plan, { dirty = false } = {}) {
-  flushSave(); // ausstehende Änderungen des bisherigen Plans sofort sichern (auch mehrfach ausstehende)
-  if (!dirty) lastConsideredPlan = plan;
+// Ein reiner Wechsel zu einem schon bekannten Plan ist keine Änderung AN ihm:
+// autosave.markKnown() wird deshalb VOR dem store.update() aufgerufen, damit die
+// Änderungserkennung im subscribe-Hook den Wechsel nicht selbst als "geändert" wertet.
+// Ohne das schreibt der Autosave 400 ms später den lokal zwischengespeicherten (u. U.
+// veralteten) Plan zurück – mit einem zweiten Tab wird daraus echter Datenverlust: Tab 2
+// speichert eine Änderung, Tab 1 wechselt nur auf denselben Plan aus seinem eigenen,
+// älteren `s.plans`-Cache und überschreibt sie wieder (Befund: „ein reiner Planwechsel
+// überschreibt den neueren Stand eines zweiten Tabs“).
+// Ein wirklich NEUER, nie gespeicherter Plan (Duplikat, Wizard „Neu“, Ersatzplan nach dem
+// Löschen des letzten) ist dagegen nicht bekannt – markKnown() bleibt dann aus, und er
+// bekommt sein erstes Speichern automatisch über den normalen Mechanismus (Befund: „ein
+// nie geschriebener Plan gilt sonst fälschlich als sauber, solange dirty nicht explizit an
+// jeder Aufrufstelle gesetzt wird“).
+function switchPlan(plan) {
+  autosave.flush(); // ausstehende Änderungen des bisherigen Plans sofort sichern (auch mehrfach ausstehende)
+  const known = store.get().plan.id === plan.id || store.get().plans.some(p => p.id === plan.id);
+  if (known) autosave.markKnown(plan);
   store.update(s => ({ ...s, plans: [s.plan, ...s.plans.filter(p => p.id !== s.plan.id && p.id !== plan.id)], plan, selectedId: null }));
   store.resetHistory();
 }
@@ -387,7 +338,7 @@ $('#plan-rename').onclick = () => {
 };
 $('#plan-dup').onclick = () => {
   const p = store.get().plan;
-  switchPlan(stamp({ ...structuredClone(p), id: uid(), name: `${p.name} (Kopie)` }), { dirty: true });
+  switchPlan(stamp({ ...structuredClone(p), id: uid(), name: `${p.name} (Kopie)` }));
 };
 $('#plan-del').onclick = async () => {
   const s = store.get();
@@ -395,16 +346,16 @@ $('#plan-del').onclick = async () => {
   try {
     await repo.deletePlan(s.plan.id);
   } catch (err) {
-    alert(`Löschen fehlgeschlagen: ${err.message}`);
+    alert(`Löschen fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
     return;
   }
   // Erst NACH dem erfolgreichen Löschen die ausstehende Speicherung dieses Plans
   // verwerfen (Befund: vorher hätte ein fehlgeschlagenes deletePlan einen echten
   // ausstehenden Stand ersatzlos verworfen, obwohl der Plan weiter existiert).
-  forgetPending(s.plan.id);
+  autosave.forget(s.plan.id);
   const rest = s.plans.filter(p => p.id !== s.plan.id);
   const next = rest[0] ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK_ID);
-  lastConsideredPlan = next; // reiner Wechsel auf den nächsten Plan, keine Änderung an ihm
+  if (rest.some(p => p.id === next.id)) autosave.markKnown(next); // sonst: neu, braucht sein erstes Speichern
   store.update(st => ({ ...st, plans: rest.filter(p => p.id !== next.id), plan: next, selectedId: null }));
   store.resetHistory();
 };
@@ -422,7 +373,7 @@ async function editTruck(truck) {
     try {
       await repo.deleteTruck(truck.id);
     } catch (err) {
-      alert(`Fahrzeug konnte nicht gelöscht werden: ${err.message}`);
+      alert(`Fahrzeug konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
       return;
     }
     // Nicht nur den aktuellen Plan umbiegen (Befund Daten-22): jeder Plan, der das
@@ -440,14 +391,19 @@ async function editTruck(truck) {
         // Unbehandelt hätte das eine tote Rejection UND einen toten truckId-Verweis
         // hinterlassen, der stehen bleibt, weil niemand davon erfährt (Befund:
         // „Löschzweige ohne Fehlerbehandlung“).
-        alert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err.message}. Bitte prüfen und ggf. erneut speichern.`);
+        alert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
       }
     }
     if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }));
     return;
   }
   const value = stamp(res.value);
-  await repo.saveTruck(value);
+  try {
+    await repo.saveTruck(value);
+  } catch (err) {
+    alert(`Fahrzeug konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
+    return;
+  }
   store.update(s => ({ ...s, trucks: [...s.trucks.filter(t => t.id !== value.id), value] }));
   edit(p => stamp({ ...p, truckId: value.id }));
 }
@@ -513,7 +469,7 @@ $('#import').onchange = async e => {
   try {
     bundle = parseBundle(await file.text());
   } catch (err) {
-    alert(`Import fehlgeschlagen: ${err.message}`);
+    alert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
     return;
   }
 
@@ -525,18 +481,24 @@ $('#import').onchange = async e => {
   lastPreImportBackup = { name: backupName, text: backupText };
   downloadJSON(backupName, backupText);
   // Falls der aktuelle Plan schon VOR dem Import eine eigene, noch nicht geschriebene
-  // Änderung hatte: bei einem fehlgeschlagenen Import (Rollback auf s0 unten) darf diese
-  // Änderung nicht mit verschwinden, nur weil ihr Pending-Eintrag zwischenzeitlich vom
-  // optimistischen Merge-Update überschrieben wurde.
-  const pendingBeforeImport = pendingPlans.get(s0.plan.id) === s0.plan ? s0.plan : null;
+  // Änderung hatte: exclude() unten würde sie für die Dauer des Imports unsichtbar machen,
+  // ohne dass sie danach von selbst wiederkehrt (anders als bei einer echten neuen Änderung,
+  // die über eine andere Objekt-Referenz erkannt würde) – deshalb separat merken.
+  const pendingBeforeImport = autosave.has(s0.plan.id) ? autosave.peek(s0.plan.id) : null;
+
+  // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen (Befund: „der
+  // Import läuft gegen den eigenen Autosave“). saveImportWinners() schreibt diesen Plan
+  // (falls die Datei ihn gewinnt) selbst; ohne exclude() würde der optimistische
+  // store.update() gleich darunter den Plan zusätzlich als normale Änderung anmelden – der
+  // Autosave könnte dann parallel oder sogar NACH einem fehlgeschlagenen
+  // saveImportWinners() (das die Oberfläche zurückrollt) unbemerkt doch noch denselben
+  // Stand in die Datenbank schreiben, obwohl "Stand von vorher wiederhergestellt" gemeldet
+  // wurde.
+  autosave.exclude(s0.plan.id);
 
   // Das Mischen passiert synchron im Store-Updater, auf dem Zustand zum Zeitpunkt des
   // Updates – nicht auf einem vor den beiden obigen await-Grenzen genommenen Schnappschuss
   // (Befund Daten-5). Zwischenzeitliche Änderungen des Nutzers gehen so nicht verloren.
-  // lastConsideredPlan wird hier bewusst NOCH NICHT umgestellt (Befund: „lastSaved steht
-  // wieder vor dem Schreiben“) – solange der Schreibvorgang unten nicht bestätigt ist,
-  // bleibt der optimistisch angezeigte Plan über den normalen Dirty-Mechanismus als
-  // ausstehend erfasst.
   let merge;
   store.update(s => {
     merge = repo.mergeImportedBundle(s, bundle);
@@ -555,30 +517,25 @@ $('#import').onchange = async e => {
     // zeigt möglicherweise Daten, die nicht (vollständig) geschrieben wurden. Zurück auf
     // den Stand vor dem Import – der ist noch da (s0) und stimmt mit der Datenbank überein
     // (Befund: „Teil-Import lässt Store und Datenbank auseinanderlaufen“).
-    if (merge.planChanged) {
-      lastConsideredPlan = s0.plan;
-      forgetPending(merge.plan.id, merge.plan);
-    }
     store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan }));
-    if (pendingBeforeImport) {
-      pendingPlans.set(s0.plan.id, pendingBeforeImport);
-      if (firstPendingAt === null) firstPendingAt = Date.now();
-      scheduleFlush();
-    }
+    autosave.include(s0.plan.id);
+    // Eine schon vor dem Import ausstehende eigene Änderung wieder als ausstehend
+    // eintragen (siehe oben) – mit markDirty() statt noticeChange(), weil der Store gerade
+    // exakt auf s0.plan zurückgerollt wurde und dieselbe Referenz sonst als "keine
+    // Änderung" durchgehen würde.
+    if (pendingBeforeImport) autosave.markDirty(pendingBeforeImport);
     const retry = confirm(
-      `Import: Schreiben in die Datenbank fehlgeschlagen (${err.message}). Der Stand von ` +
-      'vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
+      `Import: Schreiben in die Datenbank fehlgeschlagen (${err?.message ?? 'unbekannter Fehler'}). ` +
+      'Der Stand von vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
     );
     if (retry) downloadJSON(lastPreImportBackup.name, lastPreImportBackup.text);
     return;
   }
-  // Erst NACH dem bestätigten Schreiben als gesichert gelten lassen (dieselbe Regel wie
-  // beim normalen Autosave, Befund Daten-2/Daten-5).
-  if (merge.planChanged) {
-    forgetPending(merge.plan.id, merge.plan);
-    lastConsideredPlan = merge.plan;
-    store.resetHistory();
-  }
+  // Erst NACH dem bestätigten Schreiben den Autosave für diesen Plan wieder freigeben
+  // (dieselbe Regel wie beim normalen Autosave, Befund Daten-2/Daten-5: nichts vor dem
+  // Erfolg als gesichert behandeln).
+  autosave.include(s0.plan.id);
+  if (merge.planChanged) store.resetHistory();
   alert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne (neuere lokale Stände behalten).`);
 };
 
