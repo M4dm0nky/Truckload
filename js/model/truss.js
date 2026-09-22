@@ -5,7 +5,15 @@ export const DOLLY_H = DOLLY_WHEEL_H + DOLLY_BOARD_H + DOLLY_RAIL_H; // Wagen in
 export const DOLLY_WIDTHS = [60, 80];
 export const TRUSS_PROFILES = [{ name: '34er (F34)', width: 29 }, { name: '40er (F44)', width: 40 }];
 
+// Breitengrenze, die trussDims stillschweigend voraussetzt: 2 Stück nebeneinander müssen
+// auf den breiteren Wagen (DOLLY_WIDTHS.at(-1)) passen. Darüber ragen die Traversenstücke
+// aus dem Wagen heraus (docs/code-review-2026-09-21.md, "trussDims erzwingt die
+// Breitengrenze nicht, die es selbst voraussetzt").
+export const MAX_TRUSS_WIDTH = DOLLY_WIDTHS.at(-1) / 2;
+
 export function trussDims({ length, width, count }) {
+  if (width > MAX_TRUSS_WIDTH)
+    throw new Error(`Traversenbreite ${width} cm überschreitet die Grenze von ${MAX_TRUSS_WIDTH} cm.`);
   const perRow = 2;
   const w = perRow * width <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1];
   const h = DOLLY_H + Math.ceil(count / perRow) * width;

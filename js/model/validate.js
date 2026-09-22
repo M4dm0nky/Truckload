@@ -1,4 +1,5 @@
 import { EPS, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, layersOf } from './geometry.js';
+import { isTruss } from './truss.js';
 
 export const SUPPORT_MIN = 0.8;
 export const IMBALANCE_RATIO = 0.1;
@@ -49,21 +50,31 @@ export function validatePlan(plan, caseById, truck) {
   const add = (placementId, code, message) => issues.push({ placementId, code, message });
   const arches = archBoxes(truck);
 
-  for (const p of missing) add(p.id, 'missingCase', 'Case-Typ ist nicht mehr in der Bibliothek.');
+  // Fehlende Case-Typen haben keine bekannten Maße mehr (das Placement speichert nur x/y/z,
+  // keine l/w/h) und können deshalb geometrisch nicht in die Kollisionsprüfung einbezogen
+  // werden. Die Meldung macht das offen, statt eine geprüfte Position vorzutäuschen
+  // (docs/code-review-2026-09-21.md, „validate.js:52,63-67“).
+  for (const p of missing)
+    add(p.id, 'missingCase',
+      `„${p.label ?? p.caseId}“ hat keinen bekannten Case-Typ mehr – die Position wird nicht auf Kollisionen geprüft.`);
 
   for (const it of items) {
-    const b = it.box, n = it.c.name;
+    const b = it.box, n = it.label;
     if (b.x0 < -EPS || b.y0 < -EPS || b.z0 < -EPS
       || b.x1 > truck.l + EPS || b.y1 > truck.w + EPS || b.z1 > truck.h + EPS)
-      add(it.id, 'outOfBounds', `${n} ragt über den Laderaum hinaus.`);
-    if (arches.some(a => overlaps(a, b))) add(it.id, 'arch', `${n} kollidiert mit einem Radkasten.`);
-    if (it.p.orientation !== 'standing' && !it.c.tippable) add(it.id, 'notTippable', `${n} darf nicht getippt werden.`);
+      add(it.id, 'outOfBounds', `„${n}“ ragt über den Laderaum hinaus.`);
+    if (arches.some(a => overlaps(a, b))) add(it.id, 'arch', `„${n}“ kollidiert mit einem Radkasten.`);
+    // Ein Traversenwagen ist geometrisch immer „standing“ (effectiveDims erzwingt das),
+    // p.orientation kann bei importierten Plänen trotzdem andere Werte tragen — die
+    // notTippable-Prüfung darf sich davon nicht täuschen lassen.
+    if (!isTruss(it.c) && it.p.orientation !== 'standing' && !it.c.tippable)
+      add(it.id, 'notTippable', `„${n}“ darf nicht getippt werden.`);
   }
 
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
     if (!overlaps(items[i].box, items[j].box)) continue;
-    add(items[i].id, 'collision', `${items[i].c.name} überschneidet sich mit ${items[j].c.name}.`);
-    add(items[j].id, 'collision', `${items[j].c.name} überschneidet sich mit ${items[i].c.name}.`);
+    add(items[i].id, 'collision', `„${items[i].label}“ überschneidet sich mit „${items[j].label}“.`);
+    add(items[j].id, 'collision', `„${items[j].label}“ überschneidet sich mit „${items[i].label}“.`);
   }
 
   const supporters = new Map();
@@ -74,10 +85,13 @@ export function validatePlan(plan, caseById, truck) {
     const archSup = arches.filter(a => Math.abs(a.z1 - it.box.z0) <= EPS);
     const area = [...sup.map(s => s.box), ...archSup]
       .reduce((s, bx) => s + footprintOverlapArea(bx, it.box), 0);
-    if (area / footprintArea(it.box) < SUPPORT_MIN)
-      add(it.id, 'unsupported', `${it.c.name} steht nicht sicher (unter ${SUPPORT_MIN * 100} % Auflage).`);
+    // fa <= 0 explizit behandeln: area / 0 wäre NaN, und `NaN < SUPPORT_MIN` ist false —
+    // ein Case mit Grundfläche 0 würde sonst stillschweigend als „sicher“ durchgehen.
+    const fa = footprintArea(it.box);
+    if (fa <= 0 || area / fa < SUPPORT_MIN)
+      add(it.id, 'unsupported', `„${it.label}“ steht nicht sicher (unter ${SUPPORT_MIN * 100} % Auflage).`);
     for (const s of sup) if (!s.c.stackable)
-      add(it.id, 'notStackable', `${it.c.name} steht auf ${s.c.name}, das nicht stapelbar ist.`);
+      add(it.id, 'notStackable', `„${it.label}“ steht auf „${s.label}“, das nicht stapelbar ist.`);
   }
 
   const load = new Map(items.map(it => [it.id, 0]));
@@ -92,16 +106,16 @@ export function validatePlan(plan, caseById, truck) {
   for (const it of items) {
     const max = it.c.maxTopLoad;
     if (max != null && load.get(it.id) > max + 1e-6)
-      add(it.id, 'overload', `Auf ${it.c.name} lasten ${Math.round(load.get(it.id))} kg (max. ${max} kg).`);
+      add(it.id, 'overload', `Auf „${it.label}“ lasten ${Math.round(load.get(it.id))} kg (max. ${max} kg).`);
   }
 
   const layers = layerMap(items);
   for (const it of items) {
     const n = layers.get(it.id);
-    if (n > 4) add(it.id, 'tooManyLayers', `„${it.c.name}“ steht in Lage ${n} – mehr als 4 Lagen sind nicht vorgesehen.`);
+    if (n > 4) add(it.id, 'tooManyLayers', `„${it.label}“ steht in Lage ${n} – mehr als 4 Lagen sind nicht vorgesehen.`);
     else {
       const allowed = layersOf(it.c);
-      if (!allowed.includes(n)) add(it.id, 'layer', `„${it.c.name}“ darf nicht in Lage ${n} stehen (erlaubt: ${[...allowed].sort((a, b) => a - b).join(', ')}).`);
+      if (!allowed.includes(n)) add(it.id, 'layer', `„${it.label}“ darf nicht in Lage ${n} stehen (erlaubt: ${[...allowed].sort((a, b) => a - b).join(', ')}).`);
     }
   }
 
@@ -129,7 +143,7 @@ export function validatePlan(plan, caseById, truck) {
     totals: {
       weight, payload: truck.payload, cog,
       loadMeters: items.length ? Math.max(...items.map(it => it.box.x1)) / 100 : 0,
-      volumeRatio: volume / (truck.l * truck.w * truck.h),
+      volumeRatio: truck.l > 0 && truck.w > 0 && truck.h > 0 ? volume / (truck.l * truck.w * truck.h) : 0,
       count: items.length,
     },
   };

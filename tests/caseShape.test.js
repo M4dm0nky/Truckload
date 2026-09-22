@@ -54,3 +54,35 @@ test('wheelH 0: Korpus = Box, keine Rollen', () => {
   assert.deepEqual(wheels, []);
   assert.equal(face, null);
 });
+
+// Reale Bibliotheks-Cases, an denen die Rollen ohne Begrenzung ineinanderlaufen
+// (docs/code-review-2026-09-21.md, "Rollen überlappen bei schmalen Cases").
+test('AF-1 -CAB (44×23, wheelH 12): Rollen überlappen nicht mehr', () => {
+  const c = mkCase('af1', 44, 23, 58, { wheelH: 12 });
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const { wheels } = caseShape(c, p, box);
+  pairwiseNoOverlap(wheels);
+});
+
+test('SF TourHazer II -CAB (53×25, wheelH 12): Rollen überlappen nicht mehr', () => {
+  const c = mkCase('tourhazer', 53, 25, 41, { wheelH: 12 });
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const { wheels } = caseShape(c, p, box);
+  pairwiseNoOverlap(wheels);
+});
+
+// Härtefall aus der Review: noch schmaler als die beiden Bibliotheks-Cases – hier
+// müssen die Rollen zusätzlich innerhalb der Box bleiben (nicht nur nicht überlappen).
+test('sehr schmales Case (20×40, wheelH 12): Rollen bleiben innerhalb der Box und überlappen nicht', () => {
+  const c = mkCase('schmal', 20, 40, 40, { wheelH: 12 });
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const { wheels } = caseShape(c, p, box);
+  pairwiseNoOverlap(wheels);
+  for (const w of wheels) {
+    assert.ok(w.x0 >= box.x0 && w.x1 <= box.x1, 'Rolle bleibt innerhalb x');
+    assert.ok(w.y0 >= box.y0 && w.y1 <= box.y1, 'Rolle bleibt innerhalb y');
+  }
+});

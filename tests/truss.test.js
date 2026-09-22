@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_RAIL_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES,
-  TUBE_R_RATIO, trussDims, isTruss, trussShape,
+  TUBE_R_RATIO, trussDims, isTruss, trussShape, MAX_TRUSS_WIDTH,
 } from '../js/model/truss.js';
 import { boxOf } from '../js/model/geometry.js';
 
@@ -39,6 +39,22 @@ test('TRUSS_PROFILES enthält 34er (29 cm) und 40er (40 cm)', () => {
   assert.ok(TRUSS_PROFILES.some(p => p.width === 29));
   assert.ok(TRUSS_PROFILES.some(p => p.width === 40));
 });
+// trussDims setzt stillschweigend perRow(2) * width <= DOLLY_WIDTHS[0](60) voraus, um zu
+// entscheiden, ob die Stücke auf den 60er oder den 80er Wagen passen. Bei width > 40 stimmt
+// diese Annahme nicht mehr (2 × 45 = 90 > 80), und trussShape lässt die Stücke aus dem Wagen
+// herausragen (docs/code-review-2026-09-21.md, "trussDims erzwingt die Breitengrenze nicht").
+test('MAX_TRUSS_WIDTH ist die Hälfte des breiteren Wagens (40 cm)', () => {
+  assert.equal(MAX_TRUSS_WIDTH, DOLLY_WIDTHS.at(-1) / 2);
+  assert.equal(MAX_TRUSS_WIDTH, 40);
+});
+test('trussDims: Breite über der Grenze wirft statt eine Box zu liefern, in der die Stücke herausragen', () => {
+  assert.throws(() => trussDims({ length: 300, width: 45, count: 2 }));
+});
+test('trussDims: Breite genau an der Grenze (40) funktioniert noch', () => {
+  const d = trussDims({ length: 300, width: 40, count: 2 });
+  assert.equal(d.w, 80);
+});
+
 test('isTruss erkennt kind truss', () => {
   assert.equal(isTruss({ kind: 'truss' }), true);
   assert.equal(isTruss({ kind: 'case' }), false);

@@ -46,7 +46,9 @@ export function wheelFace(p) {
   const base = BASE_WHEEL_FACE[p.orientation];
   if (base === 'bottom') return 'bottom';
   const i = FACE_CYCLE.indexOf(base);
-  return FACE_CYCLE[(i + (p.rot ?? 0) / 90) % 4];
+  // ((… % 4) + 4) % 4 statt reinem `% 4`: JS liefert bei negativem Operanden ein negatives
+  // Ergebnis (z. B. -90 % 4 → -1), das als Array-Index `undefined` ergäbe.
+  return FACE_CYCLE[(((i + Math.round((p.rot ?? 0) / 90)) % 4) + 4) % 4];
 }
 
 // Umkehrung von wheelFace(): welche Rotation erzeugt für diese Ausrichtung

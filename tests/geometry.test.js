@@ -26,6 +26,12 @@ test('Rollenseite', () => {
   assert.equal(wheelFace({ orientation: 'tipShort', rot: 180 }), '-x');
 });
 
+test('wheelFace: rot außerhalb 0/90/180/270 liefert trotzdem eine gültige Seite statt undefined (negatives rot aus IndexedDB-Daten)', () => {
+  // -90 ist rechnerisch dasselbe wie 270 (eine volle Umdrehung zurück).
+  assert.equal(wheelFace({ orientation: 'tipShort', rot: -90 }), wheelFace({ orientation: 'tipShort', rot: 270 }));
+  assert.notEqual(wheelFace({ orientation: 'tipShort', rot: -90 }), undefined);
+});
+
 test('WHEEL_FACES/DOOR_FACE: +x ist die Trucktür', () => {
   assert.deepEqual(WHEEL_FACES, ['+x', '+y', '-x', '-y']);
   assert.equal(DOOR_FACE, '+x');

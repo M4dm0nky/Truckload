@@ -107,6 +107,77 @@ test('layer-Issue: erlaubte Lagen werden im Text numerisch sortiert', () => {
   assert.deepEqual(codes(r,'c'), ['layer']);
   assert.match(r.byPlacement.get('c')[0].message, /„led“ darf nicht in Lage 3 stehen \(erlaubt: 1, 2\)\./);
 });
+// Meldungstexte müssen die Stück-Beschriftung (it.label) nennen, nicht den Case-Typ-Namen
+// (docs/architektur.md sagt das zu; bei mehreren Exemplaren desselben Typs kann der Nutzer
+// die Meldung sonst keinem Stück zuordnen — docs/code-review-2026-09-21.md).
+test('Meldungstexte nennen die Stück-Beschriftung, nicht den Case-Typ-Namen (outOfBounds)', () => {
+  const r = validatePlan(plan([P('a', 'k', 1300, 0, 0, { label: 'Front-Case 3' })]), byId(K), mkTruck());
+  const msg = r.byPlacement.get('a')[0].message;
+  assert.match(msg, /Front-Case 3/);
+  assert.doesNotMatch(msg, /\bk\b/, 'Case-Typ-Name „k“ darf nicht mehr in der Meldung stehen');
+});
+test('Meldungstexte nennen die Stück-Beschriftung bei Kollision', () => {
+  const r = validatePlan(plan([
+    P('a', 'k', 0, 0, 0, { label: 'Case A' }), P('b', 'k', 60, 0, 0, { label: 'Case B' }),
+  ]), byId(K), mkTruck());
+  const msgA = r.byPlacement.get('a')[0].message, msgB = r.byPlacement.get('b')[0].message;
+  assert.match(msgA, /Case A.*Case B/);
+  assert.match(msgB, /Case B.*Case A/);
+});
+test('Meldungstexte nennen die Stück-Beschriftung bei unsupported/notStackable/overload', () => {
+  const N = mkCase('n', 120, 60, 60, { stackable: false });
+  const rUnsupported = validatePlan(plan([P('a', 'k', 0, 0, 60, { label: 'Schwebend' })]), byId(K), mkTruck());
+  assert.match(rUnsupported.byPlacement.get('a')[0].message, /Schwebend/);
+
+  const rStack = validatePlan(plan([
+    P('a', 'n', 0, 0, 0, { label: 'Unten' }), P('b', 'k', 0, 0, 60, { label: 'Oben' }),
+  ]), byId(K, N), mkTruck());
+  assert.match(rStack.byPlacement.get('b')[0].message, /Oben.*Unten/);
+
+  const W = mkCase('w', 120, 60, 60, { maxTopLoad: 150 });
+  const rOverload = validatePlan(plan([
+    P('a', 'w', 0, 0, 0, { label: 'Träger' }), P('b', 'k', 0, 0, 60), P('c', 'k', 0, 0, 120),
+  ]), byId(K, W), mkTruck());
+  assert.match(rOverload.byPlacement.get('a')[0].message, /Träger/);
+});
+
+// Ein getippter Traversenwagen ist geometrisch immer „standing“ (effectiveDims zwingt das),
+// die alte notTippable-Prüfung wertete p.orientation trotzdem stumpf aus.
+test('getippter Traversenwagen meldet nicht mehr fälschlich notTippable', () => {
+  const TR = { ...mkCase('tr', 60, 60, 80, { tippable: false }), kind: 'truss' };
+  const r = validatePlan(plan([P('a', 'tr', 0, 94, 0, { orientation: 'tipLong' })]), byId(TR), mkTruck());
+  assert.deepEqual(codes(r, 'a'), []);
+});
+test('ein echtes, nicht tippbares Case meldet weiterhin notTippable', () => {
+  const N = mkCase('n', 120, 60, 60, { tippable: false });
+  const r = validatePlan(plan([P('a', 'n', 0, 0, 0, { orientation: 'tipLong' })]), byId(N), mkTruck());
+  assert.deepEqual(codes(r, 'a'), ['notTippable']);
+});
+
+// Division durch null bei einer Grundfläche von 0 (l oder w = 0) darf nicht zu einem
+// stillen NaN führen, das die unsupported-Prüfung verschluckt.
+test('Grundfläche 0: unsupported-Prüfung liefert kein stilles NaN, sondern meldet unsupported', () => {
+  const ZERO = mkCase('zero', 0, 60, 60);
+  const r = validatePlan(plan([P('a', 'zero', 0, 0, 100)]), byId(ZERO), mkTruck());
+  assert.deepEqual(codes(r, 'a'), ['unsupported']);
+});
+test('Fahrzeugmaß 0: volumeRatio liefert 0 statt NaN', () => {
+  const r = validatePlan(plan([]), byId(K), mkTruck({ l: 0 }));
+  assert.equal(r.totals.volumeRatio, 0);
+});
+
+// Placements mit fehlendem Case-Typ können mangels bekannter Maße geometrisch nicht in die
+// Kollisionsprüfung einbezogen werden (das Modell speichert keine Maße pro Placement, nur
+// pro Case-Typ) — die Meldung muss das aber offenlegen, statt stillschweigend "geprüft" zu
+// wirken (docs/code-review-2026-09-21.md, Vorschlag: "Mindestens muss die Meldung sagen,
+// dass die Position ungeprüft bleibt").
+test('fehlender Case-Typ: Meldung macht deutlich, dass die Position nicht auf Kollisionen geprüft wird', () => {
+  const r = validatePlan(plan([P('a', 'weg', 0, 0, 0, { label: 'Geistercase' })]), byId(K), mkTruck());
+  const msg = r.byPlacement.get('a')[0].message;
+  assert.match(msg, /Geistercase/);
+  assert.match(msg, /nicht.*(auf Kollisionen|geprüft)/i);
+});
+
 test('tooManyLayers bei 5er-Stapel flacher Cases', () => {
   const F = mkCase('f', 120, 60, 50);
   const r = validatePlan(plan([

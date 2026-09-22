@@ -20,6 +20,40 @@ test('tippbar → getippt, wenn es besser füllt', () => {
 test('zu groß → null', () => {
   assert.equal(chooseOrientation(mkCase('a', 2000, 60, 60), mkTruck()), null);
 });
+test('flaches, stapelbares Case: Score deckelt die Lagenzahl auf die 4er-Grenze von buildStacks (docs/code-review-2026-09-21.md)', () => {
+  // 120×60×30, tippbar, Standard-Truck: stehend passen rechnerisch 9 Lagen (270/30) in
+  // die Fahrzeughöhe, buildStacks stapelt aber nie höher als 4 → der Score darf nicht mit
+  // 9 Lagen rechnen, sonst gewinnt „standing“ fälschlich gegen das getippte tipLong.
+  const c = mkCase('a', 120, 60, 30, { tippable: true });
+  const truck = mkTruck();
+  const o = chooseOrientation(c, truck);
+  assert.equal(o.orientation, 'tipLong', 'getippt soll gewinnen, nicht stehend mit erfundenen 9 Lagen');
+});
+test('24 flache Cases (120×60×30): getippt statt gestellt braucht deutlich weniger Lademeter als die 2,40 m im "standing"-Fehlverhalten', () => {
+  const c = mkCase('a', 120, 60, 30, { tippable: true });
+  const truck = mkTruck();
+  const { placements, unplaced } = autoPack(items(c, 24), truck);
+  assert.equal(unplaced.length, 0);
+  assert.ok(placements.every(p => p.orientation !== 'standing'), 'kein Stück bleibt stehen');
+  const r = validatePlan(plan(placements), byId(c), truck);
+  assert.deepEqual(placementIssues(r), []);
+  // Mit dem alten, ungedeckelten Score gewann „standing“ und brauchte 2,40 Lademeter
+  // (docs/code-review-2026-09-21.md). Getippt braucht deutlich weniger.
+  assert.ok(r.totals.loadMeters < 1.5, `Lademeter ${r.totals.loadMeters} sollten deutlich unter 2,40 liegen`);
+});
+test('layers:[1] begrenzt den Score-Lagenwert zusätzlich auf 1 (buildStacks stellt solche Cases immer allein auf den Boden)', () => {
+  // Nicht tippbar, damit nur „standing“-Kandidaten existieren und der gewählte Score
+  // direkt nachrechenbar ist: layersOf(c) = [1] muss den Score auf 1 Lage deckeln,
+  // nicht auf floor(270/30) = 9.
+  const c = mkCase('a', 120, 60, 30, { tippable: false, layers: [1] });
+  const truck = mkTruck();
+  const o = chooseOrientation(c, truck);
+  assert.equal(o.orientation, 'standing');
+  const cols = Math.floor(truck.w / 60);
+  const cappedScore = (cols * 60 / truck.w) * (1 * 30 / truck.h);
+  assert.ok(Math.abs(o.score - cappedScore) < 1e-9,
+    `Score ${o.score} sollte mit 1 Lage gerechnet sein (${cappedScore}), nicht mit 9`);
+});
 test('Auto-Beladung tippt mit Rollen zur Trucktür', () => {
   const c = mkCase('a', 120, 60, 100, { tippable: true });
   const o = chooseOrientation(c, mkTruck());

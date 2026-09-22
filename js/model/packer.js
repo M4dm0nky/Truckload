@@ -7,7 +7,11 @@ export function chooseOrientation(c, truck) {
     for (const rot of [0, 90, 180, 270]) {
       const d = effectiveDims(c, { orientation, rot });
       if (d.dx > truck.l || d.dy > truck.w || d.dz > truck.h) continue;
-      const layers = c.stackable ? Math.floor(truck.h / d.dz) : 1;
+      // Score-Lagenzahl auf die 4er-Grenze deckeln, die buildStacks selbst einhält
+      // (stacks.items.length < 4), und auf layersOf(c) — sonst bewertet der Score
+      // flache Cases mit einer Lagenzahl, die nie zustande kommt (Befund „packer.js:10-12“).
+      const cap = Math.max(...layersOf(c));
+      const layers = c.stackable ? Math.min(cap, Math.floor(truck.h / d.dz)) : 1;
       const cols = Math.floor(truck.w / d.dy);
       const score = (cols * d.dy / truck.w) * (layers * d.dz / truck.h);
       opts.push({ orientation, rot, d, score });
