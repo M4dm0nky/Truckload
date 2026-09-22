@@ -19,8 +19,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 button.danger { color: var(--danger); }
 select, input, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
 
-.banner { padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.banner { padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--line); position: relative; }
 .banner-warn { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.banner-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; font-size: 16px; line-height: 1; padding: 2px 6px; }
 .save-status { font-size: 12px; color: var(--muted); }
 .save-status.error { color: var(--danger); font-weight: 600; }
 

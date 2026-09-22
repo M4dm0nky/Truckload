@@ -27,6 +27,27 @@ function run(store, mode, fn) {
 export const getAll = store => run(store, 'readonly', s => s.getAll());
 export const put = (store, value) => run(store, 'readwrite', s => s.put(value));
 export const del = (store, id) => run(store, 'readwrite', s => s.delete(id));
+
+// Schreibt mehrere Datensätze (ggf. über mehrere Object Stores hinweg) in EINER einzigen
+// Transaktion: entweder landen alle drin, oder – lehnt ein `put` ab (Quota, korrupte DB) –
+// wird die ganze Transaktion verworfen und KEINER davon landet in der Datenbank. Ohne das
+// hätte ein Import mit drei unabhängigen `put`-Aufrufen (je Store eine eigene Transaktion)
+// im Fehlerfall Teilerfolge hinterlassen können: der Plan schon geschrieben, das Case nicht
+// – die Datenbank wäre dann in einem Zustand gewesen, den weder der Stand vor noch nach dem
+// Import je hatte, und ein Rollback der Oberfläche auf den alten Stand hätte nicht mehr zur
+// Datenbank gepasst (Befund: „Teil-Import lässt Store und Datenbank auseinanderlaufen“).
+// items: [{ store, value }, …]
+export function putMany(items) {
+  if (items.length === 0) return Promise.resolve();
+  return open().then(db => new Promise((resolve, reject) => {
+    const storeNames = [...new Set(items.map(i => i.store))];
+    const tx = db.transaction(storeNames, 'readwrite');
+    for (const { store, value } of items) tx.objectStore(store).put(value);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error('Transaktion abgebrochen'));
+  }));
+}
 export async function persist() {
   try { await navigator.storage?.persist?.(); } catch { /* optional */ }
 }
