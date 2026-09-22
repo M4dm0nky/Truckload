@@ -91,6 +91,20 @@ test('Stapel wird nie höher als 4 Lagen', () => {
   const { stacks } = buildStacks(items(c, 5), mkTruck());
   assert.deepEqual(stacks.map(s => s.items.length), [4, 1]);
 });
+// Der Test oben scheitert in Wahrheit an der Truckhöhe (4 × 60 = 240, + 60 = 300 > 270) und
+// auch an DEFAULT_LAYERS ([1,2,3,4]), nicht an der 4-Lagen-Grenze, die buildStacks selbst hart
+// verdrahtet (`s.items.length < 4`, packer.js). Entfernt man diese Zeile ersatzlos, bleibt der
+// Test oben unverändert grün (docs/code-review-2026-09-21.md, „packer.test.js:‚Stapel wird nie
+// höher als 4 Lagen' prüft nicht, was der Name sagt"). Um die Grenze unabhängig von Truckhöhe
+// UND layersOf zu treffen, braucht es ein flaches Case mit einer eigenen `layers`-Liste, die
+// über 4 hinausgeht, und genug Fahrzeughöhe für mehr als 4 Lagen.
+test('Stapel wird nie höher als 4 Lagen, auch wenn Truckhöhe und layersOf mehr erlauben würden', () => {
+  const c = mkCase('a', 120, 60, 20, { layers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] });
+  const truck = mkTruck(); // Höhe 270 cm: 5 × 20 = 100 cm passt locker, layersOf erlaubt bis 10.
+  const { stacks } = buildStacks(items(c, 5), truck);
+  assert.deepEqual(stacks.map(s => s.items.length), [4, 1],
+    'der fünfte Case darf nicht auf den bestehenden Stapel, egal was layersOf und Truckhöhe erlauben');
+});
 test('Case mit nur Lage 1 kommt immer auf den Boden, nie auf ein anderes Case', () => {
   const base = mkCase('base', 120, 60, 60, { layers: [1] });
   const filler = mkCase('filler', 120, 60, 60);

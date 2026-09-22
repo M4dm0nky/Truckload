@@ -257,6 +257,49 @@ test('trussShape: sehr kurzer/schmaler Wagen – Leisten überlappen sich nicht 
   }
 });
 
+// Harte Literale statt Beziehungen zwischen denselben Konstanten, die geprüft werden sollen
+// (docs/code-review-2026-09-21.md, „truss.test.js ist stellenweise tautologisch"). Ein langer
+// Wagen (Traverse deutlich länger als 2 × DOLLY_L) macht dollyLen = min(DOLLY_L, ...) = DOLLY_L
+// scharf: DOLLY_L 60 -> 40 lässt jeden bestehenden Test grün, weil sie die Wagenlänge nie gegen
+// eine konkrete Zahl prüfen.
+test('trussShape: langer Wagen – Rollwagenlänge ist hart 60 cm (DOLLY_L), nicht abgeleitet', () => {
+  const c = mkTrussCase(300, 29, 4); // (300)/2 = 150 > 60 -> dollyLen wird von DOLLY_L begrenzt
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+  for (const d of s.dollies) assert.equal(d[`${s.lenAxis}1`] - d[`${s.lenAxis}0`], 60);
+});
+
+// Der bestehende Test „sehr kurzer Wagen (40 cm Traverse)“ prüft nur Beziehungen (keine
+// Überlappung, innerhalb der Box), nicht den konkreten Wert des Raddurchmessers. Bei
+// dollyLen = 15 (mkTrussCase(30,...)) bindet ausschließlich die dollyLen/3-Grenze
+// (wheelD = min(10, 15/3, dollyW/3) = 5), unabhängig von den beiden anderen Termen.
+test('trussShape: sehr kurzer Wagen (dollyLen 15) – Raddurchmesser ist hart 5 cm (dollyLen/3)', () => {
+  const c = mkTrussCase(30, 29, 2);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+  for (const w of s.wheels) {
+    assert.ok(Math.abs((w[`${s.lenAxis}1`] - w[`${s.lenAxis}0`]) - 5) < 1e-9,
+      'Raddurchmesser sollte exakt 5 cm sein');
+  }
+});
+
+// Eine sehr schmale Spur (10 cm), in der 2 × chordInset (1,7 cm) < RAIL_W (3 cm) gilt, macht
+// die railW-Begrenzung auf 2×chordInset scharf – bisherige Tests prüfen nur, dass sich Leisten
+// nicht überlappen, nicht den konkreten Wert.
+test('trussShape: schmale Spur (10 cm) – Leistenbreite ist hart 1,7 cm (2×chordInset)', () => {
+  const c = mkTrussCase(300, 10, 1);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+  assert.equal(s.rails.length, 4); // 1 Spur × 2 Leisten × 2 Wagen
+  for (const r of s.rails) {
+    assert.ok(Math.abs((r[`${s.widAxis}1`] - r[`${s.widAxis}0`]) - 1.7) < 1e-9,
+      'Leistenbreite sollte exakt 1,7 cm sein');
+  }
+});
+
 test('trussShape: schmale Spur begrenzt die Leistenbreite statt zu überlappen', () => {
   // Sehr schmales Traversenprofil (2 cm), nur 1 Stück -> 1 Spur -> Nenn-Leistenbreite (3 cm) muss
   // begrenzt werden, sonst würden sich die beiden Leisten dieser Spur überlappen.

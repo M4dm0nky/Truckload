@@ -67,6 +67,18 @@ test('Radkasten', () => {
   const r = validatePlan(plan([P('a','s',220,0,0)]), byId(S), SPRINTER);
   assert.deepEqual(codes(r,'a'), ['arch']);
 });
+// validate.js zählt Radkastenoberkanten ausdrücklich als Auflagefläche (archSup). Der
+// bestehende Radkasten-Test oben prüft nur die Kollision, nicht die Auflage — streicht man
+// archSup, bliebe alles grün, und jedes Case, das im Sprinter korrekt auf dem Radkasten steht,
+// bekäme fälschlich „steht nicht sicher“ (docs/code-review-2026-09-21.md, „Radkasten als
+// Auflage ist ungetestet"). Case passgenau auf dem Radkasten (x0 215, y 0–22, z0 30 = Oberkante
+// des Radkastens) — volle Deckung, keine andere Auflage vorhanden.
+test('Radkasten zählt als Auflage: ein Case auf der Radkasten-Oberkante steht sicher', () => {
+  const W = mkCase('w', 100, 22, 60);
+  const r = validatePlan(plan([P('a','w',215,0,30)]), byId(W), SPRINTER);
+  assert.deepEqual(codes(r,'a'), []);
+});
+
 test('zu schwer', () => {
   const r = validatePlan(plan([P('a','k',0,0,0), P('b','k',0,60,0)]), byId(K), mkTruck({ payload: 150 }));
   assert.ok(planCodes(r).includes('tooHeavy'));
@@ -86,6 +98,19 @@ test('Kennzahlen und Reihenfolge', () => {
   assert.equal(r.totals.loadMeters, 2.4);
   assert.equal(r.sequence.get('vorn'), 1);
   assert.equal(r.sequence.get('hinten'), 2);
+});
+
+// `Kennzahlen und Reihenfolge` (oben) prüft nur die Reihenfolge zweier Cases nebeneinander
+// (x 0 und 120) — das dritte Sortierkriterium (z innerhalb desselben x/y) bleibt dabei
+// ungeprüft: dreht man es um, bleibt der Test oben unverändert grün
+// (docs/code-review-2026-09-21.md, „loadSequence ist für Stapel ungetestet"). Ein Dreierstapel
+// an derselben x/y-Position deckt genau das ab: von unten nach oben geladen heißt aufsteigende
+// Reihenfolge (unten zuerst).
+test('Ladereihenfolge innerhalb eines Stapels: von unten nach oben (1/2/3)', () => {
+  const r = validatePlan(plan([P('unten','k',0,94,0), P('mitte','k',0,94,60), P('oben','k',0,94,120)]), byId(K), mkTruck());
+  assert.equal(r.sequence.get('unten'), 1);
+  assert.equal(r.sequence.get('mitte'), 2);
+  assert.equal(r.sequence.get('oben'), 3);
 });
 
 test('sind alle Cases gewogen, bleibt der Schwerpunkt gewichtsbasiert und als solcher gekennzeichnet', () => {
@@ -266,6 +291,26 @@ test('fehlender Case-Typ: Meldung macht deutlich, dass die Position nicht auf Ko
   const msg = r.byPlacement.get('a')[0].message;
   assert.match(msg, /Geistercase/);
   assert.match(msg, /nicht.*(auf Kollisionen|geprüft)/i);
+});
+
+// EPS (js/model/geometry.js) ist die Toleranz für alle Überlappungs- und Auflageprüfungen
+// (docs/architektur.md). Die übrigen Tests arbeiten ausschließlich mit exakt anschließenden
+// Boxen (Spalt/Durchdringung 0), das ist der Grenzfall 0 und lässt EPS unangetastet. Diese drei
+// Tests nageln beide Seiten der Toleranz mit Werten *um* EPS = 0,5 herum fest
+// (docs/code-review-2026-09-21.md, „Kein einziger Test fasst die Toleranz EPS = 0.5 an").
+test('EPS als Auflage-Toleranz: 0,4 cm Spalt gilt noch als Auflage', () => {
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','k',0,94,60.4)]), byId(K), mkTruck());
+  assert.deepEqual(codes(r, 'b'), []);
+});
+test('EPS als Auflage-Toleranz: 0,6 cm Spalt gilt nicht mehr als Auflage', () => {
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','k',0,94,60.6)]), byId(K), mkTruck());
+  assert.deepEqual(codes(r, 'b'), ['unsupported']);
+});
+test('EPS als Kollisions-Toleranz: 0,4 cm Durchdringung ist noch keine Kollision, 0,6 cm schon', () => {
+  const rTouch = validatePlan(plan([P('a','k',0,0,0), P('b','k',119.6,0,0)]), byId(K), mkTruck());
+  assert.deepEqual(codes(rTouch, 'a'), []);
+  const rHit = validatePlan(plan([P('a','k',0,0,0), P('b','k',119.4,0,0)]), byId(K), mkTruck());
+  assert.deepEqual(codes(rHit, 'a'), ['collision']);
 });
 
 test('tooManyLayers bei 5er-Stapel flacher Cases', () => {

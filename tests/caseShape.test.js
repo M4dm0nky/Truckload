@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { caseShape, wheelAxes } from '../js/model/caseShape.js';
-import { boxOf, overlaps } from '../js/model/geometry.js';
+import { boxOf, overlaps, ORIENTATIONS, ROTATIONS } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80, { wheelH: 12 });
@@ -99,5 +99,27 @@ test('sehr schmales Case (20×40, wheelH 12): Rollen bleiben innerhalb der Box u
   for (const w of wheels) {
     assert.ok(w.x0 >= box.x0 && w.x1 <= box.x1, 'Rolle bleibt innerhalb x');
     assert.ok(w.y0 >= box.y0 && w.y1 <= box.y1, 'Rolle bleibt innerhalb y');
+  }
+});
+
+// pairwiseNoOverlap lief bisher nur an einem großen Case (120×60×80) und nur in zwei Lagen
+// (standing, tipLong/rot 0) — genau die Fälle, in denen es nichts findet
+// (docs/code-review-2026-09-21.md, „caseShape.test.js prüft die Rollen nur an einem großen
+// Case und nur in zwei Lagen"). Dieser Test läuft über alle Ausrichtungen × Rotationen für das
+// echte, schmale AF-1 -CAB-Maß und prüft zusätzlich, dass die Rollen innerhalb der Box bleiben.
+test('AF-1 -CAB (44×23×58, wheelH 12): Rollen überlappen nicht und bleiben in der Box, über alle Ausrichtungen × Rotationen', () => {
+  const c = mkCase('af1all', 44, 23, 58, { wheelH: 12 });
+  for (const orientation of ORIENTATIONS) {
+    for (const rot of ROTATIONS) {
+      const p = { x: 0, y: 0, z: 0, orientation, rot };
+      const box = boxOf(c, p);
+      const { wheels } = caseShape(c, p, box);
+      pairwiseNoOverlap(wheels);
+      for (const w of wheels) {
+        assert.ok(w.x0 >= box.x0 - 1e-9 && w.x1 <= box.x1 + 1e-9, `${orientation}/${rot}: Rolle x innerhalb`);
+        assert.ok(w.y0 >= box.y0 - 1e-9 && w.y1 <= box.y1 + 1e-9, `${orientation}/${rot}: Rolle y innerhalb`);
+        assert.ok(w.z0 >= box.z0 - 1e-9 && w.z1 <= box.z1 + 1e-9, `${orientation}/${rot}: Rolle z innerhalb`);
+      }
+    }
   }
 });

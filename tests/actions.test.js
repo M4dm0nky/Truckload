@@ -25,6 +25,19 @@ test('moveGroup nimmt den Stapel mit', () => {
   const pl = A.moveGroup(plan([P('a','k',0,0,0), P('b','k',0,0,60)]), 'a', 300, 100, ctx());
   assert.deepEqual([find(pl,'b').x, find(pl,'b').y, find(pl,'b').z], [300, 100, 60]);
 });
+// Der Test oben bewegt einen Stapel innerhalb derselben z-Ebene (Wurzel und Ziel beide bei z 0)
+// — ddz ist dort immer 0, ein fest verdrahtetes nz = 0 bliebe unbemerkt
+// (docs/code-review-2026-09-21.md, „moveGroup nimmt den Stapel mit deckt den Schwerkraftanteil
+// nicht ab"). Dieser Test schiebt den Stapel auf einen bereits 2-hohen Stapel und prüft, dass
+// er per Schwerkraft obendrauf landet.
+test('moveGroup zieht den Schwerkraftanteil: Stapel landet auf einem anderen Stapel', () => {
+  const pl = plan([
+    P('a','k',0,0,0),
+    P('base1','k',300,0,0), P('base2','k',300,0,60),
+  ]);
+  const moved = A.moveGroup(pl, 'a', 300, 0, ctx(), { grid: 1, edges: false });
+  assert.equal(find(moved,'a').z, 120);
+});
 test('moveGroup rastet an Kanten', () => {
   const pl = A.moveGroup(plan([P('a','k',0,0,0), P('b','k',500,0,0)]), 'b', 123, 0, ctx());
   assert.equal(find(pl,'b').x, 120);
@@ -208,6 +221,42 @@ test('Regression: „Alles neu packen“ vergibt keine neuen Stück-IDs mehr', (
 // des Waisen-Placements hineingepackt wird, nimmt packAll es sichtbar aus den Placements
 // heraus und legt es in die Ablage (unplaced) – der Nutzer sieht es dort und kann reagieren,
 // statt dass zwei Cases im selben Raum stehen, ohne dass irgendetwas das meldet.
+// `touch()` ist die einzige Stelle, an der ein Plan seinen `updatedAt`-Zeitstempel bekommt;
+// `io.mergeById` entscheidet damit beim Import, welcher Stand der neuere ist. Ein `touch`, das
+// `updatedAt` vergisst, führt zu stillem Datenverlust beim Zusammenführen — kein bestehender
+// Test hätte das je bemerkt (docs/code-review-2026-09-21.md, „actions.test.js prüft updatedAt
+// nirgends"). Ausgangspunkt ist immer ein fest in der Vergangenheit liegendes `updatedAt`, damit
+// der Vergleich nicht von der Auflösung von `Date.now()` abhängt (kein Race bei sehr schneller
+// Ausführung im selben Millisekunden-Fenster).
+const OLD = '2000-01-01T00:00:00.000Z';
+const withOld = pl => ({ ...pl, updatedAt: OLD });
+const newerThanOld = result =>
+  assert.ok(new Date(result.updatedAt).getTime() > new Date(OLD).getTime(),
+    `updatedAt (${result.updatedAt}) sollte neuer sein als ${OLD}`);
+
+const touchCases = [
+  ['emptyPlan', () => A.emptyPlan('p', 'P', 't')],
+  ['placeCase', () => A.placeCase(withOld(plan([P('a','k',0,0,0)])), 'k', 400, 0, ctx())],
+  ['moveGroup', () => A.moveGroup(withOld(plan([P('a','k',0,0,0)])), 'a', 300, 100, ctx())],
+  ['rotate', () => A.rotate(withOld(plan([P('a','k',0,0,0)])), 'a', ctx())],
+  ['cycleTip', () => A.cycleTip(withOld(plan([P('a','t',0,0,0)])), 'a', ctx())],
+  ['setWheelFace', () => {
+    const tipped = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+    return A.setWheelFace(withOld(tipped), 'a', '-y', ctx());
+  }],
+  ['addUnplaced', () => A.addUnplaced(withOld(plan([])), 'k', 1, counter('u'))],
+  ['removeUnplaced', () => A.removeUnplaced(withOld(plan([], [{ id: 'u1', caseId: 'k' }])), 'k')],
+  ['duplicate', () => A.duplicate(withOld(plan([P('a','k',0,0,0)])), 'a', ctx())],
+  ['setItemLabel', () => A.setItemLabel(withOld(plan([P('a','k',0,0,0)])), 'a', { label: 'Neu' })],
+  ['removePlacement', () => A.removePlacement(withOld(plan([P('a','k',0,0,0)])), 'a')],
+  ['toTray', () => A.toTray(withOld(plan([P('a','k',0,0,0)])), 'a')],
+  ['packAll', () => A.packAll(withOld(plan([P('a','k',700,0,0)])), ctx())],
+  ['packRest', () => A.packRest(withOld(plan([P('a','k',0,0,0)], [{ id: 'u1', caseId: 'k' }])), ctx())],
+];
+for (const [name, run] of touchCases) {
+  test(`${name} setzt updatedAt neuer als die Eingabe (touch()-Regression)`, () => newerThanOld(run()));
+}
+
 test('packAll nimmt ein Placement mit gelöschtem Case-Typ aus den Placements heraus und legt es in die Ablage', () => {
   const pl0 = plan([
     P('ghost', 'weg', 0, 0, 0, { label: 'Geistercase' }),
