@@ -426,7 +426,12 @@ renderHooks.push(async (s, d) => {
       console.error('3D-Ansicht: Laden fehlgeschlagen', err);
       $('#view3d').textContent = '3D-Ansicht konnte nicht geladen werden (vendor/ fehlt?).';
       view3dFailed = true;
-      view3d?.dispose(); // vor dem Verwerfen aufräumen, sonst bleibt der WebGL-Kontext hängen (Befund I6)
+      // `createView3d()` räumt bei einem Fehler während des eigenen Aufbaus (OrbitControls,
+      // Texturen, ResizeObserver, …) den bereits erzeugten WebGL-Kontext selbst auf, bevor es
+      // wirft (js/ui/view3d.js, Befund I6) – hier gibt es dafür nie ein `view3d`-Objekt: entweder
+      // ist `createView3d()` schon vor dem `return` gescheitert (dann wurde nie zugewiesen), oder
+      // ein früherer Durchlauf hat `view3d` bereits auf `null` gesetzt (dieser Zweig läuft nur
+      // innerhalb von `if (!view3d)`).
       view3d = null;
       view3dLoading = null;
       return;

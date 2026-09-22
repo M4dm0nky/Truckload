@@ -65,8 +65,7 @@ Richtung für diese Ausrichtung nicht erreichbar ist.
 **Fachliche Regel:** Getippt wird immer mit den Rollen zur Tür. `cycleTip` setzt `rot`
 entsprechend bei **jedem** Übergang in eine getippte Lage, und `chooseOrientation` im
 Packer verwirft getippte Kandidaten ohne Tür-Ausrichtung, sobald es einen mit gibt — die
-Rollenrichtung hat Vorrang vor dem Füllgrad. Physikalisch sind je Ausrichtung nur zwei der
-vier Richtungen ohne Wechsel der Grundfläche erreichbar; das wird nicht kaschiert.
+Rollenrichtung hat Vorrang vor dem Füllgrad.
 
 ## Rollen im Maß
 

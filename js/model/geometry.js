@@ -1,4 +1,12 @@
 export const EPS = 0.5;
+// Höchstlänge einer Beschriftung (Platzierung oder Ablage-Eintrag). Einzige Quelle für
+// `maxlength` in der Oberfläche, für die Kürzung beim Bilden/Ändern von Labels
+// (js/model/actions.js) UND für die Import-Prüfung (js/store/io.js, `labelOk`) – alle drei
+// müssen dieselbe Zahl benutzen, sonst erzeugt die App Beschriftungen, die ihr eigener Import
+// ablehnt. Liegt hier (nicht in io.js), weil `js/model/` unter `js/store/` in der Schichtfolge
+// liegt (docs/architektur.md) – io.js importiert bereits von hier, actions.js soll nicht
+// umgekehrt von io.js abhängen müssen.
+export const MAX_LABEL = 40;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
 export const DEFAULT_WHEEL_H = 12;   // Altdaten ohne Angabe
 export const NEW_CASE_WHEEL_H = 16;  // Blue Wheel Ø125 mm + Rollenbrett

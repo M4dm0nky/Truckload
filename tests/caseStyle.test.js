@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CASE_BLACK, COLOR_MODES, caseColors } from '../js/ui/caseStyle.js';
+import { CASE_BLACK, COLOR_MODES, caseColors, DETAIL_MIN } from '../js/ui/caseStyle.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80, { color: '#ff8800' });
@@ -27,4 +27,11 @@ test('trade mit Stück-Farbe: Korpus in Stück-Farbe (schlägt Gewerkfarbe)', ()
 test('ohne itemColor bleibt es beim bisherigen Verhalten (Gewerkfarbe)', () => {
   assert.deepEqual(caseColors(C, 'black', undefined), caseColors(C, 'black'));
   assert.deepEqual(caseColors(C, 'trade', undefined), caseColors(C, 'trade'));
+});
+
+// DETAIL_MIN ist die einzige Quelle für 2D und 3D (Befund I3/I4, js/ui/view2d.js und
+// js/ui/view3d.js importieren beide von hier). Ohne diesen Test lässt sich der Wert
+// unbemerkt verändern und die beiden Ansichten laufen wieder auseinander.
+test('DETAIL_MIN hat den dokumentierten Wert (40 cm)', () => {
+  assert.equal(DETAIL_MIN, 40);
 });

@@ -40,7 +40,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
             ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${p.name} – ${p.h} cm</option>`).join('')}
             <option value="custom">eigene …</option>
           </select></label>
-          <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="${CASE_LIMITS.wheelH}" step="1"></label>
+          <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="40" step="1"></label>
         </div>
         <div class="row">
           <label class="check"><input type="radio" name="dimsInclWheels" value="incl"> Maß ist inkl. Rollen</label>

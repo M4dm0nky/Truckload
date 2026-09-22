@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from '../js/model/actions.js';
 import { validatePlan } from '../js/model/validate.js';
-import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
+import { wheelFace, DOOR_FACE, MAX_LABEL } from '../js/model/geometry.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);
@@ -85,6 +85,12 @@ test('addUnplaced ohne Optionen bleibt abwärtskompatibel', () => {
   const pl = A.addUnplaced(plan([]), 'k', 2, counter('u'));
   assert.deepEqual(pl.unplaced, [{ id: 'u1', caseId: 'k' }, { id: 'u2', caseId: 'k' }]);
 });
+test('addUnplaced kürzt ein zu langes Label auf MAX_LABEL (Befund B4)', () => {
+  const long = 'X'.repeat(MAX_LABEL + 20);
+  const pl = A.addUnplaced(plan([]), 'k', 1, counter('u'), { labels: [long] });
+  assert.equal(pl.unplaced[0].label.length, MAX_LABEL);
+  assert.equal(pl.unplaced[0].label, long.slice(0, MAX_LABEL));
+});
 test('duplicate setzt daneben', () => {
   const pl = A.duplicate(plan([P('a','k',0,0,0)]), 'a', ctx());
   assert.equal(pl.placements[1].x, 120);
@@ -97,6 +103,20 @@ test('duplicate kopiert Label/Farbe und zählt hoch', () => {
 test('duplicate ohne Zahl am Ende hängt keine Nummer an', () => {
   const pl = A.duplicate(plan([P('a','k',0,0,0,{ label: 'Kabelcase' })]), 'a', ctx());
   assert.equal(pl.placements[1].label, 'Kabelcase');
+});
+test('duplicate kürzt eine über MAX_LABEL hinaus hochgezählte Nummer (Befund B4, Fix-Runde 1)', () => {
+  // 40 Zeichen, endet auf "9" -> hochgezählt "10" wäre 41 Zeichen ohne Kürzung.
+  const label = `${'X'.repeat(MAX_LABEL - 1)}9`;
+  assert.equal(label.length, MAX_LABEL);
+  const pl = A.duplicate(plan([P('a','k',0,0,0,{ label })]), 'a', ctx());
+  assert.ok(pl.placements[1].label.length <= MAX_LABEL, `Label ist ${pl.placements[1].label.length} Zeichen lang`);
+  // "X"*39 + "9" -> hochgezählt "X"*39 + "10" (41 Zeichen) -> gekürzt auf 40: die "0" fällt weg.
+  assert.equal(pl.placements[1].label, `${'X'.repeat(MAX_LABEL - 1)}1`);
+});
+test('duplicate kürzt auch ein zu langes Label ohne Zahl am Ende', () => {
+  const label = 'Y'.repeat(MAX_LABEL + 10);
+  const pl = A.duplicate(plan([P('a','k',0,0,0,{ label })]), 'a', ctx());
+  assert.equal(pl.placements[1].label.length, MAX_LABEL);
 });
 test('setItemLabel ändert eine Platzierung', () => {
   const pl = A.setItemLabel(plan([P('a','k',0,0,0)]), 'a', { label: 'Neu', color: '#123456' });
@@ -129,6 +149,17 @@ test('setItemLabel: label "" entfernt die Beschriftung', () => {
   assert.equal(pl.placements[0].label, undefined);
   assert.ok(!('label' in pl.placements[0]));
   assert.equal(pl.placements[0].color, '#123456');
+});
+test('setItemLabel kürzt ein zu langes Label auf MAX_LABEL (Befund B4)', () => {
+  const long = 'Z'.repeat(MAX_LABEL + 15);
+  const pl = A.setItemLabel(plan([P('a','k',0,0,0)]), 'a', { label: long });
+  assert.equal(pl.placements[0].label.length, MAX_LABEL);
+  assert.equal(pl.placements[0].label, long.slice(0, MAX_LABEL));
+});
+test('setItemLabel kürzt auch bei einem Ablage-Eintrag', () => {
+  const long = 'Z'.repeat(MAX_LABEL + 5);
+  const pl = A.setItemLabel(plan([], [{ id: 'u1', caseId: 'k' }]), 'u1', { label: long });
+  assert.equal(pl.unplaced[0].label.length, MAX_LABEL);
 });
 test('packAll verlädt alles', () => {
   const pl = A.packAll(plan([P('a','k',700,0,0)], [{ id: 'u1', caseId: 'k' }, { id: 'u2', caseId: 't' }]), ctx());

@@ -1,9 +1,10 @@
 import { APP_VERSION } from '../version.js';
-import { ORIENTATIONS } from '../model/geometry.js';
+import { ORIENTATIONS, MAX_LABEL } from '../model/geometry.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 
+export { MAX_LABEL };
 export const FORMAT = 'truckload';
 export const VERSION = 1;
 const ROTATIONS = [0, 90, 180, 270];
@@ -13,12 +14,6 @@ const CASE_KINDS = ['case', 'truss'];
 // Obergrenzen für Case-Werte aus fremden Dateien. Großzügig, aber so, dass Unsinn
 // (ein 100 m langes, 100 t schweres Case) auffällt. Task 5 übernimmt dieselbe Konstante
 // für die `max=`-Attribute im Case-Editor, damit Oberfläche und Import nicht auseinanderlaufen.
-// Höchstlänge einer Beschriftung (Platzierung oder Ablage-Eintrag). Quelle für `maxlength`
-// in der Oberfläche UND für die Kürzung beim Bilden vorbelegter Texte (js/model/actions.js) –
-// beide müssen dieselbe Zahl benutzen, sonst erzeugt die App Beschriftungen, die ihr eigener
-// Import ablehnt.
-export const MAX_LABEL = 40;
-
 export const CASE_LIMITS = {
   l: 2000, w: 2000, h: 2000, // cm
   weight: 50000, // kg

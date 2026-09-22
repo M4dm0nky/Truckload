@@ -13,6 +13,13 @@ export async function createView3d(container) {
 
   container.replaceChildren();
   const renderer = new THREE.WebGLRenderer({ antialias: true });
+  // Ab hier bis zum `return` unten alles in einem try/catch: wirft irgendetwas beim Aufbau der
+  // Szene (OrbitControls, Textur-/Material-Erzeugung, ResizeObserver, …), bliebe der WebGL-
+  // Kontext des schon erzeugten `renderer` sonst verwaist – niemand außerhalb dieser Funktion
+  // hält eine Referenz darauf, um ihn freizugeben (Befund I6, Fix-Runde 1). `createView3d` gibt
+  // in dem Fall kein Objekt zurück, der `catch` in app.js kann also kein `view3d?.dispose()`
+  // aufrufen; das Aufräumen muss deshalb hier passieren, nicht beim Aufrufer.
+  try {
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
@@ -398,11 +405,13 @@ export async function createView3d(container) {
       // Beschriftung nur auf dem jeweils nach außen zeigenden Wagenende (nicht ringsum wie beim Case).
       // Bezugsfläche bleibt das volle Wagenvolumen (shape.dollies), nicht nur die Platte.
       // Schriftfarbe aus dem tatsächlichen Hintergrund (Alu-Wagenende) ableiten, nicht aus der Stück-/Gewerkfarbe.
-      if (it.label) {
+      // Die Nummer steht immer da, auch ohne Label-Text (wie in 2D/Ausdruck, s. Befund I5,
+      // Fix-Runde 1) – ein Stück ohne Beschriftung soll in 3D nicht spurlos bleiben.
+      {
         const d = shape.dollies[i];
         const endFace = `${lenAxis}${i}`;
         const pl = labelPlanes(d, 'bottom').find(p => p.face === endFace);
-        if (pl) content.add(labelMesh(pl, `${seq}. ${it.label}`, ALU_HEX));
+        if (pl) content.add(labelMesh(pl, it.label ? `${seq}. ${it.label}` : `${seq}.`, ALU_HEX));
       }
     });
     for (const r of shape.rails) content.add(boxMesh(r, MAT_DOLLY_RAIL));
@@ -527,9 +536,11 @@ export async function createView3d(container) {
       for (const w of wheels) content.add(...wheelMesh(w, face));
 
       // Schriftfarbe aus dem tatsächlichen Korpus-Hintergrund ableiten, nicht aus der Stück-/Gewerkfarbe
-      // (die im Modus „Schwarz“ nur als Farbstreifen erscheint, nicht als Korpusfarbe).
-      if (it.label) {
-        const labelText = `${result.sequence.get(it.id)}. ${it.label}`;
+      // (die im Modus „Schwarz“ nur als Farbstreifen erscheint, nicht als Korpusfarbe). Die Nummer
+      // steht immer da, auch ohne Label-Text (wie in 2D/Ausdruck, s. Befund I5, Fix-Runde 1).
+      {
+        const seq = result.sequence.get(it.id);
+        const labelText = it.label ? `${seq}. ${it.label}` : `${seq}.`;
         for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, labelText, colors.body));
       }
     }
@@ -566,4 +577,9 @@ export async function createView3d(container) {
     render();
   }
   return { update, dispose };
+  } catch (err) {
+    renderer.dispose();
+    renderer.forceContextLoss();
+    throw err;
+  }
 }

@@ -1,7 +1,6 @@
-import { ORIENTATIONS, boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, DOOR_FACE } from './geometry.js';
+import { ORIENTATIONS, boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, DOOR_FACE, MAX_LABEL } from './geometry.js';
 import { archBoxes, buildItems } from './validate.js';
 import { autoPack } from './packer.js';
-import { MAX_LABEL } from '../store/io.js';
 
 const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
 
@@ -102,10 +101,13 @@ export const setWheelFace = (plan, id, face, ctx) =>
     return rot == null ? {} : { rot };
   });
 
+// Zählt die letzte Zahl im Label hoch (z. B. für "duplicate()"). Die hochgezählte Zahl kann ein
+// Zeichen länger sein als die ursprüngliche (9 -> 10) – ohne Kürzung entstünde so aus einem
+// legalen 40-Zeichen-Label eins mit 41 Zeichen, das der eigene Import ablehnt (Befund B4).
 function nextLabel(label) {
   const m = /^(.*?)(\d+)$/.exec(label);
-  if (!m) return label;
-  return `${m[1]}${Number(m[2]) + 1}`;
+  if (!m) return label.slice(0, MAX_LABEL);
+  return `${m[1]}${Number(m[2]) + 1}`.slice(0, MAX_LABEL);
 }
 
 export function duplicate(plan, id, ctx) {
