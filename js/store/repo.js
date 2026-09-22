@@ -23,7 +23,16 @@ export function mergeOwnWithBuiltins(ownCases, builtinCases) {
 // der gezeichnete Stapel wäre. Normale Cases sind davon nicht betroffen, da normalizeCase() nur
 // `kind === 'truss'` anfasst; Vorlagen (PRESET_CASES/CASE_LIBRARY) berechnen ihre Maße ohnehin bei
 // jedem Start neu und laufen hier nicht mit durch.
-export const normalizeOwnCases = cases => cases.map(normalizeCase);
+// Pro Case abgefangen: ein einzelner kaputter Datensatz (z. B. ein anderweitig
+// beschädigtes eigenes Case, das normalizeCase() nicht erwartet) darf nicht dazu führen,
+// dass loadAll() insgesamt scheitert und app.js über loadAllFallback() die GESAMTE eigene
+// Bibliothek verwirft – gesunde Cases bleiben normalisiert, das kaputte bleibt unverändert
+// (Fix-Runde 1, [blocking]). normalizeCase() selbst wirft für die häufigste bekannte
+// Ursache (Traversenbreite über der Grenze) inzwischen ohnehin nicht mehr; dieser Fang ist
+// die zusätzliche Absicherung gegen unbekannte künftige Fälle.
+export const normalizeOwnCases = cases => cases.map(c => {
+  try { return normalizeCase(c); } catch { return c; }
+});
 
 export async function loadAll() {
   await db.persist();

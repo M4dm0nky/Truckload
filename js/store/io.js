@@ -61,8 +61,20 @@ export function checkCase(c) {
 }
 export function normalizeCase(c) {
   if (c.kind !== 'truss') return c;
-  const { l, w, h } = trussDims(c.truss);
-  return { ...c, l, w, h, wheelH: 0, tippable: false };
+  // trussDims() wirft, wenn c.truss.width die Grenze (MAX_TRUSS_WIDTH) überschreitet.
+  // Beim Datei-Import ist das nicht erreichbar: checkCase() lehnt eine solche Breite schon
+  // vorher ab, bevor normalizeCase() überhaupt läuft. Aber repo.normalizeOwnCases() ruft
+  // normalizeCase() beim Laden für JEDES eigene gespeicherte Case auf, ohne vorherige
+  // checkCase()-Prüfung – ein vor Einführung der Grenze gespeichertes Case darf dort nicht
+  // werfen (das würde in app.js den kompletten Ladepfad in loadAllFallback() reißen und
+  // die gesamte eigene Bibliothek stillschweigend leeren). Die gespeicherten Maße bleiben
+  // in diesem Fall unverändert erhalten, statt die Normalisierung zu erzwingen.
+  try {
+    const { l, w, h } = trussDims(c.truss);
+    return { ...c, l, w, h, wheelH: 0, tippable: false };
+  } catch {
+    return { ...c, wheelH: 0, tippable: false };
+  }
 }
 function checkArch(a) {
   return a && num(a.x) && a.x >= 0 && num(a.l) && a.l > 0 && num(a.w) && a.w > 0 && num(a.h) && a.h > 0

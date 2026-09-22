@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS } from '../js/store/io.js';
+import { exportBundle, parseBundle, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS, normalizeCase } from '../js/store/io.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -187,6 +187,27 @@ test('Truss wird beim Import normalisiert (l/w/h, wheelH, tippable)', () => {
   assert.equal(c.h, DOLLY_H + 2 * 29);
   assert.equal(c.wheelH, 0);
   assert.equal(c.tippable, false);
+});
+
+// normalizeCase() läuft beim Datei-Import IMMER nach checkCase() (das width > 40 schon
+// ablehnt, s. o.) – aber auch direkt beim App-Start über repo.normalizeOwnCases(), OHNE
+// vorherige checkCase-Prüfung, für jedes eigene gespeicherte Case. Ein vor Einführung der
+// 40-cm-Grenze gespeichertes eigenes Traversen-Case darf normalizeCase() dort nicht zum
+// Werfen bringen (Fix-Runde 1, [blocking]: sonst fängt js/app.js den Fehler ab, verwirft
+// über loadAllFallback() die GESAMTE eigene Bibliothek – alle Cases, Fahrzeuge, Ladepläne –
+// und zeigt „Speicher nicht verfügbar“, obwohl nur ein einziges Case veraltet ist).
+test('normalizeCase: Traversenbreite über der Grenze wirft nicht, behält die gespeicherten Maße', () => {
+  const stale = {
+    id: 'old-wide-truss', name: 'Alter breiter Wagen', builtin: false, kind: 'truss',
+    truss: { length: 300, width: 45, count: 2 }, // vor MAX_TRUSS_WIDTH gespeichert
+    l: 300, w: 90, h: 62, weight: 80, tippable: false, wheelH: 12, dimsInclWheels: true,
+  };
+  const normalized = normalizeCase(stale);
+  assert.equal(normalized.l, stale.l);
+  assert.equal(normalized.w, stale.w);
+  assert.equal(normalized.h, stale.h);
+  assert.equal(normalized.wheelH, 0);
+  assert.equal(normalized.tippable, false);
 });
 
 test('Ladeplan mit 60-Zeichen-Label wird abgelehnt', () => {

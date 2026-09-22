@@ -170,3 +170,38 @@ test('Regression: „Alles neu packen“ vergibt keine neuen Stück-IDs mehr', (
   assert.ok(find(pl, 'a'));
   assert.ok(find(pl, 'u1'));
 });
+
+// Fix-Runde 1, [important]: ein Placement mit gelöschtem Case-Typ hat keine bekannten Maße
+// (Placements speichern nur x/y/z, keine l/w/h) und kann deshalb nicht als Box-Hindernis in
+// autoPack einfließen. Damit ein frisch gepacktes Case nicht unsichtbar in die alte Position
+// des Waisen-Placements hineingepackt wird, nimmt packAll es sichtbar aus den Placements
+// heraus und legt es in die Ablage (unplaced) – der Nutzer sieht es dort und kann reagieren,
+// statt dass zwei Cases im selben Raum stehen, ohne dass irgendetwas das meldet.
+test('packAll nimmt ein Placement mit gelöschtem Case-Typ aus den Placements heraus und legt es in die Ablage', () => {
+  const pl0 = plan([
+    P('ghost', 'weg', 0, 0, 0, { label: 'Geistercase' }),
+    P('a', 'k', 700, 0, 0),
+  ]);
+  const pl = A.packAll(pl0, ctx());
+  assert.ok(!find(pl, 'ghost'), 'die Waise steht nicht mehr in den Placements');
+  const inTray = pl.unplaced.find(u => u.id === 'ghost');
+  assert.ok(inTray, 'die Waise landet in der Ablage statt an ihrer alten Position stehen zu bleiben');
+  assert.equal(inTray.caseId, 'weg');
+  assert.equal(inTray.label, 'Geistercase');
+  // Das frisch gepackte Case darf jetzt am Platz der ehemaligen Waise landen, ohne dass
+  // irgendwo eine Kollision übersehen wird (die Waise ist ja aus den Placements raus).
+  assert.equal(pl.placements.length, 1);
+});
+test('packRest nimmt ein bereits platziertes Waisen-Placement ebenfalls aus den Placements heraus', () => {
+  const c = ctx();
+  const pl0 = plan(
+    [P('ghost', 'weg', 0, 0, 0, { label: 'Geistercase' }), P('a', 'k', 0, 94, 0)],
+    [{ id: 'u1', caseId: 'k' }],
+  );
+  const pl = A.packRest(pl0, c);
+  assert.ok(!find(pl, 'ghost'));
+  assert.ok(pl.unplaced.find(u => u.id === 'ghost'));
+  assert.ok(find(pl, 'a'), 'das gesunde Placement bleibt an Ort und Stelle stehen');
+  const r = validatePlan(pl, c.caseById, c.truck);
+  assert.ok(!r.issues.some(i => i.code === 'collision'));
+});

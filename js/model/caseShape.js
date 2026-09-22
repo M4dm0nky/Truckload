@@ -17,9 +17,11 @@ export function caseShape(c, p, box) {
   // Lage des Rollenstreifens entlang der Normalen
   const [a1, a2, n] = wheelAxes(face);
   const slab0 = face === 'bottom' ? box.z0 : face[0] === '+' ? box[`${n}1`] - wh : box[`${n}0`];
-  // Raddurchmesser und Randabstand wie in trussShape begrenzt, damit die vier Rollen bei
-  // keiner Kantenlänge in der Rollenebene (a1 × a2) ineinanderlaufen oder aus der Box ragen
-  // (Befund: AF-1 -CAB 44×23 und SF TourHazer II -CAB 53×25 überlappen sonst).
+  // Raddurchmesser und Randabstand nach demselben Muster wie in trussShape begrenzt (nicht
+  // derselben Formel: trussShape deckelt den Inset auf einen festen Wert, hier skaliert er
+  // mit d), damit die vier Rollen bei keiner Kantenlänge in der Rollenebene (a1 × a2)
+  // ineinanderlaufen oder aus der Box ragen (Befund: AF-1 -CAB 44×23 und SF TourHazer II
+  // -CAB 53×25 überlappen sonst).
   const dim1 = box[`${a1}1`] - box[`${a1}0`], dim2 = box[`${a2}1`] - box[`${a2}0`];
   const d = Math.min(wh * 0.8, dim1 / 3, dim2 / 3);   // Raddurchmesser, Rest = Gabel/Platte
   const rawInset = Math.max(3, d * 0.4);              // Abstand von der Case-Ecke, unbegrenzt

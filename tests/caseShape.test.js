@@ -73,6 +73,21 @@ test('SF TourHazer II -CAB (53×25, wheelH 12): Rollen überlappen nicht mehr', 
   pairwiseNoOverlap(wheels);
 });
 
+// Fix-Runde 1: bei den bisherigen Testmaßen band immer nur der Durchmesser-Clamp
+// (d = min(wh*0.8, dim1/3, dim2/3)) – der Inset-Clamp (Math.min(rawInset, capped)) wurde nie
+// dazu gebracht, den unbegrenzten rawInset (Math.max(3, d*0.4)) tatsächlich zu verkleinern.
+// Ein sehr schmales Case (15 cm) neben einer langen Kante (60 cm) bindet zwar auch den
+// Durchmesser-Clamp (d = dim2/3 = 5), aber der Inset-Clamp muss zusätzlich zuschlagen
+// (rawInset 3 > capped 2,5) – ohne ihn läge inset bei 3 statt 2,5, und die beiden Rollen
+// entlang der schmalen Kante (15 cm) würden sich überlappen (3–8 gegen 7–12).
+test('sehr schmale Kante (15 cm) neben einer langen (60 cm): Inset-Clamp verhindert Überlappung', () => {
+  const c = mkCase('schmal2', 60, 15, 40, { wheelH: 12 });
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const { wheels } = caseShape(c, p, box);
+  pairwiseNoOverlap(wheels);
+});
+
 // Härtefall aus der Review: noch schmaler als die beiden Bibliotheks-Cases – hier
 // müssen die Rollen zusätzlich innerhalb der Box bleiben (nicht nur nicht überlappen).
 test('sehr schmales Case (20×40, wheelH 12): Rollen bleiben innerhalb der Box und überlappen nicht', () => {

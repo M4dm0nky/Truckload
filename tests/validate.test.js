@@ -161,8 +161,18 @@ test('Grundfläche 0: unsupported-Prüfung liefert kein stilles NaN, sondern mel
   const r = validatePlan(plan([P('a', 'zero', 0, 0, 100)]), byId(ZERO), mkTruck());
   assert.deepEqual(codes(r, 'a'), ['unsupported']);
 });
-test('Fahrzeugmaß 0: volumeRatio liefert 0 statt NaN', () => {
+// Alle drei Fahrzeugmaße einzeln geprüft: ein Rückbau, der nur eines der drei prüft
+// (z. B. `truck.l > 0` allein), bliebe sonst grün, wenn zufällig immer nur l getestet wird.
+test('Fahrzeugmaß 0 (Länge): volumeRatio liefert 0 statt NaN', () => {
   const r = validatePlan(plan([]), byId(K), mkTruck({ l: 0 }));
+  assert.equal(r.totals.volumeRatio, 0);
+});
+test('Fahrzeugmaß 0 (Breite): volumeRatio liefert 0 statt NaN', () => {
+  const r = validatePlan(plan([]), byId(K), mkTruck({ w: 0 }));
+  assert.equal(r.totals.volumeRatio, 0);
+});
+test('Fahrzeugmaß 0 (Höhe): volumeRatio liefert 0 statt NaN', () => {
+  const r = validatePlan(plan([]), byId(K), mkTruck({ h: 0 }));
   assert.equal(r.totals.volumeRatio, 0);
 });
 

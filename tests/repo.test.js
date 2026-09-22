@@ -61,6 +61,37 @@ test('normalizeOwnCases: normale (Nicht-Traversen-)Cases bleiben unberührt', ()
   assert.equal(normalized, own, 'wird unverändert durchgereicht, keine Kopie/Änderung');
 });
 
+// Fix-Runde 1, [blocking]: ein vor MAX_TRUSS_WIDTH gespeichertes eigenes Traversen-Case mit
+// zu großer Breite darf beim Laden weder selbst werfen (s. io.test.js) NOCH die ganze
+// Bibliothek mitreißen, wenn andere eigene Cases gesund sind – normalizeOwnCases fängt
+// deshalb pro Case ab, statt cases.map(normalizeCase) am ersten Fehler abbrechen zu lassen.
+test('normalizeOwnCases: ein kaputtes Traversen-Case (Breite > 40) reißt nicht die ganze Bibliothek mit', () => {
+  const brokenTruss = {
+    id: 'broken-truss', name: 'Alter breiter Wagen', builtin: false, kind: 'truss',
+    truss: { length: 300, width: 45, count: 2 },
+    l: 300, w: 90, h: 62, weight: 80, tippable: false, wheelH: 12, dimsInclWheels: true,
+  };
+  const healthyTruss = {
+    id: 'ok-truss', name: 'Gesunder Wagen', builtin: false, kind: 'truss',
+    truss: { length: 300, width: 29, count: 4 },
+    l: 1, w: 1, h: 999, weight: 50, tippable: false, wheelH: 12, dimsInclWheels: true,
+  };
+  const plainCase = { id: 'own-case', name: 'Eigenes Case', builtin: false, l: 80, w: 60, h: 60, weight: 40 };
+
+  const result = normalizeOwnCases([brokenTruss, healthyTruss, plainCase]);
+  assert.equal(result.length, 3, 'alle drei Cases bleiben erhalten, keins verschwindet');
+
+  const broken = result.find(c => c.id === 'broken-truss');
+  assert.equal(broken.l, 300); assert.equal(broken.w, 90); assert.equal(broken.h, 62);
+
+  const healthy = result.find(c => c.id === 'ok-truss');
+  const expected = trussDims(healthyTruss.truss);
+  assert.equal(healthy.l, expected.l); assert.equal(healthy.w, expected.w); assert.equal(healthy.h, expected.h);
+
+  const plain = result.find(c => c.id === 'own-case');
+  assert.equal(plain, plainCase);
+});
+
 // --- Daten-11: loadAllFallback() greift, wenn IndexedDB nicht erreichbar ist ---
 
 test('loadAllFallback: liefert nur Vorlagen, keine eigenen Daten, App bleibt bedienbar', () => {

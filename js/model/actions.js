@@ -141,14 +141,17 @@ export function setItemLabel(plan, id, { label, color } = {}) {
 export const removePlacement = (plan, id) =>
   touch({ ...plan, placements: plan.placements.filter(p => p.id !== id) });
 
+// Placement -> Ablage-Eintrag (nur id/caseId/label?/color?, keine Positions-/Lagefelder).
+const placementToUnplaced = p =>
+  ({ id: p.id, caseId: p.caseId, ...(p.label ? { label: p.label } : {}), ...(p.color ? { color: p.color } : {}) });
+
 export function toTray(plan, id) {
   const p = plan.placements.find(q => q.id === id);
   if (!p) return plan;
-  const { label, color } = p;
   return touch({
     ...plan,
     placements: plan.placements.filter(q => q.id !== id),
-    unplaced: [...plan.unplaced, { id: p.id, caseId: p.caseId, ...(label ? { label } : {}), ...(color ? { color } : {}) }],
+    unplaced: [...plan.unplaced, placementToUnplaced(p)],
   });
 }
 
@@ -162,24 +165,36 @@ function toPiece(x, ctx) {
   return { id: x.id, caseId: x.caseId, c, ...(x.label ? { label: x.label } : {}), ...(x.color ? { color: x.color } : {}) };
 }
 
+// Placements, deren Case-Typ nicht mehr in der Bibliothek steht. Sie haben keine bekannten
+// Maße (ein Placement speichert nur x/y/z, keine l/w/h – die kommen ausschließlich vom
+// Case-Typ) und können deshalb nicht als Box-Hindernis an autoPack übergeben werden. Statt
+// sie unverändert an ihrer alten Position zu belassen – wo ein frisch gepacktes Case sie
+// geometrisch überdecken könnte, ohne dass das irgendwo sichtbar würde (Befund „packAll
+// packt in sie hinein“) – werden sie beim Neupacken sichtbar in die Ablage verschoben. Der
+// Nutzer sieht sie dort (statt zweier Cases im selben Raum) und kann reagieren.
+const missingCasePlacements = (plan, ctx) => plan.placements.filter(p => !ctx.caseById.has(p.caseId));
+
 export function packAll(plan, ctx) {
   const list = [...plan.placements, ...plan.unplaced].map(x => toPiece(x, ctx)).filter(Boolean);
   const { placements, unplaced } = autoPack(list, ctx.truck);
   return touch({
     ...plan,
-    placements: [...placements, ...plan.placements.filter(p => !ctx.caseById.has(p.caseId))],
-    unplaced: [...unplaced, ...orphans(plan, ctx)],
+    placements,
+    unplaced: [...unplaced, ...orphans(plan, ctx), ...missingCasePlacements(plan, ctx).map(placementToUnplaced)],
   });
 }
 
 export function packRest(plan, ctx) {
   const { items } = buildItems(plan, ctx.caseById);
   const list = plan.unplaced.map(u => toPiece(u, ctx)).filter(Boolean);
-  if (!list.length) return plan;
-  const { placements, unplaced } = autoPack(list, ctx.truck, { obstacles: items.map(it => it.box) });
+  const missing = missingCasePlacements(plan, ctx);
+  if (!list.length && !missing.length) return plan;
+  const { placements, unplaced } = list.length
+    ? autoPack(list, ctx.truck, { obstacles: items.map(it => it.box) })
+    : { placements: [], unplaced: [] };
   return touch({
     ...plan,
-    placements: [...plan.placements, ...placements],
-    unplaced: [...unplaced, ...orphans(plan, ctx)],
+    placements: [...plan.placements.filter(p => ctx.caseById.has(p.caseId)), ...placements],
+    unplaced: [...unplaced, ...orphans(plan, ctx), ...missing.map(placementToUnplaced)],
   });
 }
