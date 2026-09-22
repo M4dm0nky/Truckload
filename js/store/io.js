@@ -1,14 +1,15 @@
 import { APP_VERSION } from '../version.js';
-import { ORIENTATIONS, MAX_LABEL } from '../model/geometry.js';
-import { trussDims } from '../model/truss.js';
+import { ORIENTATIONS, ROTATIONS, MAX_LABEL } from '../model/geometry.js';
+import { trussDims, isTruss } from '../model/truss.js';
+import { ARCH_SIDES } from '../model/validate.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 
 export { MAX_LABEL };
-export const FORMAT = 'truckload';
-export const VERSION = 1;
-const ROTATIONS = [0, 90, 180, 270];
-const ARCH_SIDES = ['left', 'right', 'both'];
+// FORMAT/VERSION nur hier benutzt (Import- und Export-Prüfung derselben Datei) — nicht mehr
+// exportiert (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
+const FORMAT = 'truckload';
+const VERSION = 1;
 const CASE_KINDS = ['case', 'truss'];
 
 // Obergrenzen für Case-Werte aus fremden Dateien. Großzügig, aber so, dass Unsinn
@@ -50,7 +51,7 @@ export function checkCase(c) {
     && (c.dimsInclWheels === undefined || typeof c.dimsInclWheels === 'boolean')
     && wheelHOk && layersOk && kindOk;
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
-  if (c.kind === 'truss') {
+  if (isTruss(c)) {
     const t = c.truss;
     const trussOk = t
       && num(t.length) && t.length >= 1 && t.length <= 1000
@@ -61,7 +62,7 @@ export function checkCase(c) {
   }
 }
 export function normalizeCase(c) {
-  if (c.kind !== 'truss') return c;
+  if (!isTruss(c)) return c;
   // trussDims() wirft, wenn c.truss.width die Grenze (MAX_TRUSS_WIDTH) überschreitet.
   // Beim Datei-Import ist das nicht erreichbar: checkCase() lehnt eine solche Breite schon
   // vorher ab, bevor normalizeCase() überhaupt läuft. Aber repo.normalizeOwnCases() ruft

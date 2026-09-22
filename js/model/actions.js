@@ -1,15 +1,19 @@
 import { ORIENTATIONS, boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, DOOR_FACE, MAX_LABEL } from './geometry.js';
 import { archBoxes, buildItems } from './validate.js';
 import { autoPack } from './packer.js';
+import { canTip } from './truss.js';
 
 const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
 
 export const emptyPlan = (id, name, truckId) =>
   touch({ id, name, truckId, placements: [], unplaced: [], notes: '' });
 
-function otherBoxes(plan, ctx, excludeIds) {
-  const { items } = buildItems(plan, ctx.caseById);
-  return [...items.filter(it => !excludeIds.includes(it.id)).map(it => it.box), ...archBoxes(ctx.truck)];
+// Nimmt schon aufgelöste `items` statt (plan, ctx) entgegen: moveGroup und reorient bauen die
+// Items für die eigene Stapel-/Gruppenlogik ohnehin schon selbst und riefen otherBoxes bisher mit
+// (plan, ctx) auf, das intern ein zweites Mal buildItems() über alle Placements laufen ließ — bei
+// jeder Maus-Bewegung eines Stapels doppelt (docs/code-review-2026-09-21.md, „actions.js:10-13“).
+function otherBoxes(items, truck, excludeIds) {
+  return [...items.filter(it => !excludeIds.includes(it.id)).map(it => it.box), ...archBoxes(truck)];
 }
 
 function settle(p, c, others) {
@@ -37,7 +41,7 @@ export function placeCase(plan, caseId, x, y, ctx, fromUnplacedId = null) {
   const src = fromUnplacedId ? plan.unplaced.find(u => u.id === fromUnplacedId) : null;
   const { id: _srcId, caseId: _srcCaseId, ...srcExtra } = src ?? {};
   const base = { id: fromUnplacedId ?? ctx.newId(), caseId, x: snap(x), y: snap(y), z: 0, orientation: 'standing', rot: 0, ...srcExtra };
-  const p = settle(base, c, otherBoxes(plan, ctx, []));
+  const p = settle(base, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
   return touch({
     ...plan,
     placements: [...plan.placements, p],
@@ -50,7 +54,7 @@ export function moveGroup(plan, id, x, y, ctx, { grid = 5, edges = true } = {}) 
   const root = items.find(it => it.id === id);
   if (!root) return plan;
   const group = stackAbove(id, items);
-  const others = otherBoxes(plan, ctx, group);
+  const others = otherBoxes(items, ctx.truck, group);
   const w = root.box.x1 - root.box.x0, d = root.box.y1 - root.box.y0;
   let nx = snap(x, grid), ny = snap(y, grid);
   if (edges) {
@@ -74,7 +78,7 @@ function reorient(plan, id, ctx, change) {
   const patch = change(p, c);
   if (!Object.keys(patch).length) return plan;
   const { items } = buildItems(plan, ctx.caseById);
-  const next = settle({ ...p, ...patch }, c, otherBoxes(plan, ctx, stackAbove(id, items)));
+  const next = settle({ ...p, ...patch }, c, otherBoxes(items, ctx.truck, stackAbove(id, items)));
   return touch({ ...plan, placements: plan.placements.map(q => (q.id === id ? next : q)) });
 }
 
@@ -83,7 +87,7 @@ export const rotate = (plan, id, ctx) =>
 
 export const cycleTip = (plan, id, ctx) =>
   reorient(plan, id, ctx, (p, c) => {
-    if (!(c.tippable && c.kind !== 'truss')) return {};
+    if (!canTip(c)) return {};
     const next = ORIENTATIONS[(ORIENTATIONS.indexOf(p.orientation) + 1) % ORIENTATIONS.length];
     // Jeder Übergang in eine getippte Lage setzt die Rollen zur Trucktür (auch
     // tipLong → tipShort); die freie Wahl der Richtung danach läuft über setWheelFace.
@@ -96,7 +100,7 @@ export const cycleTip = (plan, id, ctx) =>
 // Ist die Richtung für die aktuelle Lage nicht erreichbar (z. B. „standing“, Traverse), passiert nichts.
 export const setWheelFace = (plan, id, face, ctx) =>
   reorient(plan, id, ctx, (p, c) => {
-    if (!(c.tippable && c.kind !== 'truss')) return {};
+    if (!canTip(c)) return {};
     const rot = rotForWheelFace(p.orientation, face);
     return rot == null ? {} : { rot };
   });
@@ -116,7 +120,7 @@ export function duplicate(plan, id, ctx) {
   if (!c) return plan;
   const patch = { id: ctx.newId(), x: p.x + effectiveDims(c, p).dx };
   if (p.label) patch.label = nextLabel(p.label);
-  const copy = settle({ ...p, ...patch }, c, otherBoxes(plan, ctx, []));
+  const copy = settle({ ...p, ...patch }, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
   return touch({ ...plan, placements: [...plan.placements, copy] });
 }
 

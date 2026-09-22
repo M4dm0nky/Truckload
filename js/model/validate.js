@@ -1,8 +1,15 @@
 import { EPS, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, layersOf } from './geometry.js';
 import { isTruss } from './truss.js';
 
-export const SUPPORT_MIN = 0.8;
-export const IMBALANCE_RATIO = 0.1;
+// SUPPORT_MIN/IMBALANCE_RATIO nur in dieser Datei benutzt — nicht mehr exportiert
+// (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
+const SUPPORT_MIN = 0.8;
+const IMBALANCE_RATIO = 0.1;
+
+// Gültige Seitenwerte eines Radkastens. Lag vorher in js/store/io.js (Speicherschicht), obwohl
+// nur die Modellschicht (hier, `archBoxes`) etwas mit der Seite anfängt — io.js benutzt die Liste
+// nur zur Import-Prüfung (docs/code-review-2026-09-21.md, „validate.js:9“).
+export const ARCH_SIDES = ['left', 'right', 'both'];
 
 export function archBoxes(truck) {
   return (truck.wheelArches ?? []).flatMap(a => {
@@ -26,13 +33,17 @@ export function buildItems(plan, caseById) {
   return { items, missing };
 }
 
-export function loadSequence(items) {
+// Nur in dieser Datei benutzt — nicht mehr exportiert (docs/code-review-2026-09-21.md,
+// „zehn zu weit offene Exporte“).
+function loadSequence(items) {
   const sorted = [...items].sort((a, b) =>
     a.box.x0 - b.box.x0 || a.box.y0 - b.box.y0 || a.box.z0 - b.box.z0);
   return new Map(sorted.map((it, i) => [it.id, i + 1]));
 }
 
-export function layerMap(items) {
+// Nur in dieser Datei benutzt — nicht mehr exportiert (docs/code-review-2026-09-21.md,
+// „zehn zu weit offene Exporte“).
+function layerMap(items) {
   const layers = new Map();
   const sorted = [...items].sort((a, b) => a.box.z0 - b.box.z0);
   for (const it of sorted) {
@@ -67,6 +78,14 @@ export function validatePlan(plan, caseById, truck) {
     // Ein Traversenwagen ist geometrisch immer „standing“ (effectiveDims erzwingt das),
     // p.orientation kann bei importierten Plänen trotzdem andere Werte tragen — die
     // notTippable-Prüfung darf sich davon nicht täuschen lassen.
+    //
+    // Bewusst NICHT über `canTip(it.c)` (js/model/truss.js) geschrieben: `canTip` ist
+    // `tippable === true && !isTruss(c)`, dessen Verneinung wäre `tippable !== true ||
+    // isTruss(c)` (ODER) — hier steht aber ein UND (`!isTruss(...) && ... && !tippable`), das
+    // Traversenwagen von dieser Prüfung komplett ausnimmt, egal welche Orientierung sie tragen.
+    // Mit `!canTip(it.c)` bekäme ein importierter Traversenwagen mit falscher `p.orientation`
+    // fälschlich eine notTippable-Meldung statt gar keine — genau der Fehler, den der Kommentar
+    // oben beschreibt (docs/code-review-2026-09-21.md, „geometry.js:35“, Vorschlag zu `canTip`).
     if (!isTruss(it.c) && it.p.orientation !== 'standing' && !it.c.tippable)
       add(it.id, 'notTippable', `„${n}“ darf nicht getippt werden.`);
   }

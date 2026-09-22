@@ -8,6 +8,9 @@ export const EPS = 0.5;
 // umgekehrt von io.js abhängen müssen.
 export const MAX_LABEL = 40;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
+// Die vier gültigen Rotationen. Stand vorher doppelt als Literal in packer.js und io.js
+// (docs/code-review-2026-09-21.md, „packer.js:7 / io.js:7“); beide benutzen jetzt diese Quelle.
+export const ROTATIONS = [0, 90, 180, 270];
 export const DEFAULT_WHEEL_H = 12;   // Altdaten ohne Angabe
 export const NEW_CASE_WHEEL_H = 16;  // Blue Wheel Ø125 mm + Rollenbrett
 export const WHEEL_PRESETS = [
@@ -118,6 +121,28 @@ export function stackAbove(rootId, items) {
     if (sup.length && sup.every(s => set.has(s.id))) set.add(it.id);
   }
   return [...set];
+}
+
+// Vier quadratische Boxen (Kantenlänge `size`) an den Ecken einer Fläche `faceBox`, in der
+// Ebene der Achsen `a1`×`a2`, mit Randabstand `inset` und erstreckt entlang der Normalenachse
+// `n` über `nRange` ([n0, n1]). Gemeinsamer Kern von `caseShape()` (js/model/caseShape.js,
+// vier Rollen je Case) und `trussShape()` (js/model/truss.js, vier Rollen je Rollwagen) —
+// beide setzten bis Task 6 dieselbe Ecken-Platzierung als eigene Kopie um
+// (docs/code-review-2026-09-21.md, „truss.js:59-69 vs. caseShape.js:17-30“). `size` und
+// `inset` bleiben Sache der Aufrufer: Beide begrenzen sie unterschiedlich (`trussShape` auf
+// einen festen Wert gedeckelt, `caseShape` mit `d` skaliert) — das ist der bewusste
+// fachliche Unterschied, der bestehen bleibt, nur die Geometrie darunter ist identisch.
+export function cornerBoxes(faceBox, [a1, a2, n], size, inset, nRange) {
+  const pos = (axis, end) => (end ? faceBox[`${axis}1`] - inset - size : faceBox[`${axis}0`] + inset);
+  const boxes = [];
+  for (const e1 of [0, 1]) for (const e2 of [0, 1]) {
+    const b = {};
+    b[`${a1}0`] = pos(a1, e1); b[`${a1}1`] = b[`${a1}0`] + size;
+    b[`${a2}0`] = pos(a2, e2); b[`${a2}1`] = b[`${a2}0`] + size;
+    b[`${n}0`] = nRange[0]; b[`${n}1`] = nRange[1];
+    boxes.push(b);
+  }
+  return boxes;
 }
 
 export function faceSlab(b, face, t) {

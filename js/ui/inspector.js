@@ -1,4 +1,4 @@
-import { esc, fmtM, ORIENTATION_LABEL } from './dom.js';
+import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
 import { outerDims, wheelFace } from '../model/geometry.js';
 import { MAX_LABEL } from '../store/io.js';
 
@@ -25,7 +25,7 @@ export function renderInspector(el, { selected, result, truck }) {
   const dims = selected ? outerDims(selected.c) : null;
   const sel = selected ? `
     <section class="insp-sel" data-id="${esc(selected.id)}">
-      <h2><span class="swatch" style="background:${esc(selected.color)}"></span>${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
+      <h2>${swatch(selected.color)}${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
       ${selected.c.content ? `<p class="content">${esc(selected.c.content)}</p>` : ''}
       <div class="insp-label">
         <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selected.label)}"></label>

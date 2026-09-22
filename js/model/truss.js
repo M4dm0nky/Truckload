@@ -1,3 +1,5 @@
+import { cornerBoxes } from './geometry.js';
+
 export const DOLLY_WHEEL_H = 12; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
 export const DOLLY_BOARD_H = 3;  // Plattenstärke des Rollbretts (cm, entspricht 20–25 mm real)
 export const DOLLY_RAIL_H = 2;   // Höhe der Auflageleisten obenauf der Platte (cm)
@@ -22,8 +24,22 @@ export function trussDims({ length, width, count }) {
 
 export const isTruss = c => c.kind === 'truss';
 
+// Ob ein Case getippt werden darf: Traversenwagen sind es nie, auch wenn `tippable` an ihnen
+// (fehlerhaft) true wäre. `checkCase`/`normalizeCase` (js/store/io.js) und der Case-Editor
+// erzwingen `tippable: false` für Traversenwagen bereits an jeder Stelle, an der ein Case
+// entsteht oder geladen wird — `canTip` macht dieselbe Regel zusätzlich dort verlässlich, wo
+// ein Aufrufer nicht über diese Pfade läuft. Ersetzt das doppelt geschriebene
+// `c.tippable && c.kind !== 'truss'` in `actions.js`
+// (docs/code-review-2026-09-21.md, „geometry.js:35, actions.js:86,99“). Liegt hier statt in
+// geometry.js, weil geometry.js sonst truss.js importieren müsste, während truss.js schon von
+// geometry.js benutzte Hilfsfunktionen bräuchte (`cornerBoxes`) — das gäbe einen Zyklus
+// zwischen den beiden Modellmodulen.
+export const canTip = c => c.tippable === true && !isTruss(c);
+
 export const DOLLY_L = 60;         // Länge eines Rollwagens (cm)
-export const DOLLY_WHEEL_D = 10;   // Rollen-Durchmesser am Wagen (cm)
+// Nur in dieser Datei benutzt — nicht mehr exportiert (docs/code-review-2026-09-21.md,
+// „zehn zu weit offene Exporte“).
+const DOLLY_WHEEL_D = 10;   // Rollen-Durchmesser am Wagen (cm)
 export const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (F34: 50 mm Ø / 29 cm)
 export const DIAG_R_RATIO = 0.035; // Diagonalen-Radius (F34: 20 mm Ø / 29 cm)
 const PER_ROW = 2;                 // Traversenstücke nebeneinander pro Lage
@@ -66,15 +82,11 @@ export function trussShape(c, p, box) {
   // -Abstand so begrenzen, dass die 2 Rollen je Kante nie überlappen oder über den Wagen hinausragen.
   const wheelD = Math.min(DOLLY_WHEEL_D, dollyLen / 3, dollyW / 3);
   const inset = Math.max(0, Math.min(DOLLY_WHEEL_D * 0.3, (Math.min(dollyLen, dollyW) - 2 * wheelD) / 2));
-  const wheels = [];
-  for (const d of dollies) {
-    const dLen0 = d[`${lenAxis}0`], dLen1 = d[`${lenAxis}1`];
-    for (const le of [0, 1]) for (const wi of [0, 1]) {
-      const l0 = le ? dLen1 - inset - wheelD : dLen0 + inset;
-      const w0 = wi ? wid1 - inset - wheelD : wid0 + inset;
-      wheels.push(mk([l0, l0 + wheelD], [w0, w0 + wheelD], [z0, z0 + wheelD]));
-    }
-  }
+  // cornerBoxes() (geometry.js) ist der mit caseShape() geteilte Kern der Ecken-Platzierung
+  // (docs/code-review-2026-09-21.md, „truss.js:59-69 vs. caseShape.js:17-30“); Durchmesser und
+  // Randabstand bleiben hier auf einen festen Wert gedeckelt statt wie in caseShape mit dem
+  // Durchmesser zu skalieren — das ist der bewusste fachliche Unterschied zwischen beiden.
+  const wheels = dollies.flatMap(d => cornerBoxes(d, [lenAxis, widAxis, 'z'], wheelD, inset, [z0, z0 + wheelD]));
 
   const rows = Math.max(1, Math.ceil(count / PER_ROW));
   const pieces = [];

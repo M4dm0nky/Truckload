@@ -1,8 +1,8 @@
-import { esc } from './dom.js';
+import { esc, swatch } from './dom.js';
 import { CATEGORIES } from '../data/categories.js';
 import { layersOf, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
-import { companiesOf, groupCases } from './caseGroups.js';
+import { companiesOf, groupCases, renderGroupList } from './caseGroups.js';
 
 function trussProfileLabel(width) {
   const p = TRUSS_PROFILES.find(p => p.width === width);
@@ -47,7 +47,7 @@ export function mountLibrary(el, h) {
     const companySuffix = c.company ? ` · ${esc(c.company)}` : '';
     return `
     <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc([c.content, c.note].filter(Boolean).join(' · '))}">
-      <span class="swatch" style="background:${esc(c.color)}"></span>
+      ${swatch(c.color)}
       <span class="lib-text"><b>${esc(c.name)}</b>
         <small>${isTruss(c)
           ? esc(trussLabel(c))
@@ -66,13 +66,13 @@ export function mountLibrary(el, h) {
 
   function renderList() {
     if (!last) return;
-    const { own, presets, list: fromList } = groupCases(last.cases, {
-      q: search.value, cat: filter.value, company: companyFilter.value,
+    const groups = groupCases(last.cases, { q: search.value, cat: filter.value, company: companyFilter.value });
+    renderGroupList(list, groups, row, {
+      own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>',
+      presetsHeading: ' <small>(Richtwerte)</small>',
+      presets: '<p class="hint">Keine Treffer für diese Filter.</p>',
+      list: '<p class="hint">Keine Treffer für diese Filter.</p>',
     });
-    list.innerHTML = `
-      <h3>Eigene Cases (${own.length})</h3>${own.map(row).join('') || '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>'}
-      <h3>Vorlagen (${presets.length}) <small>(Richtwerte)</small></h3>${presets.map(row).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}
-      <h3>Cases aus deiner Liste (${fromList.length})</h3>${fromList.map(row).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}`;
   }
 
   function renderTray() {
@@ -82,8 +82,18 @@ export function mountLibrary(el, h) {
     tray.innerHTML = [...groups].map(([caseId, items]) => {
       const c = byId.get(caseId);
       const labels = items.map(u => u.label ?? c?.name ?? 'Unbekanntes Case').join(', ');
+      // Farbkästchen zeigt die Farbe des STÜCKS, nicht die Gewerkfarbe des Case-Typs (Befund des
+      // Controllers, Task-6-Brief): direkt daneben stehen die Beschriftungen der einzelnen
+      // Stücke, eine Gewerkfarbe wäre dort irreführend, besonders wenn im Wizard eine eigene
+      // Farbe je Stück vergeben wurde. Stücke einer Gruppe KÖNNEN unterschiedliche Farben haben
+      // (Wizard: „Farbe auf alle übernehmen“ ist ein Vorschlag, kein Zwang) — ein einzelnes
+      // Kästchen kann das nicht korrekt für alle zugleich zeigen. Es zeigt deshalb die Farbe des
+      // ERSTEN Stücks der Gruppe (dieselbe Auflösungsreihenfolge wie überall sonst: Stück-Farbe,
+      // sonst Gewerkfarbe, sonst Grau) — passend zur ersten Beschriftung in der Zeile darunter,
+      // nicht eine für die ganze Gruppe erfundene Mischfarbe.
+      const color = items[0].color ?? c?.color ?? '#888';
       return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(items[0].id)}">
-        <span class="swatch" style="background:${esc(c?.color ?? '#888')}"></span>
+        ${swatch(color)}
         <span class="lib-text"><b>${items.length}× ${esc(c?.name ?? 'Unbekanntes Case')}</b>
           <small>${esc(labels)}</small></span>
         <button data-act="tray-remove" title="Eins entfernen">−</button></div>`;

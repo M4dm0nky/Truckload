@@ -11,6 +11,17 @@ const PAD = 30;
 const FRAME_W = 3.5;      // cm, Breite des Alu-Hybridprofils
 
 // Beschriftung: Schriftgröße aus der kleineren Korpus-Rechteckseite abgeleitet, auf 6–16 cm begrenzt.
+//
+// 2D kürzt zu lange Beschriftungen einzeilig mit „…“ (fitLabelText() unten), 3D bricht sie
+// stattdessen mehrzeilig um und verkleinert die Schrift (labelTexture.js, fitFontSize()/
+// wrapText()) — zwei verschiedene Lösungen für dieselbe Aufgabe, mit unterschiedlichem Ergebnis
+// auf demselben Case (docs/code-review-2026-09-21.md, „S3 — eine Textmetrik für 2D und 3D“).
+// Absichtlich NICHT zusammengeführt: 2D auf Umbruch umzustellen wäre eine sichtbare
+// Verhaltensänderung (mehrzeiliger statt gekürzter Text), keine reine Dopplung, und damit
+// außerhalb dessen, was Task 6 zusammenführen soll. Was tatsächlich geteilt wird, ist nur die
+// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, aus labelTexture.js importiert) als Rückfall,
+// wenn `getComputedTextLength()` nicht zur Verfügung steht (s. `fitLabelText()`) — das war schon
+// vor Task 6 der Fall und ist keine Änderung hier.
 const LABEL_MIN = 6;
 const LABEL_MAX = 16;
 const LABEL_RATIO = 0.32;
@@ -99,10 +110,19 @@ function drawEndSquare(g, pr, profileWidth) {
     svgEl('circle', { cx, cy, r: cr, class: 'truss-tube' }, g);
 }
 
-function drawTruss(g, it, mode, truck, colorMode) {
+// colorMode war bis Task 6 ein ungenutzter Parameter: drawTruss() rechnet die Markenfarbe immer
+// aus it.color/c.color statt aus caseColors(), der Umschalter „Schwarz/Gewerk“ wirkt auf
+// Traversenwagen deshalb nicht (docs/code-review-2026-09-21.md, „N4 — drawTruss bekommt
+// colorMode und benutzt es nicht“). Das selbst zu ändern wäre eine Verhaltensänderung (der
+// Umschalter würde dann auch Traversenwagen einfärben) und keine reine Dopplung — bewusst nicht
+// Teil dieses Aufräum-Tasks; nur der tote Parameter ist entfernt.
+function drawTruss(g, it, mode, truck) {
   const { c, p, box } = it;
   const shape = trussShape(c, p, box);
-  const markColor = it.color ?? c.color;
+  // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in validate.js:
+  // `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie mehr greifen
+  // (docs/code-review-2026-09-21.md, „N5 — it.color ?? c.color ist überflüssig“).
+  const markColor = it.color;
 
   const outline = project(box, mode, truck);
   svgEl('rect', {
@@ -260,31 +280,39 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
   const r = project(it.box, mode, truck);
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
 
-  const face = wheelFace(it.p);
-  const { body, wheels } = caseShape(it.c, it.p, it.box);
-  const bodyRect = project(body, mode, truck);
-  const view = wheels.length ? wheelView(mode, face) : 'hidden';
-
-  if (view === 'edge') for (const w of wheels) {
-    const wr = project(w, mode, truck);
-    const fork = nearestEdgePoint(bodyRect, (wr.u0 + wr.u1) / 2, (wr.v0 + wr.v1) / 2);
-    drawWheel(g, w, mode, truck, fork);
-  }
-
-  let labelRect = bodyRect;
+  let labelRect;
   if (isTruss(it.c)) {
-    const shape = drawTruss(g, it, mode, truck, colorMode);
+    // isTruss-Zweig vor die Rollen-/Korpusberechnung gezogen (Task 6): 2D rechnete für
+    // Traversenwagen bis dahin Rollen aus, die es hinterher gar nicht zeichnete — heute
+    // folgenlos, weil normalizeCase() (js/store/io.js) für Traversenwagen immer wheelH: 0
+    // erzwingt und caseShape() dann wheels: [] liefert, aber eine stille Abhängigkeit von
+    // dieser Invariante (docs/code-review-2026-09-21.md, „N6 — 2D rechnet für Traversenwagen
+    // Rollen aus, die es dann nicht zeichnet“). 3D (view3d.js) steigt für Traversenwagen
+    // schon vorher aus derselben Ecke aus.
+    const shape = drawTruss(g, it, mode, truck);
     // Zahl auf dem Wagen (Wagenende), nicht mitten im Gurtrohr-/Diagonalen-Muster.
     labelRect = project(shape.dollies[0], mode, truck);
   } else {
+    const face = wheelFace(it.p);
+    const { body, wheels } = caseShape(it.c, it.p, it.box);
+    const bodyRect = project(body, mode, truck);
+    const view = wheels.length ? wheelView(mode, face) : 'hidden';
+
+    if (view === 'edge') for (const w of wheels) {
+      const wr = project(w, mode, truck);
+      const fork = nearestEdgePoint(bodyRect, (wr.u0 + wr.u1) / 2, (wr.v0 + wr.v1) / 2);
+      drawWheel(g, w, mode, truck, fork);
+    }
+
     const colors = caseColors(it.c, colorMode, it.color);
     // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
     // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
     const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
     drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, detailed);
-  }
 
-  if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
+    if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
+    labelRect = bodyRect;
+  }
 
   if (labels) drawLabel(g, labelRect, it);
   svgEl('title', {}, g).textContent = it.title;

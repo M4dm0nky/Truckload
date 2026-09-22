@@ -1,10 +1,18 @@
-import { ORIENTATIONS, effectiveDims, overlaps, layersOf, wheelFace, DOOR_FACE } from './geometry.js';
+import { ORIENTATIONS, ROTATIONS, effectiveDims, overlaps, layersOf, wheelFace, DOOR_FACE } from './geometry.js';
 import { archBoxes } from './validate.js';
 
 export function chooseOrientation(c, truck) {
   const opts = [];
+  // Bewusst `c.tippable` statt `canTip(c)` (js/model/truss.js): für Traversenwagen ist
+  // `tippable` an jeder Stelle, an der ein Case entsteht oder geladen wird, bereits auf `false`
+  // gezwungen (checkCase/normalizeCase in js/store/io.js, Case-Editor), `c.tippable` allein
+  // liefert hier also schon dasselbe Ergebnis wie `canTip(c)`. Das beweist aber nur die
+  // Gleichheit unter dieser Invariante, nicht eine identische Funktion — eine Zusammenführung
+  // hier würde sich stillschweigend auf diese Invariante verlassen, statt sie (wie `canTip`)
+  // selbst durchzusetzen. Bewusst nicht zusammengeführt (docs/code-review-2026-09-21.md,
+  // „packer.js:7 / io.js:7“, Vorschlag zu `canTip` in `chooseOrientation`).
   for (const orientation of c.tippable ? ORIENTATIONS : ['standing']) {
-    for (const rot of [0, 90, 180, 270]) {
+    for (const rot of ROTATIONS) {
       const d = effectiveDims(c, { orientation, rot });
       if (d.dx > truck.l || d.dy > truck.w || d.dz > truck.h) continue;
       // Score-Lagenzahl auf die 4er-Grenze deckeln, die buildStacks selbst einhält
@@ -66,32 +74,30 @@ export function buildStacks(itemList, truck) {
   const withoutFloor = ready.filter(e => !layersOf(e.c).includes(1)).sort((a, b) =>
     minLayer(a.c) - minLayer(b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
 
-  for (const { it, c, o } of withFloor) {
-    const key = `${o.d.dx}x${o.d.dy}`;
-    const allowed = layersOf(c);
-    const target = stacks.find(s => s.key === key && s.items.length < 4
-      && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
-    if (target) {
-      target.items.push({ it, c, o, z: target.height });
-      target.height += o.d.dz;
-      target.weight += c.weight;
-    } else {
-      stacks.push({ key, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, items: [{ it, c, o, z: 0 }] });
+  // Gemeinsamer Rumpf: einen passenden Stapel suchen und das Stück dort anhängen. Nur der
+  // Rückfall unterscheidet sich zwischen den beiden Durchläufen (neuen Stapel anlegen, weil ein
+  // Stück selbst Bodenkontakt haben darf, vs. in die Ablage legen, weil ein Stück ohne Boden
+  // unter ihm nirgends stehen kann) — genau der Unterschied bleibt als Parameter `onMiss`
+  // erhalten, der Rest war Zeile für Zeile identisch (docs/code-review-2026-09-21.md,
+  // „packer.js:65-90“).
+  const addTo = (entries, onMiss) => {
+    for (const { it, c, o } of entries) {
+      const key = `${o.d.dx}x${o.d.dy}`;
+      const allowed = layersOf(c);
+      const target = stacks.find(s => s.key === key && s.items.length < 4
+        && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
+      if (target) {
+        target.items.push({ it, c, o, z: target.height });
+        target.height += o.d.dz;
+        target.weight += c.weight;
+      } else {
+        onMiss({ it, c, o });
+      }
     }
-  }
-  for (const { it, c, o } of withoutFloor) {
-    const key = `${o.d.dx}x${o.d.dy}`;
-    const allowed = layersOf(c);
-    const target = stacks.find(s => s.key === key && s.items.length < 4
-      && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
-    if (target) {
-      target.items.push({ it, c, o, z: target.height });
-      target.height += o.d.dz;
-      target.weight += c.weight;
-    } else {
-      unplaced.push(it);
-    }
-  }
+  };
+  addTo(withFloor, ({ it, c, o }) =>
+    stacks.push({ key: `${o.d.dx}x${o.d.dy}`, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, items: [{ it, c, o, z: 0 }] }));
+  addTo(withoutFloor, ({ it }) => unplaced.push(it));
   return { stacks, unplaced };
 }
 

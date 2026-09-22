@@ -386,7 +386,11 @@ export async function createView3d(container) {
 
     shape.boards.forEach((b, i) => {
       content.add(boxMesh(b, MAT_DOLLY_BOARD), edges(b, MAT_EDGE_ALU));
-      const dollyColor = it.color ?? c.color;
+      // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in
+      // validate.js: `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie
+      // mehr greifen (docs/code-review-2026-09-21.md, „N5 — it.color ?? c.color ist
+      // überflüssig und steht zweimal“).
+      const dollyColor = it.color;
       if (dollyColor) {
         // Nur eine schmale Kennzeichnung an der nach außen zeigenden Stirnkante des Bretts (analog
         // zur `truss-mark`-Marke in 2D), nicht die volle Brettfläche – sonst sieht das schwarze

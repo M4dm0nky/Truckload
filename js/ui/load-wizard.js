@@ -1,8 +1,8 @@
-import { esc } from './dom.js';
+import { esc, swatch } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { outerDims } from '../model/geometry.js';
 import { isTruss } from '../model/truss.js';
-import { companiesOf, groupCases } from './caseGroups.js';
+import { companiesOf, groupCases, renderGroupList } from './caseGroups.js';
 import { MAX_LABEL } from '../store/io.js';
 
 const MAX_ITEMS = 500;
@@ -97,7 +97,7 @@ export function openLoadWizard(dlg, opts = {}) {
     const n = counts.get(c.id) ?? 0;
     return `
       <div class="wiz-case-row" data-case="${esc(c.id)}">
-        <span class="swatch" style="background:${esc(c.color)}"></span>
+        ${swatch(c.color)}
         <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
         <div class="stepper">
           <button type="button" data-act="dec" ${n <= 0 ? 'disabled' : ''}>−</button>
@@ -108,13 +108,12 @@ export function openLoadWizard(dlg, opts = {}) {
   }
 
   function renderCaseList() {
-    const { own, presets, list: fromList } = groupCases(cases, {
-      q: search.value, cat: filterSel.value, company: companyFilterSel.value,
+    const groups = groupCases(cases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value });
+    renderGroupList(list, groups, caseRow, {
+      own: '<p class="hint">Keine Treffer.</p>',
+      presets: '<p class="hint">Keine Treffer für diese Filter.</p>',
+      list: '<p class="hint">Keine Treffer für diese Filter.</p>',
     });
-    list.innerHTML = `
-      <h3>Eigene Cases (${own.length})</h3>${own.map(caseRow).join('') || '<p class="hint">Keine Treffer.</p>'}
-      <h3>Vorlagen (${presets.length})</h3>${presets.map(caseRow).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}
-      <h3>Cases aus deiner Liste (${fromList.length})</h3>${fromList.map(caseRow).join('') || '<p class="hint">Keine Treffer für diese Filter.</p>'}`;
     updateTotals();
   }
   list.addEventListener('click', e => {

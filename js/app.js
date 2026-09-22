@@ -41,12 +41,19 @@ try {
 const latest = [...data.plans].sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))[0];
 const initialPlan = latest ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK_ID);
 
+// store/edit/select bleiben exportiert (nicht nur intern gebraucht): die CDP-Browser-Szenarien
+// unter „Prüfen“ (CLAUDE.md) importieren `js/app.js` im laufenden Browser und rufen sie direkt
+// auf, um Zustand aufzubauen, ohne durch die Oberfläche zu klicken (`app.store.get()`,
+// `app.edit(...)`, `app.select(id)`) — geprüft anhand vorhandener Szenarien aus vorigen Tasks.
+// `ctx` wird dort nirgends direkt gebraucht (Aufrufer holen sich `derive(...).truck`/`.caseById`
+// bzw. übergeben `ctx` intern) und ist deshalb nicht mehr exportiert
+// (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
 export const store = createStore({
   cases: data.cases, trucks: data.trucks, plans: data.plans,
   plan: initialPlan, selectedId: null, mode: '2d', caseColors: loadCaseColors(),
 });
 
-export function ctx(s = store.get()) {
+function ctx(s = store.get()) {
   return {
     caseById: new Map(s.cases.map(c => [c.id, c])),
     truck: s.trucks.find(t => t.id === s.plan.truckId) ?? s.trucks.find(t => t.id === DEFAULT_TRUCK_ID),
