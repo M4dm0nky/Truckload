@@ -123,6 +123,51 @@ test('Einseitigkeit wird auch ganz ohne Gewichte über das Volumen erkannt', () 
   assert.ok(planCodes(r).includes('imbalance'));
 });
 
+// Fix-Runde 1 (Koordinator): Die Volumen-Ersatzrechnung darf eine aus den bekannten
+// Gewichten bereits nachweisbare Einseitigkeit nicht verschlucken, nur weil irgendwo ein
+// zusätzliches Case ohne Gewicht dazukommt. Drei Stufen, wie vom Koordinator vorgerechnet
+// (Truck-Standardbreite 248 cm, Mitte bei 124 cm, Schwelle 24,8 cm):
+const HW1 = mkCase('hw1', 100, 100, 50, { weight: 500 });
+const HW2 = mkCase('hw2', 100, 100, 50, { weight: 500 });
+const Z1 = mkCase('z1', 60, 60, 60, { weight: 0 });
+const Z2 = mkCase('z2', 200, 248, 200, { weight: 0 });
+
+test('Fall 1: zwei schwere Cases allein – Schwerpunkt (Gewicht) deutlich einseitig', () => {
+  const r = validatePlan(plan([P('a','hw1',0,0,0), P('b','hw2',110,0,0)]), byId(HW1, HW2), mkTruck());
+  assert.equal(r.totals.withoutWeight, 0);
+  assert.equal(r.totals.cog.source, 'weight');
+  assert.equal(r.totals.cog.y, 50); // (500*50 + 500*50) / 1000
+  assert.ok(planCodes(r).includes('imbalance'));
+});
+
+test('Fall 2: erstes Case ohne Gewicht dazu – beide Prüfungen (Gewicht und Volumen) schlagen weiterhin an', () => {
+  const r = validatePlan(
+    plan([P('a','hw1',0,0,0), P('b','hw2',110,0,0), P('c','z1',250,180,0)]),
+    byId(HW1, HW2, Z1), mkTruck());
+  assert.equal(r.totals.withoutWeight, 1);
+  assert.equal(r.totals.cog.source, 'volume'); // angezeigter Schwerpunkt bleibt Volumen-basiert
+  assert.ok(planCodes(r).includes('imbalance'));
+  const msg = r.issues.find(i => i.code === 'imbalance').message;
+  assert.match(msg, /aus den bekannten Gewichten/);
+  assert.match(msg, /Volumen-Schätzung/);
+});
+
+test('Fall 3 (der eigentliche Befund): riesiges Case ohne Gewicht zieht die Volumen-Schätzung zur Mitte – die Prüfung aus den bekannten Gewichten warnt trotzdem weiter', () => {
+  const r = validatePlan(
+    plan([P('a','hw1',0,0,0), P('b','hw2',110,0,0), P('c','z1',250,180,0), P('d','z2',400,0,0)]),
+    byId(HW1, HW2, Z1, Z2), mkTruck());
+  assert.equal(r.totals.withoutWeight, 2);
+  // Die Volumen-Schätzung selbst würde hier NICHT mehr anschlagen (großes Case zieht die
+  // Näherung fast in die Mitte) – genau das war die verschwiegene Schieflage aus dem Befund.
+  const cogVolumeDeviation = Math.abs(r.totals.cog.y - mkTruck().w / 2);
+  assert.ok(cogVolumeDeviation < 24.8, `Volumen-Schwerpunkt sollte nahe der Mitte liegen, war aber ${cogVolumeDeviation}`);
+  // Trotzdem muss die Warnung erscheinen, weil 1000 kg nachweislich auf einer Seite stehen.
+  assert.ok(planCodes(r).includes('imbalance'));
+  const msg = r.issues.find(i => i.code === 'imbalance').message;
+  assert.match(msg, /aus den bekannten Gewichten/);
+  assert.doesNotMatch(msg, /Volumen-Schätzung/, 'Volumen-Schätzung selbst schlägt hier nicht mehr an');
+});
+
 test('Lagen 1/2/3 im Stapel korrekt', () => {
   const r = validatePlan(plan([P('a','k',0,94,0), P('b','k',0,94,60), P('c','k',0,94,120)]), byId(K), mkTruck());
   assert.equal(r.layers.get('a'), 1);

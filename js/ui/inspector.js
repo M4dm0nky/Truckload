@@ -58,7 +58,7 @@ export function renderInspector(el, { selected, result, truck }) {
         <dt>Cases</dt><dd>${t.count}</dd>
         <dt>Lademeter</dt><dd>${fmtM(t.loadMeters * 100)} von ${fmtM(truck.l)}</dd>
         <dt>Volumen</dt><dd>${Math.round(t.volumeRatio * 100)} %</dd>
-        <dt>Schwerpunkt</dt><dd>${t.cog ? `${fmtM(t.cog.x)} ab Stirnwand, ${Math.round(t.cog.y - truck.w / 2)} cm aus der Mitte${t.cog.source === 'volume' ? ' (ersatzweise über das Volumen geschätzt, da Gewichte fehlen)' : ''}` : '–'}</dd>
+        <dt>Schwerpunkt</dt><dd>${t.cog ? `${fmtM(t.cog.x)} ab Stirnwand, ${Math.round(t.cog.y - truck.w / 2)} cm aus der Mitte${t.cog.source === 'volume' ? ' (ersatzweise über das Volumen geschätzt: Cases ohne Gewicht zählen dabei wie voll beladen)' : ''}` : '–'}</dd>
       </dl>
     </section>
     <section class="insp-issues">

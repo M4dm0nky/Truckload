@@ -124,36 +124,54 @@ export function validatePlan(plan, caseById, truck) {
     add(null, 'tooHeavy', `Gesamtgewicht ${Math.round(weight)} kg überschreitet die Nutzlast von ${truck.payload} kg.`);
 
   // Cases ohne recherchiertes Gewicht tragen 0 kg ein (bewusst, statt geraten – siehe
-  // CLAUDE.md „Haltung“). Ein gewichtsbasierter Schwerpunkt, der solche Stücke einfach mit
-  // 0 gewichtet, wäre nur der Schwerpunkt der bekannten Teilmenge – er sieht aus wie ein
-  // echter Wert, ist es aber nicht, sobald auch nur ein Stück ohne Gewicht dabei ist. Wir
-  // schalten deshalb für die GANZE Ladung auf einen Volumen-Schwerpunkt um, sobald
-  // mindestens ein Stück ohne Gewicht dabei ist – nicht erst, wenn alle ohne Gewicht sind.
-  // Kosten: Ist die tatsächliche Gewichtsverteilung deutlich anders als die Volumenverteilung
-  // (z. B. ein kleines, schweres Case in der Ecke neben vielen leichten, großen), kann der
-  // Volumen-Schwerpunkt eine Einseitigkeit verschweigen oder eine erfinden, die es beim
-  // echten Gewicht nicht gäbe. Das wird über `source: 'volume'` in der Oberfläche kenntlich
-  // gemacht, damit der Nutzer weiß, dass die Zahl eine Näherung ist.
+  // CLAUDE.md „Haltung“). Der ANGEZEIGTE Schwerpunkt schaltet für die ganze Ladung auf eine
+  // Volumen-Näherung um, sobald mindestens ein Stück ohne Gewicht dabei ist – ein
+  // gewichtsbasierter Schwerpunkt würde solche Stücke sonst mit 0 gewichten und aussehen wie
+  // ein echter, vollständiger Wert.
+  //
+  // Die EINSEITIGKEITSPRÜFUNG ist davon getrennt zu betrachten (Fix-Runde 1, Befund
+  // Koordinator): Ein aus den bekannten Gewichten bereits nachweisbares Ungleichgewicht darf
+  // nicht dadurch verschwinden, dass irgendwo ein zusätzliches, gewichtsloses Case dazukommt
+  // – dessen Volumen würde die Volumen-Schätzung sonst unbemerkt Richtung Mitte ziehen, obwohl
+  // die echte Masse weiterhin einseitig steht (reales Beispiel: 1000 kg auf einer Seite, dazu
+  // ein 210×220×190-Case ohne Gewicht auf der anderen – die alte Volumen-Ersatzrechnung allein
+  // hätte hier geschwiegen). Deshalb laufen beide Prüfungen unabhängig nebeneinander, sobald
+  // Gewichte fehlen, und es reicht, wenn eine von beiden anschlägt. Kosten, falls das im
+  // Einzelfall zu vorsichtig ist: Bei wenig bekanntem Gewicht, das zufällig einseitig liegt,
+  // kann eine Warnung erscheinen, die sich nach dem Nachtragen der fehlenden Gewichte als
+  // unbegründet erweist – das ist bewusst in Kauf genommen, das Gegenteil (eine verschwiegene
+  // echte Schieflage) wiegt schwerer.
   const withoutWeight = items.filter(it => !it.c.weight).length;
   const vol = b => (b.x1 - b.x0) * (b.y1 - b.y0) * (b.z1 - b.z0);
   const volume = items.reduce((s, { box: b }) => s + vol(b), 0);
 
-  let cog = null;
-  if (withoutWeight === 0 && weight) {
-    cog = {
-      x: items.reduce((s, it) => s + it.c.weight * (it.box.x0 + it.box.x1) / 2, 0) / weight,
-      y: items.reduce((s, it) => s + it.c.weight * (it.box.y0 + it.box.y1) / 2, 0) / weight,
-      source: 'weight',
-    };
-  } else if (withoutWeight > 0 && volume > 0) {
-    cog = {
-      x: items.reduce((s, it) => s + vol(it.box) * (it.box.x0 + it.box.x1) / 2, 0) / volume,
-      y: items.reduce((s, it) => s + vol(it.box) * (it.box.y0 + it.box.y1) / 2, 0) / volume,
-      source: 'volume',
-    };
+  const cogFrom = (weightOf, total) => total > 0 ? {
+    x: items.reduce((s, it) => s + weightOf(it) * (it.box.x0 + it.box.x1) / 2, 0) / total,
+    y: items.reduce((s, it) => s + weightOf(it) * (it.box.y0 + it.box.y1) / 2, 0) / total,
+  } : null;
+  const cogWeight = cogFrom(it => it.c.weight, weight);
+  const cogVolume = cogFrom(it => vol(it.box), volume);
+
+  const cog = withoutWeight === 0
+    ? (cogWeight ? { ...cogWeight, source: 'weight' } : null)
+    : (cogVolume ? { ...cogVolume, source: 'volume' } : null);
+
+  const deviation = c => Math.abs(c.y - truck.w / 2);
+  const isImbalanced = c => !!c && deviation(c) > IMBALANCE_RATIO * truck.w;
+
+  if (withoutWeight === 0) {
+    if (isImbalanced(cogWeight))
+      add(null, 'imbalance', `Ladung ist einseitig: Schwerpunkt ${Math.round(deviation(cogWeight))} cm aus der Mitte.`);
+  } else {
+    const weightHit = isImbalanced(cogWeight);
+    const volumeHit = isImbalanced(cogVolume);
+    if (weightHit || volumeHit) {
+      const parts = [];
+      if (weightHit) parts.push(`${Math.round(deviation(cogWeight))} cm aus der Mitte (aus den bekannten Gewichten)`);
+      if (volumeHit) parts.push(`${Math.round(deviation(cogVolume))} cm aus der Mitte (Volumen-Schätzung, Cases ohne Gewicht zählen dabei wie voll beladen)`);
+      add(null, 'imbalance', `Ladung ist einseitig: Schwerpunkt ${parts.join(' bzw. ')}.`);
+    }
   }
-  if (cog && Math.abs(cog.y - truck.w / 2) > IMBALANCE_RATIO * truck.w)
-    add(null, 'imbalance', `Ladung ist einseitig: Schwerpunkt ${Math.round(Math.abs(cog.y - truck.w / 2))} cm aus der Mitte.`);
 
   const byPlacement = new Map();
   for (const is of issues) if (is.placementId) {
