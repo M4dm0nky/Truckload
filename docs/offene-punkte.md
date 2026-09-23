@@ -2,9 +2,11 @@
 
 Stand V 0.7.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0 und aus
 Hinweisen des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine
-Einschätzung der Nützlichkeit. Erledigtes ist raus — der vollständige Abgleich aller 75
-Befunde aus der Meilenstein-Review V 0.6.0 steht im Bericht zu Task 9
-(`.superpowers/sdd/2026-09-21-review-fixes-v0.7/task-9-report.md`).
+Einschätzung der Nützlichkeit. Erledigtes ist raus — der vollständige Abgleich aller 97
+markierten Befunde aus der Meilenstein-Review V 0.6.0 (die Kopfzeile des Berichts nennt
+fälschlich 75 — spätere Abschnitte waren in der Zählung nicht enthalten) steht im Bericht
+zu Task 9 (`.superpowers/sdd/2026-09-21-review-fixes-v0.7/task-9-report.md`), dazu die
+Befunde der abschließenden Gesamt-Review in `final-fix-report.md` desselben Ordners.
 
 ## Daten aus der Casemaße-Tabelle
 
@@ -134,6 +136,31 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   Placement-Fehlern, und die Summe aus `placements` und `unplaced` ist die Eingabe“ würde
   einen ganzen Klasse von Randfällen auf einmal abdecken. Aufwendig genug, um als eigener
   Task behandelt zu werden, statt beiläufig in Task 9 entstanden zu sein.
+
+## Aus der Gesamt-Review vor dem Merge (2026-09-23) offen gelassen
+
+- **Import-Grenzen, die die App selbst bis V 0.6 nicht erzeugen konnte, aber theoretisch
+  entstehen könnten.** `CASE_LIBRARY` und die Obergrenzen `weight`/`stock`/`maxTopLoad`
+  (`CASE_LIMITS`) sind erst in V 0.7 entstanden; der Case-Editor hatte für diese drei Felder
+  bis V 0.6 kein `max`-Attribut. Ein Case mit `weight: 60000` o. ä. würde heute die ganze
+  Importdatei ablehnen, genauso wie die schon behobenen Fälle bei Beschriftung und
+  Rollenhöhe. Die Alltagswahrscheinlichkeit ist deutlich geringer (kein Editor-Weg, der
+  solche Werte plausibel erzeugt), und ein automatisches Kürzen wäre hier eine erfundene
+  Zahl statt einer Reparatur — deshalb zurückgestellt statt automatisch repariert. Sauberer
+  wäre, diese drei Obergrenzen beim Import als Warnung statt als Abbruch zu behandeln.
+- **`repairWheelH` (`js/store/io.js`) normalisiert nebenbei ein ungültiges `wheels`.** Ein
+  Bundle mit `h:12, wheelH:16, wheels: {...}` (kein Boolean) wird angenommen, weil die
+  Reparatur `wheels` auf `false` setzt — `checkCase` würde ein solches Case sonst verwerfen.
+  Es wird nichts eingeschleust, aber die Reparatur greift weiter als die Meldung an den
+  Nutzer sagt (die nennt nur die Rollenhöhe).
+- **Die stille Sicherung vor einem Import enthält den aktuellen Plan doppelt** (einmal aus
+  `s0.plan`, einmal weil er zu diesem Zeitpunkt auch schon in `s0.plans` steht). Folgenlos
+  beim Wiedereinlesen (`mergeById` dedupliziert über die ID), aber die Datei selbst ist
+  inkonsistent zur regulären Sicherung über „Sichern“.
+- **Ein kaputtes `updatedAt` wird beim Laden nur in der Kopie im Store bereinigt, nicht in
+  IndexedDB selbst.** Weil die Bereinigung bei jedem Start erneut läuft, kehrt das Symptom
+  nicht zurück – der Datensatz in der Datenbank bleibt aber technisch weiterhin fehlerhaft,
+  bis er einmal neu gespeichert wird.
 
 ## Kleinigkeiten
 

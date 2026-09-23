@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, sanitizePlans, pickLatestPlan } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, sanitizeUpdatedAt, pickLatestPlan } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
@@ -202,19 +202,37 @@ test('buildImportWinnerItems: leere Gewinnerlisten erzeugen keine Einträge', ()
 // repo.loadAll() absichert. Ein `updatedAt`, das keine Zeichenkette ist (z. B. eine Zahl
 // aus einem vor V0.7 importierten Datensatz), ließ `.localeCompare()` dort auf
 // Modulebene werfen und die ganze Seite unbedienbar machen (kein Planwähler, kein
-// Importieren-Handler). Rückbau-Beleg: kommentiert man in repo.js entweder sanitizePlans()
+// Importieren-Handler). Rückbau-Beleg: kommentiert man in repo.js entweder sanitizeUpdatedAt()
 // (loadAll gibt den ungefilterten `plans` zurück) ODER die ts()-Absicherung in
 // pickLatestPlan() aus (schlicht `p.updatedAt` statt der Typprüfung), wirft einer der beiden
 // Tests unten mit „b.localeCompare is not a function“ bzw. ".updatedAt" ist keine Funktion.
 
-test('sanitizePlans: ein Plan mit nicht-zeichenkettigem updatedAt wird bereinigt (Feld entfernt), der Rest bleibt erhalten', () => {
+test('sanitizeUpdatedAt: ein Datensatz mit nicht-zeichenkettigem updatedAt wird bereinigt (Feld entfernt), der Rest bleibt erhalten', () => {
   const bad = { id: 'p1', name: 'Kaputt', updatedAt: 12345 };
   const ok = { id: 'p2', name: 'Gesund', updatedAt: '2026-09-21T12:00:00.000Z' };
-  const [sanitizedBad, sanitizedOk] = sanitizePlans([bad, ok]);
+  const [sanitizedBad, sanitizedOk] = sanitizeUpdatedAt([bad, ok]);
   assert.equal('updatedAt' in sanitizedBad, false, 'das kaputte Feld wird entfernt, nicht nur überschrieben');
   assert.equal(sanitizedBad.id, 'p1');
   assert.equal(sanitizedBad.name, 'Kaputt');
-  assert.equal(sanitizedOk, ok, 'ein gesunder Plan bleibt unverändert (dieselbe Referenz)');
+  assert.equal(sanitizedOk, ok, 'ein gesunder Datensatz bleibt unverändert (dieselbe Referenz)');
+});
+
+// Befund N1 der Abschluss-Review: sanitizeUpdatedAt() bereinigte in Fix-Runde 2 nur `plans`,
+// nicht `cases`/`trucks` – obwohl js/store/io.js `updatedAt` bei allen drei Typen gleich
+// streng prüft. Ein Case oder Fahrzeug mit einem nicht-zeichenkettigen `updatedAt` (aus der
+// Zeit vor der V0.7-Prüfung) lief unverändert durch die App und landete unverändert in der
+// eigenen Sicherungsdatei – die dann beim Wiedereinlesen (auch der stillen Sicherung vor
+// einem Import) selbst abgelehnt wurde. loadAll() muss dieselbe Bereinigung auf alle drei
+// Object Stores anwenden.
+test('sanitizeUpdatedAt greift gleichermaßen auf Case- und Fahrzeug-Datensätze (Befund N1)', () => {
+  const badCase = { id: 'c1', name: 'Altes Case', updatedAt: 12345 };
+  const okCase = { id: 'c2', name: 'Gesund', updatedAt: '2026-01-01T00:00:00.000Z' };
+  const [sanitizedCase] = sanitizeUpdatedAt([badCase, okCase]);
+  assert.equal('updatedAt' in sanitizedCase, false);
+
+  const badTruck = { id: 't1', name: 'Alter Truck', updatedAt: new Date() };
+  const [sanitizedTruck] = sanitizeUpdatedAt([badTruck]);
+  assert.equal('updatedAt' in sanitizedTruck, false);
 });
 
 test('pickLatestPlan: wählt den Plan mit dem neuesten Zeitstempel', () => {

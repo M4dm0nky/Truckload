@@ -41,15 +41,22 @@ export const normalizeOwnCases = cases => cases.map(c => {
 // der Grenze geschlossen, nicht an der Absturzstelle“). Danach ist die Seite unbedienbar:
 // kein Planwähler, kein Importieren-Handler. Deshalb hier beim Laden bereinigt: das kaputte
 // Feld wird entfernt, der restliche Datensatz bleibt unverändert erhalten.
-export function sanitizePlans(plans) {
-  return plans.map(p => {
-    if (typeof p?.updatedAt === 'string') return p;
-    const { updatedAt, ...rest } = p;
+//
+// Betrifft nicht nur Pläne: js/store/io.js weist `checkCase`/`checkTruck` ebenso beim
+// `updatedAt`-Typ ab. Ein Case oder Fahrzeug mit einem solchen Altwert lief bis V 0.7 durch
+// die App, landet damit unverändert in einer Sicherungsdatei (exportBundle prüft nicht) –
+// und wäre danach mit der eigenen, gerade erst geschriebenen Sicherung nicht mehr
+// importierbar, auch nicht mit der stillen Sicherung vor einem Import (Fix-Runde 2,
+// [Critical]). Deshalb wird dieselbe Bereinigung auf alle drei Stores angewendet.
+export function sanitizeUpdatedAt(records) {
+  return records.map(r => {
+    if (typeof r?.updatedAt === 'string') return r;
+    const { updatedAt, ...rest } = r;
     return rest;
   });
 }
 
-// Zusätzliche Absicherung an der eigentlichen Absturzstelle (s. sanitizePlans oben): auch
+// Zusätzliche Absicherung an der eigentlichen Absturzstelle (s. sanitizeUpdatedAt oben): auch
 // falls doch einmal ein nicht-zeichenkettiges updatedAt bis hierhin durchrutscht, wirft der
 // Vergleich nicht, sondern behandelt es wie „kein Zeitstempel“.
 export function pickLatestPlan(plans) {
@@ -60,8 +67,13 @@ export function pickLatestPlan(plans) {
 export async function loadAll() {
   await db.persist();
   const [cases, trucks, plans] = await Promise.all([db.getAll('cases'), db.getAll('trucks'), db.getAll('plans')]);
-  const mergedCases = mergeOwnWithBuiltins(normalizeOwnCases(cases), [...PRESET_CASES, ...CASE_LIBRARY]);
-  return { cases: mergedCases, trucks: [...PRESET_TRUCKS, ...trucks], plans: sanitizePlans(plans) };
+  const ownCases = normalizeOwnCases(sanitizeUpdatedAt(cases));
+  const mergedCases = mergeOwnWithBuiltins(ownCases, [...PRESET_CASES, ...CASE_LIBRARY]);
+  return {
+    cases: mergedCases,
+    trucks: [...PRESET_TRUCKS, ...sanitizeUpdatedAt(trucks)],
+    plans: sanitizeUpdatedAt(plans),
+  };
 }
 
 // Ersatz für loadAll(), wenn IndexedDB nicht erreichbar ist (privates Fenster mit
