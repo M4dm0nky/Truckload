@@ -14,6 +14,8 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 - Das „−“ in der Ablage entfernt jetzt gezielt das angeklickte Stück, nicht mehr das erste seines Typs – die Ablage zeigt dafür jedes Stück einzeln mit seiner eigenen Farbe und Beschriftung.
 - Case-Editor: Eine Rollenhöhe, die die Case-Höhe erreichen oder überschreiten würde, wird beim Speichern verhindert, statt erst beim nächsten Import auf die eigene Sicherung zu treffen.
 - Zahlreiche kleinere Korrekturen aus der Meilenstein-Review V 0.6.0 an Meldungstexten, 3D-Darstellung (Stücknummer, Seitenverhältnis der Beschriftung, sauberer Abbau beim Fehler), Wizard und Bibliothek – Details siehe `docs/code-review-2026-09-21.md` und die Berichte unter `.superpowers/sdd/2026-09-21-review-fixes-v0.7/`.
+- Ein Datensatz mit fehlerhaftem Zeitstempel machte die Seite beim Start unbedienbar (kein Planwähler, kein Importieren mehr erreichbar) – jetzt wird ein solcher Zeitstempel beim Laden entfernt und der Fehler bricht die Seite nicht mehr ab.
+- Eine Sicherung aus V 0.5/V 0.6 mit einer zu langen Beschriftung oder einer Rollenhöhe, die die Case-Höhe erreicht, wurde bislang komplett abgelehnt; der Import repariert diese zwei bekannten Altwerte jetzt (Beschriftung gekürzt, Rollen abgewählt) und meldet nach dem Import, was und wie viele Datensätze angepasst wurden. Alles andere bleibt weiterhin Alles-oder-nichts.
 
 ## V 0.6.0 – 2026-09-21
 

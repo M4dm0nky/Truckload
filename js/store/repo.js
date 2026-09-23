@@ -34,11 +34,34 @@ export const normalizeOwnCases = cases => cases.map(c => {
   try { return normalizeCase(c); } catch { return c; }
 });
 
+// Ein `updatedAt`, das keine Zeichenkette ist (z. B. ein vor V 0.7 importierter oder auf
+// anderem Weg entstandener Datensatz mit einer Zahl oder einem Date-Objekt), lässt
+// js/app.js beim Sortieren nach dem neuesten Plan (`.localeCompare`) auf Modulebene werfen –
+// AUSSERHALB des try/catch, das loadAll() dort absichert (Befund „der Absturzpfad ist nur an
+// der Grenze geschlossen, nicht an der Absturzstelle“). Danach ist die Seite unbedienbar:
+// kein Planwähler, kein Importieren-Handler. Deshalb hier beim Laden bereinigt: das kaputte
+// Feld wird entfernt, der restliche Datensatz bleibt unverändert erhalten.
+export function sanitizePlans(plans) {
+  return plans.map(p => {
+    if (typeof p?.updatedAt === 'string') return p;
+    const { updatedAt, ...rest } = p;
+    return rest;
+  });
+}
+
+// Zusätzliche Absicherung an der eigentlichen Absturzstelle (s. sanitizePlans oben): auch
+// falls doch einmal ein nicht-zeichenkettiges updatedAt bis hierhin durchrutscht, wirft der
+// Vergleich nicht, sondern behandelt es wie „kein Zeitstempel“.
+export function pickLatestPlan(plans) {
+  const ts = p => (typeof p?.updatedAt === 'string' ? p.updatedAt : '');
+  return [...plans].sort((a, b) => ts(b).localeCompare(ts(a)))[0];
+}
+
 export async function loadAll() {
   await db.persist();
   const [cases, trucks, plans] = await Promise.all([db.getAll('cases'), db.getAll('trucks'), db.getAll('plans')]);
   const mergedCases = mergeOwnWithBuiltins(normalizeOwnCases(cases), [...PRESET_CASES, ...CASE_LIBRARY]);
-  return { cases: mergedCases, trucks: [...PRESET_TRUCKS, ...trucks], plans };
+  return { cases: mergedCases, trucks: [...PRESET_TRUCKS, ...trucks], plans: sanitizePlans(plans) };
 }
 
 // Ersatz für loadAll(), wenn IndexedDB nicht erreichbar ist (privates Fenster mit

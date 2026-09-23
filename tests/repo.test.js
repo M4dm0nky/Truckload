@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, sanitizePlans, pickLatestPlan } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
@@ -195,6 +195,40 @@ test('buildImportWinnerItems: jeder Gewinner wird seinem eigenen Object Store zu
 
 test('buildImportWinnerItems: leere Gewinnerlisten erzeugen keine Einträge', () => {
   assert.deepEqual(buildImportWinnerItems({ cases: [], trucks: [], plans: [] }), []);
+});
+
+// --- Befund „der Absturzpfad ist nur an der Grenze geschlossen, nicht an der
+// Absturzstelle“: js/app.js:41 sortierte VOR dem Fix außerhalb des try/catch, das
+// repo.loadAll() absichert. Ein `updatedAt`, das keine Zeichenkette ist (z. B. eine Zahl
+// aus einem vor V0.7 importierten Datensatz), ließ `.localeCompare()` dort auf
+// Modulebene werfen und die ganze Seite unbedienbar machen (kein Planwähler, kein
+// Importieren-Handler). Rückbau-Beleg: kommentiert man in repo.js entweder sanitizePlans()
+// (loadAll gibt den ungefilterten `plans` zurück) ODER die ts()-Absicherung in
+// pickLatestPlan() aus (schlicht `p.updatedAt` statt der Typprüfung), wirft einer der beiden
+// Tests unten mit „b.localeCompare is not a function“ bzw. ".updatedAt" ist keine Funktion.
+
+test('sanitizePlans: ein Plan mit nicht-zeichenkettigem updatedAt wird bereinigt (Feld entfernt), der Rest bleibt erhalten', () => {
+  const bad = { id: 'p1', name: 'Kaputt', updatedAt: 12345 };
+  const ok = { id: 'p2', name: 'Gesund', updatedAt: '2026-09-21T12:00:00.000Z' };
+  const [sanitizedBad, sanitizedOk] = sanitizePlans([bad, ok]);
+  assert.equal('updatedAt' in sanitizedBad, false, 'das kaputte Feld wird entfernt, nicht nur überschrieben');
+  assert.equal(sanitizedBad.id, 'p1');
+  assert.equal(sanitizedBad.name, 'Kaputt');
+  assert.equal(sanitizedOk, ok, 'ein gesunder Plan bleibt unverändert (dieselbe Referenz)');
+});
+
+test('pickLatestPlan: wählt den Plan mit dem neuesten Zeitstempel', () => {
+  const older = { id: 'p1', updatedAt: '2026-01-01T00:00:00.000Z' };
+  const newer = { id: 'p2', updatedAt: '2026-09-21T00:00:00.000Z' };
+  assert.equal(pickLatestPlan([older, newer]), newer);
+});
+
+test('pickLatestPlan: wirft nicht, wenn ein updatedAt keine Zeichenkette ist (Absturzstelle selbst abgesichert)', () => {
+  const broken = { id: 'p1', updatedAt: 12345 };
+  const withTimestamp = { id: 'p2', updatedAt: '2026-01-01T00:00:00.000Z' };
+  assert.doesNotThrow(() => pickLatestPlan([broken, withTimestamp]));
+  // Ein Plan ohne verlässlichen Zeitstempel gewinnt nicht gegen einen mit Zeitstempel.
+  assert.equal(pickLatestPlan([broken, withTimestamp]), withTimestamp);
 });
 
 test('buildImportWinnerItems: nur die tatsächlichen Gewinner landen in der Liste, nicht alle Cases/Fahrzeuge/Pläne', () => {

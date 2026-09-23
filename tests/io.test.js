@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS, normalizeCase } from '../js/store/io.js';
+import { exportBundle, parseBundle, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS, normalizeCase, MAX_LABEL } from '../js/store/io.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -70,10 +70,22 @@ test('Case mit negativem wheelH wird abgelehnt', () => {
   const bad = bundleWith({ cases: [{ ...own, wheelH: -1 }], trucks: [], plans: [] });
   assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
 });
-test('Case mit wheelH >= h wird abgelehnt', () => {
-  const bad = bundleWith({ cases: [{ ...own, wheelH: own.h }], trucks: [], plans: [] });
-  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+// Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“ (B4): bis
+// V0.6 prüfte der Editor nicht, ob die Rollenhöhe die Case-Höhe erreicht/übersteigt – ein
+// reparierbarer Wert, keine unlesbare Datei. parseBundle wählt die Rollen ab, statt die
+// gesamte Datei zu verwerfen, und meldet die Reparatur.
+test('Case mit wheelH >= h wird repariert (Rollen abgewählt) statt abgelehnt', () => {
+  const bundle = bundleWith({ cases: [{ ...own, wheelH: own.h, wheels: true }], trucks: [], plans: [] });
+  const res = parseBundle(bundle);
+  assert.equal(res.cases[0].wheelH, 0);
+  assert.equal(res.cases[0].wheels, false);
+  assert.equal(res.repairs.length, 1);
+  assert.match(res.repairs[0], /1 Case.*Rollenhöhe/);
 });
+// Rückbau-Beleg für die Reparatur oben: der bestehende Test „Case mit negativem wheelH wird
+// abgelehnt“ (Zeile 69) zeigt bereits, dass ein außerhalb des gültigen Bereichs liegender
+// Wert – kein bekannter Altwert, sondern echter Unsinn in der Datei – weiterhin unrepariert
+// abgelehnt wird.
 test('Case ohne wheelH wird akzeptiert (Fallback)', () => {
   const res = parseBundle(bundleWith({ cases: [own], trucks: [], plans: [] }));
   assert.equal(res.cases[0].wheelH, undefined);
@@ -81,6 +93,16 @@ test('Case ohne wheelH wird akzeptiert (Fallback)', () => {
 test('Case mit gültigem wheelH wird akzeptiert', () => {
   const res = parseBundle(bundleWith({ cases: [{ ...own, wheelH: 0 }], trucks: [], plans: [] }));
   assert.equal(res.cases[0].wheelH, 0);
+});
+// Die Reparatur ist kein Freifahrtschein: ein reparierbarer Wert neben einem echten
+// Regelverstoß im selben Bundle lässt die Datei weiterhin komplett scheitern – Alles-oder-
+// nichts gilt unverändert für jeden Fall außer den beiden reparierten.
+test('Reparierbares wheelH neben einem echten Regelverstoß: die ganze Datei wird trotzdem verworfen', () => {
+  const bad = bundleWith({
+    cases: [{ ...own, wheelH: own.h }, { ...mkCase('kaputt', 1, 1, 1), maxTopLoad: 'viel' }],
+    trucks: [], plans: [],
+  });
+  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
 });
 test('Case mit wheelH >= h wird akzeptiert, wenn dimsInclWheels: false', () => {
   const res = parseBundle(bundleWith({ cases: [{ ...own, wheelH: own.h, dimsInclWheels: false }], trucks: [], plans: [] }));
@@ -210,8 +232,23 @@ test('normalizeCase: Traversenbreite über der Grenze wirft nicht, behält die g
   assert.equal(normalized.tippable, false);
 });
 
-test('Ladeplan mit 60-Zeichen-Label wird abgelehnt', () => {
-  const p = plan([P('pl1', 'own', 0, 0, 0, { label: 'x'.repeat(60) })]);
+// Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“ (B3): der
+// Wizard erlaubte bis V0.6 Beschriftungen bis 50 Zeichen, MAX_LABEL ist 40 – ein
+// reparierbarer Wert (kürzen), keine unlesbare Datei. parseBundle kürzt statt zu verwerfen
+// und meldet die Reparatur.
+test('Ladeplan mit 50-Zeichen-Label (Wizard-Vorgabe bis V0.6) wird gekürzt statt abgelehnt', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0, { label: 'x'.repeat(50) })]);
+  const bundle = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  const res = parseBundle(bundle);
+  assert.equal(res.plans[0].placements[0].label, 'x'.repeat(MAX_LABEL));
+  assert.equal(res.repairs.length, 1);
+  assert.match(res.repairs[0], /1 Beschriftung.*40 Zeichen/);
+});
+// Rückbau-Beleg: eine Beschriftung, die kein String ist (echter Unsinn, kein bekannter
+// Altwert), bleibt weiterhin Alles-oder-nichts – repairLabel greift nur bei zu langen
+// Zeichenketten, nicht bei falschem Typ.
+test('Ladeplan mit nicht-zeichenkettigem Label bleibt abgelehnt', () => {
+  const p = plan([P('pl1', 'own', 0, 0, 0, { label: 123 })]);
   const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
   assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
 });
@@ -226,10 +263,12 @@ test('Ladeplan mit gültigem Label/Farbe wird akzeptiert', () => {
   const res = parseBundle(ok);
   assert.equal(res.plans[0].placements[0].label, 'Kabelcase 1');
 });
-test('Ablage mit ungültigem Label wird abgelehnt', () => {
-  const p = { ...plan([]), unplaced: [{ id: 'u1', caseId: 'own', label: 'x'.repeat(60) }] };
-  const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
-  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+test('Ablage mit zu langem Label wird gekürzt statt abgelehnt', () => {
+  const p = { ...plan([]), unplaced: [{ id: 'u1', caseId: 'own', label: 'x'.repeat(50) }] };
+  const bundle = bundleWith({ cases: [own], trucks: [], plans: [p] });
+  const res = parseBundle(bundle);
+  assert.equal(res.plans[0].unplaced[0].label, 'x'.repeat(MAX_LABEL));
+  assert.equal(res.repairs.length, 1);
 });
 test('Ablage mit ungültiger Farbe wird abgelehnt', () => {
   const p = { ...plan([]), unplaced: [{ id: 'u1', caseId: 'own', color: 'rot' }] };

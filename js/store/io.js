@@ -116,6 +116,28 @@ export function exportBundle({ cases, trucks, plans }, now = new Date()) {
 
 const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne' };
 
+// Zwei Werte aus Wizard-/Editor-Vorgaben, die bis V 0.6 galten, reißen die sonst harte
+// Alles-oder-nichts-Grenze beim Import, obwohl sie reparierbar sind statt unlesbar: eine zu
+// lange Beschriftung (Wizard-Vorgabe bis V0.6: 50 Zeichen, MAX_LABEL ist 40) und eine
+// Rollenhöhe, die die Case-Höhe erreicht oder übersteigt (der Editor bis V0.6 prüfte das
+// nicht). parseBundle repariert genau diese zwei Fälle und zählt sie, damit der Nutzer nach
+// dem Import erfährt, was angepasst wurde, statt dass die Reparatur stillschweigend passiert
+// (Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“). Jeder
+// andere Regelverstoß bleibt Alles-oder-nichts: die Datei wird weiterhin ganz verworfen.
+function repairLabel(x) {
+  if (typeof x?.label !== 'string' || x.label.length <= MAX_LABEL) return null;
+  return { ...x, label: x.label.slice(0, MAX_LABEL) };
+}
+function repairWheelH(c) {
+  if (c?.wheelH == null || !num(c.wheelH) || c.wheelH < 0 || c.wheelH > CASE_LIMITS.wheelH) return null;
+  if (c.dimsInclWheels === false || c.wheelH < c.h) return null;
+  // Rollenhöhe erreicht/übersteigt die Case-Höhe: Rollen abwählen statt die Datei zu
+  // verwerfen (Alternative aus dem Fund: „auf einen gültigen Wert gesetzt oder die Rollen
+  // werden abgewählt“ – ein erratener Zwischenwert wäre selbst eine Behauptung über eine
+  // physische Maßangabe, die niemand nachgemessen hat).
+  return { ...c, wheelH: 0, wheels: false };
+}
+
 export function parseBundle(text) {
   let data;
   try { data = JSON.parse(text); } catch { throw new Error('Die Datei ist kein gültiges JSON.'); }
@@ -126,11 +148,30 @@ export function parseBundle(text) {
     if (data[field] !== undefined && !Array.isArray(data[field]))
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
-  const cases = arr(data.cases).filter(c => !isPreset(c));
+  const rawCases = arr(data.cases).filter(c => !isPreset(c));
   const trucks = arr(data.trucks).filter(t => !isPreset(t));
-  const plans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
-  if (cases.length === 0 && trucks.length === 0 && plans.length === 0)
+  const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
+  if (rawCases.length === 0 && trucks.length === 0 && rawPlans.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
+
+  let wheelHRepairs = 0;
+  const cases = rawCases.map(c => {
+    const fixed = repairWheelH(c);
+    if (fixed) wheelHRepairs++;
+    return fixed ?? c;
+  });
+  let labelRepairs = 0;
+  const repairPiece = x => {
+    const fixed = repairLabel(x);
+    if (fixed) labelRepairs++;
+    return fixed ?? x;
+  };
+  const plans = rawPlans.map(p => ({
+    ...p,
+    placements: Array.isArray(p.placements) ? p.placements.map(repairPiece) : p.placements,
+    unplaced: p.unplaced.map(repairPiece),
+  }));
+
   cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan);
 
   const knownCaseIds = new Set([...cases.map(c => c.id), ...CASE_LIBRARY.map(c => c.id)]);
@@ -145,7 +186,13 @@ export function parseBundle(text) {
       warnings.push(`Ladeplan „${p.name}“ verweist auf ein unbekanntes Fahrzeug.`);
   }
 
-  return { cases: cases.map(normalizeCase), trucks, plans, warnings };
+  const repairs = [];
+  if (wheelHRepairs > 0)
+    repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollen abgewählt.`);
+  if (labelRepairs > 0)
+    repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
+
+  return { cases: cases.map(normalizeCase), trucks, plans, warnings, repairs };
 }
 
 export function mergeById(existing, incoming) {

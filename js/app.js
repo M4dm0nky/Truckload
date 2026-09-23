@@ -32,13 +32,19 @@ function loadCaseColors() {
 // bleibt die Seite weiß, ohne jede Bedienmöglichkeit (Befund Daten-11).
 let storageError = null;
 let data;
+let latest;
 try {
   data = await repo.loadAll();
+  // Innerhalb desselben try/catch wie loadAll() (Befund „der Absturzpfad ist nur an der
+  // Grenze geschlossen, nicht an der Absturzstelle“): repo.pickLatestPlan() wirft zwar durch
+  // seinen eigenen Zeichenketten-Schutz ohnehin nicht mehr, bleibt aber hier verankert, statt
+  // wieder frei auf Modulebene zu stehen, wo ein künftiger Umbau die Absicherung erneut
+  // verlieren könnte.
+  latest = repo.pickLatestPlan(data.plans);
 } catch (err) {
   storageError = err;
   data = repo.loadAllFallback();
 }
-const latest = [...data.plans].sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))[0];
 const initialPlan = latest ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK_ID);
 
 // store/edit/select bleiben exportiert (nicht nur intern gebraucht): die CDP-Browser-Szenarien
@@ -571,7 +577,12 @@ $('#import').onchange = async e => {
   }
 
   if (merge.planChanged) store.resetHistory();
-  alert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne (neuere lokale Stände behalten).`);
+  // Reparaturen an reparierbaren Altwerten (zu lange Beschriftung, Rollenhöhe ≥ Case-Höhe –
+  // beide bis V0.6 durch Wizard/Editor entstanden) werden gemeldet, statt stillschweigend zu
+  // passieren, damit der Nutzer erkennt, was und wie viele Datensätze angepasst wurden
+  // (Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“).
+  const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
+  alert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne (neuere lokale Stände behalten).${repairNote}`);
 };
 
 // Version sichtbar machen (einzige Quelle: js/version.js)
