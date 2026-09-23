@@ -1,4 +1,4 @@
-# Gewichtsrecherche für MLT-Traversenwagen (V0.8.0)
+# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2)
 
 Recherchiert am 2026-09-23 für `js/data/preset-cases.js`. Alle Gewichte sind
 Netto-Herstellerangaben für ein einzelnes Traversenstück (ohne Dolly). Formel je
