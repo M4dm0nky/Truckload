@@ -11,13 +11,13 @@ const ctx = () => ({ caseById: byId(K, T), truck: mkTruck(), newId: counter('n')
 const find = (pl, id) => pl.placements.find(p => p.id === id);
 
 test('placeCase stapelt per Schwerkraft', () => {
-  const pl = A.placeCase(plan([P('a','k',0,0,0)]), 'k', 12, 0, ctx());
+  const pl = A.placeCase(plan([P('a','k',0,0,0)]), 'k', { x: 12, y: 0 }, ctx());
   const p = pl.placements.at(-1);
   assert.equal(p.x, 10);
   assert.equal(p.z, 60);
 });
 test('placeCase aus der Ablage entfernt das Stück dort', () => {
-  const pl = A.placeCase(plan([], [{ id: 'u1', caseId: 'k' }]), 'k', 0, 0, ctx(), 'u1');
+  const pl = A.placeCase(plan([], [{ id: 'u1', caseId: 'k' }]), 'k', { x: 0, y: 0 }, ctx(), { fromUnplacedId: 'u1' });
   assert.equal(pl.unplaced.length, 0);
   assert.equal(pl.placements[0].id, 'u1');
 });
@@ -86,8 +86,26 @@ test('toTray und addUnplaced', () => {
   assert.deepEqual(pl.unplaced, [{ id: 'a', caseId: 'k' }]);
   pl = A.addUnplaced(pl, 'k', 3, counter('u'));
   assert.equal(pl.unplaced.length, 4);
-  pl = A.removeUnplaced(pl, 'k');
+  pl = A.removeUnplaced(pl, 'a');
   assert.equal(pl.unplaced.length, 3);
+  assert.ok(!pl.unplaced.some(u => u.id === 'a'));
+});
+// Task 8 (Vorgabe des Koordinators): removeUnplaced traf vorher IMMER das erste Vorkommen eines
+// Case-Typs (findIndex), unabhängig davon, welches Stück der Nutzer in der Ablage anklickte — seit
+// die Ablage die einzelnen Beschriftungen zeigt, erwartet der Nutzer, gezielt EIN bestimmtes
+// Stück zu entfernen (docs/code-review-2026-09-21.md, „actions.js:28-32“). Drei gleich benannte
+// Stücke, das mittlere gezielt entfernt: die beiden anderen müssen unverändert bleiben.
+test('removeUnplaced trifft gezielt das angegebene Stück, nicht das erste seines Case-Typs', () => {
+  let pl = A.addUnplaced(plan([]), 'k', 3, counter('u'), { labels: ['Licht 1', 'Licht 2', 'Licht 3'] });
+  const [first, second, third] = pl.unplaced;
+  pl = A.removeUnplaced(pl, second.id);
+  assert.deepEqual(pl.unplaced.map(u => u.id), [first.id, third.id]);
+  assert.deepEqual(pl.unplaced.map(u => u.label), ['Licht 1', 'Licht 3']);
+});
+test('removeUnplaced ohne Treffer lässt den Plan unverändert', () => {
+  const pl0 = plan([], [{ id: 'u1', caseId: 'k' }]);
+  const pl = A.removeUnplaced(pl0, 'unbekannt');
+  assert.equal(pl, pl0);
 });
 test('addUnplaced übernimmt Labels und Farbe', () => {
   const pl = A.addUnplaced(plan([]), 'k', 3, counter('u'), { labels: ['A', 'B', 'C'], color: '#ff0000' });
@@ -131,6 +149,49 @@ test('duplicate kürzt auch ein zu langes Label ohne Zahl am Ende', () => {
   const pl = A.duplicate(plan([P('a','k',0,0,0,{ label })]), 'a', ctx());
   assert.equal(pl.placements[1].label.length, MAX_LABEL);
 });
+// Task 8: `duplicate` setzte die Kopie bisher blind neben das Original (x + dx), auch über die
+// Heckkante hinaus – zwei Fehlermeldungen aus einem einzigen Duplizieren-Klick
+// (docs/code-review-2026-09-21.md, „actions.js:110-118“). Nahe der Trucktür weicht die Kopie jetzt
+// nach vorn (-dx) aus.
+test('duplicate weicht vor der Heckkante nach vorn aus, statt über den Laderaum hinauszuragen', () => {
+  const truck = mkTruck(); // l 1360
+  const c = { caseById: byId(K, T), truck, newId: counter('n') };
+  // Original berührt exakt die Heckkante (x + dx = 1360 = truck.l) – gültig, aber ohne jeden
+  // Spielraum dahinter. Ein blindes "daneben" (x + dx) würde die Kopie auf x = 1360 setzen, deren
+  // eigene Box dann bis x = 1480 reicht.
+  const pl = A.duplicate(plan([P('a','k',1240,94,0)]), 'a', c);
+  const copy = pl.placements[1];
+  assert.ok(copy, 'die Kopie wurde angelegt');
+  assert.equal(copy.x, 1120);
+  const r = validatePlan(pl, c.caseById, c.truck);
+  assert.ok(!r.issues.some(i => i.code === 'outOfBounds'), `keine outOfBounds-Meldung erwartet, war: ${JSON.stringify(r.issues)}`);
+});
+test('duplicate legt die Kopie in die Ablage, wenn nirgends im Truck Platz ist', () => {
+  const tightTruck = mkTruck({ l: 120, w: 60, h: 60 });
+  const c = { caseById: byId(K), truck: tightTruck, newId: counter('n') };
+  const pl = A.duplicate(plan([P('a','k',0,0,0,{ label: 'Kabelcase 1' })]), 'a', c);
+  assert.equal(pl.placements.length, 1, 'keine zweite Platzierung im Truck');
+  assert.equal(pl.unplaced.length, 1);
+  assert.equal(pl.unplaced[0].caseId, 'k');
+  assert.equal(pl.unplaced[0].label, 'Kabelcase 2');
+});
+
+// Task 8: `srcExtra` übernahm bisher das GESAMTE Ablage-Objekt außer id/caseId in die neue
+// Platzierung – ein Ablage-Eintrag mit einem eigenen (fremden) x/y hätte die gerade gewählte
+// Mausposition überschrieben (docs/code-review-2026-09-21.md, „actions.js:38-39“). Nur
+// label/color werden jetzt übernommen.
+test('placeCase übernimmt aus der Ablage nur label/color, nicht ein fremdes x/y/z/orientation', () => {
+  const pl0 = plan([], [{ id: 'u1', caseId: 'k', label: 'Kiste', color: '#ff00ff', x: 999, y: 999, orientation: 'tipLong', rot: 90 }]);
+  const pl = A.placeCase(pl0, 'k', { x: 40, y: 40 }, ctx(), { fromUnplacedId: 'u1' });
+  const p = pl.placements[0];
+  assert.equal(p.label, 'Kiste');
+  assert.equal(p.color, '#ff00ff');
+  assert.equal(p.x, 40);
+  assert.equal(p.y, 40);
+  assert.equal(p.orientation, 'standing');
+  assert.equal(p.rot, 0);
+});
+
 test('setItemLabel ändert eine Platzierung', () => {
   const pl = A.setItemLabel(plan([P('a','k',0,0,0)]), 'a', { label: 'Neu', color: '#123456' });
   assert.equal(pl.placements[0].label, 'Neu');
@@ -236,7 +297,7 @@ const newerThanOld = result =>
 
 const touchCases = [
   ['emptyPlan', () => A.emptyPlan('p', 'P', 't')],
-  ['placeCase', () => A.placeCase(withOld(plan([P('a','k',0,0,0)])), 'k', 400, 0, ctx())],
+  ['placeCase', () => A.placeCase(withOld(plan([P('a','k',0,0,0)])), 'k', { x: 400, y: 0 }, ctx())],
   ['moveGroup', () => A.moveGroup(withOld(plan([P('a','k',0,0,0)])), 'a', 300, 100, ctx())],
   ['rotate', () => A.rotate(withOld(plan([P('a','k',0,0,0)])), 'a', ctx())],
   ['cycleTip', () => A.cycleTip(withOld(plan([P('a','t',0,0,0)])), 'a', ctx())],
@@ -245,7 +306,7 @@ const touchCases = [
     return A.setWheelFace(withOld(tipped), 'a', '-y', ctx());
   }],
   ['addUnplaced', () => A.addUnplaced(withOld(plan([])), 'k', 1, counter('u'))],
-  ['removeUnplaced', () => A.removeUnplaced(withOld(plan([], [{ id: 'u1', caseId: 'k' }])), 'k')],
+  ['removeUnplaced', () => A.removeUnplaced(withOld(plan([], [{ id: 'u1', caseId: 'k' }])), 'u1')],
   ['duplicate', () => A.duplicate(withOld(plan([P('a','k',0,0,0)])), 'a', ctx())],
   ['setItemLabel', () => A.setItemLabel(withOld(plan([P('a','k',0,0,0)])), 'a', { label: 'Neu' })],
   ['removePlacement', () => A.removePlacement(withOld(plan([P('a','k',0,0,0)])), 'a')],

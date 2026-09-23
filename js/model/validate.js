@@ -10,14 +10,15 @@ const IMBALANCE_RATIO = 0.1;
 // nur die Modellschicht (hier, `archBoxes`) etwas mit der Seite anfängt — io.js benutzt die Liste
 // nur zur Import-Prüfung (docs/code-review-2026-09-21.md, „validate.js:9“).
 export const ARCH_SIDES = ['left', 'right', 'both'];
+const [ARCH_LEFT, ARCH_RIGHT, ARCH_BOTH] = ARCH_SIDES;
 
 export function archBoxes(truck) {
   return (truck.wheelArches ?? []).flatMap(a => {
-    const sides = a.side === 'both' ? ['left', 'right'] : [a.side];
+    const sides = a.side === ARCH_BOTH ? [ARCH_LEFT, ARCH_RIGHT] : [a.side];
     return sides.map(s => ({
       x0: a.x, x1: a.x + a.l,
-      y0: s === 'left' ? 0 : truck.w - a.w,
-      y1: s === 'left' ? a.w : truck.w,
+      y0: s === ARCH_LEFT ? 0 : truck.w - a.w,
+      y1: s === ARCH_LEFT ? a.w : truck.w,
       z0: 0, z1: a.h,
     }));
   });
@@ -175,6 +176,14 @@ export function validatePlan(plan, caseById, truck) {
     ? (cogWeight ? { ...cogWeight, source: 'weight' } : null)
     : (cogVolume ? { ...cogVolume, source: 'volume' } : null);
 
+  // Geprüft wird bewusst nur die Seitenlage (y), nicht die Verteilung in Fahrtrichtung (x), obwohl
+  // `cog.x` oben bereits mitberechnet wird (docs/code-review-2026-09-21.md, „validate.js:112-117
+  // — der Schwerpunkt wird in x berechnet, aber nur in y geprüft“). Eine Stützlast-/Achslast-
+  // Prüfung in x bräuchte den Radstand bzw. Achsabstand des Trucks – ein Feld, das es am
+  // Fahrzeug-Datenmodell heute nicht gibt (`js/data/preset-trucks.js` kennt nur l/w/h/payload).
+  // `cog.x` steht dem Inspector trotzdem zur Anzeige zur Verfügung ("… ab Stirnwand"); eine
+  // Warnung ohne belastbare Referenzgröße wäre geraten statt geprüft, und genau das lehnt
+  // `CLAUDE.md` unter „Haltung“ ab.
   const deviation = c => Math.abs(c.y - truck.w / 2);
   const isImbalanced = c => !!c && deviation(c) > IMBALANCE_RATIO * truck.w;
 
@@ -193,7 +202,12 @@ export function validatePlan(plan, caseById, truck) {
   }
 
   const byPlacement = new Map();
-  for (const is of issues) if (is.placementId) {
+  // `!= null` statt eines reinen Truthy-Checks: eine leere Zeichenkette als Placement-ID (aus
+  // einer Fremddatei – io.js prüft für Placements nur `typeof === 'string'`, nicht die Länge)
+  // fiele sonst stillschweigend aus dieser Map heraus, und die zugehörige Meldung verschwände im
+  // Inspector (docs/code-review-2026-09-21.md, „validate.js:122 — if (is.placementId) filtert
+  // statt auf null zu prüfen“).
+  for (const is of issues) if (is.placementId != null) {
     if (!byPlacement.has(is.placementId)) byPlacement.set(is.placementId, []);
     byPlacement.get(is.placementId).push(is);
   }

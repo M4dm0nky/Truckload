@@ -41,14 +41,18 @@ ist eine Entscheidung des Nutzers, nie eine eigene.
 **Tests:** `npm test`. Reine Logik wird per TDD geschrieben — erst der fehlschlagende Test.
 Die Testdateien liegen neben den Modulen, die sie prüfen (`tests/<modul>.test.js`).
 
-**Im Browser:** Die Oberfläche wird nicht durch Lesen abgenommen, sondern gefahren. Im
-Scratchpad-Verzeichnis der Sitzung liegt `cdp.mjs`, ein kleiner Treiber für headless
-Chrome. Ablauf:
+**Im Browser:** Die Oberfläche wird nicht durch Lesen abgenommen, sondern gefahren. `tools/cdp.mjs`
+ist ein kleiner Treiber für headless Chrome, fester Teil des Repos (keine npm-Abhängigkeit, läuft
+nie im Browser der App selbst) – Szenarien legt man je nach Bedarf im Scratchpad der Sitzung an.
+Ablauf:
 
 ```bash
 python3 -m http.server 8766          # im Projektverzeichnis
-node cdp.mjs ./mein-szenario.mjs ./ausgabe
+node tools/cdp.mjs ./mein-szenario.mjs ./ausgabe
 ```
+
+Erwartet Chrome unter `/Applications/Google Chrome.app/…` (macOS); ein anderer Pfad/Browser geht
+über `TL_CHROME_BIN=/pfad/zu/chrome node tools/cdp.mjs …`.
 
 Ein Szenario ist ein ES-Modul mit `export default async function (p)`. Zur Verfügung
 stehen `p.goto`, `p.eval`, `p.shot`, `p.mouse`, `p.wheel`, `p.key`, `p.sleep` und

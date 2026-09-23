@@ -34,6 +34,16 @@ export const isTruss = c => c.kind === 'truss';
 // geometry.js, weil geometry.js sonst truss.js importieren müsste, während truss.js schon von
 // geometry.js benutzte Hilfsfunktionen bräuchte (`cornerBoxes`) — das gäbe einen Zyklus
 // zwischen den beiden Modellmodulen.
+//
+// Strenger als die zwei Ausdrücke, die `canTip` ersetzt (`=== true` statt eines reinen Truthy-
+// Checks). Über reguläre Pfade nicht erreichbar: `checkCase`/`normalizeCase` (js/store/io.js)
+// erzwingen an jeder Stelle, an der ein Case entsteht oder geladen wird, bereits einen echten
+// Boolean. `js/ui/inspector.js` (Tippen-Knopf) und `validate.js` (notTippable-Meldung, s.
+// Kommentar dort) prüfen `c.tippable` bewusst weiter truthy statt über `canTip` – nicht aus
+// Versehen zwei verschiedene Regeln, sondern weil die Truthy-Prüfung an beiden Stellen schon vor
+// `canTip` da war und unter derselben Invariante dasselbe Ergebnis liefert
+// (docs/code-review-2026-09-21.md, Nachtrag Controller: „canTip ist strenger als die zwei
+// Ausdrücke, die es ersetzt hat“).
 export const canTip = c => c.tippable === true && !isTruss(c);
 
 export const DOLLY_L = 60;         // Länge eines Rollwagens (cm)

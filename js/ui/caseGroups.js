@@ -16,7 +16,13 @@ export function groupCases(cases, { q = '', cat = '', company = '' } = {}) {
     && (!company || c.company === company)
     && (!needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
   return {
-    own: cases.filter(c => !c.builtin && match(c)),
+    // `.sort(...)`: eigene Cases kamen bis Task 8 in IndexedDB-Schlüsselreihenfolge an
+    // (crypto.randomUUID()), sprangen also bei jeder Bearbeitung zusätzlich um (js/app.js hängt
+    // das bearbeitete Case ans Ende des Arrays), weil weder repo.js noch hier sortiert wurde
+    // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge“). Hier
+    // sortiert statt in repo.js: damit ist die Reihenfolge unabhängig davon, woher die Liste kommt
+    // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
+    own: cases.filter(c => !c.builtin && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
     presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && match(c)),
     list: cases.filter(c => c.builtin && c.source === 'liste' && match(c)),
   };

@@ -13,10 +13,15 @@ export const fmtM = cm => `${(cm / 100).toFixed(2).replace('.', ',')} m`;
 
 // Farbkästchen vor einem Case-/Stück-Namen. Stand bis Task 6 viermal als eigene Kopie in
 // library.js, load-wizard.js und inspector.js (docs/code-review-2026-09-21.md, „S1 — eine
-// swatch()-Hilfsfunktion statt vier Kopien“). Wie der Rest von dom.js kein Ersatz für esc() in
-// Attributwerten — esc() schützt nicht innerhalb von style="…", der `color`-Wert kommt hier aber
-// immer aus einem Farbwähler oder einer geprüften Datei (COLOR_RE in js/store/io.js).
-export const swatch = color => `<span class="swatch" style="background:${esc(color)}"></span>`;
+// swatch()-Hilfsfunktion statt vier Kopien“). esc() schützt nicht innerhalb von style="…" (B2) —
+// der `color`-Wert kommt heute immer aus einem Farbwähler oder einer geprüften Datei (COLOR_RE in
+// js/store/io.js), aber swatch() verlässt sich damit auf jeden KÜNFTIGEN Aufrufer, dieselbe
+// Prüfung selbst vorzunehmen (Nachtrag Controller, docs/code-review-2026-09-21.md). Das Muster
+// erzwingt es deshalb selbst statt es vorauszusetzen: ein Wert außerhalb von `#RRGGBB`/`#RGB`
+// (leer, IndexedDB-Altdaten von vor B2, eine künftige fremde Quelle) fällt auf Grau zurück, statt
+// ungeprüft ins style-Attribut zu wandern.
+const SWATCH_COLOR_RE = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
+export const swatch = color => `<span class="swatch" style="background:${SWATCH_COLOR_RE.test(color) ? esc(color) : '#888'}"></span>`;
 
 export const ORIENTATION_LABEL = {
   standing: 'stehend',

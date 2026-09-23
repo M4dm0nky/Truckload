@@ -280,6 +280,17 @@ test('Fahrzeugmaß 0 (Höhe): volumeRatio liefert 0 statt NaN', () => {
   const r = validatePlan(plan([]), byId(K), mkTruck({ h: 0 }));
   assert.equal(r.totals.volumeRatio, 0);
 });
+// Task 8, Nachtrag Controller: ein Rückbau, der `volumeRatio` dauerhaft auf 0 setzt, blieb bis
+// hierher unbemerkt grün, weil alle bisherigen Tests nur den Randfall (Fahrzeugmaß 0 -> 0)
+// prüften, nie den Normalfall (docs/code-review-2026-09-21.md, „Testqualität“-Tabelle: „validate.js:
+// volumeRatio immer 0“ blieb bei 238 grün). Truck 200×100×100 (2.000.000 cm³), ein Case
+// 100×100×100 (1.000.000 cm³) -> exakt 50 % Volumenanteil.
+test('volumeRatio berechnet einen echten Volumenanteil, nicht nur den 0-Randfall', () => {
+  const CUBE = mkCase('cube', 100, 100, 100);
+  const truck = mkTruck({ l: 200, w: 100, h: 100 });
+  const r = validatePlan(plan([P('a', 'cube', 0, 0, 0)]), byId(CUBE), truck);
+  assert.equal(r.totals.volumeRatio, 0.5);
+});
 
 // Placements mit fehlendem Case-Typ können mangels bekannter Maße geometrisch nicht in die
 // Kollisionsprüfung einbezogen werden (das Modell speichert keine Maße pro Placement, nur

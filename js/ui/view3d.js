@@ -19,11 +19,25 @@ export async function createView3d(container) {
   // hält eine Referenz darauf, um ihn freizugeben (Befund I6, Fix-Runde 1). `createView3d` gibt
   // in dem Fall kein Objekt zurück, der `catch` in app.js kann also kein `view3d?.dispose()`
   // aufrufen; das Aufräumen muss deshalb hier passieren, nicht beim Aufrufer.
+  // Außerhalb des try deklariert (auch wenn erst darin zugewiesen): der `catch` unten räumt sie
+  // ggf. auf, und eine `const`/`let`, die im try-Block selbst erst später steht, wäre bei einem
+  // Fehler VOR ihrer Zuweisung im catch noch in der Temporal Dead Zone – ein Zugriff dort würfe
+  // einen neuen ReferenceError und verdeckte den eigentlichen Fehler.
+  let themeQuery = null, onThemeChange = null;
   try {
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#15181d');
+  const readBg = () => getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#15181d';
+  scene.background = new THREE.Color(readBg());
+  // `--bg` wurde bisher nur einmal beim Erzeugen der Szene gelesen: wechselt das System
+  // zwischen hell/dunkel (css/app.css, `@media (prefers-color-scheme: light)`), ziehen
+  // Oberfläche und 2D sofort mit, der 3D-Hintergrund blieb stehen (docs/code-review-2026-09-21.md,
+  // „N10 — 3D-Hintergrund friert beim Erzeugen ein“). Ein `render()` ohne neuen `update()`-Aufruf
+  // ist nötig, weil sich sonst nichts an der Szene ändert, das einen Frame anstößt.
+  themeQuery = window.matchMedia('(prefers-color-scheme: light)');
+  onThemeChange = () => { scene.background = new THREE.Color(readBg()); render(); };
+  themeQuery.addEventListener('change', onThemeChange);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 20000);
   camera.up.set(0, 0, 1); // Truck-Koordinaten: z = oben
   scene.add(new THREE.HemisphereLight(0xffffff, 0x606060, 3));
@@ -170,10 +184,18 @@ export async function createView3d(container) {
     return mesh;
   }
 
-  // Korpus-/Band-Materialien pro Farbe gecacht (Case-Farbe wechselt selten, nie disposen).
+  // Korpus-/Band-Materialien pro Farbe gecacht (Case-Farbe wechselt selten, über Updates hinweg
+  // wiederverwendet – wie labelTexCache oben sind sie deshalb `userData.shared`, damit `clear()`
+  // sie nicht mit den Case-Meshes verwirft). Wuchsen bis Task 8 unbegrenzt: jede je benutzte
+  // Farbe/`bad`-Kombination blieb für die gesamte Sitzung im Speicher, jedes Material ist ein
+  // eigenes Shader-Programm, kein bloßes Byte-Paar (docs/code-review-2026-09-21.md, „S4 — Farb-
+  // Materialcaches begrenzen“). Selbes Muster wie beim Beschriftungs-Cache: die in diesem
+  // `update()` tatsächlich benutzten Schlüssel sammeln, am Ende nicht mehr benutzte disposen.
   const bodyMatCache = new Map();
+  let usedBodyMatKeys = new Set();
   const bodyMaterial = (color, bad) => {
     const key = `${color}|${bad}`;
+    usedBodyMatKeys.add(key);
     let m = bodyMatCache.get(key);
     if (!m) {
       m = shared(new THREE.MeshStandardMaterial({
@@ -185,7 +207,9 @@ export async function createView3d(container) {
     return m;
   };
   const bandMatCache = new Map();
+  let usedBandMatKeys = new Set();
   const bandMaterial = color => {
+    usedBandMatKeys.add(color);
     let m = bandMatCache.get(color);
     if (!m) { m = shared(new THREE.MeshStandardMaterial({ color, roughness: 0.6 })); bandMatCache.set(color, m); }
     return m;
@@ -456,6 +480,7 @@ export async function createView3d(container) {
   // bei jedem Neuaufbau nach einem Fehler (app.js, `catch`) ein WebGL-Kontext hängen – Chrome hält
   // nur rund 16 davon (s. Befund I6).
   function dispose() {
+    themeQuery.removeEventListener('change', onThemeChange);
     resizeObserver.disconnect();
     controls.dispose();
     clear();
@@ -480,6 +505,8 @@ export async function createView3d(container) {
   function update({ truck, result, selectedId, colorMode = 'black' }) {
     clear();
     usedLabelKeys = new Set();
+    usedBodyMatKeys = new Set();
+    usedBandMatKeys = new Set();
     const room = { x0: 0, y0: 0, z0: 0, x1: truck.l, y1: truck.w, z1: truck.h };
     const floor = boxMesh({ ...room, z0: -2, z1: 0 }, MAT_FLOOR);
     content.add(floor, edges(room, MAT_ROOM_EDGE));
@@ -569,6 +596,18 @@ export async function createView3d(container) {
       entry.texture.dispose();
       labelTexCache.delete(key);
     }
+    // Dasselbe für die Korpus-/Band-Materialcaches (S4): nicht mehr verwendete Farben/`bad`-
+    // Kombinationen wieder freigeben, statt sie für die gesamte Sitzung zu behalten.
+    for (const [key, m] of bodyMatCache) {
+      if (usedBodyMatKeys.has(key)) continue;
+      m.dispose();
+      bodyMatCache.delete(key);
+    }
+    for (const [key, m] of bandMatCache) {
+      if (usedBandMatKeys.has(key)) continue;
+      m.dispose();
+      bandMatCache.delete(key);
+    }
 
     const frameKey = `${truck.id}:${truck.l}x${truck.w}x${truck.h}`;
     if (framedFor !== frameKey) {
@@ -582,6 +621,7 @@ export async function createView3d(container) {
   }
   return { update, dispose };
   } catch (err) {
+    themeQuery?.removeEventListener('change', onThemeChange);
     renderer.dispose();
     renderer.forceContextLoss();
     throw err;

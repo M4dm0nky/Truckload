@@ -110,11 +110,27 @@ export function openLoadWizard(dlg, opts = {}) {
   function renderCaseList() {
     const groups = groupCases(cases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value });
     renderGroupList(list, groups, caseRow, {
-      own: '<p class="hint">Keine Treffer.</p>',
+      // Vorher „Keine Treffer.“ auch ganz ohne gesetzten Filter — für einen neuen Nutzer, dessen
+      // erster Blick auf die eigenen Cases oft genau der Wizard ist, klang das nach einer
+      // Fehlbedienung statt nach einer leeren, aber gültigen Bibliothek. js/ui/library.js sagt an
+      // derselben Stelle bereits das Richtige (docs/code-review-2026-09-21.md, „N8 — leere Liste
+      // ohne Erklärung im Wizard“); dieselbe Formulierung hier übernommen.
+      own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>',
       presets: '<p class="hint">Keine Treffer für diese Filter.</p>',
       list: '<p class="hint">Keine Treffer für diese Filter.</p>',
     });
     updateTotals();
+  }
+  // Firmenfilter neu aufbauen, wenn sich die Case-Liste ändert (nach „+ Neues Case“/„Sonderbau“) –
+  // vorher blieb er auf dem Stand beim Öffnen des Wizards stehen, ein neu angelegtes Case mit
+  // eigener Firma tauchte im Filter nicht auf (docs/code-review-2026-09-21.md, „N7 — Firmenfilter
+  // im Wizard veraltet nach + Neues Case“). js/ui/library.js macht es für dieselbe Hilfsfunktion
+  // bereits richtig (renderCompanyOptions) und merkt sich zusätzlich die bisherige Auswahl.
+  function renderCompanyOptions() {
+    const prev = companyFilterSel.value;
+    const companies = companiesOf(cases);
+    companyFilterSel.innerHTML = `<option value="">Alle Firmen</option>${companies.map(name => `<option${name === prev ? ' selected' : ''}>${esc(name)}</option>`).join('')}`;
+    if (!companies.includes(prev)) companyFilterSel.value = '';
   }
   list.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
@@ -137,7 +153,12 @@ export function openLoadWizard(dlg, opts = {}) {
     const c = await opts.onNewCase?.(draft);
     if (!c) return;
     cases = [...cases.filter(x => x.id !== c.id), c];
-    counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
+    // Dieselbe MAX_ITEMS-Grenze wie der „+“-Stepper (Zeile 141) — vorher umging „+ Neues Case“/
+    // „Sonderbau“ sie, „Weiter“ blockierte danach mit „Maximal 500 Stück je Wizard-Durchlauf“, ohne
+    // dass der Nutzer verstehen konnte, warum ein einzelnes neu angelegtes Case das auslöst
+    // (docs/code-review-2026-09-21.md, „N9 — + Neues Case umgeht die 500er-Grenze“).
+    if (total() < MAX_ITEMS) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
+    renderCompanyOptions();
     renderCaseList();
   }
   dlg.querySelector('[data-act="new-case"]').addEventListener('click', () => addNewCase());

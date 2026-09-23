@@ -29,17 +29,28 @@ export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null 
   return touch({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
 
-export function removeUnplaced(plan, caseId) {
-  const i = plan.unplaced.findIndex(u => u.caseId === caseId);
-  if (i < 0) return plan;
-  return touch({ ...plan, unplaced: plan.unplaced.filter((_, k) => k !== i) });
+// Entfernt EIN bestimmtes Stück aus der Ablage, exakt über seine eigene `id` – nicht mehr über
+// `caseId` (der nur den Case-Typ trifft, nicht ein bestimmtes Exemplar). Vorher traf das erste
+// Vorkommen dieses Typs, unabhängig davon, welche Beschriftung der Nutzer eigentlich anklickte
+// (docs/code-review-2026-09-21.md, „actions.js:28-32“) – seit die Ablage die einzelnen
+// Beschriftungen zeigt, muss „−“ gezielt das angeklickte Stück treffen, nicht irgendeins seines Typs.
+export function removeUnplaced(plan, id) {
+  const next = plan.unplaced.filter(u => u.id !== id);
+  if (next.length === plan.unplaced.length) return plan;
+  return touch({ ...plan, unplaced: next });
 }
 
-export function placeCase(plan, caseId, x, y, ctx, fromUnplacedId = null) {
+export function placeCase(plan, caseId, { x, y }, ctx, { fromUnplacedId = null } = {}) {
   const c = ctx.caseById.get(caseId);
   if (!c) return plan;
   const src = fromUnplacedId ? plan.unplaced.find(u => u.id === fromUnplacedId) : null;
-  const { id: _srcId, caseId: _srcCaseId, ...srcExtra } = src ?? {};
+  // Nur die bekannten Stück-Felder aus der Ablage übernehmen (label/color), nicht das ganze
+  // Objekt spreaden: ein Ablage-Eintrag aus einer fremden Importdatei könnte ein eigenes x/y/z
+  // tragen (io.js verbietet in `unplaced` keine Zusatzfelder) und würde die gerade gewählte
+  // Mausposition sonst stillschweigend überschreiben (docs/code-review-2026-09-21.md,
+  // „actions.js:38-39 — srcExtra überschreibt x/y/z/orientation/rot“).
+  const { label, color } = src ?? {};
+  const srcExtra = { ...(label ? { label } : {}), ...(color ? { color } : {}) };
   const base = { id: fromUnplacedId ?? ctx.newId(), caseId, x: snap(x), y: snap(y), z: 0, orientation: 'standing', rot: 0, ...srcExtra };
   const p = settle(base, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
   return touch({
@@ -71,6 +82,15 @@ export function moveGroup(plan, id, x, y, ctx, { grid = 5, edges = true } = {}) 
   });
 }
 
+// Bewusst entschieden (docs/code-review-2026-09-21.md, „actions.js:70-79 — reorient lässt den
+// Stapel über dem gedrehten Case stehen“): `stackAbove(id, items)` wird nur berechnet, um den
+// eigenen Stapel aus den Hindernissen auszuschließen (sonst kollidiert das Case beim Drehen mit
+// sich selbst). Er wird NICHT nachgezogen, wenn sich dadurch die Höhe des Cases ändert (z. B.
+// beim Tippen) – ein „unsupported“ erscheint dann sofort in der Warnliste, und der Nutzer sieht
+// unmittelbar, dass er den Stapel selbst nachziehen muss. Automatisches Nachziehen (wie es
+// `moveGroup` für den bewegten Stapel selbst tut) würde hier zusätzlich JEDES Case über dem
+// gedrehten mitbewegen, ohne dass der Nutzer das angestoßen hat – eine Nebenwirkung, die beim
+// bloßen Drehen/Tippen eines einzelnen Cases nicht erwartbar ist.
 function reorient(plan, id, ctx, change) {
   const p = plan.placements.find(q => q.id === id);
   const c = p && ctx.caseById.get(p.caseId);
@@ -105,23 +125,46 @@ export const setWheelFace = (plan, id, face, ctx) =>
     return rot == null ? {} : { rot };
   });
 
-// Zählt die letzte Zahl im Label hoch (z. B. für "duplicate()"). Die hochgezählte Zahl kann ein
-// Zeichen länger sein als die ursprüngliche (9 -> 10) – ohne Kürzung entstünde so aus einem
-// legalen 40-Zeichen-Label eins mit 41 Zeichen, das der eigene Import ablehnt (Befund B4).
+// Zählt die letzte Zahl im Label hoch (z. B. für "duplicate()"). Nur wenn die Zahl ganz am Ende
+// steht wird hochgezählt ("Case 3 von 8" -> "Case 3 von 9", so wie es in der Praxis benutzt wird,
+// docs/code-review-2026-09-21.md, „actions.js:104-108“) – steht danach noch Text, greift die
+// Regex nicht und das Label bleibt unverändert. `padStart` erhält dabei die Stellenzahl der
+// ursprünglichen Zahl ("Case 09" -> "Case 10", nicht "Case 010"; "Case 9" -> "Case 10" bleibt vom
+// Auffüllen unberührt) – ohne das würde eine führende Null beim Hochzählen stillschweigend
+// verschwinden. Die hochgezählte Zahl kann trotzdem ein Zeichen länger sein als die ursprüngliche
+// (9 -> 10) – ohne Kürzung entstünde so aus einem legalen 40-Zeichen-Label eins mit 41 Zeichen,
+// das der eigene Import ablehnt (Befund B4).
 function nextLabel(label) {
   const m = /^(.*?)(\d+)$/.exec(label);
   if (!m) return label.slice(0, MAX_LABEL);
-  return `${m[1]}${Number(m[2]) + 1}`.slice(0, MAX_LABEL);
+  const next = String(Number(m[2]) + 1).padStart(m[2].length, '0');
+  return `${m[1]}${next}`.slice(0, MAX_LABEL);
 }
 
 export function duplicate(plan, id, ctx) {
   const p = plan.placements.find(q => q.id === id);
   const c = p && ctx.caseById.get(p.caseId);
   if (!c) return plan;
-  const patch = { id: ctx.newId(), x: p.x + effectiveDims(c, p).dx };
-  if (p.label) patch.label = nextLabel(p.label);
-  const copy = settle({ ...p, ...patch }, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
-  return touch({ ...plan, placements: [...plan.placements, copy] });
+  const { dx, dy } = effectiveDims(c, p);
+  const label = p.label ? nextLabel(p.label) : undefined;
+  // Die Kopie zuerst hinter dem Original versuchen (wie bisher), bei Überstand über die
+  // Heckkante stattdessen davor, sonst seitlich daneben (y) – erst wenn auch das nicht in den
+  // Laderaum passt, landet die Kopie in der Ablage statt an einer Position, die sofort zwei
+  // "outOfBounds"-Meldungen erzeugt (docs/code-review-2026-09-21.md, „actions.js:110-118“).
+  // Kollisionen MIT ANDEREN Cases prüft das bewusst nicht (das behandelt `validatePlan` wie bei
+  // jeder Platzierung) – hier geht es nur um den Fall, dass der Truck an der Stelle zu Ende ist.
+  const candidates = [
+    { x: p.x + dx, y: p.y }, { x: p.x - dx, y: p.y },
+    { x: p.x, y: p.y + dy }, { x: p.x, y: p.y - dy },
+  ].filter(pos => pos.x >= 0 && pos.x + dx <= ctx.truck.l && pos.y >= 0 && pos.y + dy <= ctx.truck.w);
+  const pos = candidates[0];
+  if (pos) {
+    const patch = { id: ctx.newId(), ...pos, ...(label ? { label } : {}) };
+    const copy = settle({ ...p, ...patch }, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
+    return touch({ ...plan, placements: [...plan.placements, copy] });
+  }
+  const trayEntry = { id: ctx.newId(), caseId: p.caseId, ...(label ? { label } : {}), ...(p.color ? { color: p.color } : {}) };
+  return touch({ ...plan, unplaced: [...plan.unplaced, trayEntry] });
 }
 
 // Teilweise Änderung mit ausdrücklichem Löschen: ein Feld, das nicht übergeben

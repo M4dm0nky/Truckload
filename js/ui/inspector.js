@@ -40,6 +40,9 @@ export function renderInspector(el, { selected, result, truck }) {
       ${wheelRow}
       <div class="btns">
         <button data-act="rotate">Drehen <kbd>R</kbd></button>
+        <!-- Truthy-Check statt canTip(c) (js/model/truss.js) — bewusst, s. Kommentar an der
+             canTip-Definition: checkCase/normalizeCase erzwingen an jeder Entstehungsstelle
+             bereits einen echten Boolean, Truthy und canTip liefern hier also dasselbe. -->
         <button data-act="tip" ${selected.c.tippable ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
         <button data-act="dup">Duplizieren <kbd>D</kbd></button>
         <button data-act="tray">In Ablage</button>

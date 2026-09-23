@@ -186,7 +186,7 @@ function drawSimpleBody(g, bodyRect, colors) {
 
 // Flightcase-Look: Alu-Hybridprofil, Laminat-Korpus, Kugelecken, Deckelfuge mit Butterfly-
 // Verschlüssen und Schalengriffen. Details nur ab Korpusbreite ≥ DETAIL_MIN, sonst wie drawSimpleBody.
-function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, detailed) {
+function drawFlightcaseBody(g, bodyRect, colors, mode, face, uid, detailed) {
   const bw = bodyRect.u1 - bodyRect.u0, bh = bodyRect.v1 - bodyRect.v0;
   if (!detailed) return drawSimpleBody(g, bodyRect, colors);
 
@@ -199,7 +199,12 @@ function drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, det
     x: bodyRect.u0 + FRAME_W, y: bodyRect.v0 + FRAME_W, width: iw, height: ih,
     fill: colors.body, class: 'corpus', rx: 1,
   }, g);
-  if (colorMode === 'black') svgEl('rect', {
+  // Vorher nur im Modus „Schwarz“ gezeichnet: view3d.js hängt bumpMap: LAM_TEX dagegen an JEDES
+  // Korpusmaterial, unabhängig vom Modus – dieselbe Case-Oberfläche hatte in 3D im Modus „Gewerk“
+  // eine Laminat-Struktur, in 2D nicht (docs/code-review-2026-09-21.md, „N2 — Laminat-Struktur nur
+  // in einem Modus“). Die Struktur ist mit `fill-opacity: 0.06` dezent genug, um auf jeder
+  // Körperfarbe zu funktionieren, nicht nur auf Schwarz.
+  svgEl('rect', {
     x: bodyRect.u0 + FRAME_W, y: bodyRect.v0 + FRAME_W, width: iw, height: ih,
     class: 'lam', style: `fill:url(#${uid}-lam)`, rx: 1,
   }, g);
@@ -308,7 +313,7 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
     // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
     // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
     const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
-    drawFlightcaseBody(g, bodyRect, colors, mode, face, colorMode, uid, detailed);
+    drawFlightcaseBody(g, bodyRect, colors, mode, face, uid, detailed);
 
     if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
     labelRect = bodyRect;

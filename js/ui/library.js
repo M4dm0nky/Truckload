@@ -75,28 +75,32 @@ export function mountLibrary(el, h) {
     });
   }
 
+  // Bis Task 8 eine Zeile je Case-Typ mit der Farbe des ERSTEN Stücks für die ganze Gruppe und
+  // einem „−“, das `removeUnplaced(plan, caseId)` traf – also das erste Vorkommen dieses Typs,
+  // nicht das vom Nutzer gemeinte (docs/code-review-2026-09-21.md, Nachtrag Controller: „Die
+  // Ablage zeigt … die Farbe des ersten Stücks als Aussage über alle“; Task-8-Brief: „removeUnplaced
+  // trifft das erste Stück eines Case-Typs, nicht ein bestimmtes … das ist spürbar und gehört
+  // behoben“). Jetzt eine Zeile JE STÜCK: eigene Farbe, eigene Beschriftung, eigenes „−“ über die
+  // Stück-`id` (nicht mehr über `caseId`) – ehrlich für gemischte Farben und gezielt entfernbar.
+  // Gleiche Case-Typen bleiben optisch unter einer schmalen Zählzeile gruppiert, damit eine Ablage
+  // mit vielen gleichen Cases nicht unübersichtlich wird.
   function renderTray() {
+    const byId = new Map(last.cases.map(c => [c.id, c]));
     const groups = new Map(); // caseId -> unplaced-Einträge
     for (const u of last.plan.unplaced) groups.set(u.caseId, [...(groups.get(u.caseId) ?? []), u]);
-    const byId = new Map(last.cases.map(c => [c.id, c]));
     tray.innerHTML = [...groups].map(([caseId, items]) => {
       const c = byId.get(caseId);
-      const labels = items.map(u => u.label ?? c?.name ?? 'Unbekanntes Case').join(', ');
-      // Farbkästchen zeigt die Farbe des STÜCKS, nicht die Gewerkfarbe des Case-Typs (Befund des
-      // Controllers, Task-6-Brief): direkt daneben stehen die Beschriftungen der einzelnen
-      // Stücke, eine Gewerkfarbe wäre dort irreführend, besonders wenn im Wizard eine eigene
-      // Farbe je Stück vergeben wurde. Stücke einer Gruppe KÖNNEN unterschiedliche Farben haben
-      // (Wizard: „Farbe auf alle übernehmen“ ist ein Vorschlag, kein Zwang) — ein einzelnes
-      // Kästchen kann das nicht korrekt für alle zugleich zeigen. Es zeigt deshalb die Farbe des
-      // ERSTEN Stücks der Gruppe (dieselbe Auflösungsreihenfolge wie überall sonst: Stück-Farbe,
-      // sonst Gewerkfarbe, sonst Grau) — passend zur ersten Beschriftung in der Zeile darunter,
-      // nicht eine für die ganze Gruppe erfundene Mischfarbe.
-      const color = items[0].color ?? c?.color ?? '#888';
-      return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(items[0].id)}">
-        ${swatch(color)}
-        <span class="lib-text"><b>${items.length}× ${esc(c?.name ?? 'Unbekanntes Case')}</b>
-          <small>${esc(labels)}</small></span>
-        <button data-act="tray-remove" title="Eins entfernen">−</button></div>`;
+      const heading = items.length > 1
+        ? `<p class="hint tray-count">${items.length}× ${esc(c?.name ?? 'Unbekanntes Case')}</p>` : '';
+      const rows = items.map(u => {
+        const color = u.color ?? c?.color ?? '#888';
+        const label = u.label ?? c?.name ?? 'Unbekanntes Case';
+        return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
+          ${swatch(color)}
+          <span class="lib-text"><b>${esc(label)}</b></span>
+          <button data-act="tray-remove" title="Entfernen">−</button></div>`;
+      }).join('');
+      return heading + rows;
     }).join('') || '<p class="hint">Leer. Mit „+“ Cases hierher legen, dann ziehen oder „Rest einpacken“.</p>';
   }
 
@@ -107,8 +111,10 @@ export function mountLibrary(el, h) {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
     const caseId = btn.closest('[data-case]')?.dataset.case;
+    // tray-remove zielt auf die eigene Stück-id (nicht den Case-Typ) – s. renderTray().
+    const unplacedId = btn.closest('[data-unplaced]')?.dataset.unplaced;
     ({ new: () => h.onNew(), add: () => h.onAdd(caseId), edit: () => h.onEdit(caseId),
-       load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(caseId) })[btn.dataset.act]?.();
+       load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(unplacedId) })[btn.dataset.act]?.();
   });
   el.addEventListener('dragstart', e => {
     const item = e.target.closest('[data-case]');
@@ -120,10 +126,20 @@ export function mountLibrary(el, h) {
   return {
     update(state) {
       const casesChanged = !last || last.cases !== state.cases;
+      // `plan.unplaced` ist nur eine von mehreren Referenzen in `state.plan` – Aktionen, die nur
+      // Placements ändern (z. B. moveGroup während eines Drags), geben ein neues `plan`-Objekt
+      // zurück, lassen `plan.unplaced` dabei aber unverändert stehen (kein Spread dieses Felds).
+      // Ein Vergleich der Referenz reicht also, um echte Änderungen der Ablage von den bis zu 60
+      // Renderaufrufen pro Sekunde während eines Drags zu unterscheiden, ohne die Ablage jedes Mal
+      // neu aus dem DOM aufzubauen (docs/code-review-2026-09-21.md, „S5 — Inspector und Ablage
+      // nicht bei jedem Bild neu bauen“, hier nur der risikolose Teil: die Ablage).
+      const trayChanged = !last || last.plan.unplaced !== state.plan.unplaced;
       last = state;
       if (casesChanged) renderCompanyOptions();
       if (casesChanged) renderList();
-      renderTray();
+      // casesChanged auch hier: ein bearbeitetes Case (Name/Farbe) muss sich in der Ablage
+      // spiegeln, auch wenn plan.unplaced selbst unverändert blieb.
+      if (casesChanged || trayChanged) renderTray();
     },
   };
 }

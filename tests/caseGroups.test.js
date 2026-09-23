@@ -59,6 +59,15 @@ test('companiesOf liefert alphabetisch sortiert und ohne Dubletten', () => {
   assert.deepEqual(companiesOf(cases), ['AED', 'CAB', 'Motion']);
 });
 
+// Task 8, Befund Daten-9: eigene Cases kamen vorher in der Reihenfolge, in der `cases` übergeben
+// wurde (bei IndexedDB: UUID-Reihenfolge) – groupCases() sortiert die "own"-Gruppe jetzt
+// alphabetisch, unabhängig von der Reihenfolge der Eingabe.
+test('groupCases sortiert eigene Cases alphabetisch, unabhängig von der Eingabereihenfolge', () => {
+  const cases = [own('z', { name: 'Zebra-Case' }), own('a', { name: 'Amp-Rack' }), own('m', { name: 'Molton-Case' })];
+  const { own: ownGroup } = groupCases(cases);
+  assert.deepEqual(ownGroup.map(c => c.name), ['Amp-Rack', 'Molton-Case', 'Zebra-Case']);
+});
+
 test('leere Eingabe liefert leere Gruppen statt zu werfen', () => {
   assert.deepEqual(groupCases([]), { own: [], presets: [], list: [] });
   assert.deepEqual(companiesOf([]), []);

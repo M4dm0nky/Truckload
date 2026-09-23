@@ -165,3 +165,8 @@ schwarzem Case.
   erzeugt die App Daten, die ihr eigener Import ablehnt.
 - Der Packer lässt Stücke in der Ablage, die er nicht unterbringt — sie gehen nicht
   verloren, auch nicht bei fehlendem Case-Typ (`orphans`).
+- `issue.code` (`validate.js`) ist ein bewusster Erweiterungspunkt, heute aber nur von den Tests
+  gelesen — kein UI-Modul wertet ihn aus, Inspector und Druck zeigen ausschließlich `issue.message`.
+  Wer eine Meldung UI-seitig unterscheiden will (Symbol, Filter, Sortierung), findet den Code dafür
+  schon vor; ein Tippfehler in einem neuen `add(...)`-Aufruf fällt dabei nur über die Tests auf, es
+  gibt keine benannte Konstantenliste.

@@ -59,6 +59,14 @@ export function labelPlanes(box, face) {
   return planes;
 }
 
+// `fitFontSize()`/`wrapText()` hier und `fitLabelText()` in js/ui/view2d.js lösen dieselbe
+// Aufgabe (Beschriftung an eine Fläche anpassen) mit verschiedenen Verfahren und Ergebnissen —
+// 2D kürzt einzeilig mit „…“, 3D bricht mehrzeilig um. Bewusst NICHT zusammengeführt: 2D auf
+// Umbruch umzustellen wäre eine sichtbare Verhaltensänderung, keine reine Dopplung (Begründung
+// und Gegenkommentar an der Aufrufstelle: js/ui/view2d.js, LABEL_MIN/LABEL_MAX,
+// docs/code-review-2026-09-21.md, „S3 — eine Textmetrik für 2D und 3D“). Geteilt wird nur die
+// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, s. u.), die view2d.js als Rückfall importiert,
+// wenn `getComputedTextLength()` nicht zur Verfügung steht.
 const CHAR_ASPECT = 0.56; // grobe Zeichenbreite je Schriftgröße (Sans-Serif-Schätzung, keine echte Font-Metrik)
 const LINE_HEIGHT = 1.15; // Zeilenabstand je Schriftgröße
 

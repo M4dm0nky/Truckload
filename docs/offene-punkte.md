@@ -19,11 +19,6 @@ Gewicht“ neben der Nutzlast, und die Einseitigkeitsprüfung notfalls über das
 Dadurch löst fast jede kleine Ladung die Warnung „Ladung ist einseitig“ aus, obwohl nichts
 falsch ist. Der Packer sollte die Stapel über die Breite verteilen oder mittig beginnen.
 
-**„−“ in der Ablage trifft ein beliebiges Stück.**
-`removeUnplaced(plan, caseId)` entfernt den ersten Eintrag dieses Case-Typs. Seit die
-Ablage die einzelnen Beschriftungen zeigt („Licht 1, Licht 2, Licht 3“), erwartet man,
-gezielt eines entfernen zu können.
-
 ## Daten aus der Casemaße-Tabelle
 
 **Fünf Zeilen fehlen ganz.** Motorsteuerung-Koffer, Bolzenkoffer, FD34 x2, HOF BOLT und
@@ -63,15 +58,51 @@ offengelegt, aber für kleine Cases zu konservativ.
   Nutzer verwirrend.
 - Tippen kann Nachbarn überlappen, weil nur `z` nachgeführt wird, nicht `x`/`y`. Das
   verhält sich seit jeher wie „Drehen“, und die Prüfung meldet es.
-- Farbwerte fließen unescaped in `style="fill:…"`. Kein Skript-Vektor, aber aus einer
-  fremden Importdatei wäre eine CSS-Wert-Injektion denkbar; `checkCase` prüft `color` beim
-  Case-Typ nicht (bei Stück-Farben schon).
 - Im Wizard neu angelegte Cases bleiben in der Bibliothek, auch wenn man den Wizard danach
   abbricht. Entspricht dem Verhalten des Case-Editors.
 - `toPiece` in `js/model/actions.js` listet die Stück-Felder einzeln auf. Ein künftiges
   neues Feld muss dort nachgezogen werden, sonst geht es beim „Alles neu packen“ verloren.
 - Das Druckspalten-Layout bei sehr langen Beschriftungen ist nie geprüft worden. Durch die
   40-Zeichen-Grenze entschärft.
+
+## Aus der Meilenstein-Review V 0.6.0, Task 8 (2026-09-21) offen gelassen
+
+Die meisten `[nit]`/`[suggestion]`-Befunde aus `docs/code-review-2026-09-21.md` sind mit
+Task 8 behoben (siehe `.superpowers/sdd/2026-09-21-review-fixes-v0.7/task-8-report.md` für die
+vollständige Liste). Bewusst offen geblieben, mit Begründung:
+
+- **2D/3D: Schriftfarbe der Beschriftung** (N1). 2D ist fest weiß mit schwarzer Kontur
+  (`css/app.css`), 3D leitet sie aus dem Hintergrund ab (`textColorFor` in `view3d.js`). Auf
+  einem hellen Case (z. B. Gewerkfarbe Gelb) sieht das unterschiedlich aus; die Kontur rettet
+  die Lesbarkeit in beiden Fällen. Der Vorschlag (`textColorFor` nach `caseStyle.js`, in 2D als
+  `style`-Attribut setzen) berührt sowohl die Bildschirm- als auch die Druckdarstellung –
+  zusammen mit der Kontur-Wechselwirkung ist das mehr als eine Zeile und bräuchte eine eigene
+  Browser-Abnahme auf mehreren Case-Farben und im Ausdruck. Nutzen (Konsistenz zwischen
+  Ansichten) gegen Risiko (Lesbarkeitsregression im Ausdruck) abgewogen: zurückgestellt.
+- **2D/3D: Griffe auf der Längsseite nur in 2D** (N3). `view3d.js` (`handleMeshes`) setzt Griffe
+  unabhängig von der Case-Länge nur auf die Stirnseiten; 2D zeichnet ab 100 cm Länge zusätzlich
+  zwei auf der Längsseite. Der Fix ist eine echte 3D-Geometrieänderung (Position, Kollisionsfreiheit
+  mit dem Deckelfuge-Band, InstancedMesh-Aufbau), kein Ein-Zeilen-Fix, und bräuchte ein
+  Prüf-Fahrzeug samt Screenshot-Abnahme aus mehreren Blickwinkeln (`CLAUDE.md`, „Fallstrick 3D“).
+  Rein kosmetisch (kein Fehlverhalten), deshalb zurückgestellt.
+- **Inspector wird bei jedem Bild neu aufgebaut** (Rest von S5). Der Teil, der ohne Risiko zu
+  entschärfen war – die Ablage –, wurde in Task 8 gefixt (`js/ui/library.js`, `update()` baut die
+  Ablage nur noch bei geänderter `plan.unplaced`-Referenz neu). Der Inspector selbst bleibt
+  unverändert: er hängt von sehr vielen Feldern gleichzeitig ab (Position, Lage, Warnungen,
+  Ladungs-Kennzahlen), die sich während eines Drags des ausgewählten Cases tatsächlich bei jedem
+  Bild ändern – ein Diffing wäre entweder grobmaschig (verpasst echte Änderungen, genau die
+  Fehlerklasse von B1) oder so fein, dass der Gewinn gegenüber dem heutigen `innerHTML`-Aufbau
+  klein wird. Ohne Performance-Beschwerde aus der Praxis nicht angefasst.
+- **`layerMap`-Rückfall `?? 1` ist ungetestet** (Nachtrag Controller, Punkt 7 von 7). Ein Mutationslauf
+  zeigt, dass `?? 1` → `?? 0` in `js/model/validate.js` unbemerkt bliebe. Der Zweig ist über die
+  öffentliche API (`validatePlan`) nach heutigem Kenntnisstand nicht erreichbar: `layerMap` verarbeitet
+  Items nach `z0` aufsteigend sortiert, und ein Unterstützer liegt per Definition (`supportersOf`)
+  immer bei einem `z1`, das dem `z0` des gestützten Items entspricht – er wurde also schon
+  verarbeitet, bevor das gestützte Item an der Reihe ist, und trägt bereits einen Eintrag in der
+  Map. `layerMap` ist bewusst nicht mehr exportiert (siehe Kommentar dort, „zehn zu weit offene
+  Exporte“); ihn nur für diesen Test zu exportieren widerspräche genau dieser vorigen Aufräumarbeit.
+  `volumeRatio` (derselbe Nachtrag-Punkt) ist inzwischen mit einem echten Normalfall-Test
+  abgesichert (`tests/validate.test.js`, „volumeRatio berechnet einen echten Volumenanteil“).
 
 ## Ideen, die noch niemand beauftragt hat
 

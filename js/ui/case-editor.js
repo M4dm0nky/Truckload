@@ -9,6 +9,12 @@ const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
 const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
 export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
+  // Absicherung gegen einen zweiten Aufruf, bevor der `close`-Listener des vorigen gefeuert hat:
+  // der ist an `dlg` selbst hängt (überlebt also das `dlg.innerHTML = …` unten) und würde beim
+  // Schließen DIESES Dialogs sonst über sein eigenes, abgehängtes `f` die Werte des alten Formulars
+  // lesen und die alte Promise auflösen (heute unerreichbar, da `#dlg-case` nur aus zwei sequentiellen
+  // `await`-Pfaden bedient wird – docs/code-review-2026-09-21.md, „S7 — derselbe <dialog> zweimal offen“).
+  if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
   const src = c ?? draft ?? null;
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
   if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';

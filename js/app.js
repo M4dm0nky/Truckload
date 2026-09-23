@@ -215,7 +215,7 @@ attachTopInteractions($('#svg-top'), {
   onDropCase: ({ caseId, unplacedId }, x, y) => {
     const c = ctx().caseById.get(caseId);
     if (!c) return;
-    edit((p, cx) => A.placeCase(p, caseId, x - c.l / 2, y - c.w / 2, cx, unplacedId));
+    edit((p, cx) => A.placeCase(p, caseId, { x: x - c.l / 2, y: y - c.w / 2 }, cx, { fromUnplacedId: unplacedId }));
   },
 });
 attachSelect($('#svg-side'), select);
@@ -283,34 +283,53 @@ $('#pack-all').onclick = () => {
   edit((p, c) => A.packAll(p, c));
 };
 $('#pack-rest').onclick = () => edit((p, c) => A.packRest(p, c));
-function setMode(mode) {
-  store.update(s => ({ ...s, mode }));
-  $('#views2d').hidden = mode !== '2d';
-  $('#view3d').hidden = mode !== '3d';
-  $('#mode-2d').classList.toggle('on', mode === '2d');
-  $('#mode-3d').classList.toggle('on', mode === '3d');
-}
+// setMode/setCaseColors schrieben DOM-Zustand (hidden/classList) bisher direkt UND an den
+// renderHooks vorbei, zusätzlich verdoppelt durch zwei manuelle Startzeilen für caseColors (die
+// für mode ganz fehlten) – abgeleiteter Zustand an drei Stellen statt an einer
+// (docs/code-review-2026-09-21.md, „19. setMode/setCaseColors schreiben DOM-Zustand an den
+// Render-Hooks vorbei“). Die Funktionen setzen jetzt nur noch den Store; ein renderHook unten
+// leitet die Toolbar-Klassen/-Sichtbarkeit einheitlich aus `s.mode`/`s.caseColors` ab – auch beim
+// allerersten Render, was die beiden Startzeilen überflüssig macht.
+function setMode(mode) { store.update(s => ({ ...s, mode })); }
 $('#mode-2d').onclick = () => setMode('2d');
 $('#mode-3d').onclick = () => setMode('3d');
 function setCaseColors(mode) {
   store.update(s => ({ ...s, caseColors: mode }));
   try { localStorage.setItem(CASE_COLORS_KEY, mode); } catch { /* kein Speicher verfügbar */ }
-  $('#colors-black').classList.toggle('on', mode === 'black');
-  $('#colors-trade').classList.toggle('on', mode === 'trade');
 }
 $('#colors-black').onclick = () => setCaseColors('black');
 $('#colors-trade').onclick = () => setCaseColors('trade');
-$('#colors-black').classList.toggle('on', store.get().caseColors === 'black');
-$('#colors-trade').classList.toggle('on', store.get().caseColors === 'trade');
+renderHooks.push(s => {
+  $('#views2d').hidden = s.mode !== '2d';
+  $('#view3d').hidden = s.mode !== '3d';
+  $('#mode-2d').classList.toggle('on', s.mode === '2d');
+  $('#mode-3d').classList.toggle('on', s.mode === '3d');
+  $('#colors-black').classList.toggle('on', s.caseColors === 'black');
+  $('#colors-trade').classList.toggle('on', s.caseColors === 'trade');
+});
 
-// Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons
+// Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons. Die beiden <select> wurden bisher bei
+// JEDEM Render neu aus Strings gebaut – auch während eines Drags, wo scheduleRender() bis zu 60×
+// pro Sekunde läuft (docs/code-review-2026-09-21.md, „12. Die Toolbar baut beide <select> bei
+// jedem Frame neu“). Ein aufgeklapptes <select> mit Tastaturauswahl schließt sich dabei und die
+// Auswahl geht verloren. Die erzeugte Markup-Zeichenkette wird jetzt gemerkt und nur bei
+// tatsächlicher Änderung zugewiesen.
 const allPlans = s => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
   .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+let lastPlanHtml = null, lastTruckHtml = null;
 renderHooks.push((s, d) => {
-  $('#plan-select').innerHTML = allPlans(s).map(p =>
+  const planHtml = allPlans(s).map(p =>
     `<option value="${esc(p.id)}" ${p.id === s.plan.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
-  $('#truck-select').innerHTML = s.trucks.map(t =>
+  if (planHtml !== lastPlanHtml) $('#plan-select').innerHTML = lastPlanHtml = planHtml;
+  // Eigene Fahrzeuge kamen (wie eigene Cases, s. js/ui/caseGroups.js) sonst in
+  // IndexedDB-Schlüsselreihenfolge (docs/code-review-2026-09-21.md, „9. … Dasselbe gilt für
+  // trucks“) – Vorlagen bleiben vorn in ihrer festen Reihenfolge (Array.prototype.sort ist
+  // stabil), eigene Fahrzeuge werden untereinander alphabetisch sortiert.
+  const sortedTrucks = [...s.trucks].sort((a, b) =>
+    a.builtin === b.builtin ? a.name.localeCompare(b.name, 'de') : a.builtin ? -1 : 1);
+  const truckHtml = sortedTrucks.map(t =>
     `<option value="${esc(t.id)}" ${t.id === d.truck.id ? 'selected' : ''}>${esc(t.name)}${t.builtin ? '' : ' ★'} – ${t.l}×${t.w}×${t.h}</option>`).join('');
+  if (truckHtml !== lastTruckHtml) $('#truck-select').innerHTML = lastTruckHtml = truckHtml;
   $('#undo').disabled = !store.canUndo();
   $('#redo').disabled = !store.canRedo();
 });
@@ -476,6 +495,10 @@ $('#export').onclick = () => {
 // wenn der Nutzer den Speicherdialog des Browsers abbricht).
 let lastPreImportBackup = null;
 
+// Vorher ein <label class="btn"> um das versteckte <input type="file">: ein <label> ist kein
+// fokussierbares Bedienelement, „Importieren“ war per Tastatur nicht erreichbar, während alle
+// Nachbarn <button> sind (docs/code-review-2026-09-21.md, „N11 — Kleinigkeiten in index.html“).
+$('#import-btn').onclick = () => $('#import').click();
 $('#import').onchange = async e => {
   const file = e.target.files[0];
   e.target.value = '';
