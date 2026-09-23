@@ -33,8 +33,12 @@ erst `superpowers:brainstorming`, dann `superpowers:writing-plans`, dann
 `superpowers:subagent-driven-development`. Pläne liegen unter `docs/superpowers/plans/`,
 das Design der ersten Version unter `docs/superpowers/specs/`.
 
-Nach der Implementierung: `superpowers:finishing-a-development-branch`. Veröffentlichen
-ist eine Entscheidung des Nutzers, nie eine eigene.
+Nach der Implementierung: `superpowers:finishing-a-development-branch`. Vor dem Commit die
+nächste Versionsnummer vorschlagen und bestätigen lassen (siehe „Versionierung“ unten) —
+danach ohne weitere Rückfrage committen, nach `main` pushen und veröffentlichen. Ohne
+gepushten Stand kann der Nutzer das Ergebnis nicht ansehen, das Nachfragen vorm Push macht
+also keinen Sinn (Nutzer-Feedback 2026-09-23) — nur die Versionsnummer selbst wird
+abgestimmt, nicht das Veröffentlichen an sich.
 
 ## Prüfen
 
@@ -66,10 +70,26 @@ Prüf-Fahrzeug an, das nur wenig größer ist als das Teil, und packt es dort hi
 steht die Kamera in der Laderaumwand und die Aufnahme zeigt nichts. Screenshots, auf denen
 das geprüfte Teil nicht zu sehen ist, sind kein Beleg.
 
+## Versionierung
+
+Fast immer ein **Patch**-Schritt (z. B. 0.7.2 → 0.7.3) — auch für echte Verhaltens-
+änderungen, nicht nur für Datenpflege. Minor/Major nur auf ausdrücklichen Wunsch des
+Nutzers (z. B. ein Meilenstein wie V0.7.0). Vor dem Commit kurz die vorgeschlagene nächste
+Nummer nennen und bestätigen lassen — danach wie unten beschrieben ohne weitere Rückfrage
+committen und veröffentlichen.
+
+Ist der zuletzt veröffentlichte Stand noch nicht live (lokale Commits, die noch nicht
+gepusht wurden), zählt für den Vorschlag der **zuletzt veröffentlichte** Stand als
+Grundlage, nicht der lokale HEAD — mehrere Aufgaben in einer Sitzung ergeben zusammen
+genommen einen Patch-Schritt, nicht einen pro Commit.
+
 ## Veröffentlichen
 
-Nach dem Merge nach `main` und `git push origin main --tags` baut GitHub Pages neu. Das
-passiert nicht immer von allein; falls kein Build startet:
+Committen und nach `main` pushen ohne gesonderte Rückfrage (Versionsnummer wurde vorher
+schon abgestimmt, s. „Versionierung“) — ein ungepushter Stand ist für den Nutzer nicht
+einsehbar, das Nachfragen davor macht keinen Sinn (Nutzer-Feedback 2026-09-23). Nach
+`git push origin main --tags` baut GitHub Pages neu. Das passiert nicht immer von allein;
+falls kein Build startet:
 
 ```bash
 gh api -X POST repos/m4dm0nky/Truckload/pages/builds
