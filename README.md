@@ -48,7 +48,7 @@ So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gel�
 „Neuer Ladeplan“ öffnet einen Wizard mit drei Schritten:
 
 1. **Load** – Name und Fahrzeug (Truck) wählen.
-2. **Cases** – aus der Bibliothek Cases mit Stückzahl auswählen, oder über „+ Neues Case“ bzw. „⬛ Sonderbau“ direkt neue Cases anlegen.
+2. **Cases** – aus der Bibliothek Cases mit Stückzahl auswählen, oder über „+ Neues Case“ bzw. „⬛ Sonderbau“ direkt neue Cases anlegen. „+ Traverse hinzufügen“ legt mengenbasiert klassische F34/F40-Wagen oder Pre-Rig-Traversen (MLT/S36PR) an.
 3. **Beschriften** – jedes einzelne Stück bekommt eine vorbelegte Beschriftung (z. B. „Kabelcase 1“ … „6“), die sich überschreiben lässt, sowie optional eine Gruppenfarbe. Ein Häkchen steuert, ob danach automatisch gepackt wird.
 
 „Fertig“ legt den Load an und packt ihn bei aktiviertem Häkchen automatisch in den Truck.
