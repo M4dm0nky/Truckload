@@ -52,25 +52,33 @@ test('rotate dreht um 90°', () => {
 });
 test('cycleTip nur bei tippbaren Cases', () => {
   assert.equal(find(A.cycleTip(plan([P('a','k',0,0,0)]), 'a', ctx()), 'a').orientation, 'standing');
-  assert.equal(find(A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx()), 'a').orientation, 'tipLong');
+  // T (120×60×100) steht bei rot 0 mit der LÄNGE (120) in Fahrtrichtung (x) -> nextTip()
+  // verzweigt hier deshalb nach tipShort (verzichtet nicht wie früher fest auf tipLong).
+  assert.equal(find(A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx()), 'a').orientation, 'tipShort');
 });
 test('cycleTip lässt Traversenwagen unverändert (auch bei fälschlich tippable:true)', () => {
   const truss = mkCase('trs', 300, 60, 80, { kind: 'truss', tippable: true });
   const trussCtx = { caseById: byId(K, T, truss), truck: mkTruck(), newId: counter('n') };
   assert.equal(find(A.cycleTip(plan([P('a','trs',0,0,0)]), 'a', trussCtx), 'a').orientation, 'standing');
 });
-test('cycleTip auf ein tippbares Case: Rollen zeigen zur Trucktür', () => {
+// Bis zur Nutzer-Rückmeldung vom 2026-09-23 setzte cycleTip bei jedem Tipp die Rollen fest zur
+// Trucktür, unabhängig von der Ausgangsdrehung – stand die lange Seite in Fahrtrichtung, kippte
+// das Case dadurch sichtbar zur Seite statt nach vorn. cycleTip kippt jetzt relativ zur aktuellen
+// Lage (nextTip() in geometry.js, dort im Detail getestet); die Rollenrichtung danach ist nicht
+// mehr garantiert und muss bei Bedarf über setWheelFace gewählt werden.
+test('cycleTip: Case mit Länge in Fahrtrichtung (rot 0) kippt nach vorn (tipShort), nicht zur Seite', () => {
   const pl = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
   const p = find(pl, 'a');
-  assert.notEqual(p.orientation, 'standing');
-  assert.equal(wheelFace(p), DOOR_FACE);
+  assert.equal(p.orientation, 'tipShort');
+  assert.equal(p.rot, 0);
 });
-test('cycleTip: auch der zweite Tipp (tipLong → tipShort) zeigt wieder zur Trucktür', () => {
+test('cycleTip: zweiter Tipp kippt zurück auf standing (Hin-und-zurück, nicht in eine dritte Lage)', () => {
   const once = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
-  assert.equal(find(once, 'a').orientation, 'tipLong');
+  assert.equal(find(once, 'a').orientation, 'tipShort');
   const twice = A.cycleTip(once, 'a', ctx());
-  assert.equal(find(twice, 'a').orientation, 'tipShort');
-  assert.equal(wheelFace(find(twice, 'a')), DOOR_FACE);
+  const p = find(twice, 'a');
+  assert.equal(p.orientation, 'standing');
+  assert.equal(p.rot, 0);
 });
 test('setWheelFace dreht die Rollen eines getippten Cases in die gewünschte Richtung', () => {
   const tipped = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());

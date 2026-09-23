@@ -1,4 +1,4 @@
-import { ORIENTATIONS, boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, DOOR_FACE, MAX_LABEL } from './geometry.js';
+import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, MAX_LABEL, nextTip } from './geometry.js';
 import { archBoxes, buildItems } from './validate.js';
 import { autoPack } from './packer.js';
 import { canTip } from './truss.js';
@@ -106,15 +106,7 @@ export const rotate = (plan, id, ctx) =>
   reorient(plan, id, ctx, p => ({ rot: ((p.rot ?? 0) + 90) % 360 }));
 
 export const cycleTip = (plan, id, ctx) =>
-  reorient(plan, id, ctx, (p, c) => {
-    if (!canTip(c)) return {};
-    const next = ORIENTATIONS[(ORIENTATIONS.indexOf(p.orientation) + 1) % ORIENTATIONS.length];
-    // Jeder Übergang in eine getippte Lage setzt die Rollen zur Trucktür (auch
-    // tipLong → tipShort); die freie Wahl der Richtung danach läuft über setWheelFace.
-    return next === 'standing'
-      ? { orientation: next }
-      : { orientation: next, rot: rotForWheelFace(next, DOOR_FACE) };
-  });
+  reorient(plan, id, ctx, (p, c) => (canTip(c) ? nextTip(p.orientation, p.rot) : {}));
 
 // Dreht ein bereits getipptes Case so, dass die Rollen zur gewünschten Seite zeigen.
 // Ist die Richtung für die aktuelle Lage nicht erreichbar (z. B. „standing“, Traverse), passiert nichts.

@@ -42,6 +42,30 @@ export function localDims(c, orientation) {
   }
 }
 
+// Welche Case-Dimension (Länge/Breite/Höhe) bei welcher Ausrichtung auf a/b/c (= x/y-Achse bei
+// rot 0 bzw. z-Achse) liegt — dieselbe Zuordnung wie in localDims(), aber als Dimensions-NAME statt
+// -Wert, damit nextTip() unten symbolisch rechnen kann (funktioniert dadurch auch bei l=w=h &c.).
+const ORIENT_AXES = { standing: ['l', 'w'], tipLong: ['l', 'h'], tipShort: ['h', 'w'] };
+// Umkehrung von localDims()' c (die jeweils vertikale Dimension): welche Ausrichtung hat welche
+// Dimension oben.
+const ORIENT_BY_VERTICAL = { h: 'standing', w: 'tipLong', l: 'tipShort' };
+
+// Kippt relativ zur aktuellen Lage „nach vorn/hinten“: die Case-Kante, die gerade in
+// Fahrtrichtung (x-Achse) liegt, kippt nach oben bzw. unten; die Seitenkante (y-Achse) bleibt
+// unverändert. Ersetzt für das manuelle Tippen die frühere absolute „Rollen immer zur Tür“-Regel
+// (die drehte unabhängig von der Ausgangslage — stand die lange Seite in Fahrtrichtung, kippte
+// das Case dadurch seitlich statt nach vorn, s. Nutzer-Feedback 2026-09-23). Die eigene
+// Türseiten-Präferenz des Packers beim Auto-Packen (`packer.js`) ist davon unberührt.
+export function nextTip(orientation, rot) {
+  const [aDim, bDim] = ORIENT_AXES[orientation];
+  const rot90 = ((rot ?? 0) % 180) === 90;
+  const dxDim = rot90 ? bDim : aDim;
+  const dyDim = rot90 ? aDim : bDim;
+  const next = ORIENT_BY_VERTICAL[dxDim];
+  const [nA, nB] = ORIENT_AXES[next];
+  return { orientation: next, rot: dyDim === nB ? 0 : 90 };
+}
+
 export function effectiveDims(c, p) {
   const orientation = c.kind === 'truss' ? 'standing' : p.orientation;
   const { a, b, c: h } = localDims(c, orientation);

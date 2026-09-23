@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
   snap, snapToEdges, stackAbove, faceSlab, DEFAULT_WHEEL_H, wheelHOf,
   DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims,
-  ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace } from '../js/model/geometry.js';
+  ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace, nextTip } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80);
@@ -15,6 +15,42 @@ test('180° = 0°', () => assert.deepEqual(effectiveDims(C, { orientation: 'stan
 test('getippt Längsseite: Höhe wird Tiefe', () => assert.deepEqual(effectiveDims(C, { orientation: 'tipLong', rot: 0 }), { dx: 120, dy: 80, dz: 60 }));
 test('getippt Stirnseite: Länge wird Höhe', () => assert.deepEqual(effectiveDims(C, { orientation: 'tipShort', rot: 0 }), { dx: 80, dy: 60, dz: 120 }));
 test('unbekannte Lage wirft', () => assert.throws(() => effectiveDims(C, { orientation: 'x', rot: 0 })));
+
+// nextTip(): Tippen kippt relativ zur aktuellen Lage nach vorn (Fahrtrichtung, x-Achse) – die
+// Seitenkante (y-Achse) bleibt unverändert, x und z tauschen. Ersetzt die frühere absolute
+// „Rollen immer zur Tür"-Regel (die je nach Ausgangsdrehung seitlich statt nach vorn kippte).
+test('nextTip: Länge in Fahrtrichtung (rot 0) -> kippt auf tipShort, y bleibt Breite', () => {
+  const next = nextTip('standing', 0);
+  assert.deepEqual(next, { orientation: 'tipShort', rot: 0 });
+  const before = effectiveDims(C, { orientation: 'standing', rot: 0 });
+  const after = effectiveDims(C, { orientation: next.orientation, rot: next.rot });
+  assert.equal(after.dy, before.dy, 'Seitenkante (y) bleibt beim Kippen nach vorn unverändert');
+  assert.equal(after.dz, before.dx, 'was in Fahrtrichtung stand, wird jetzt die Höhe');
+  assert.equal(after.dx, before.dz, 'was die Höhe war, zeigt jetzt in Fahrtrichtung');
+});
+test('nextTip: Breite in Fahrtrichtung (rot 90) -> kippt auf tipLong, y bleibt Länge', () => {
+  const next = nextTip('standing', 90);
+  assert.deepEqual(next, { orientation: 'tipLong', rot: 90 });
+  const before = effectiveDims(C, { orientation: 'standing', rot: 90 });
+  const after = effectiveDims(C, { orientation: next.orientation, rot: next.rot });
+  assert.equal(after.dy, before.dy);
+  assert.equal(after.dz, before.dx);
+  assert.equal(after.dx, before.dz);
+});
+test('nextTip: zweimal in Folge kippen (immer nach vorn) landet wieder bei standing, nicht bei der dritten Lage', () => {
+  const once = nextTip('standing', 0);
+  const twice = nextTip(once.orientation, once.rot);
+  assert.deepEqual(twice, { orientation: 'standing', rot: 0 });
+});
+test('nextTip: nie seitlich – die Seitenkante bleibt über einen vollen Hin-und-zurück-Tipp gleich', () => {
+  for (const rot of [0, 90]) {
+    const start = { orientation: 'standing', rot };
+    const tipped = nextTip(start.orientation, start.rot);
+    const before = effectiveDims(C, start);
+    const after = effectiveDims(C, tipped);
+    assert.equal(after.dy, before.dy, `rot ${rot}: y-Kante bleibt beim Kippen erhalten`);
+  }
+});
 
 test('boxOf', () => assert.deepEqual(boxOf(C, { x: 10, y: 20, z: 30, orientation: 'standing', rot: 0 }), B(10, 20, 30, 130, 80, 110)));
 

@@ -78,10 +78,23 @@ sonst `+x`, `+y`, `-x` oder `-y`. `DOOR_FACE` ist `+x`, also die Trucktür.
 `rotForWheelFace(orientation, face)` ist die Umkehrung und liefert `null`, wenn die
 Richtung für diese Ausrichtung nicht erreichbar ist.
 
-**Fachliche Regel:** Getippt wird immer mit den Rollen zur Tür. `cycleTip` setzt `rot`
-entsprechend bei **jedem** Übergang in eine getippte Lage, und `chooseOrientation` im
-Packer verwirft getippte Kandidaten ohne Tür-Ausrichtung, sobald es einen mit gibt — die
-Rollenrichtung hat Vorrang vor dem Füllgrad.
+**Manuelles Tippen (`cycleTip`, seit V 0.7.3):** kippt relativ zur aktuellen Lage nach vorn/
+hinten (Fahrtrichtung) — die Case-Kante, die gerade auf der x-Achse liegt, kippt nach oben
+bzw. unten, die Seitenkante (y-Achse) bleibt unverändert. `nextTip(orientation, rot)`
+(`geometry.js`) rechnet das rein symbolisch anhand der Dimensions-Namen (Länge/Breite/Höhe),
+nicht anhand fester `rot`-Werte — welche der beiden getippten Lagen (`tipLong`/`tipShort`)
+dabei herauskommt, hängt davon ab, ob gerade Länge oder Breite in Fahrtrichtung steht. Zweimal
+in Folge Tippen landet deshalb wieder bei `standing` (Hin und zurück), nicht bei der jeweils
+dritten Lage — die ist nur über eine Drehung (`rotate`, Taste R) vor dem Tippen erreichbar.
+Bis V 0.7.2 setzte `cycleTip` `rot` bei jedem Übergang stattdessen fest so, dass die Rollen zur
+Tür zeigen, unabhängig von der Ausgangsdrehung — stand die lange Seite in Fahrtrichtung, kippte
+das Case dadurch sichtbar zur Seite statt nach vorn (Nutzer-Feedback 2026-09-23). Die
+Rollenrichtung ist nach dem Tippen nicht mehr garantiert; `setWheelFace` (Taste W) dreht sie bei
+Bedarf gezielt.
+
+**Auto-Packen (`chooseOrientation`, Packer):** hiervon unberührt. Der Packer probiert weiter
+alle Ausrichtungen × Drehungen durch und bevorzugt unter den tippbaren Kandidaten mit
+gleichwertigem Füllgrad weiterhin die mit Rollen zur Tür.
 
 ## Rollen im Maß
 

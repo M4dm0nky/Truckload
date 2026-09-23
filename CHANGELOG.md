@@ -8,6 +8,7 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 - Sämtliche Bestätigungs- und Meldungsfenster (Case/Fahrzeug/Ladeplan löschen, Ladeplan umbenennen, Import-Meldungen) laufen jetzt über eigene Popups im Truckload-Design statt über die nativen Browser-Dialoge.
 - Cases lassen sich jetzt direkt in der Bibliotheksliste löschen (🗑 neben „+“/„✎“), ohne den Umweg über „Bearbeiten“.
 - Die grafische Darstellung der MLT-/S36PR-Traversenwagen war falsch (quadratischer Querschnitt, 4 Stück gestapelt auf einem gemeinsamen Wagen wie bei F34/F40). Nach Herstellerfotos korrigiert: Rechteck-Querschnitt, ein Stück ist immer EINE einzelne, stehende Traverse auf 4 Beinen über einer eigenen Grundplatte mit Rollen – so wie sie in echt fertig montiert in den Truck gerollt wird.
+- Tippen kippte ein Case bisher immer so, dass die Rollen zur Trucktür zeigen – stand die lange Seite in Fahrtrichtung, kippte das Case dadurch sichtbar zur Seite statt nach vorn. Tippen kippt jetzt relativ zur aktuellen Lage immer nach vorn/hinten in Fahrtrichtung, unabhängig davon, ob gerade die lange oder die schmale Seite vorn steht. Die Rollenrichtung danach ist nicht mehr garantiert zur Tür – bei Bedarf über die Rollenrichtungs-Tasten gezielt einstellbar.
 
 ## V 0.7.2 – 2026-09-23
 
