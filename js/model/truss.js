@@ -5,7 +5,11 @@ export const DOLLY_BOARD_H = 3;  // Plattenstärke des Rollbretts (cm, entsprich
 export const DOLLY_RAIL_H = 2;   // Höhe der Auflageleisten obenauf der Platte (cm)
 export const DOLLY_H = DOLLY_WHEEL_H + DOLLY_BOARD_H + DOLLY_RAIL_H; // Wagen inkl. Rollen (cm)
 export const DOLLY_WIDTHS = [60, 80];
-export const TRUSS_PROFILES = [{ name: '34er (F34)', width: 29 }, { name: '40er (F44)', width: 40 }];
+export const TRUSS_PROFILES = [
+  { name: '34er (F34)', width: 29 },
+  { name: '36er (S36)', width: 36 },
+  { name: '40er (F44)', width: 40 },
+];
 
 // Breitengrenze, die trussDims stillschweigend voraussetzt: 2 Stück nebeneinander müssen
 // auf den breiteren Wagen (DOLLY_WIDTHS.at(-1)) passen. Darüber ragen die Traversenstücke

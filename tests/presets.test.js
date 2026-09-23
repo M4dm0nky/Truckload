@@ -24,7 +24,7 @@ test('Case-Vorlagen gültig', () => {
 });
 test('Traversenwagen-Vorlagen sind vom Typ truss mit passenden Maßen', () => {
   const trussCases = PRESET_CASES.filter(isTruss);
-  assert.equal(trussCases.length, 3);
+  assert.equal(trussCases.length, 27);
   for (const c of trussCases) {
     assert.ok(c.truss && c.truss.length > 0 && c.truss.width > 0 && c.truss.count > 0, c.id);
     const dims = trussDims(c.truss);

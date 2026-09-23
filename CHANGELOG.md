@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.0 – 2026-09-23
+
+- 24 MLT-Traversenwagen (Moving-Light-Truss) neu in der Bibliothek: H.O.F. MLT ONE/TWO/THREE/FOUR und Prolyte S36PRF/S36PRA, jeweils mit den vom Hersteller geführten Längen. Stückgewichte recherchiert, siehe `docs/mlt-truss-gewichte.md`. Neue Breitenklasse „36er (S36)“ für die Prolyte-Reihe, die keine eigene MLT-Baureihe führt.
+
 ## V 0.7.1 – 2026-09-23
 
 - Die drei US-Zoll-Vorlagen „Truck Pack“ (45×22,5×30″, ½ und ¼) entfernt – die Bibliothek folgt jetzt durchgehend dem europäischen Truckmaß in cm.

@@ -17,6 +17,15 @@ const T = (id, name, length, width, count) => {
   return P(id, name, 'Rigging', l, w, h, weight,
     { kind: 'truss', truss, tippable: false, wheelH: 0, layers: [1, 2] });
 };
+// Wie T(), aber mit recherchiertem Stückgewicht statt kg/m-Formel (echte Herstellerwerte je
+// Modell/Länge, keine Näherung) – Quellen in docs/mlt-truss-gewichte.md.
+const TR = (id, name, length, width, count, pieceWeight) => {
+  const truss = { length, width, count };
+  const { l, w, h } = trussDims(truss);
+  const weight = Math.round(pieceWeight * count + DOLLY_KG);
+  return P(id, name, 'Rigging', l, w, h, weight,
+    { kind: 'truss', truss, tippable: false, wheelH: 0, layers: [1, 2] });
+};
 
 // Truckmaß (EU): Breiten 60/80/120 cm, gehen in 240 cm Innenbreite auf (Megacase, Gäng-Case).
 export const PRESET_CASES = [
@@ -34,6 +43,33 @@ export const PRESET_CASES = [
   T('truss-34-3m', 'Traversenwagen 34er 3 m (4 Stück)', 300, 29, 4),
   T('truss-34-2m', 'Traversenwagen 34er 2 m (4 Stück)', 200, 29, 4),
   T('truss-40-3m', 'Traversenwagen 40er 3 m (4 Stück)', 300, 40, 4),
+  // MLT-Traversenwagen (Moving-Light-Truss): Stückgewichte recherchiert, siehe
+  // docs/mlt-truss-gewichte.md. H.O.F. MLT ONE/TWO/THREE (29 cm) und MLT FOUR (40 cm);
+  // Prolyte führt keine MLT-Baureihe, S36PRF/S36PRA (36 cm) ist der Gegenpart.
+  TR('hof-mlt1-160', 'Traversenwagen MLT ONE 1,6 m (4 Stück) – H.O.F.', 160, 29, 4, 28.5),
+  TR('hof-mlt1-240', 'Traversenwagen MLT ONE 2,4 m (4 Stück) – H.O.F.', 240, 29, 4, 38.8),
+  TR('hof-mlt1-320', 'Traversenwagen MLT ONE 3,2 m (4 Stück) – H.O.F.', 320, 29, 4, 46.6),
+  TR('hof-mlt2-120', 'Traversenwagen MLT TWO 1,2 m (4 Stück) – H.O.F.', 120, 29, 4, 36.8),
+  TR('hof-mlt2-160', 'Traversenwagen MLT TWO 1,6 m (4 Stück) – H.O.F.', 160, 29, 4, 41.8),
+  TR('hof-mlt2-200', 'Traversenwagen MLT TWO 2,0 m (4 Stück) – H.O.F.', 200, 29, 4, 46.7),
+  TR('hof-mlt2-240', 'Traversenwagen MLT TWO 2,4 m (4 Stück) – H.O.F.', 240, 29, 4, 50.8),
+  TR('hof-mlt2-300', 'Traversenwagen MLT TWO 3,0 m (4 Stück) – H.O.F.', 300, 29, 4, 57.7),
+  TR('hof-mlt2-320', 'Traversenwagen MLT TWO 3,2 m (4 Stück) – H.O.F.', 320, 29, 4, 60.1),
+  TR('hof-mlt3-120', 'Traversenwagen MLT THREE 1,2 m (4 Stück) – H.O.F.', 120, 29, 4, 34.7),
+  TR('hof-mlt3-160', 'Traversenwagen MLT THREE 1,6 m (4 Stück) – H.O.F.', 160, 29, 4, 39.4),
+  TR('hof-mlt3-200', 'Traversenwagen MLT THREE 2,0 m (4 Stück) – H.O.F.', 200, 29, 4, 44.4),
+  TR('hof-mlt3-240', 'Traversenwagen MLT THREE 2,4 m (4 Stück) – H.O.F.', 240, 29, 4, 48.9),
+  TR('hof-mlt3-300', 'Traversenwagen MLT THREE 3,0 m (4 Stück) – H.O.F.', 300, 29, 4, 55.6),
+  TR('hof-mlt3-320', 'Traversenwagen MLT THREE 3,2 m (4 Stück) – H.O.F.', 320, 29, 4, 58.0),
+  TR('hof-mlt4-150', 'Traversenwagen MLT FOUR 1,5 m (4 Stück) – H.O.F.', 150, 40, 4, 60.0),
+  TR('hof-mlt4-240', 'Traversenwagen MLT FOUR 2,4 m (4 Stück) – H.O.F.', 240, 40, 4, 71.5),
+  TR('hof-mlt4-300', 'Traversenwagen MLT FOUR 3,0 m (4 Stück) – H.O.F.', 300, 40, 4, 83.5),
+  TR('prolyte-s36prf-122', 'Traversenwagen S36PRF fest 1,22 m (4 Stück) – Prolyte', 122, 36, 4, 25.27),
+  TR('prolyte-s36prf-244', 'Traversenwagen S36PRF fest 2,44 m (4 Stück) – Prolyte', 244, 36, 4, 37.10),
+  TR('prolyte-s36prf-305', 'Traversenwagen S36PRF fest 3,05 m (4 Stück) – Prolyte', 305, 36, 4, 43.20),
+  TR('prolyte-s36pra-122', 'Traversenwagen S36PRA flexibel 1,22 m (4 Stück) – Prolyte', 122, 36, 4, 27.00),
+  TR('prolyte-s36pra-244', 'Traversenwagen S36PRA flexibel 2,44 m (4 Stück) – Prolyte', 244, 36, 4, 38.70),
+  TR('prolyte-s36pra-305', 'Traversenwagen S36PRA flexibel 3,05 m (4 Stück) – Prolyte', 305, 36, 4, 45.16),
   // Legacy (V0.2) – nicht mehr in der Bibliothek gelistet, bleiben aber für alte Ladepläne bestehen.
   P('truss-29-3m', 'Traverse 29er Dreipunkt 3 m', 'Rigging', 300, 29, 29, 15, { tippable: false, wheelH: 0, legacy: true }),
   P('truss-dolly', 'Traversen-Dolly 29er (8× 2 m)', 'Rigging', 200, 60, 70, 180, { tippable: false, legacy: true }),
