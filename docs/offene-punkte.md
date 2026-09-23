@@ -162,6 +162,28 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   nicht zurück – der Datensatz in der Datenbank bleibt aber technisch weiterhin fehlerhaft,
   bis er einmal neu gespeichert wird.
 
+## Aus dem Leerer-Start/Truss-Wizard-Branch (2026-09-23) offen gelassen
+
+- **„Gestapelt“-Häkchen im Truss-hinzufügen-Dialog überschreibt eine bewusste
+  Nutzer-Entscheidung.** Ist die „danach automatisch packen“-Checkbox im Wizard-Schritt
+  „Beschriften“ vom Nutzer absichtlich abgewählt, setzt „gestapelt“ sie beim Bestätigen
+  trotzdem wieder auf an (`js/ui/load-wizard.js`). Da Auto-Pack ohnehin per Vorgabe an ist,
+  gewinnt man dadurch nichts, verliert aber eine getroffene Entscheidung.
+- **Stiller `preventDefault()` im Truss-Dialog, falls `splitWagons` wirft**
+  (`js/ui/truss-wizard.js`). Heute nicht erreichbar, weil die nativen `required`/`min="1"`-
+  Formularprüfungen vorher greifen — falls diese Grenzen je gelockert werden, sähe der
+  blockierte Knopf ohne Meldung wie ein Fehler aus.
+- **`QUICK_LENGTHS` wird aus `js/ui/case-editor.js` exportiert, nur damit
+  `js/ui/truss-wizard.js` sie importieren kann** — eine UI→UI-Abhängigkeit ohne fachlichen
+  Grund. Gehört eher neben `TRUSS_PROFILES` nach `js/model/truss.js`.
+- **Traversenwagen-Case-Typen aus dem Truss-Dialog werden nicht dedupliziert.** Zweimal
+  identisch angelegt (gleiches Profil/Länge/Stückzahl je Wagen) erzeugt zwei separate
+  Case-Typen mit demselben Namen in „Eigene Cases“ — auch ein abgebrochener Durchlauf
+  hinterlässt seinen Typ dauerhaft. Entspricht dem Verhalten von „+ Neues Case“ (sofort
+  speichern, Aufräumen über 🗑), ist hier aber wahrscheinlicher, weil der Dialog auf
+  wiederholte Nutzung über mehrere Loads hinweg ausgelegt ist. Eine Wiederverwendung
+  vorhandener, exakt passender Case-Typen wäre eine sinnvolle Folge-Aufgabe.
+
 ## Kleinigkeiten
 
 - Der Firmenfilter springt still auf „Alle Firmen“, wenn die gewählte Firma aus den Daten
