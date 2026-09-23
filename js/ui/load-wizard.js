@@ -4,6 +4,7 @@ import { outerDims } from '../model/geometry.js';
 import { isTruss } from '../model/truss.js';
 import { companiesOf, groupCases, renderGroupList } from './caseGroups.js';
 import { MAX_LABEL } from '../store/io.js';
+import { openTrussDialog } from './truss-wizard.js';
 
 const MAX_ITEMS = 500;
 
@@ -14,7 +15,9 @@ function caseLine(c) {
   return `${l}×${w}×${h} cm · ${c.weight} kg${company}`;
 }
 
-// opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, presetCaseId, onNewCase(draft) }
+// opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, presetCaseId, onNewCase(draft),
+//   trussDlg (<dialog> für „Traverse hinzufügen“, optional – ohne wird der Knopf ausgeblendet),
+//   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js) }
 // Ergebnis: { name, truckId, items: [{ caseId, label, color }], autoPack } oder null bei Abbruch.
 export function openLoadWizard(dlg, opts = {}) {
   const mode = opts.mode ?? 'new';
@@ -47,6 +50,7 @@ export function openLoadWizard(dlg, opts = {}) {
         <div class="row">
           <button type="button" data-act="new-case">+ Neues Case</button>
           <button type="button" data-act="sonderbau">⬛ Sonderbau</button>
+          <button type="button" data-act="new-truss">+ Traverse hinzufügen</button>
         </div>
         <p class="hint wiz-limit-hint" hidden></p>
       </section>
@@ -172,6 +176,23 @@ export function openLoadWizard(dlg, opts = {}) {
   dlg.querySelector('[data-act="new-case"]').addEventListener('click', () => addNewCase());
   dlg.querySelector('[data-act="sonderbau"]').addEventListener('click', () =>
     addNewCase({ category: 'Sonderbau', wheels: true, dimsInclWheels: false }));
+
+  // „Truss hinzufügen“ (Task 3): eigener, mengenbasierter Dialog statt Stepper-Klicks – ergänzt
+  // Cases und Stückzahlen direkt in `counts`/`cases`, genau wie addNewCase() oben. Neue klassische
+  // Wagen-Case-Typen werden über `opts.onNewTruss` gespeichert (derselbe Store-Zugriffspfad wie
+  // `opts.onNewCase`, damit load-wizard.js weiterhin store-unwissend bleibt); Pre-Rig-Presets
+  // existieren schon in `cases` (kommen über `opts.cases` aus dem bereits gemergten Bestand).
+  async function addTruss() {
+    const res = await openTrussDialog(opts.trussDlg, { cases, onNewTruss: opts.onNewTruss });
+    if (!res) return;
+    if (res.newCases.length) cases = [...cases.filter(c => !res.newCases.some(nc => nc.id === c.id)), ...res.newCases];
+    for (const { caseId, n } of res.additions) counts.set(caseId, (counts.get(caseId) ?? 0) + n);
+    if (res.gestapelt) f.autoPack.checked = true;
+    renderCompanyOptions();
+    renderCaseList();
+  }
+  if (opts.trussDlg) dlg.querySelector('[data-act="new-truss"]').addEventListener('click', addTruss);
+  else dlg.querySelector('[data-act="new-truss"]').hidden = true;
 
   function buildItemsState() {
     for (const c of cases) {

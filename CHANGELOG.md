@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.4 – 2026-09-23
+
+- Neuer Knopf „+ Traverse hinzufügen“ im Load-Wizard: klassische F34/F40-Wagen mengenbasiert anlegen (Profil, Länge, Gesamtstückzahl, Stück je Wagen – teilt automatisch auf mehrere Wagen auf) oder eine Pre-Rig-Traverse (H.O.F. MLT/Prolyte S36PR) aus der Bibliothek in Stückzahl hinzufügen, statt jedes Stück einzeln über den Stepper zu klicken.
+
 ## V 0.7.3 – 2026-09-23
 
 - Nach einer Veröffentlichung lädt sich eine schon offene Seite jetzt automatisch einmal neu, sobald der neue Stand bereitsteht – bisher blieb sie auf der alten Version stehen bzw. sprang kurz auf die neue und dann zurück, bis man von Hand zweimal neu geladen hat.

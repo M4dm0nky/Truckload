@@ -7,7 +7,7 @@ import { showConfirm } from './confirmDialog.js';
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
 const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
-const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
+export const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
 export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
   // Absicherung gegen einen zweiten Aufruf, bevor der `close`-Listener des vorigen gefeuert hat:

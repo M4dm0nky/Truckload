@@ -246,6 +246,8 @@ async function runLoadWizard(mode, presetCaseId = null) {
     defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
     presetCaseId,
     onNewCase: newCaseForWizard,
+    trussDlg: $('#dlg-truss'),
+    onNewTruss: saveCaseValue,
   });
   if (!res) return;
   if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));
