@@ -21,7 +21,14 @@
     Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.
     <button id="tab-warning-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>
   </div>
-  <header class="topbar">
+  <section id="start-screen" class="start-screen">
+    <div class="start-card">
+      <h1>Truckload</h1>
+      <p>Lege einen neuen Ladeplan an oder öffne einen vorhandenen.</p>
+      <div id="start-actions"></div>
+    </div>
+  </section>
+  <header class="topbar" hidden>
     <strong class="brand">Truckload <span id="app-version" class="version">V 0.7.3</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
@@ -59,7 +66,7 @@
       <button id="print">Drucken</button>
     </div>
   </header>
-  <main class="layout">
+  <main class="layout" hidden>
     <aside id="library" class="panel library"></aside>
     <section class="stage">
       <div id="views2d" class="views2d">

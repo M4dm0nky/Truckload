@@ -33,20 +33,12 @@ function loadCaseColors() {
 // bleibt die Seite weiß, ohne jede Bedienmöglichkeit (Befund Daten-11).
 let storageError = null;
 let data;
-let latest;
 try {
   data = await repo.loadAll();
-  // Innerhalb desselben try/catch wie loadAll() (Befund „der Absturzpfad ist nur an der
-  // Grenze geschlossen, nicht an der Absturzstelle“): repo.pickLatestPlan() wirft zwar durch
-  // seinen eigenen Zeichenketten-Schutz ohnehin nicht mehr, bleibt aber hier verankert, statt
-  // wieder frei auf Modulebene zu stehen, wo ein künftiger Umbau die Absicherung erneut
-  // verlieren könnte.
-  latest = repo.pickLatestPlan(data.plans);
 } catch (err) {
   storageError = err;
   data = repo.loadAllFallback();
 }
-const initialPlan = latest ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK_ID);
 
 // store/edit/select bleiben exportiert (nicht nur intern gebraucht): die CDP-Browser-Szenarien
 // unter „Prüfen“ (CLAUDE.md) importieren `js/app.js` im laufenden Browser und rufen sie direkt
@@ -55,9 +47,12 @@ const initialPlan = latest ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK
 // `ctx` wird dort nirgends direkt gebraucht (Aufrufer holen sich `derive(...).truck`/`.caseById`
 // bzw. übergeben `ctx` intern) und ist deshalb nicht mehr exportiert
 // (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
+// `plan` ist jetzt nullable: null heißt „kein Plan gewählt“, der Startbildschirm ist aktiv.
+// `plans` enthält weiterhin ALLE geladenen Pläne (für die Liste im Startbildschirm), ohne
+// Sonderbehandlung.
 export const store = createStore({
   cases: data.cases, trucks: data.trucks, plans: data.plans,
-  plan: initialPlan, selectedId: null, mode: '2d', caseColors: loadCaseColors(),
+  plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(),
 });
 
 function ctx(s = store.get()) {
@@ -85,8 +80,45 @@ export function scheduleRender() {
   frame = requestAnimationFrame(() => { frame = 0; render(); });
 }
 
+const startScreenEl = $('#start-screen');
+const headerEl = document.querySelector('header.topbar');
+const layoutEl = document.querySelector('main.layout');
+
+// Startbildschirm: kein Plan gewählt. Eigener, viel einfacherer Render-Pfad statt der
+// vollen Pipeline unten (renderHooks setzen durchgehend einen vorhandenen s.plan voraus).
+// Header und Hauptbereich bleiben `hidden`, solange kein Plan aktiv ist – dieselbe
+// Umschaltung, mit der render() unten wieder zurückwechselt.
+function renderStartScreen(s) {
+  headerEl.hidden = true;
+  layoutEl.hidden = true;
+  startScreenEl.hidden = false;
+
+  const plans = [...s.plans].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const listHtml = plans.length
+    ? `<ul class="start-plans">${plans.map(p => `
+        <li><button class="start-plan-item" type="button" data-plan-id="${esc(p.id)}">${esc(p.name)}</button></li>
+      `).join('')}</ul>`
+    : `<p class="start-hint">Noch keine gespeicherten Ladepläne.</p>`;
+  $('#start-actions').innerHTML = `
+    <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
+    ${listHtml}
+  `;
+  $('#start-new').onclick = () => runLoadWizard('new');
+  for (const btn of startScreenEl.querySelectorAll('.start-plan-item')) {
+    btn.onclick = () => {
+      const plan = store.get().plans.find(p => p.id === btn.dataset.planId);
+      if (plan) switchPlan(plan);
+    };
+  }
+}
+
 function render() {
   const s = store.get();
+  if (!s.plan) { renderStartScreen(s); return; }
+  startScreenEl.hidden = true;
+  headerEl.hidden = false;
+  layoutEl.hidden = false;
+
   const d = derive(s);
   const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors };
   if (s.mode === '2d') {
@@ -128,7 +160,7 @@ const autosave = createAutosave({ savePlan: repo.savePlan, onStatus: setSaveStat
 
 store.subscribe(s => {
   scheduleRender();
-  autosave.noticeChange(s.plan);
+  if (s.plan) autosave.noticeChange(s.plan);
 });
 
 // Flush beim Verlassen der Seite (Befund Daten-3): ein reiner Debounce ohne das hier würde
@@ -203,11 +235,14 @@ async function newCaseForWizard(draft) {
 
 async function runLoadWizard(mode, presetCaseId = null) {
   const s = store.get();
+  // ctx() setzt einen aktiven Plan voraus (s.plan.truckId) – im Startbildschirm (mode
+  // 'new', noch kein Plan gewählt) fehlt der, deshalb hier auf das Standardfahrzeug
+  // ausweichen statt ctx() blind aufzurufen.
   const res = await openLoadWizard($('#dlg-wizard'), {
     mode,
     cases: s.cases,
     trucks: s.trucks,
-    defaultTruckId: ctx().truck.id,
+    defaultTruckId: s.plan ? ctx().truck.id : DEFAULT_TRUCK_ID,
     defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
     presetCaseId,
     onNewCase: newCaseForWizard,
@@ -374,11 +409,21 @@ renderHooks.push((s, d) => {
 // bekommt sein erstes Speichern automatisch über den normalen Mechanismus (Befund: „ein
 // nie geschriebener Plan gilt sonst fälschlich als sauber, solange dirty nicht explizit an
 // jeder Aufrufstelle gesetzt wird“).
+// `plan` kann jetzt auch dann übergeben werden, wenn store.get().plan noch null ist (Wechsel
+// aus dem Startbildschirm heraus, sowohl „Neuen Load erstellen“ als auch das Öffnen eines
+// vorhandenen Plans aus der Liste) – der bisherige Plan wird dann einfach nicht mit in
+// `plans` zurückgelegt, statt fälschlich `null` dort einzutragen.
 function switchPlan(plan) {
   autosave.flush(); // ausstehende Änderungen des bisherigen Plans sofort sichern (auch mehrfach ausstehende)
-  const known = store.get().plan.id === plan.id || store.get().plans.some(p => p.id === plan.id);
+  const cur = store.get().plan;
+  const known = cur?.id === plan.id || store.get().plans.some(p => p.id === plan.id);
   if (known) autosave.markKnown(plan);
-  store.update(s => ({ ...s, plans: [s.plan, ...s.plans.filter(p => p.id !== s.plan.id && p.id !== plan.id)], plan, selectedId: null }));
+  store.update(s => ({
+    ...s,
+    plans: [...(s.plan ? [s.plan] : []), ...s.plans.filter(p => p.id !== s.plan?.id && p.id !== plan.id)],
+    plan,
+    selectedId: null,
+  }));
   store.resetHistory();
 }
 $('#plan-select').onchange = e => {
@@ -408,9 +453,13 @@ $('#plan-del').onclick = async () => {
   // ausstehenden Stand ersatzlos verworfen, obwohl der Plan weiter existiert).
   autosave.forget(s.plan.id);
   const rest = s.plans.filter(p => p.id !== s.plan.id);
-  const next = rest[0] ?? A.emptyPlan(uid(), 'Neuer Ladeplan', DEFAULT_TRUCK_ID);
-  if (rest.some(p => p.id === next.id)) autosave.markKnown(next); // sonst: neu, braucht sein erstes Speichern
-  store.update(st => ({ ...st, plans: rest.filter(p => p.id !== next.id), plan: next, selectedId: null }));
+  // Bleiben noch andere Pläne übrig, wechselt die Oberfläche wie bisher direkt zu einem davon
+  // (Plankontinuität während der Arbeit – ein eigenes, bestehendes Verhalten). Ist das der
+  // LETZTE Plan, führt „Löschen“ jetzt zurück zum Startbildschirm (plan: null) statt
+  // automatisch einen neuen leeren Plan zu erzeugen.
+  const next = rest[0] ?? null;
+  if (next && rest.some(p => p.id === next.id)) autosave.markKnown(next); // sonst: neu, braucht sein erstes Speichern
+  store.update(st => ({ ...st, plans: rest.filter(p => p.id !== next?.id), plan: next, selectedId: null }));
   store.resetHistory();
 };
 
