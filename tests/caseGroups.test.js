@@ -68,6 +68,17 @@ test('groupCases sortiert eigene Cases alphabetisch, unabhängig von der Eingabe
   assert.deepEqual(ownGroup.map(c => c.name), ['Amp-Rack', 'Molton-Case', 'Zebra-Case']);
 });
 
+// Nutzer-Feedback 2026-09-23: Traversen-Vorlagen (Wagen wie MLT) sollen nicht mehr aus einer
+// Liste wählbar sein, sondern nur noch über „+ Traverse hinzufügen“ (Truss-Wizard) in einen Load
+// kommen. Selbst erzeugte Wagen (builtin:false) bleiben unter „Eigene Cases“ verwaltbar.
+test('groupCases schließt Traversen-Vorlagen aus der Vorlagen-Gruppe aus, eigene Wagen bleiben sichtbar', () => {
+  const trussPreset = preset('t1', { kind: 'truss', truss: { length: 300, width: 29, count: 4 } });
+  const ownWagon = own('w1', { kind: 'truss', truss: { length: 400, width: 29, count: 8 } });
+  const { own: ownGroup, presets } = groupCases([trussPreset, ownWagon, preset('p1')]);
+  assert.deepEqual(presets.map(c => c.id), ['p1']);
+  assert.deepEqual(ownGroup.map(c => c.id), ['w1']);
+});
+
 test('leere Eingabe liefert leere Gruppen statt zu werfen', () => {
   assert.deepEqual(groupCases([]), { own: [], presets: [], list: [] });
   assert.deepEqual(companiesOf([]), []);

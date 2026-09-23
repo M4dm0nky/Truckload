@@ -1,6 +1,7 @@
 // Gemeinsame Filter- und Gruppierungslogik für die Case-Listen in der
 // Bibliothek (library.js) und im Lade-Wizard (load-wizard.js), damit sich
 // beide Listen gleich anfühlen und Such-/Gewerk-/Firmenfilter identisch wirken.
+import { isTruss } from '../model/truss.js';
 
 // Liefert die im Datensatz vorkommenden Firmen, alphabetisch sortiert.
 export function companiesOf(cases) {
@@ -22,8 +23,13 @@ export function groupCases(cases, { q = '', cat = '', company = '' } = {}) {
     // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge“). Hier
     // sortiert statt in repo.js: damit ist die Reihenfolge unabhängig davon, woher die Liste kommt
     // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
+    // Traversen-Vorlagen (kind:'truss', builtin) tauchen hier bewusst nicht mehr auf — Traversen
+    // kommen seit dem Traversen-Wizard ausschließlich über „+ Traverse hinzufügen“ in einen Load
+    // (Nutzer-Feedback: keine fertigen Wägen/Sets mehr aus einer Liste wählen). Selbst erzeugte
+    // Wagen (aus diesem Dialog, `builtin: false`) bleiben unter „Eigene Cases“ sichtbar und
+    // verwaltbar (umbenennen/löschen), nur die Vorlagen-Liste ist gefiltert.
     own: cases.filter(c => !c.builtin && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && match(c)),
+    presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && !isTruss(c) && match(c)),
     list: cases.filter(c => c.builtin && c.source === 'liste' && match(c)),
   };
 }

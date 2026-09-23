@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.5 – 2026-09-23
+
+- Traversenwagen (klassische F34/F40-Vorlagen und alle MLT-/S36PR-Pre-Rig-Presets) erscheinen nicht mehr in der normalen Case-Auswahl (Bibliothek und Wizard) – Traversen kommen jetzt ausschließlich über „+ Traverse hinzufügen“ in einen Load. Selbst darüber erzeugte Wagen bleiben unter „Eigene Cases“ sichtbar und lassen sich dort umbenennen oder löschen.
+
 ## V 0.7.4 – 2026-09-23
 
 - Neuer Knopf „+ Traverse hinzufügen“ im Load-Wizard: klassische F34/F40-Wagen mengenbasiert anlegen (Profil, Länge, Gesamtstückzahl, Stück je Wagen – teilt automatisch auf mehrere Wagen auf) oder eine Pre-Rig-Traverse (H.O.F. MLT/Prolyte S36PR) aus der Bibliothek in Stückzahl hinzufügen, statt jedes Stück einzeln über den Stepper zu klicken.
