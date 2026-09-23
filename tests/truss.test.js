@@ -375,11 +375,14 @@ test('trussShape: stehende Pre-Rig-Traverse (standing) – eine Traverse auf 4 B
 
   assert.equal(s.lenAxis, 'x');
   assert.equal(s.widAxis, 'y');
-  assert.equal(s.dollies.length, 1, 'genau eine Grundplatte statt zwei Wagen');
+  assert.equal(s.dollies.length, 1, 'genau ein Holm als Bezugsfläche für die Beschriftung');
   assert.equal(s.boards.length, 1);
-  assert.equal(s.wheels.length, 4, 'vier Rollen an den Ecken der Grundplatte, nicht acht wie beim Wagen');
+  assert.equal(s.wheels.length, 4, 'vier Rollen an den Ecken der Standfläche, nicht acht wie beim Wagen');
   assert.equal(s.pieces.length, 1, 'genau EINE Traverse, keine gestapelten Mehrfachstücke');
-  assert.equal(s.rails.length, 4, 'vier Beine');
+  // 4 Beine + der zweite (nur optische) Rahmen-Holm – kein durchgehendes Rollbrett wie beim
+  // F34/F40-Wagen, sondern ein offener Rahmen mit Füßen/Rollen (Nutzer-Feedback 2026-09-23,
+  // Fotoabgleich H.O.F.-MLT-Katalog).
+  assert.equal(s.rails.length, 5, 'vier Beine + der zweite Rahmen-Holm');
   assert.equal(s.profileWidth, STAND_TRUSS_W);
 
   for (const b of [...s.dollies, ...s.wheels, ...s.pieces, ...s.rails]) checkInsideBox(box, b);
@@ -393,12 +396,22 @@ test('trussShape: stehende Pre-Rig-Traverse (standing) – eine Traverse auf 4 B
   assert.ok(Math.abs(pieceWidth - STAND_TRUSS_W) < 1e-9);
   assert.ok(pieceWidth < box[`${s.widAxis}1`] - box[`${s.widAxis}0`], 'Traverse ist schmaler als die Standfläche');
 
-  // Rollen ganz unten (am Boden), Beine reichen von der Grundplatte bis unter die Traverse.
+  // Rollen ganz unten (am Boden). Die 4 Beine (erste 4 Einträge in rails, s. standingTrussShape())
+  // reichen vom Rahmen bis unter die Traverse; der zweite Holm (letzter Eintrag) sitzt in
+  // derselben Höhenbande wie der erste (dollies[0]) – kein Bein, keine durchgehende Platte
+  // dazwischen.
   for (const w of s.wheels) assert.equal(w.z0, box.z0);
-  for (const leg of s.rails) {
-    assert.ok(leg.z0 >= s.dollies[0].z1 - 1e-9, 'Bein beginnt an/über der Grundplatte');
+  const [legs, rail1] = [s.rails.slice(0, 4), s.rails.at(-1)];
+  for (const leg of legs) {
+    assert.ok(leg.z0 >= s.dollies[0].z1 - 1e-9, 'Bein beginnt an/über dem Rahmen-Holm');
     assert.ok(leg.z1 <= piece.z0 + 1e-9, 'Bein endet an/unter der Traverse');
   }
+  assert.equal(rail1.z0, s.dollies[0].z0, 'zweiter Holm sitzt auf derselben Höhe wie der erste');
+  assert.equal(rail1.z1, s.dollies[0].z1);
+  // Die beiden Holme liegen an gegenüberliegenden Rändern der Standfläche, nicht überlappend –
+  // ein offener Rahmen, keine durchgehende Platte über die volle Breite.
+  assert.ok(rail1[`${s.widAxis}0`] >= s.dollies[0][`${s.widAxis}1`] - 1e-9,
+    'zweiter Holm liegt am gegenüberliegenden Rand, nicht unter der Traverse überlappend mit dem ersten');
 });
 
 test('trussShape: stehende Pre-Rig-Traverse bei 90° – Länge verläuft entlang y', () => {

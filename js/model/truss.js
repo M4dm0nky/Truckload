@@ -93,7 +93,8 @@ const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei 
 export const STAND_FOOTPRINT_W = 62; // Standfläche (cm) – Case-Breite `w`
 export const STAND_TRUSS_W = 60;     // sichtbare Traversenbreite (cm)
 export const STAND_TRUSS_H = 35;     // sichtbare Traversenhöhe (cm)
-const STAND_BASE_H = 4;              // Grundplatte/Rollwagen-Tisch (cm)
+const STAND_BASE_H = 4;              // Holmhöhe (cm)
+const STAND_RAIL_W = 10;             // Holmbreite (cm) – zwei schmale Holme statt Rollbrett
 const STAND_LEG_D = 6;               // Beindicke (cm)
 const STAND_WHEEL_D = 10;            // Rollendurchmesser (cm)
 
@@ -208,15 +209,32 @@ function standingTrussShape(p, box) {
     z0: zR[0], z1: zR[1],
   });
 
-  const baseZ0 = z0 + STAND_WHEEL_D, baseZ1 = baseZ0 + STAND_BASE_H;
-  const base = mk([len0, len1], [wid0, wid1], [baseZ0, baseZ1]);
-  const wheels = cornerBoxes(base, [lenAxis, widAxis, 'z'], STAND_WHEEL_D, STAND_WHEEL_D * 0.4, [z0, z0 + STAND_WHEEL_D]);
+  // Rollen an den 4 Ecken der Standfläche, ganz unten – wie beim echten Dolly sitzen sie an den
+  // Rahmenenden, nicht mittig eingerückt (Referenz: H.O.F.-MLT-Katalog, „MLT TWO Truss and
+  // Folding Dolly“, S. 40/41).
+  const wheelZ1 = z0 + STAND_WHEEL_D;
+  const footprint = mk([len0, len1], [wid0, wid1], [z0, wheelZ1]);
+  const wheels = cornerBoxes(footprint, [lenAxis, widAxis, 'z'], STAND_WHEEL_D, 0, [z0, wheelZ1]);
+
+  // Offener Rahmen statt durchgehendem Rollbrett: der Dolly ist ein Dolly (Füße mit Rollen), kein
+  // Rollbrett wie beim F34/F40-Wagen oben (Nutzer-Feedback 2026-09-23, Fotoabgleich H.O.F.-Katalog
+  // S. 40/41 – zwei schmale Holme über die volle Länge an den Rändern der Standfläche, dazwischen
+  // offen, statt einer massiven Platte).
+  const railZ0 = wheelZ1, railZ1 = railZ0 + STAND_BASE_H;
+  const rail0 = mk([len0, len1], [wid0, wid0 + STAND_RAIL_W], [railZ0, railZ1]);
+  const rail1 = mk([len0, len1], [wid1 - STAND_RAIL_W, wid1], [railZ0, railZ1]);
 
   const truss0 = wid0 + (wid1 - wid0 - STAND_TRUSS_W) / 2, truss1 = truss0 + STAND_TRUSS_W;
-  const trussZ0 = Math.max(baseZ1, z1 - STAND_TRUSS_H);
+  const trussZ0 = Math.max(railZ1, z1 - STAND_TRUSS_H);
   const trussBox = mk([len0, len1], [truss0, truss1], [trussZ0, z1]);
-  const legFace = { ...base, [`${widAxis}0`]: truss0, [`${widAxis}1`]: truss1 };
-  const legs = cornerBoxes(legFace, [lenAxis, widAxis, 'z'], STAND_LEG_D, STAND_LEG_D * 0.5, [baseZ1, trussZ0]);
+  const legFace = mk([len0, len1], [truss0, truss1], [railZ1, trussZ0]);
+  const legs = cornerBoxes(legFace, [lenAxis, widAxis, 'z'], STAND_LEG_D, STAND_LEG_D * 0.5, [railZ1, trussZ0]);
 
-  return { lenAxis, widAxis, dollies: [base], wheels, pieces: [trussBox], boards: [base], rails: legs, profileWidth: STAND_TRUSS_W };
+  // `dollies`/`boards` bleibt ein einzelner Holm (rail0) – Bezugsfläche für die Beschriftung, wie
+  // bei der Wagen-Variante oben. Der zweite Holm (rail1) ist rein optisch, deshalb bei den Beinen
+  // in `rails` mit untergebracht statt einen zweiten, unbeschrifteten Bezugskörper einzuführen.
+  return {
+    lenAxis, widAxis, dollies: [rail0], wheels, pieces: [trussBox], boards: [rail0],
+    rails: [...legs, rail1], profileWidth: STAND_TRUSS_W,
+  };
 }

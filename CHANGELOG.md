@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.8 – 2026-09-23
+
+- MLT-/Pre-Rig-Traversen standen optisch auf einem durchgehenden Rollbrett wie beim F34/F40-Wagen – tatsächlich ist der Unterbau ein Dolly (offener Rahmen mit Füßen/Rollen). Nach Fotoabgleich (H.O.F.-MLT-Katalog) korrigiert: zwei schmale Holme an den Rändern der Standfläche statt einer durchgehenden Platte, Rollen sitzen an den echten Rahmenecken.
+
 ## V 0.7.7 – 2026-09-23
 
 - MLT-/Pre-Rig-Traversen waren mit 80 cm Standfläche zu breit angelegt (reine Fotoschätzung). Korrigiert auf 62 cm nach Nutzerangabe: genau 4 Stück passen nebeneinander in einen normalen 40-Tonner (248 cm Innenbreite).
