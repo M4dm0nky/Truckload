@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.1 – 2026-09-23
+
+- Die drei US-Zoll-Vorlagen „Truck Pack“ (45×22,5×30″, ½ und ¼) entfernt – die Bibliothek folgt jetzt durchgehend dem europäischen Truckmaß in cm.
+
 ## V 0.7.0 – 2026-09-23
 
 - Import legt vor jedem Überschreiben still eine Sicherung des bisherigen Stands als Datei an und weist erkennbar fehlerhafte oder präparierte Dateien jetzt ab, statt beim nächsten Start unbenutzbar zu werden oder Fremdinhalt in die Oberfläche zu schleusen.
