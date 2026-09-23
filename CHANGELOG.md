@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.6 – 2026-09-23
+
+- Die Artikelauswahl (Bibliothek und Wizard) hat jetzt 3 Reiter: „Cases“, „Traversen“, „Sonderbau“. Traversen-Vorlagen (klassische F34/F40 und MLT/S36PR) sind wieder direkt wählbar – nur eben im eigenen Reiter statt vermischt mit den normalen Cases. „+ Traverse hinzufügen“ und „⬛ Sonderbau“ sind jetzt auch direkt aus der Bibliothek heraus erreichbar, nicht mehr nur im Wizard.
+
 ## V 0.7.5 – 2026-09-23
 
 - Traversenwagen (klassische F34/F40-Vorlagen und alle MLT-/S36PR-Pre-Rig-Presets) erscheinen nicht mehr in der normalen Case-Auswahl (Bibliothek und Wizard) – Traversen kommen jetzt ausschließlich über „+ Traverse hinzufügen“ in einen Load. Selbst darüber erzeugte Wagen bleiben unter „Eigene Cases“ sichtbar und lassen sich dort umbenennen oder löschen.

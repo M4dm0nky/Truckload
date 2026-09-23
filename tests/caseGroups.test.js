@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { companiesOf, groupCases } from '../js/ui/caseGroups.js';
+import { companiesOf, groupCases, caseKind, CASE_TABS } from '../js/ui/caseGroups.js';
 
 const own = (id, extra = {}) => ({ id, builtin: false, name: `Own ${id}`, content: '', category: 'Licht', ...extra });
 const preset = (id, extra = {}) => ({ id, builtin: true, name: `Preset ${id}`, content: '', category: 'Licht', ...extra });
@@ -68,15 +68,23 @@ test('groupCases sortiert eigene Cases alphabetisch, unabhängig von der Eingabe
   assert.deepEqual(ownGroup.map(c => c.name), ['Amp-Rack', 'Molton-Case', 'Zebra-Case']);
 });
 
-// Nutzer-Feedback 2026-09-23: Traversen-Vorlagen (Wagen wie MLT) sollen nicht mehr aus einer
-// Liste wählbar sein, sondern nur noch über „+ Traverse hinzufügen“ (Truss-Wizard) in einen Load
-// kommen. Selbst erzeugte Wagen (builtin:false) bleiben unter „Eigene Cases“ verwaltbar.
-test('groupCases schließt Traversen-Vorlagen aus der Vorlagen-Gruppe aus, eigene Wagen bleiben sichtbar', () => {
-  const trussPreset = preset('t1', { kind: 'truss', truss: { length: 300, width: 29, count: 4 } });
-  const ownWagon = own('w1', { kind: 'truss', truss: { length: 400, width: 29, count: 8 } });
-  const { own: ownGroup, presets } = groupCases([trussPreset, ownWagon, preset('p1')]);
-  assert.deepEqual(presets.map(c => c.id), ['p1']);
-  assert.deepEqual(ownGroup.map(c => c.id), ['w1']);
+// Nutzer-Feedback 2026-09-23: die Artikelauswahl (Bibliothek + Wizard) bekommt 3 Reiter statt
+// einer gemischten Liste – Traversen (kind:'truss') und Sonderbau (category:'Sonderbau') bleiben
+// wie gehabt wähl-/vorlagenfähig, landen aber über caseKind() im jeweils eigenen Reiter statt im
+// Cases-Reiter.
+test('caseKind: Traverse erkannt', () => {
+  assert.equal(caseKind({ kind: 'truss', category: 'Rigging' }), 'traversen');
+});
+test('caseKind: Sonderbau erkannt (und hat Vorrang vor Traversen, falls beides zuträfe)', () => {
+  assert.equal(caseKind({ category: 'Sonderbau' }), 'sonderbau');
+  assert.equal(caseKind({ kind: 'truss', category: 'Sonderbau' }), 'traversen');
+});
+test('caseKind: alles andere ist ein normales Case', () => {
+  assert.equal(caseKind({ category: 'Licht' }), 'cases');
+  assert.equal(caseKind({}), 'cases');
+});
+test('CASE_TABS enthält genau die 3 Reiter cases/traversen/sonderbau', () => {
+  assert.deepEqual(CASE_TABS.map(t => t.id), ['cases', 'traversen', 'sonderbau']);
 });
 
 test('leere Eingabe liefert leere Gruppen statt zu werfen', () => {

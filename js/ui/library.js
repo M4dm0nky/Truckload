@@ -2,7 +2,7 @@ import { esc, swatch } from './dom.js';
 import { CATEGORIES } from '../data/categories.js';
 import { layersOf, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
-import { companiesOf, groupCases, renderGroupList } from './caseGroups.js';
+import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS } from './caseGroups.js';
 
 function trussProfileLabel(width) {
   const p = TRUSS_PROFILES.find(p => p.width === width);
@@ -27,8 +27,11 @@ export function mountLibrary(el, h) {
       <div class="lib-head-btns">
         <button data-act="load" class="primary">+ Cases hinzufügen</button>
         <button data-act="new">+ Neues Case</button>
+        <button data-act="sonderbau" hidden>⬛ Sonderbau</button>
+        <button data-act="new-truss" hidden>+ Traverse hinzufügen</button>
       </div>
     </div>
+    <div class="seg case-tabs">${CASE_TABS.map((t, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-tab="${t.id}">${esc(t.label)}</button>`).join('')}</div>
     <input type="search" class="lib-search" placeholder="Suchen (Name oder Inhalt)">
     <select class="lib-filter lib-filter-cat"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
     <select class="lib-filter lib-filter-company"><option value="">Alle Firmen</option></select>
@@ -40,7 +43,28 @@ export function mountLibrary(el, h) {
   const companyFilter = el.querySelector('.lib-filter-company');
   const list = el.querySelector('.lib-list');
   const tray = el.querySelector('.tray');
+  const tabBtns = [...el.querySelectorAll('.case-tabs button')];
+  const newBtn = el.querySelector('[data-act="new"]');
+  const sonderbauBtn = el.querySelector('[data-act="sonderbau"]');
+  const newTrussBtn = el.querySelector('[data-act="new-truss"]');
+  let activeTab = CASE_TABS[0].id; // 'cases'
   let last = null;
+
+  // Gewerk-Filter ist im Sonderbau-/Traversen-Reiter bedeutungslos (s. load-wizard.js, gleiche
+  // Begründung) – dort ausgeblendet statt nur wirkungslos.
+  function syncTabUi() {
+    tabBtns.forEach(b => b.classList.toggle('on', b.dataset.tab === activeTab));
+    filter.hidden = activeTab !== 'cases';
+    newBtn.hidden = activeTab !== 'cases';
+    sonderbauBtn.hidden = activeTab !== 'sonderbau';
+    newTrussBtn.hidden = activeTab !== 'traversen';
+  }
+  for (const btn of tabBtns) btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    syncTabUi();
+    renderList();
+  });
+  syncTabUi();
 
   const row = c => {
     const { l, w, h } = outerDims(c);
@@ -67,7 +91,8 @@ export function mountLibrary(el, h) {
 
   function renderList() {
     if (!last) return;
-    const groups = groupCases(last.cases, { q: search.value, cat: filter.value, company: companyFilter.value });
+    const tabCases = last.cases.filter(c => caseKind(c) === activeTab);
+    const groups = groupCases(tabCases, { q: search.value, cat: filter.value, company: companyFilter.value });
     renderGroupList(list, groups, row, {
       own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>',
       presetsHeading: ' <small>(Richtwerte)</small>',
@@ -115,7 +140,7 @@ export function mountLibrary(el, h) {
     // tray-remove zielt auf die eigene Stück-id (nicht den Case-Typ) – s. renderTray().
     const unplacedId = btn.closest('[data-unplaced]')?.dataset.unplaced;
     ({ new: () => h.onNew(), add: () => h.onAdd(caseId), edit: () => h.onEdit(caseId),
-       delete: () => h.onDelete(caseId),
+       delete: () => h.onDelete(caseId), sonderbau: () => h.onSonderbau(), 'new-truss': () => h.onAddTruss(),
        load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(unplacedId) })[btn.dataset.act]?.();
   });
   el.addEventListener('dragstart', e => {

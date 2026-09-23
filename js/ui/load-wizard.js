@@ -2,7 +2,7 @@ import { esc, swatch } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { outerDims } from '../model/geometry.js';
 import { isTruss } from '../model/truss.js';
-import { companiesOf, groupCases, renderGroupList } from './caseGroups.js';
+import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS } from './caseGroups.js';
 import { MAX_LABEL } from '../store/io.js';
 import { openTrussDialog } from './truss-wizard.js';
 
@@ -25,6 +25,7 @@ export function openLoadWizard(dlg, opts = {}) {
   let cases = [...(opts.cases ?? [])];
   const counts = new Map(); // caseId -> Anzahl
   if (opts.presetCaseId) counts.set(opts.presetCaseId, 1);
+  let activeTab = CASE_TABS[0].id; // 'cases' — Reiter der Artikelauswahl, s. caseKind() (caseGroups.js)
   const itemsState = new Map(); // caseId -> [{ label, color }]
   const total = () => [...counts.values()].reduce((a, b) => a + b, 0);
 
@@ -40,6 +41,7 @@ export function openLoadWizard(dlg, opts = {}) {
         <label>Fahrzeug<select name="truckId">${trucks.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
       </section>
       <section class="wiz-step" data-step="cases" hidden>
+        <div class="seg case-tabs">${CASE_TABS.map((t, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-tab="${t.id}">${esc(t.label)}</button>`).join('')}</div>
         <div class="wiz-cases-head">
           <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
@@ -71,6 +73,10 @@ export function openLoadWizard(dlg, opts = {}) {
   const f = form.elements;
   const sections = new Map([...dlg.querySelectorAll('.wiz-step')].map(el => [el.dataset.step, el]));
   const dots = [...dlg.querySelectorAll('.wiz-dot')];
+  const tabBtns = [...dlg.querySelectorAll('.case-tabs button')];
+  const newCaseBtn = dlg.querySelector('[data-act="new-case"]');
+  const sonderbauBtn = dlg.querySelector('[data-act="sonderbau"]');
+  const newTrussBtn = dlg.querySelector('[data-act="new-truss"]');
   const search = dlg.querySelector('.wiz-search');
   const filterSel = dlg.querySelector('.wiz-filter');
   const companyFilterSel = dlg.querySelector('.wiz-filter-company');
@@ -112,7 +118,8 @@ export function openLoadWizard(dlg, opts = {}) {
   }
 
   function renderCaseList() {
-    const groups = groupCases(cases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value });
+    const tabCases = cases.filter(c => caseKind(c) === activeTab);
+    const groups = groupCases(tabCases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value });
     renderGroupList(list, groups, caseRow, {
       // Vorher „Keine Treffer.“ auch ganz ohne gesetzten Filter — für einen neuen Nutzer, dessen
       // erster Blick auf die eigenen Cases oft genau der Wizard ist, klang das nach einer
@@ -157,6 +164,20 @@ export function openLoadWizard(dlg, opts = {}) {
     }
     renderCaseList();
   });
+  // Gewerk-Filter ist innerhalb des Sonderbau-/Traversen-Reiters bedeutungslos (Sonderbau hat
+  // immer dasselbe Gewerk, Traversen haben „Rigging“ fest) – dort ausgeblendet statt nur wirkungslos.
+  function syncTabUi() {
+    tabBtns.forEach(b => b.classList.toggle('on', b.dataset.tab === activeTab));
+    filterSel.hidden = activeTab !== 'cases';
+    newCaseBtn.hidden = activeTab !== 'cases';
+    sonderbauBtn.hidden = activeTab !== 'sonderbau';
+    newTrussBtn.hidden = activeTab !== 'traversen' || !opts.trussDlg;
+  }
+  for (const btn of tabBtns) btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    syncTabUi();
+    renderCaseList();
+  });
   search.addEventListener('input', renderCaseList);
   filterSel.addEventListener('change', renderCaseList);
   companyFilterSel.addEventListener('change', renderCaseList);
@@ -173,8 +194,8 @@ export function openLoadWizard(dlg, opts = {}) {
     renderCompanyOptions();
     renderCaseList();
   }
-  dlg.querySelector('[data-act="new-case"]').addEventListener('click', () => addNewCase());
-  dlg.querySelector('[data-act="sonderbau"]').addEventListener('click', () =>
+  newCaseBtn.addEventListener('click', () => addNewCase());
+  sonderbauBtn.addEventListener('click', () =>
     addNewCase({ category: 'Sonderbau', wheels: true, dimsInclWheels: false }));
 
   // „Truss hinzufügen“ (Task 3): eigener, mengenbasierter Dialog statt Stepper-Klicks – ergänzt
@@ -202,8 +223,7 @@ export function openLoadWizard(dlg, opts = {}) {
     renderCompanyOptions();
     renderCaseList();
   }
-  if (opts.trussDlg) dlg.querySelector('[data-act="new-truss"]').addEventListener('click', addTruss);
-  else dlg.querySelector('[data-act="new-truss"]').hidden = true;
+  if (opts.trussDlg) newTrussBtn.addEventListener('click', addTruss);
 
   function buildItemsState() {
     for (const c of cases) {
@@ -259,7 +279,7 @@ export function openLoadWizard(dlg, opts = {}) {
     const isLast = i === steps.length - 1;
     nextBtn.hidden = isLast;
     finishBtn.hidden = !isLast;
-    if (steps[i] === 'cases') renderCaseList();
+    if (steps[i] === 'cases') { syncTabUi(); renderCaseList(); }
     if (steps[i] === 'labels') renderGroups();
   }
   function validateStep() {

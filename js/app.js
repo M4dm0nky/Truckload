@@ -9,6 +9,7 @@ import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js'
 import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
 import { openLoadWizard } from './ui/load-wizard.js';
+import { openTrussDialog } from './ui/truss-wizard.js';
 import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
@@ -238,6 +239,21 @@ async function newCaseForWizard(draft) {
   return res?.action === 'save' ? saveCaseValue(res.value) : null;
 }
 
+// „Traverse hinzufügen“ direkt aus der Bibliothek (außerhalb des Wizards, mit bereits aktivem
+// Plan) – gleicher Dialog wie im Wizard (js/ui/load-wizard.js addTruss()), aber die Additionen
+// gehen sofort in die Ablage des laufenden Plans statt in eine erst später übernommene
+// counts-Map. Neue klassische Wagen-Case-Typen speichert der Dialog selbst über `saveCaseValue`.
+async function addTrussFromLibrary() {
+  const s = store.get();
+  const res = await openTrussDialog($('#dlg-truss'), { cases: s.cases, onNewTruss: saveCaseValue });
+  if (!res) return;
+  edit((p, c) => {
+    let next = res.additions.reduce((pl, { caseId, n }) => A.addUnplaced(pl, caseId, n, uid), p);
+    if (res.gestapelt) next = A.packRest(next, c);
+    return next;
+  });
+}
+
 async function runLoadWizard(mode, presetCaseId = null) {
   const s = store.get();
   // ctx() setzt einen aktiven Plan voraus (s.plan.truckId) – im Startbildschirm (mode
@@ -268,6 +284,8 @@ const library = mountLibrary($('#library'), {
   onNew: () => editCase(null),
   onEdit: id => editCase(id),
   onDelete: id => deleteCaseDirect(id),
+  onSonderbau: () => newCaseForWizard({ category: 'Sonderbau', wheels: true, dimsInclWheels: false }),
+  onAddTruss: () => addTrussFromLibrary(),
   onAdd: id => runLoadWizard('add', id),
   onAddLoad: () => runLoadWizard('add'),
   onTrayRemove: id => edit(p => A.removeUnplaced(p, id)),

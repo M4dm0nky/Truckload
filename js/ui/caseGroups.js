@@ -8,6 +8,22 @@ export function companiesOf(cases) {
   return [...new Set(cases.map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 }
 
+// Die 3 Reiter der Artikelauswahl (Bibliothek + Wizard-Case-Liste): Traversen sind eigene
+// Case-Typen (kind:'truss'), Sonderbau eigene Case-Typen mit category:'Sonderbau' – beide
+// Merkmale schließen sich gegenseitig aus (ein Sonderbau ist nie gleichzeitig eine Traverse),
+// alles andere landet im Cases-Reiter. Reine Klassifikation, kein Filtern nach Suche/Gewerk/
+// Firma – das übernimmt groupCases() weiterhin, angewandt auf die per Reiter vorgefilterte Liste.
+export const CASE_TABS = [
+  { id: 'cases', label: 'Cases' },
+  { id: 'traversen', label: 'Traversen' },
+  { id: 'sonderbau', label: 'Sonderbau' },
+];
+export function caseKind(c) {
+  if (isTruss(c)) return 'traversen';
+  if (c.category === 'Sonderbau') return 'sonderbau';
+  return 'cases';
+}
+
 // Teilt Cases nach Suche/Gewerk/Firma gefiltert in „Eigene Cases“, „Vorlagen“
 // und „Cases aus deiner Liste“ (c.source === 'liste'). Cases ohne `company`
 // verschwinden, sobald eine Firma gewählt ist.
@@ -23,13 +39,8 @@ export function groupCases(cases, { q = '', cat = '', company = '' } = {}) {
     // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge“). Hier
     // sortiert statt in repo.js: damit ist die Reihenfolge unabhängig davon, woher die Liste kommt
     // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
-    // Traversen-Vorlagen (kind:'truss', builtin) tauchen hier bewusst nicht mehr auf — Traversen
-    // kommen seit dem Traversen-Wizard ausschließlich über „+ Traverse hinzufügen“ in einen Load
-    // (Nutzer-Feedback: keine fertigen Wägen/Sets mehr aus einer Liste wählen). Selbst erzeugte
-    // Wagen (aus diesem Dialog, `builtin: false`) bleiben unter „Eigene Cases“ sichtbar und
-    // verwaltbar (umbenennen/löschen), nur die Vorlagen-Liste ist gefiltert.
     own: cases.filter(c => !c.builtin && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && !isTruss(c) && match(c)),
+    presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && match(c)),
     list: cases.filter(c => c.builtin && c.source === 'liste' && match(c)),
   };
 }
