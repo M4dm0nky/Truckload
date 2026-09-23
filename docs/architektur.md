@@ -137,7 +137,7 @@ tippbar.
 
 ### Pre-Rig-Traversen (`standing: true`)
 
-Ein zweiter, seit V 0.8.1 unterstützter Aufbau für Moving-Light-Pre-Rig-Traversen (H.O.F. MLT,
+Ein zweiter, seit V 0.7.3 unterstützter Aufbau für Moving-Light-Pre-Rig-Traversen (H.O.F. MLT,
 Prolyte S36PR): `truss: { length, width, count: 1, standing: true, height }`. Anders als der
 Wagen oben (mehrere Stücke auf einem gemeinsamen Flachwagen) ist hier **ein Stück immer eine
 einzelne, komplett montierte Traverse** auf 4 Beinen über einer eigenen Grundplatte mit Rollen —

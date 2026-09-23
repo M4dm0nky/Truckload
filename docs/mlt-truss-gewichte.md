@@ -1,4 +1,4 @@
-# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.8.1)
+# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3)
 
 Recherchiert am 2026-09-23 für `js/data/preset-cases.js`. Alle Stückgewichte sind
 Netto-Herstellerangaben für die Traverse selbst (ohne Grundplatte/Beine/Rollen).
@@ -17,9 +17,9 @@ gemeinsamen Transport-Wagen stapeln) steht hier jedes Stück einzeln auf seinen
 eigenen Beinen bzw. seinem eigenen Rollwagen und wird komplett montiert in den
 Truck gerollt.
 
-## Korrektur V0.8.1: Querschnitt und Aufbau
+## Korrektur V0.7.3: Querschnitt und Aufbau
 
-Die erste Fassung (V0.8.0) nahm fälschlich einen quadratischen Rohr-Querschnitt
+Die erste Fassung nahm fälschlich einen quadratischen Rohr-Querschnitt
 an und stapelte 4 Stück auf einen gemeinsamen Wagen – wie die bestehenden F34-/
 F44-Vorlagen. Nach Sichtung von Herstellerfotos und einer Bemaßungszeichnung
 (H.O.F. „350MLT“, Artikel-Bild `hoffork_350MLT_bemassung`) ist das falsch:
