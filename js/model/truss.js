@@ -61,6 +61,25 @@ export const DOLLY_L = 60;         // Länge eines Rollwagens (cm)
 const DOLLY_WHEEL_D = 10;   // Rollen-Durchmesser am Wagen (cm)
 export const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (F34: 50 mm Ø / 29 cm)
 export const DIAG_R_RATIO = 0.035; // Diagonalen-Radius (F34: 20 mm Ø / 29 cm)
+
+// Gewichtsformel für Traversenwagen: kg pro Meter je Profilbreite + Wagen-Grundgewicht (Paar Dollies)
+export const TRUSS_KG_PER_M = { 29: 6, 40: 8 };
+export const TRUSS_DOLLY_KG = 2 * 12;
+
+export function wagonWeight(length, width, count) {
+  return Math.round((length / 100) * count * TRUSS_KG_PER_M[width] + TRUSS_DOLLY_KG);
+}
+
+// Teilt eine Gesamtstückzahl auf Wägen mit maximal `perWagon` Stück auf: volle Wägen zuerst, ein
+// letzter Restwagen falls nötig. splitWagons(16, 8) → [8, 8]; splitWagons(17, 8) → [8, 8, 1].
+// Wirft bei ungültigen Eingaben (≤ 0), damit ein Tippfehler nicht zu einem Wagen mit 0 Stück führt.
+export function splitWagons(total, perWagon) {
+  if (!(total > 0) || !(perWagon > 0)) throw new Error('Stückzahl und Stück je Wagen müssen größer als 0 sein.');
+  const full = Math.floor(total / perWagon);
+  const rest = total % perWagon;
+  return [...Array(full).fill(perWagon), ...(rest ? [rest] : [])];
+}
+
 const PER_ROW = 2;                 // Traversenstücke nebeneinander pro Lage
 const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei schmalen Spuren begrenzt
 

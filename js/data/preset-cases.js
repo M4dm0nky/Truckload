@@ -1,5 +1,5 @@
 import { colorFor } from './categories.js';
-import { trussDims, STAND_FOOTPRINT_W } from '../model/truss.js';
+import { trussDims, STAND_FOOTPRINT_W, wagonWeight } from '../model/truss.js';
 
 const NOTE = 'Richtwert – Maße und Gewicht an dein Case anpassen';
 const P = (id, name, category, l, w, h, weight, opts = {}) => ({
@@ -8,12 +8,11 @@ const P = (id, name, category, l, w, h, weight, opts = {}) => ({
   dimsInclWheels: true, note: NOTE, ...opts,
 });
 // F34 (34er) ≈ 6 kg/m, F44 (40er) ≈ 8 kg/m Traversengewicht; Wagen (Paar) ≈ 2 × 12 kg.
-const KG_PER_M = { 29: 6, 40: 8 };
-const DOLLY_KG = 2 * 12;
+// (Gewichtsformel exportiert als wagonWeight() aus model/truss.js, damit Task 3 sie wiedernutzen kann)
 const T = (id, name, length, width, count) => {
   const truss = { length, width, count };
   const { l, w, h } = trussDims(truss);
-  const weight = Math.round((length / 100) * count * KG_PER_M[width] + DOLLY_KG);
+  const weight = wagonWeight(length, width, count);
   return P(id, name, 'Rigging', l, w, h, weight,
     { kind: 'truss', truss, tippable: false, wheelH: 0, layers: [1, 2] });
 };

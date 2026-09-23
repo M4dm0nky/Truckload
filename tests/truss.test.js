@@ -4,6 +4,7 @@ import {
   DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_RAIL_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES,
   TUBE_R_RATIO, trussDims, isTruss, trussShape, MAX_TRUSS_WIDTH,
   STAND_FOOTPRINT_W, STAND_TRUSS_W, STAND_TRUSS_H,
+  wagonWeight, splitWagons,
 } from '../js/model/truss.js';
 import { boxOf } from '../js/model/geometry.js';
 
@@ -18,6 +19,40 @@ const mkStandingCase = (length, height, width = STAND_FOOTPRINT_W) => {
   const { l, w, h } = trussDims(truss);
   return { kind: 'truss', truss, l, w, h };
 };
+
+// Tests für splitWagons: Mengen-Aufteilung auf Wagen
+test('splitWagons: 16 Stück auf 8 pro Wagen -> [8, 8]', () => {
+  assert.deepEqual(splitWagons(16, 8), [8, 8]);
+});
+test('splitWagons: 17 Stück auf 8 pro Wagen -> [8, 8, 1]', () => {
+  assert.deepEqual(splitWagons(17, 8), [8, 8, 1]);
+});
+test('splitWagons: 8 Stück auf 8 pro Wagen -> [8]', () => {
+  assert.deepEqual(splitWagons(8, 8), [8]);
+});
+test('splitWagons: 0 Stück wirft Fehler', () => {
+  assert.throws(() => splitWagons(0, 8));
+});
+test('splitWagons: 0 Stück pro Wagen wirft Fehler', () => {
+  assert.throws(() => splitWagons(16, 0));
+});
+test('splitWagons: negative Gesamtstückzahl wirft Fehler', () => {
+  assert.throws(() => splitWagons(-5, 8));
+});
+test('splitWagons: negative Stückzahl pro Wagen wirft Fehler', () => {
+  assert.throws(() => splitWagons(16, -8));
+});
+
+// Tests für wagonWeight: Gewichtsformel für Traversenwagen
+test('wagonWeight: 34er 3m (300, 29, 4) -> 96 kg (Regression)', () => {
+  assert.equal(wagonWeight(300, 29, 4), 96);
+});
+test('wagonWeight: 34er 2m (200, 29, 4) -> 72 kg (Regression)', () => {
+  assert.equal(wagonWeight(200, 29, 4), 72);
+});
+test('wagonWeight: 40er 3m (300, 40, 4) -> 120 kg (Regression)', () => {
+  assert.equal(wagonWeight(300, 40, 4), 120);
+});
 
 test('trussDims: 34er (29 cm) passt zu zweit nebeneinander -> 60er Wagen', () => {
   const d = trussDims({ length: 300, width: 29, count: 4 });
