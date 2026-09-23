@@ -2,6 +2,19 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.0 – 2026-09-23
+
+- Import legt vor jedem Überschreiben still eine Sicherung des bisherigen Stands als Datei an und weist erkennbar fehlerhafte oder präparierte Dateien jetzt ab, statt beim nächsten Start unbenutzbar zu werden oder Fremdinhalt in die Oberfläche zu schleusen.
+- Speichern meldet einen fehlgeschlagenen Schreibvorgang jetzt sichtbar (Banner „Nicht gespeichert …“) und holt ihn automatisch nach, sobald es wieder klappt; beim Schließen der Seite oder Wechseln der App wird der letzte Stand sofort gesichert, statt in den letzten 400 ms verloren zu gehen.
+- Ist Truckload in einem zweiten Tab oder Fenster gleichzeitig geöffnet, erscheint in beiden ein Hinweis darauf – bisher konnte der jeweils andere Stand lautlos überschrieben werden.
+- Eine Beschriftung landet jetzt zuverlässig an dem Stück, für das sie getippt wurde, auch wenn man direkt danach ein anderes Case anklickt, ohne vorher aus dem Feld zu wechseln.
+- Cases ohne Gewichtsangabe werden ausgewiesen: Inspector und Druck zeigen „N Cases ohne Gewicht“ neben der Nutzlast, und die Warnung „Ladung ist einseitig“ greift jetzt auch dann, wenn kaum Gewichte bekannt sind – der Schwerpunkt wird in diesem Fall ersatzweise über das Volumen geschätzt und als solcher gekennzeichnet.
+- Die Auto-Beladung packt flache, stapelbare Cases deutlich platzsparender: 24 Stück eines 120×60×30-cm-Case werden jetzt getippt statt gestellt und brauchen rund 1,20 statt vorher 2,40 Lademeter.
+- Rollen überlappen sich nicht mehr bei schmalen Cases (z. B. `AF-1 -CAB`, `SF TourHazer II -CAB`).
+- Das „−“ in der Ablage entfernt jetzt gezielt das angeklickte Stück, nicht mehr das erste seines Typs – die Ablage zeigt dafür jedes Stück einzeln mit seiner eigenen Farbe und Beschriftung.
+- Case-Editor: Eine Rollenhöhe, die die Case-Höhe erreichen oder überschreiten würde, wird beim Speichern verhindert, statt erst beim nächsten Import auf die eigene Sicherung zu treffen.
+- Zahlreiche kleinere Korrekturen aus der Meilenstein-Review V 0.6.0 an Meldungstexten, 3D-Darstellung (Stücknummer, Seitenverhältnis der Beschriftung, sauberer Abbau beim Fehler), Wizard und Bibliothek – Details siehe `docs/code-review-2026-09-21.md` und die Berichte unter `.superpowers/sdd/2026-09-21-review-fixes-v0.7/`.
+
 ## V 0.6.0 – 2026-09-21
 
 - Traversenwagen-Rollwagen nach echtem Vorbild überarbeitet: statt eines massiven Alu-Blocks jetzt ein flaches Rollbrett (Kunststoff, schwarz) mit zwei Auflageleisten je Traversenspur, darunter die vier Lenkrollen – dadurch werden die Wagen 5 cm niedriger (22 → 17 cm); die Rollen selbst bleiben unverändert. Bestehende eigene Traversenwagen rechnen ihre Höhe beim nächsten Laden automatisch neu, keine manuelle Anpassung nötig.

@@ -52,7 +52,7 @@ export function mountLibrary(el, h) {
         <small>${isTruss(c)
           ? esc(trussLabel(c))
           : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}${companySuffix}</small></span>
-      <button data-act="add" title="In die Ablage legen">+</button>
+      <button data-act="add" title="Über den Wizard hinzufügen (packt direkt, Häkchen abwählbar)">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
     </div>`;
   };

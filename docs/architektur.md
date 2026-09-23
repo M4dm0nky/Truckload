@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.6.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.7.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -23,6 +23,15 @@ ihres Ordners keine Three.js- oder DOM-Abhängigkeit haben und eigene Tests besi
 Daten als Argumente und liefern reine Ergebnisobjekte zurück (`openCaseEditor`,
 `openTruckEditor`, `openLoadWizard`).
 
+`js/store/autosave.js` ist seit V 0.7.0 die Buchhaltung des Autosaves: reine Logik ohne
+DOM-, IndexedDB- oder Store-Wissen, alle Abhängigkeiten (Schreibfunktion, Uhr, Timer,
+Status-Callback) werden ihr von `js/app.js` gespritzt. Sie führt je Plan-ID einen eigenen
+Eintrag (`pending`), merkt sich fehlschlagende Schreibvorgänge getrennt (`retrying`) und
+kann einen Plan für die Dauer eines Imports aus der automatischen Buchhaltung herausnehmen
+(`exclude`/`include`), ohne einen schon wartenden Schreibvorgang zu verlieren. Nur dadurch
+ist die Speicher-Logik mit `node --test` prüfbar, obwohl `js/app.js` selbst ein
+Top-Level-`await`-Modul mit DOM-Zugriff ist.
+
 ## Zwei Datenebenen: Case-Typ und Stück
 
 Das ist der wichtigste Unterschied im Modell.
@@ -32,8 +41,15 @@ erlaubte Lagen. Lebt in `plan`-unabhängigen Listen und in IndexedDB.
 
 **Stück** — ein konkretes Exemplar in einem Ladeplan, in `plan.placements[]` (im Truck)
 oder `plan.unplaced[]` (Ablage). Trägt `id`, `caseId` und — seit V 0.4.0 — eine eigene
-`label` (Beschriftung, höchstens 40 Zeichen) und `color`. Platzierte Stücke haben
+`label` (Beschriftung, höchstens `MAX_LABEL` Zeichen) und `color`. Platzierte Stücke haben
 zusätzlich `x`, `y`, `z`, `orientation` und `rot`.
+
+`MAX_LABEL` (= 40) liegt in `js/model/geometry.js` — dort, weil es ein Modul ohne eigene
+Importe ist, das `js/store/io.js` (Prüfung `labelOk`) ohnehin schon importiert, und `js/ui/*`
+sowohl Modell als auch Store benutzen darf. `js/model/actions.js` kürzt jeden gesetzten oder
+vorbelegten Label-Wert selbst darauf (`addUnplaced`, `applyField`, `nextLabel`) — die
+Oberfläche muss die Grenze also nicht mehr an jeder Eingabestelle einzeln durchsetzen, ein
+`maxlength`-Attribut allein hätte einen vorbelegten Wert (Wizard, Duplizieren) nicht erfasst.
 
 `buildItems()` in `js/model/validate.js` führt beides zu `items` zusammen und legt
 `it.label` und `it.color` mit Rückfall auf Case-Name und Gewerkfarbe frei. **Alle**
@@ -88,7 +104,11 @@ Inspector, Wizard) müssen ebenfalls `outerDims` verwenden, nicht `c.l/c.w/c.h`.
 Ein Case trägt `layers`, eine Teilmenge von 1 bis 4 (fehlt = alle). Lage 1 ist der Boden.
 `layerMap()` in `validate.js` berechnet die tatsächliche Lage als 1 plus die höchste Lage
 der tragenden Cases. Mehr als vier Lagen sind nicht vorgesehen und werden als Warnung
-gemeldet. Der Packer hält sich daran und stapelt nichts Schweres auf Leichteres.
+gemeldet. Der Packer hält sich daran und stapelt nichts Schweres auf Leichteres. Seit
+V 0.7.0 kennt auch der Füllgrad-Score in `chooseOrientation` (`packer.js`) diese
+4-Lagen-Grenze (vorher rechnete er mit der reinen Truckhöhe) — ein flaches, stapelbares
+Case wird dadurch eher getippt als sinnlos hoch gestellt, wenn Tippen weniger Lademeter
+braucht.
 
 ## Traversenwagen
 
@@ -115,17 +135,52 @@ seitlich zu führen. `trussShape()` liefert `dollies` (das volle Wagenvolumen, g
 die Beschriftungsfläche), `boards`, `rails`, `wheels` und `pieces`. Traversenwagen sind nie
 tippbar.
 
+## Gewicht: 0 kg ist nicht „unbekannt“
+
+Ein Case-Typ ohne Gewichtsangabe trägt `weight: 0` — das ist absichtlich (`CLAUDE.md`:
+lieber 0 als eine erfundene Zahl), muss aber auf dem Weg durch die Schichten von einer
+echten Nullangabe unterscheidbar bleiben. `validatePlan()` (`js/model/validate.js`) zählt in
+`totals.withoutWeight`, wie viele Stücke einem Case-Typ mit `weight === 0` angehören, und
+gibt sie im Inspector und im Druck als „N Cases ohne Gewicht“ neben der Nutzlast aus. Trägt
+mindestens ein Stück kein Gewicht, wird der Schwerpunkt zusätzlich über das Volumen
+geschätzt (`totals.cog` bekommt eine Kennzeichnung `source: 'volume'` statt `'weight'`), und
+die Einseitigkeitswarnung greift, sobald **eine** der beiden Schätzungen (nach Gewicht oder
+nach Volumen) einseitig ausfällt — eine Warnung darf durch zusätzliche Information nie
+verschwinden.
+
 ## Speicherung und Austausch
 
 Alles liegt in IndexedDB im Browser. `loadAll()` mischt eigene Cases mit den mitgelieferten:
 Bei gleicher ID gewinnt immer das eigene Case, und jede ID kommt genau einmal vor
 (`mergeOwnWithBuiltins`) — die Verbraucher bauen daraus eine `Map`, bei der sonst der letzte
-gewänne.
+gewänne. Schlägt das Laden aus IndexedDB fehl (privates Fenster, blockierter Speicher,
+korrupte Datenbank), startet die App trotzdem mit den mitgelieferten Vorlagen
+(`repo.loadAllFallback()`) und zeigt ein Banner, statt als weiße Seite abzustürzen.
 
 Export und Import laufen über ein JSON-Bundle (`js/store/io.js`). Mitgelieferte Cases
 (`builtin: true`) landen **nicht** in der Datei; Pläne verweisen weiter per `caseId` darauf.
-`parseBundle` prüft streng, weil die Datei von außen kommt. Beim Zusammenführen gewinnt der
-neuere `updatedAt`-Stand (`mergeById`).
+`parseBundle` prüft streng, weil die Datei von außen kommt — unter anderem gegen
+`CASE_LIMITS` (Obergrenzen für Maße, Gewicht, Rollenhöhe, Stückzahl), eindeutige Stück-IDs je
+Plan und einen String-Zeitstempel bei `updatedAt`. IDs, die mit `preset-` oder `lib-`
+beginnen, werden aus fremden Dateien verworfen, damit ein importiertes Case nie einen
+mitgelieferten Bibliothekseintrag verdeckt. Beim Zusammenführen gewinnt der neuere
+`updatedAt`-Stand (`mergeById`), aber nur wenn **beide** Seiten einen String-Zeitstempel
+tragen — ein kaputter oder fehlender Zeitstempel verliert immer gegen einen gültigen.
+
+Vor jedem Import lädt `js/app.js` still eine Sicherung des bisherigen Stands herunter
+(`preImportBackupFileName()`, gleicher Name wie `backupFileName()` plus `-vor-import`), bevor
+irgendetwas in IndexedDB überschrieben wird. Das Mischen läuft synchron innerhalb eines
+`store.update()`-Updaters, damit eine Änderung, die der Nutzer während des Schreibens macht,
+nicht stillschweigend zurückgenommen wird; scheitert das Schreiben, wird der Store auf den
+Stand vor dem Import zurückgesetzt und der Nutzer kann die eben heruntergeladene Sicherung
+erneut anfordern. `js/store/autosave.js` nimmt den betroffenen Plan für die Dauer des Imports
+per `exclude()`/`include()` aus der eigenen Buchhaltung, damit ein parallel laufender
+Autosave-Schreibvorgang den Import nicht überholt oder rückgängig macht.
+
+Ist die App in einem zweiten Tab oder Fenster gleichzeitig offen, meldet ein
+`BroadcastChannel('truckload')` das den beteiligten Tabs — es gibt (Stand V 0.7.0) keinen
+Datenabgleich, nur den Hinweis „in einem weiteren Tab offen“, damit der Nutzer nicht
+lautlos den einen oder anderen Stand verliert.
 
 ## Mitgelieferte Daten
 
@@ -170,3 +225,8 @@ schwarzem Case.
   Wer eine Meldung UI-seitig unterscheiden will (Symbol, Filter, Sortierung), findet den Code dafür
   schon vor; ein Tippfehler in einem neuen `add(...)`-Aufruf fällt dabei nur über die Tests auf, es
   gibt keine benannte Konstantenliste.
+- Alle Meldungstexte in `validatePlan` nennen seit V 0.7.0 `it.label` (die Stück-Beschriftung),
+  nicht mehr `it.c.name` (den Case-Typ) — bei mehreren Exemplaren desselben Typs lässt sich eine
+  Meldung sonst keinem Stück zuordnen.
+- `ARCH_SIDES` liegt seit V 0.7.0 in `js/model/validate.js` (Modellschicht, wo `archBoxes()` es
+  tatsächlich braucht), nicht mehr in `js/store/io.js`; `io.js` importiert es von dort.
