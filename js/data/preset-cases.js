@@ -18,7 +18,7 @@ const T = (id, name, length, width, count) => {
 };
 // Pre-Rig-Traversen (H.O.F. MLT/Prolyte S36PR): EIN Stück ist EINE stehende Traverse auf Beinen/
 // Rollwagen (standing:true, count immer 1) – anders als T() oben, das mehrere Stücke auf einen
-// gemeinsamen Wagen stapelt. Standfläche ist STAND_FOOTPRINT_W (recherchiert an Fotos), Höhe je
+// Standfläche ist STAND_FOOTPRINT_W (62 cm - 4 Stück nebeneinander im 40-Tonner), Höhe je
 // Modell (standH). BASE_KG ist ein Richtwert für Grundplatte+Beine+Rollen (kein Herstellerwert,
 // s. docs/mlt-truss-gewichte.md) – das Stückgewicht selbst ist recherchiert.
 const BASE_KG = 25;

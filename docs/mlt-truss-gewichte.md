@@ -1,4 +1,4 @@
-# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3)
+# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3, V0.7.7)
 
 Recherchiert am 2026-09-23 für `js/data/preset-cases.js`. Alle Stückgewichte sind
 Netto-Herstellerangaben für die Traverse selbst (ohne Grundplatte/Beine/Rollen).
@@ -31,8 +31,13 @@ F44-Vorlagen. Nach Sichtung von Herstellerfotos und einer Bemaßungszeichnung
   Rollen (H.O.F. MLT ONE: direkt am Bein, kein eigener Rollwagen-Tisch;
   MLT TWO/THREE/FOUR: auf einem fahrbaren Unterwagen mit Teleskopbeinen) – nicht
   mehrere Stücke gestapelt auf einem gemeinsamen Flachwagen.
-- **Standflächen-Breite** (Bein-/Rollen-Spur, `STAND_FOOTPRINT_W = 80` cm) ist
-  eine Fotoabschätzung, keine Herstellerangabe.
+- **Standflächen-Breite** (Bein-/Rollen-Spur, `STAND_FOOTPRINT_W`) war anfangs
+  eine reine Fotoabschätzung (80 cm) – **Korrektur V0.7.7**: nach Nutzerangabe
+  passen genau 4 Stück nebeneinander in einen normalen 40-Tonner
+  (Sattelauflieger, 248 cm Innenbreite, `preset-sattel`/`preset-mega` in
+  `js/data/preset-trucks.js`) → 248 / 4 = **62 cm**. Weiterhin keine direkte
+  Herstellerangabe, aber jetzt an einer nachprüfbaren Tatsache statt an einer
+  Fotoschätzung festgemacht.
 - **Standhöhe** (montiert, auf Rollen/Beinen): für H.O.F. MLT TWO mit
   103 cm belegt (Produktseite, „Gesamthöhe mit Dolly“). Für ONE/THREE/FOUR und
   Prolyte S36PR keine Herstellerangabe gefunden – MLT TWO/THREE/FOUR und beide

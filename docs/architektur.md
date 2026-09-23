@@ -155,7 +155,7 @@ Prolyte S36PR): `truss: { length, width, count: 1, standing: true, height }`. An
 Wagen oben (mehrere Stücke auf einem gemeinsamen Flachwagen) ist hier **ein Stück immer eine
 einzelne, komplett montierte Traverse** auf 4 Beinen über einer eigenen Grundplatte mit Rollen —
 so wird sie auch fertig aufgerüstet (mit montierten Movern) in den Truck gerollt. `width` meint
-hier die Standfläche (`STAND_FOOTPRINT_W`, 80 cm, Fotoabschätzung), nicht den Traversen-
+hier die Standfläche (`STAND_FOOTPRINT_W`, 62 cm – 4 Stück nebeneinander in einem 40-Tonner, 248 cm Innenbreite), nicht den Traversen-
 Querschnitt; `height` die Standhöhe (je Modell recherchiert/abgeschätzt, siehe
 `docs/mlt-truss-gewichte.md`) und wird — anders als bei der Wagen-Variante — direkt mitgegeben
 statt aus `count`/`width` errechnet. `trussDims()` gibt dafür `{l: length, w: width, h: height}`

@@ -86,9 +86,11 @@ const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei 
 // Maße für stehende Pre-Rig-Traversen (standing:true), recherchiert an Herstellerfotos/
 // -bemaßungszeichnungen (docs/mlt-truss-gewichte.md): Rechteck-Querschnitt statt Quadratrohr
 // (H.O.F. 608×356 mm, Prolyte S36PR 610×360 mm – beide praktisch gleich), auf 4 Eckbeinen über
-// einer schmalen Grundplatte mit Rollen. STAND_FOOTPRINT_W ist die Bein-/Rollen-Spurbreite
-// (Nutzerangabe „80 breit“, deckt sich mit den Fotos), nicht der Traversenquerschnitt selbst.
-export const STAND_FOOTPRINT_W = 80; // Standfläche (cm) – Case-Breite `w`
+// einer schmalen Grundplatte mit Rollen. STAND_FOOTPRINT_W ist die Bein-/Rollen-Spurbreite, nicht
+// der Traversenquerschnitt selbst – korrigiert nach Nutzerangabe: genau 4 Stück passen nebeneinander
+// in einen normalen 40-Tonner (Sattelauflieger, 248 cm Innenbreite, s. preset-trucks.js) ->
+// 248 / 4 = 62 cm. Die erste Fassung (80 cm, reine Fotoabschätzung) war zu breit.
+export const STAND_FOOTPRINT_W = 62; // Standfläche (cm) – Case-Breite `w`
 export const STAND_TRUSS_W = 60;     // sichtbare Traversenbreite (cm)
 export const STAND_TRUSS_H = 35;     // sichtbare Traversenhöhe (cm)
 const STAND_BASE_H = 4;              // Grundplatte/Rollwagen-Tisch (cm)

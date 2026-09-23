@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.7 – 2026-09-23
+
+- MLT-/Pre-Rig-Traversen waren mit 80 cm Standfläche zu breit angelegt (reine Fotoschätzung). Korrigiert auf 62 cm nach Nutzerangabe: genau 4 Stück passen nebeneinander in einen normalen 40-Tonner (248 cm Innenbreite).
+
 ## V 0.7.6 – 2026-09-23
 
 - Die Artikelauswahl (Bibliothek und Wizard) hat jetzt 3 Reiter: „Cases“, „Traversen“, „Sonderbau“. Traversen-Vorlagen (klassische F34/F40 und MLT/S36PR) sind wieder direkt wählbar – nur eben im eigenen Reiter statt vermischt mit den normalen Cases. „+ Traverse hinzufügen“ und „⬛ Sonderbau“ sind jetzt auch direkt aus der Bibliothek heraus erreichbar, nicht mehr nur im Wizard.
