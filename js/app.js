@@ -102,8 +102,13 @@ function renderStartScreen(s) {
   $('#start-actions').innerHTML = `
     <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
     ${listHtml}
+    <button id="start-import" type="button" title="JSON-Sicherung einlesen">Sicherung importieren</button>
   `;
   $('#start-new').onclick = () => runLoadWizard('new');
+  // Dieselbe Eingabe wie #import-btn im (hier verborgenen) Header – Wiederherstellen auf
+  // einem frischen Rechner ohne gespeicherte Pläne war sonst nur über einen Umweg-Plan
+  // möglich (README: „Wiederherstellen … Importieren“).
+  $('#start-import').onclick = () => $('#import').click();
   for (const btn of startScreenEl.querySelectorAll('.start-plan-item')) {
     btn.onclick = () => {
       const plan = store.get().plans.find(p => p.id === btn.dataset.planId);
@@ -592,7 +597,10 @@ $('#import').onchange = async e => {
   // wird (Befund Daten-10) – das einzige Netz, falls der Import den falschen Stand bringt.
   const s0 = store.get();
   const backupName = preImportBackupFileName();
-  const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: [s0.plan, ...s0.plans] });
+  // s0.plan ist null, wenn der Import vom Startbildschirm ausgelöst wird (Task 1: kein Plan
+  // automatisch angelegt) – dann gibt es keinen aktuellen Plan, der in die Sicherung
+  // gehört, nur die schon gespeicherten.
+  const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: s0.plan ? [s0.plan, ...s0.plans] : s0.plans });
   lastPreImportBackup = { name: backupName, text: backupText };
   downloadJSON(backupName, backupText);
 
@@ -602,7 +610,8 @@ $('#import').onchange = async e => {
   // sonst könnte sein Timer (oder ein pagehide/visibilitychange-Flush) währenddessen den
   // alten, ungesicherten Stand über den frisch importierten schreiben, ohne dass jemand es
   // bemerkt. saveImportWinners() schreibt diesen Plan (falls die Datei ihn gewinnt) selbst.
-  autosave.exclude(s0.plan.id);
+  // Ohne aktuellen Plan (Startbildschirm) gibt es nichts stillzulegen.
+  if (s0.plan) autosave.exclude(s0.plan.id);
   let merge;
   let importFailed = false;
   let importErr = null;
@@ -635,7 +644,7 @@ $('#import').onchange = async e => {
     // === false) – in beiden Fällen wurde ein vorher geparkter, ausstehender eigener Stand
     // NICHT mitgeschrieben und muss weiter als ausstehend gelten. `merge` kann bei einem
     // Fehler vor der Zuweisung undefined geblieben sein, daher der sichere Optional-Chain.
-    autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
+    if (s0.plan) autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
   }
 
   if (importFailed) {

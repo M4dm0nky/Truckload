@@ -42,6 +42,7 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .start-plan-item { width: 100%; text-align: left; }
 .start-plan-item small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
 .start-hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+#start-import { justify-self: center; margin-top: 6px; }
 
 .layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 290px 1fr 300px; }
 .panel { background: var(--panel); overflow: auto; padding: 12px; }

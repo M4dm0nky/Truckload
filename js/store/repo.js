@@ -91,15 +91,23 @@ export function loadAllFallback() {
 // der Stand, mit dem gemischt wird, ist exakt der, der im selben Tick auch in den Store
 // geschrieben wird – zwischenzeitliche Änderungen des Nutzers (die dieselbe Store-Referenz
 // verändert hätten) sind darin schon enthalten.
+// `plan` ist null, wenn der Import vom Startbildschirm ausgelöst wird (Task 1: die App
+// startet leer, ohne automatisch angelegten Plan) – dann gibt es keinen „aktuellen“ Plan,
+// dessen ID über den Gewinner entscheiden könnte. In dem Fall entscheidet stattdessen
+// pickLatestPlan() unter allen (eigenen + importierten) Plänen, welcher geöffnet wird –
+// dieselbe Regel, nach der auch loadAll() sonst den zuletzt geänderten Plan wählt. Bringt
+// die Sicherung gar keinen Plan mit, bleibt plan null und der Startbildschirm bestehen.
 export function mergeImportedBundle({ cases, trucks, plans, plan }, bundle) {
   const mergedCases = mergeById(cases, bundle.cases);
   const mergedTrucks = mergeById(trucks, bundle.trucks);
-  const mergedPlans = mergeById([plan, ...plans], bundle.plans);
-  const nextPlan = mergedPlans.find(p => p.id === plan.id) ?? plan;
+  const mergedPlans = mergeById(plan ? [plan, ...plans] : plans, bundle.plans);
+  const nextPlan = plan
+    ? (mergedPlans.find(p => p.id === plan.id) ?? plan)
+    : (pickLatestPlan(mergedPlans) ?? null);
   return {
     cases: mergedCases,
     trucks: mergedTrucks,
-    plans: mergedPlans.filter(p => p.id !== nextPlan.id),
+    plans: nextPlan ? mergedPlans.filter(p => p.id !== nextPlan.id) : mergedPlans,
     plan: nextPlan,
     planChanged: nextPlan !== plan,
     // Nur die Datensätze, die aus der Datei kommen UND gewonnen haben, müssen nach

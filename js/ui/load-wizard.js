@@ -186,7 +186,18 @@ export function openLoadWizard(dlg, opts = {}) {
     const res = await openTrussDialog(opts.trussDlg, { cases, onNewTruss: opts.onNewTruss });
     if (!res) return;
     if (res.newCases.length) cases = [...cases.filter(c => !res.newCases.some(nc => nc.id === c.id)), ...res.newCases];
-    for (const { caseId, n } of res.additions) counts.set(caseId, (counts.get(caseId) ?? 0) + n);
+    // Dieselbe MAX_ITEMS-Grenze wie addNewCase() oben — anders als dort kann eine einzelne
+    // Addition hier aber weit mehr als 1 Stück auf einmal bringen (z. B. alle gleich
+    // besetzten Wagen eines "Gesamtstückzahl"-Laufs landen als eine Addition mit großem n),
+    // ein einfaches Vorher-Gate wie bei addNewCase würde die Grenze also selbst noch
+    // überspringen können. Deshalb wird n auf den verbleibenden Platz gekappt, statt nur
+    // ja/nein zu entscheiden (Befund der Abschlussprüfung: „addTruss umgeht die
+    // 500er-Grenze“).
+    for (const { caseId, n } of res.additions) {
+      const room = MAX_ITEMS - total();
+      if (room <= 0) break;
+      counts.set(caseId, (counts.get(caseId) ?? 0) + Math.min(n, room));
+    }
     if (res.gestapelt) f.autoPack.checked = true;
     renderCompanyOptions();
     renderCaseList();

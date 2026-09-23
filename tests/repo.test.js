@@ -172,6 +172,48 @@ test('mergeImportedBundle: Cases und Fahrzeuge werden unabhängig vom Plan gemis
   assert.equal(result.trucks.find(t => t.id === 't1').name, 'Lokal');
 });
 
+// --- Abschlussprüfung des Wizard-Plans: Import vom Startbildschirm (kein aktueller Plan) ---
+// s.plan ist dort null (Task 1 – die App startet leer statt mit automatisch angelegtem
+// Plan). mergeImportedBundle darf dann nicht mehr plan.id dereferenzieren, sondern muss den
+// zu öffnenden Plan aus den (eigenen + importierten) Plänen selbst bestimmen.
+
+test('mergeImportedBundle: plan null (Startbildschirm) – Datei mit Plänen öffnet den zuletzt geänderten', () => {
+  const older = { id: 'p1', name: 'Älter', updatedAt: '2026-01-01T00:00:00.000Z' };
+  const newer = { id: 'p2', name: 'Neuer', updatedAt: '2026-02-01T00:00:00.000Z' };
+  const state = { cases: [], trucks: [], plans: [], plan: null };
+  const bundle = { cases: [], trucks: [], plans: [older, newer] };
+
+  const result = mergeImportedBundle(state, bundle);
+
+  assert.equal(result.plan, newer, 'der zuletzt geänderte importierte Plan wird geöffnet');
+  assert.equal(result.planChanged, true);
+  assert.deepEqual(result.plans, [older], 'die übrigen importierten Pläne landen in der Nebenliste');
+  assert.deepEqual(result.winners.plans.map(p => p.id).sort(), ['p1', 'p2']);
+});
+
+test('mergeImportedBundle: plan null (Startbildschirm) – eigene gespeicherte Pläne zählen mit', () => {
+  const own = { id: 'p1', name: 'Eigener', updatedAt: '2026-03-01T00:00:00.000Z' };
+  const fromFile = { id: 'p2', name: 'Aus Datei', updatedAt: '2026-01-01T00:00:00.000Z' };
+  const state = { cases: [], trucks: [], plans: [own], plan: null };
+  const bundle = { cases: [], trucks: [], plans: [fromFile] };
+
+  const result = mergeImportedBundle(state, bundle);
+
+  assert.equal(result.plan, own, 'der neuere, schon vorhandene Plan gewinnt, obwohl kein Plan aktuell offen war');
+  assert.deepEqual(result.plans, [fromFile]);
+});
+
+test('mergeImportedBundle: plan null (Startbildschirm) – Datei ohne jeden Plan lässt es beim Startbildschirm', () => {
+  const state = { cases: [{ id: 'c1' }], trucks: [], plans: [], plan: null };
+  const bundle = { cases: [], trucks: [], plans: [] };
+
+  const result = mergeImportedBundle(state, bundle);
+
+  assert.equal(result.plan, null, 'ohne jeden Plan bleibt es beim Startbildschirm statt zu werfen');
+  assert.equal(result.planChanged, false);
+  assert.deepEqual(result.plans, []);
+});
+
 // --- Fix-Runde 2 (Task 2): die reine Zuordnung „welcher Gewinner gehört in welchen
 // Object Store“, die repo.saveImportWinners() an db.putMany() übergibt. Das ist die
 // „Zuordnung in saveImportWinners“, die sich ohne IndexedDB mit node --test prüfen lässt -
