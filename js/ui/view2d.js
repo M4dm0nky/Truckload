@@ -154,7 +154,7 @@ function drawTruss(g, it, mode, truck) {
     }
   });
 
-  const profileWidth = c.truss.width;
+  const profileWidth = shape.profileWidth ?? c.truss.width;
   for (const pc of shape.pieces) {
     const pr = project(pc, mode, truck);
     const uSpan = pr.u1 - pr.u0, vSpan = pr.v1 - pr.v0;

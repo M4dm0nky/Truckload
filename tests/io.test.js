@@ -211,6 +211,20 @@ test('Truss wird beim Import normalisiert (l/w/h, wheelH, tippable)', () => {
   assert.equal(c.tippable, false);
 });
 
+test('Case mit standing:true und width 80 cm wird akzeptiert (Pre-Rig-Traverse)', () => {
+  const truss = { ...own, kind: 'truss', truss: { length: 240, width: 80, count: 1, standing: true, height: 103 } };
+  const res = parseBundle(bundleWith({ cases: [truss], trucks: [], plans: [] }));
+  assert.deepEqual(res.cases[0].truss, { length: 240, width: 80, count: 1, standing: true, height: 103 });
+});
+test('Case mit standing:true aber width 250 cm wird trotzdem abgelehnt (Grenze bei 200)', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 240, width: 250, count: 1, standing: true, height: 103 } }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+test('Case mit standing:true ohne height wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 240, width: 80, count: 1, standing: true } }], trucks: [], plans: [] });
+  assert.throws(() => parseBundle(bad), /Traversenwagen/);
+});
+
 // normalizeCase() läuft beim Datei-Import IMMER nach checkCase() (das width > 40 schon
 // ablehnt, s. o.) – aber auch direkt beim App-Start über repo.normalizeOwnCases(), OHNE
 // vorherige checkCase-Prüfung, für jedes eigene gespeicherte Case. Ein vor Einführung der

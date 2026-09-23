@@ -1,22 +1,47 @@
-# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2)
+# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.8.1)
 
-Recherchiert am 2026-09-23 für `js/data/preset-cases.js`. Alle Gewichte sind
-Netto-Herstellerangaben für ein einzelnes Traversenstück (ohne Dolly). Formel je
-Wagen-Vorlage:
+Recherchiert am 2026-09-23 für `js/data/preset-cases.js`. Alle Stückgewichte sind
+Netto-Herstellerangaben für die Traverse selbst (ohne Grundplatte/Beine/Rollen).
+Formel je Vorlage:
 
 ```
-Wagen-Gewicht = round( Stückgewicht × Stückzahl + Dolly-Pauschale )
-Dolly-Pauschale = 2 × 12 kg (wie bei den bestehenden F34-/F44-Wagen)
+Case-Gewicht = round( Stückgewicht + Grundplatten-Pauschale )
+Grundplatten-Pauschale = 25 kg
 ```
 
-Die Dolly-Pauschale ist ein Richtwert, kein recherchierter Wert für den
-jeweiligen Hersteller-Dolly (siehe `docs/offene-punkte.md`). Ein Wagen trägt
-`4` Stück (2 nebeneinander, 2 Lagen übereinander), wie bei den bestehenden
-Traversenwagen-Vorlagen.
+Die Grundplatten-Pauschale ist ein Richtwert für Grundplatte, Beine und Rollen,
+kein recherchierter Wert für den jeweiligen Hersteller-Unterbau (siehe
+`docs/offene-punkte.md`). **Ein Stück ist immer EINE Traverse** – anders als bei
+den bestehenden F34-/F44-Traversenwagen (die mehrere Stücke auf einen
+gemeinsamen Transport-Wagen stapeln) steht hier jedes Stück einzeln auf seinen
+eigenen Beinen bzw. seinem eigenen Rollwagen und wird komplett montiert in den
+Truck gerollt.
 
-## H.O.F. MLT ONE/TWO/THREE – Querschnitt 29×29 cm (Gurtrohr 48,3×4,5 mm)
+## Korrektur V0.8.1: Querschnitt und Aufbau
 
-Passt in die bestehende Breitenklasse „34er (F34)“ (29 cm).
+Die erste Fassung (V0.8.0) nahm fälschlich einen quadratischen Rohr-Querschnitt
+an und stapelte 4 Stück auf einen gemeinsamen Wagen – wie die bestehenden F34-/
+F44-Vorlagen. Nach Sichtung von Herstellerfotos und einer Bemaßungszeichnung
+(H.O.F. „350MLT“, Artikel-Bild `hoffork_350MLT_bemassung`) ist das falsch:
+
+- **Querschnitt ist rechteckig, nicht quadratisch**: H.O.F. 608×356 mm, Prolyte
+  S36PR (Datenblatt) 610×360 mm – praktisch identisch zwischen den Herstellern.
+  In der App: `STAND_TRUSS_W = 60`, `STAND_TRUSS_H = 35` (`js/model/truss.js`).
+- **Ein Stück steht einzeln auf 4 Beinen** über einer schmalen Grundplatte mit
+  Rollen (H.O.F. MLT ONE: direkt am Bein, kein eigener Rollwagen-Tisch;
+  MLT TWO/THREE/FOUR: auf einem fahrbaren Unterwagen mit Teleskopbeinen) – nicht
+  mehrere Stücke gestapelt auf einem gemeinsamen Flachwagen.
+- **Standflächen-Breite** (Bein-/Rollen-Spur, `STAND_FOOTPRINT_W = 80` cm) ist
+  eine Fotoabschätzung, keine Herstellerangabe.
+- **Standhöhe** (montiert, auf Rollen/Beinen): für H.O.F. MLT TWO mit
+  103 cm belegt (Produktseite, „Gesamthöhe mit Dolly“). Für ONE/THREE/FOUR und
+  Prolyte S36PR keine Herstellerangabe gefunden – MLT TWO/THREE/FOUR und beide
+  S36PR-Varianten sehen auf allen Fotos vergleichbar hoch aus (gleicher
+  Rollwagen-Aufbau), deshalb einheitlich 103 cm als Richtwert übernommen.
+  MLT ONE steht ohne eigenen Rollwagen-Tisch sichtbar niedriger, geschätzt auf
+  75 cm (Fotovergleich, kein Herstellerwert).
+
+## H.O.F. MLT ONE/TWO/THREE – Querschnitt 608×356 mm (Gurtrohr 48,3×4,5 mm)
 
 | Modell | Länge | Stückgewicht | Quelle |
 |---|---|---|---|
@@ -36,10 +61,9 @@ Passt in die bestehende Breitenklasse „34er (F34)“ (29 cm).
 | MLT THREE | 3,0 m | 55,6 kg | s. o. |
 | MLT THREE | 3,2 m | 58,0 kg | s. o. |
 
-## H.O.F. MLT FOUR – Querschnitt 40×40 cm (Fachwerk 40×3 mm)
+## H.O.F. MLT FOUR – Querschnitt vergleichbar (Fachwerk 40×3 mm)
 
-Passt in die bestehende Breitenklasse „40er (F44)“ (40 cm). Keine 1,2-m- oder
-1,6-m-Variante im Herstellerprogramm.
+Keine 1,2-m- oder 1,6-m-Variante im Herstellerprogramm.
 
 | Länge | Stückgewicht | Quelle |
 |---|---|---|
@@ -47,12 +71,11 @@ Passt in die bestehende Breitenklasse „40er (F44)“ (40 cm). Keine 1,2-m- ode
 | 2,4 m | 71,5 kg | s. o. |
 | 3,0 m | 83,5 kg | s. o. |
 
-## Prolyte S36PRF (fest) / S36PRA (flexibel) – Querschnitt 36×36 cm
+## Prolyte S36PRF (fest) / S36PRA (flexibel) – Querschnitt 610×360 mm
 
 Prolyte führt keine „MLT“-Baureihe; die S36-PreRig-Serie ist der direkte
-Gegenpart (Gurtrohr 50×4 mm, Diagonalen 25×3 mm). Neue Breitenklasse „36er
-(S36)“ in `TRUSS_PROFILES`. Nur in 1,22/2,44/3,05 m (4/8/10 ft) erhältlich –
-keine 1,2-/1,6-/2,4-m-Variante.
+Gegenpart (Gurtrohr 50×4 mm, Diagonalen 25×3 mm). Nur in 1,22/2,44/3,05 m
+(4/8/10 ft) erhältlich – keine 1,2-/1,6-/2,4-m-Variante.
 
 | Modell | Länge | Stückgewicht | Quelle |
 |---|---|---|---|

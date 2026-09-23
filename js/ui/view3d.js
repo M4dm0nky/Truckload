@@ -445,7 +445,7 @@ export async function createView3d(container) {
     for (const r of shape.rails) content.add(boxMesh(r, MAT_DOLLY_RAIL));
     for (const w of shape.wheels) content.add(...wheelMesh(w, 'bottom'));
 
-    const profileWidth = c.truss.width;
+    const profileWidth = shape.profileWidth ?? c.truss.width;
     const chordR = profileWidth * TUBE_R_RATIO, diagR = profileWidth * DIAG_R_RATIO;
     const col = selected ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N;
     for (const pc of shape.pieces) {

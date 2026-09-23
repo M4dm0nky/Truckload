@@ -135,6 +135,25 @@ seitlich zu führen. `trussShape()` liefert `dollies` (das volle Wagenvolumen, g
 die Beschriftungsfläche), `boards`, `rails`, `wheels` und `pieces`. Traversenwagen sind nie
 tippbar.
 
+### Pre-Rig-Traversen (`standing: true`)
+
+Ein zweiter, seit V 0.8.1 unterstützter Aufbau für Moving-Light-Pre-Rig-Traversen (H.O.F. MLT,
+Prolyte S36PR): `truss: { length, width, count: 1, standing: true, height }`. Anders als der
+Wagen oben (mehrere Stücke auf einem gemeinsamen Flachwagen) ist hier **ein Stück immer eine
+einzelne, komplett montierte Traverse** auf 4 Beinen über einer eigenen Grundplatte mit Rollen —
+so wird sie auch fertig aufgerüstet (mit montierten Movern) in den Truck gerollt. `width` meint
+hier die Standfläche (`STAND_FOOTPRINT_W`, 80 cm, Fotoabschätzung), nicht den Traversen-
+Querschnitt; `height` die Standhöhe (je Modell recherchiert/abgeschätzt, siehe
+`docs/mlt-truss-gewichte.md`) und wird — anders als bei der Wagen-Variante — direkt mitgegeben
+statt aus `count`/`width` errechnet. `trussDims()` gibt dafür `{l: length, w: width, h: height}`
+unverändert zurück, ohne die `MAX_TRUSS_WIDTH`-Grenze zu prüfen (die gilt nur fürs Nebeneinander-
+Passen auf dem Wagen). `trussShape()` liefert denselben Rückgabe-Vertrag wie oben, nur anders
+befüllt: `dollies`/`boards` sind hier die eine Grundplatte, `rails` sind die 4 Beine, `pieces`
+enthält die eine Traverse (Rechteck-Querschnitt `STAND_TRUSS_W`×`STAND_TRUSS_H`, schmaler als die
+Standfläche, mittig obenauf). Ein zusätzliches Feld `profileWidth` sagt view2d.js/view3d.js, mit
+welcher Breite die Gurtrohre gezeichnet werden — `c.truss.width` wäre hier die falsche (zu breite)
+Standfläche statt des Querschnitts.
+
 ## Gewicht: 0 kg ist nicht „unbekannt“
 
 Ein Case-Typ ohne Gewichtsangabe trägt `weight: 0` — das ist absichtlich (`CLAUDE.md`:

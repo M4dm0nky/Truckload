@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.1 – 2026-09-23
+
+- Die grafische Darstellung der MLT-/S36PR-Traversenwagen war falsch (quadratischer Querschnitt, 4 Stück gestapelt auf einem gemeinsamen Wagen wie bei F34/F40). Nach Herstellerfotos korrigiert: Rechteck-Querschnitt, ein Stück ist immer EINE einzelne, stehende Traverse auf 4 Beinen über einer eigenen Grundplatte mit Rollen – so wie sie in echt fertig montiert in den Truck gerollt wird.
+
 ## V 0.8.0 – 2026-09-23
 
 - Nach einer Veröffentlichung lädt sich eine schon offene Seite jetzt automatisch einmal neu, sobald der neue Stand bereitsteht – bisher blieb sie auf der alten Version stehen bzw. sprang kurz auf die neue und dann zurück, bis man von Hand zweimal neu geladen hat.

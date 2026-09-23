@@ -3,12 +3,20 @@ import assert from 'node:assert/strict';
 import {
   DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_RAIL_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES,
   TUBE_R_RATIO, trussDims, isTruss, trussShape, MAX_TRUSS_WIDTH,
+  STAND_FOOTPRINT_W, STAND_TRUSS_W, STAND_TRUSS_H,
 } from '../js/model/truss.js';
 import { boxOf } from '../js/model/geometry.js';
 
 const mkTrussCase = (length, width, count) => {
   const { l, w, h } = trussDims({ length, width, count });
   return { kind: 'truss', truss: { length, width, count }, l, w, h };
+};
+// Pre-Rig-Traverse (MLT/S36PR): EIN Stück, standing:true – width ist die Standfläche, height die
+// Standhöhe (beide direkt vom Aufrufer vorgegeben, s. trussDims()).
+const mkStandingCase = (length, height, width = STAND_FOOTPRINT_W) => {
+  const truss = { length, width, count: 1, standing: true, height };
+  const { l, w, h } = trussDims(truss);
+  return { kind: 'truss', truss, l, w, h };
 };
 
 test('trussDims: 34er (29 cm) passt zu zweit nebeneinander -> 60er Wagen', () => {
@@ -315,4 +323,56 @@ test('trussShape: schmale Spur begrenzt die Leistenbreite statt zu überlappen',
     assert.ok(a[`${s.widAxis}1`] <= b[`${s.widAxis}0`] + 1e-9, 'Leisten in schmaler Spur überlappen sich nicht');
     for (const r of railsOnDolly) checkInsideBox(box, r);
   }
+});
+
+test('trussDims: standing gibt Länge/Standfläche/Standhöhe direkt zurück, ohne Wagen-Layout-Formel', () => {
+  // width (80) liegt bewusst über MAX_TRUSS_WIDTH (40 cm) – das ist für stehende Einzelstücke
+  // ohne Bedeutung, die Grenze gilt nur für die stapelnde Wagen-Variante. Kein Wurf.
+  const d = trussDims({ length: 240, width: STAND_FOOTPRINT_W, count: 1, standing: true, height: 103 });
+  assert.deepEqual(d, { l: 240, w: STAND_FOOTPRINT_W, h: 103 });
+});
+
+test('trussShape: stehende Pre-Rig-Traverse (standing) – eine Traverse auf 4 Beinen/Rollen, kein Wagen-Stapel', () => {
+  const c = mkStandingCase(240, 103);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+
+  assert.equal(s.lenAxis, 'x');
+  assert.equal(s.widAxis, 'y');
+  assert.equal(s.dollies.length, 1, 'genau eine Grundplatte statt zwei Wagen');
+  assert.equal(s.boards.length, 1);
+  assert.equal(s.wheels.length, 4, 'vier Rollen an den Ecken der Grundplatte, nicht acht wie beim Wagen');
+  assert.equal(s.pieces.length, 1, 'genau EINE Traverse, keine gestapelten Mehrfachstücke');
+  assert.equal(s.rails.length, 4, 'vier Beine');
+  assert.equal(s.profileWidth, STAND_TRUSS_W);
+
+  for (const b of [...s.dollies, ...s.wheels, ...s.pieces, ...s.rails]) checkInsideBox(box, b);
+
+  // Die Traverse liegt oben (bis zur Oberkante der Box) und ist schmaler als die Standfläche,
+  // mittig darüber.
+  const piece = s.pieces[0];
+  assert.equal(piece.z1, box.z1);
+  assert.ok(Math.abs((piece.z1 - piece.z0) - STAND_TRUSS_H) < 1e-9);
+  const pieceWidth = piece[`${s.widAxis}1`] - piece[`${s.widAxis}0`];
+  assert.ok(Math.abs(pieceWidth - STAND_TRUSS_W) < 1e-9);
+  assert.ok(pieceWidth < box[`${s.widAxis}1`] - box[`${s.widAxis}0`], 'Traverse ist schmaler als die Standfläche');
+
+  // Rollen ganz unten (am Boden), Beine reichen von der Grundplatte bis unter die Traverse.
+  for (const w of s.wheels) assert.equal(w.z0, box.z0);
+  for (const leg of s.rails) {
+    assert.ok(leg.z0 >= s.dollies[0].z1 - 1e-9, 'Bein beginnt an/über der Grundplatte');
+    assert.ok(leg.z1 <= piece.z0 + 1e-9, 'Bein endet an/unter der Traverse');
+  }
+});
+
+test('trussShape: stehende Pre-Rig-Traverse bei 90° – Länge verläuft entlang y', () => {
+  const c = mkStandingCase(160, 75);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 90 };
+  const box = boxOf(c, p);
+  const s = trussShape(c, p, box);
+  assert.equal(s.lenAxis, 'y');
+  assert.equal(s.widAxis, 'x');
+  assert.equal(s.pieces[0].y1 - s.pieces[0].y0, 160);
+  for (const b of [...s.dollies, ...s.wheels, ...s.pieces, ...s.rails]) checkInsideBox(box, b);
 });

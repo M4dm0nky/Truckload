@@ -7,7 +7,6 @@ export const DOLLY_H = DOLLY_WHEEL_H + DOLLY_BOARD_H + DOLLY_RAIL_H; // Wagen in
 export const DOLLY_WIDTHS = [60, 80];
 export const TRUSS_PROFILES = [
   { name: '34er (F34)', width: 29 },
-  { name: '36er (S36)', width: 36 },
   { name: '40er (F44)', width: 40 },
 ];
 
@@ -17,7 +16,13 @@ export const TRUSS_PROFILES = [
 // Breitengrenze nicht, die es selbst voraussetzt").
 export const MAX_TRUSS_WIDTH = DOLLY_WIDTHS.at(-1) / 2;
 
-export function trussDims({ length, width, count }) {
+// Pre-Rig-Traversen (H.O.F. MLT/Prolyte S36PR, standing:true): EIN Stück ist IMMER EINE stehende
+// Traverse auf Beinen bzw. Rollwagen, keine mehreren gestapelten Stücke wie beim F34/F40-Wagen
+// oben – width/height sind hier direkt die Außenmaße (Standfläche/Standhöhe), nicht Eingaben für
+// die Wagen-Layout-Formel. Die MAX_TRUSS_WIDTH-Grenze gilt nur für die stapelnde Wagen-Variante
+// (2 Stück nebeneinander auf einen Dolly) und ist für stehende Einzelstücke bedeutungslos.
+export function trussDims({ length, width, count, standing, height }) {
+  if (standing) return { l: length, w: width, h: height };
   if (width > MAX_TRUSS_WIDTH)
     throw new Error(`Traversenbreite ${width} cm überschreitet die Grenze von ${MAX_TRUSS_WIDTH} cm.`);
   const perRow = 2;
@@ -59,6 +64,18 @@ export const DIAG_R_RATIO = 0.035; // Diagonalen-Radius (F34: 20 mm Ø / 29 cm)
 const PER_ROW = 2;                 // Traversenstücke nebeneinander pro Lage
 const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei schmalen Spuren begrenzt
 
+// Maße für stehende Pre-Rig-Traversen (standing:true), recherchiert an Herstellerfotos/
+// -bemaßungszeichnungen (docs/mlt-truss-gewichte.md): Rechteck-Querschnitt statt Quadratrohr
+// (H.O.F. 608×356 mm, Prolyte S36PR 610×360 mm – beide praktisch gleich), auf 4 Eckbeinen über
+// einer schmalen Grundplatte mit Rollen. STAND_FOOTPRINT_W ist die Bein-/Rollen-Spurbreite
+// (Nutzerangabe „80 breit“, deckt sich mit den Fotos), nicht der Traversenquerschnitt selbst.
+export const STAND_FOOTPRINT_W = 80; // Standfläche (cm) – Case-Breite `w`
+export const STAND_TRUSS_W = 60;     // sichtbare Traversenbreite (cm)
+export const STAND_TRUSS_H = 35;     // sichtbare Traversenhöhe (cm)
+const STAND_BASE_H = 4;              // Grundplatte/Rollwagen-Tisch (cm)
+const STAND_LEG_D = 6;               // Beindicke (cm)
+const STAND_WHEEL_D = 10;            // Rollendurchmesser (cm)
+
 // Reine Geometrie eines platzierten Traversenwagens: zwei Rollwagen an den Enden (über die volle
 // Wagenbreite, mit je 4 Rollen), darauf `count` Traversenstücke – 2 nebeneinander, Lagen übereinander,
 // jedes Stück über die volle Länge (liegt auf beiden Wagen auf). Jeder Rollwagen ist ein flaches
@@ -70,6 +87,7 @@ const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei 
 // (Bezugsfläche/Beschriftung). `box` ist die platzierte Box (x0…z1, Truck-Koordinaten); `p.rot`
 // bestimmt, ob die Traversenlänge entlang x oder y verläuft.
 export function trussShape(c, p, box) {
+  if (c.truss.standing) return standingTrussShape(p, box);
   const { width, count } = c.truss;
   const rot90 = ((p.rot ?? 0) % 180) === 90;
   const lenAxis = rot90 ? 'y' : 'x';
@@ -142,4 +160,42 @@ export function trussShape(c, p, box) {
   }
 
   return { lenAxis, widAxis, dollies, wheels, pieces, boards, rails };
+}
+
+// Geometrie einer stehenden Pre-Rig-Traverse (H.O.F. MLT/Prolyte S36PR): eine schmale Grundplatte
+// mit Rollen an den 4 Ecken ganz unten, darüber 4 Beine hoch bis zur Traverse, die – schmaler als
+// die Standfläche, mittig darüber – den oberen Abschluss bildet. Nutzt denselben Rückgabe-Vertrag
+// wie die Wagen-Variante oben (`dollies`/`wheels`/`pieces`/`boards`/`rails`), damit view2d.js/
+// view3d.js ohne eigene Fallunterscheidung zeichnen können: `boards`/`dollies` sind hier die eine
+// Grundplatte (Bezugsfläche für Beschriftung), `rails` sind hier die 4 Beine (gleiche schlichte
+// Balken-Optik wie echte Auflageleisten), `pieces` enthält die eine Traverse (gleiche Gurtrohr-/
+// Zickzack-Zeichnung wie beim Wagen, nur ein einziges Stück). `profileWidth` gibt view2d.js/
+// view3d.js die sichtbare Traversenbreite für die Rohr-Stärke vor, weil `c.truss.width` bei
+// stehenden Traversen die Standfläche meint, nicht den Querschnitt.
+function standingTrussShape(p, box) {
+  const rot90 = ((p.rot ?? 0) % 180) === 90;
+  const lenAxis = rot90 ? 'y' : 'x';
+  const widAxis = rot90 ? 'x' : 'y';
+
+  const len0 = box[`${lenAxis}0`], len1 = box[`${lenAxis}1`];
+  const wid0 = box[`${widAxis}0`], wid1 = box[`${widAxis}1`];
+  const z0 = box.z0, z1 = box.z1;
+
+  const mk = (lenR, widR, zR) => ({
+    [`${lenAxis}0`]: lenR[0], [`${lenAxis}1`]: lenR[1],
+    [`${widAxis}0`]: widR[0], [`${widAxis}1`]: widR[1],
+    z0: zR[0], z1: zR[1],
+  });
+
+  const baseZ0 = z0 + STAND_WHEEL_D, baseZ1 = baseZ0 + STAND_BASE_H;
+  const base = mk([len0, len1], [wid0, wid1], [baseZ0, baseZ1]);
+  const wheels = cornerBoxes(base, [lenAxis, widAxis, 'z'], STAND_WHEEL_D, STAND_WHEEL_D * 0.4, [z0, z0 + STAND_WHEEL_D]);
+
+  const truss0 = wid0 + (wid1 - wid0 - STAND_TRUSS_W) / 2, truss1 = truss0 + STAND_TRUSS_W;
+  const trussZ0 = Math.max(baseZ1, z1 - STAND_TRUSS_H);
+  const trussBox = mk([len0, len1], [truss0, truss1], [trussZ0, z1]);
+  const legFace = { ...base, [`${widAxis}0`]: truss0, [`${widAxis}1`]: truss1 };
+  const legs = cornerBoxes(legFace, [lenAxis, widAxis, 'z'], STAND_LEG_D, STAND_LEG_D * 0.5, [baseZ1, trussZ0]);
+
+  return { lenAxis, widAxis, dollies: [base], wheels, pieces: [trussBox], boards: [base], rails: legs, profileWidth: STAND_TRUSS_W };
 }

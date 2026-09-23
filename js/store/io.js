@@ -53,10 +53,16 @@ export function checkCase(c) {
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
   if (isTruss(c)) {
     const t = c.truss;
+    // standing: true (Pre-Rig-Traversen wie H.O.F. MLT/Prolyte S36PR) sind EIN stehendes Stück,
+    // width meint dort die Standfläche (bis 80 cm, s. STAND_FOOTPRINT_W in truss.js), nicht den
+    // Wagen-Querschnitt (max. 40 cm) der stapelnden F34/F40-Variante. Brauchen zusätzlich height.
+    const standing = t?.standing === true;
     const trussOk = t
       && num(t.length) && t.length >= 1 && t.length <= 1000
-      && num(t.width) && t.width >= 1 && t.width <= 40
+      && num(t.width) && t.width >= 1 && t.width <= (standing ? 200 : 40)
       && Number.isInteger(t.count) && t.count >= 1 && t.count <= 12
+      && (t.standing === undefined || typeof t.standing === 'boolean')
+      && (!standing || (num(t.height) && t.height >= 1 && t.height <= CASE_LIMITS.h))
       && c.tippable !== true;
     if (!trussOk) throw new Error(`Case „${c.name}“ hat ungültige Traversenwagen-Werte.`);
   }
