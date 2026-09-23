@@ -135,6 +135,14 @@ test('duplicate ohne Zahl am Ende hängt keine Nummer an', () => {
   const pl = A.duplicate(plan([P('a','k',0,0,0,{ label: 'Kabelcase' })]), 'a', ctx());
   assert.equal(pl.placements[1].label, 'Kabelcase');
 });
+// Fix-Runde 1 (Reviewer, Task 8): `nextLabel()`s `padStart` war ungetestet — ein Rückbau auf
+// `${m[1]}${Number(m[2]) + 1}` (ohne padStart) blieb bei 372/372 grün. "09" -> "10" allein zeigt
+// das nicht (beide Fassungen liefern zufällig 2 Ziffern) – "005" -> "6" (ohne padStart) vs. "006"
+// (mit) macht den Unterschied sichtbar.
+test('duplicate erhält die Stellenzahl beim Hochzählen (führende Nullen bleiben Nullen)', () => {
+  const pl = A.duplicate(plan([P('a','k',0,0,0,{ label: 'Kabelcase 005' })]), 'a', ctx());
+  assert.equal(pl.placements[1].label, 'Kabelcase 006');
+});
 test('duplicate kürzt eine über MAX_LABEL hinaus hochgezählte Nummer (Befund B4, Fix-Runde 1)', () => {
   // 40 Zeichen, endet auf "9" -> hochgezählt "10" wäre 41 Zeichen ohne Kürzung.
   const label = `${'X'.repeat(MAX_LABEL - 1)}9`;

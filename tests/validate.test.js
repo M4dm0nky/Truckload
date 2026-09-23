@@ -304,6 +304,17 @@ test('fehlender Case-Typ: Meldung macht deutlich, dass die Position nicht auf Ko
   assert.match(msg, /nicht.*(auf Kollisionen|geprüft)/i);
 });
 
+// Fix-Runde 1 (Reviewer, Task 8): `byPlacement` wird mit `is.placementId != null` gefüllt statt
+// mit einem reinen Truthy-Check — ein Rückbau auf `if (is.placementId)` blieb bei 372/372 grün,
+// weil kein bestehender Test je eine leere Zeichenkette als Placement-ID benutzte. `io.js` prüft
+// für ein Placement nur `typeof === 'string'`, eine leere ID aus einer Fremddatei ist also
+// erreichbar. Truthy würfe sie aus `byPlacement` heraus, `!= null` lässt sie drin.
+test('byPlacement erfasst auch eine leere Zeichenkette als Placement-ID (Truthy-Falle)', () => {
+  const r = validatePlan(plan([P('', 'k', 1300, 0, 0)]), byId(K), mkTruck());
+  assert.ok(r.byPlacement.has(''), 'eine leere Placement-ID darf nicht aus byPlacement herausfallen');
+  assert.deepEqual(codes(r, ''), ['outOfBounds']);
+});
+
 // EPS (js/model/geometry.js) ist die Toleranz für alle Überlappungs- und Auflageprüfungen
 // (docs/architektur.md). Die übrigen Tests arbeiten ausschließlich mit exakt anschließenden
 // Boxen (Spalt/Durchdringung 0), das ist der Grenzfall 0 und lässt EPS unangetastet. Diese drei

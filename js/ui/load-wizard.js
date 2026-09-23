@@ -122,10 +122,18 @@ export function openLoadWizard(dlg, opts = {}) {
     updateTotals();
   }
   // Firmenfilter neu aufbauen, wenn sich die Case-Liste ändert (nach „+ Neues Case“/„Sonderbau“) –
-  // vorher blieb er auf dem Stand beim Öffnen des Wizards stehen, ein neu angelegtes Case mit
-  // eigener Firma tauchte im Filter nicht auf (docs/code-review-2026-09-21.md, „N7 — Firmenfilter
-  // im Wizard veraltet nach + Neues Case“). js/ui/library.js macht es für dieselbe Hilfsfunktion
-  // bereits richtig (renderCompanyOptions) und merkt sich zusätzlich die bisherige Auswahl.
+  // vorher blieb er auf dem Stand beim Öffnen des Wizards stehen (docs/code-review-2026-09-21.md,
+  // „N7 — Firmenfilter im Wizard veraltet nach + Neues Case“). js/ui/library.js macht es für
+  // dieselbe Hilfsfunktion bereits richtig (renderCompanyOptions) und merkt sich zusätzlich die
+  // bisherige Auswahl.
+  //
+  // Heute ohne beobachtbare Wirkung, bewusst als Vorsorge stehen gelassen (Fix-Runde 1, Reviewer):
+  // `js/ui/case-editor.js` hat kein Formularfeld für `company` und setzt es beim Speichern explizit
+  // auf `undefined` (Zeile „builtin: false, note: undefined, company: undefined, …“) – ein über
+  // „+ Neues Case“/„Sonderbau“ angelegtes Case kann also nie eine neue Firma mitbringen, `company`
+  // kommt heute ausschließlich aus der mitgelieferten Bibliothek (`js/data/case-library.js`).
+  // Der Fall tritt erst ein, wenn der Case-Editor je ein Firmenfeld bekommt – dann greift dieser
+  // Aufruf ohne weitere Änderung.
   function renderCompanyOptions() {
     const prev = companyFilterSel.value;
     const companies = companiesOf(cases);
