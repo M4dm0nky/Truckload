@@ -2,6 +2,7 @@ import { CATEGORIES, colorFor } from '../data/categories.js';
 import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
 import { CASE_LIMITS } from '../store/io.js';
+import { showConfirm } from './confirmDialog.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
@@ -283,7 +284,8 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
       const act = dlg.returnValue;
       if (act === 'delete') {
         const msg = usedIn ? `„${v.name}“ wird in ${usedIn} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${v.name}“ löschen?`;
-        return resolve(confirm(msg) ? { action: 'delete' } : null);
+        showConfirm(msg, { okLabel: 'Löschen', danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
+        return;
       }
       if (act !== 'save') return resolve(null);
       const numOrNull = s => (s === '' ? null : Number(s));

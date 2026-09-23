@@ -1,3 +1,5 @@
+import { showConfirm } from './confirmDialog.js';
+
 export function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
   const isNew = !t || t.builtin;
   const arch = t?.wheelArches?.[0];
@@ -42,7 +44,8 @@ export function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
       const act = dlg.returnValue;
       if (act === 'delete') {
         const msg = usedIn ? `„${t.name}“ wird in ${usedIn} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${t.name}“ löschen?`;
-        return resolve(confirm(msg) ? { action: 'delete' } : null);
+        showConfirm(msg, { okLabel: 'Löschen', danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
+        return;
       }
       if (act !== 'save') return resolve(null);
       const wheelArches = f.arches.checked && f.ax.value !== ''

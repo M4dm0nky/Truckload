@@ -13,6 +13,7 @@ import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
+import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { buildPrint } from './ui/print.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
@@ -150,7 +151,7 @@ async function saveCaseValue(rawValue) {
   try {
     await repo.saveCase(value);
   } catch (err) {
-    alert(`Case konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
+    await showAlert(`Case konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
     return undefined;
   }
   store.update(st => ({ ...st, cases: [...st.cases.filter(x => x.id !== value.id), value] }));
@@ -166,13 +167,31 @@ async function editCase(caseId) {
     try {
       await repo.deleteCase(caseId);
     } catch (err) {
-      alert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
+      await showAlert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
       return;
     }
     store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
   } else {
     await saveCaseValue(res.value);
   }
+}
+
+// Direkt-Löschen aus der Bibliotheksliste (ohne den Umweg über „Bearbeiten“ → Löschen im
+// Editor-Dialog) – gleiche Logik wie der Löschzweig in editCase() oben, nur ohne Dialog-Öffnen.
+async function deleteCaseDirect(caseId) {
+  const s = store.get();
+  const c = s.cases.find(x => x.id === caseId);
+  if (!c) return;
+  const used = usage(s, caseId);
+  const msg = used ? `„${c.name}“ wird in ${used} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${c.name}“ löschen?`;
+  if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return;
+  try {
+    await repo.deleteCase(caseId);
+  } catch (err) {
+    await showAlert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
+    return;
+  }
+  store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
 }
 
 // Für den Load-Wizard: legt ein neues Case über den Case-Editor an (optional mit Vorbelegung,
@@ -206,6 +225,7 @@ async function runLoadWizard(mode, presetCaseId = null) {
 const library = mountLibrary($('#library'), {
   onNew: () => editCase(null),
   onEdit: id => editCase(id),
+  onDelete: id => deleteCaseDirect(id),
   onAdd: id => runLoadWizard('add', id),
   onAddLoad: () => runLoadWizard('add'),
   onTrayRemove: id => edit(p => A.removeUnplaced(p, id)),
@@ -283,9 +303,9 @@ document.addEventListener('keydown', e => {
 // Undo/Redo, Modus, Auto-Pack
 $('#undo').onclick = () => store.undo();
 $('#redo').onclick = () => store.redo();
-$('#pack-all').onclick = () => {
+$('#pack-all').onclick = async () => {
   const s = store.get();
-  if (s.plan.placements.length && !confirm('Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)')) return;
+  if (s.plan.placements.length && !await showConfirm('Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)')) return;
   edit((p, c) => A.packAll(p, c));
 };
 $('#pack-rest').onclick = () => edit((p, c) => A.packRest(p, c));
@@ -366,8 +386,8 @@ $('#plan-select').onchange = e => {
   if (next) switchPlan(next);
 };
 $('#plan-new').onclick = () => runLoadWizard('new');
-$('#plan-rename').onclick = () => {
-  const name = prompt('Neuer Name:', store.get().plan.name);
+$('#plan-rename').onclick = async () => {
+  const name = await showPrompt('Neuer Name:', store.get().plan.name);
   if (name?.trim()) edit(p => stamp({ ...p, name: name.trim() }));
 };
 $('#plan-dup').onclick = () => {
@@ -376,11 +396,11 @@ $('#plan-dup').onclick = () => {
 };
 $('#plan-del').onclick = async () => {
   const s = store.get();
-  if (!confirm(`Ladeplan „${s.plan.name}“ löschen?`)) return;
+  if (!await showConfirm(`Ladeplan „${s.plan.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return;
   try {
     await repo.deletePlan(s.plan.id);
   } catch (err) {
-    alert(`Löschen fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
+    await showAlert(`Löschen fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
     return;
   }
   // Erst NACH dem erfolgreichen Löschen die ausstehende Speicherung dieses Plans
@@ -407,7 +427,7 @@ async function editTruck(truck) {
     try {
       await repo.deleteTruck(truck.id);
     } catch (err) {
-      alert(`Fahrzeug konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
+      await showAlert(`Fahrzeug konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
       return;
     }
     // Nicht nur den aktuellen Plan umbiegen (Befund Daten-22): jeder Plan, der das
@@ -425,7 +445,7 @@ async function editTruck(truck) {
         // Unbehandelt hätte das eine tote Rejection UND einen toten truckId-Verweis
         // hinterlassen, der stehen bleibt, weil niemand davon erfährt (Befund:
         // „Löschzweige ohne Fehlerbehandlung“).
-        alert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
+        await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
       }
     }
     if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }));
@@ -435,7 +455,7 @@ async function editTruck(truck) {
   try {
     await repo.saveTruck(value);
   } catch (err) {
-    alert(`Fahrzeug konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
+    await showAlert(`Fahrzeug konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
     return;
   }
   store.update(s => ({ ...s, trucks: [...s.trucks.filter(t => t.id !== value.id), value] }));
@@ -513,7 +533,7 @@ $('#import').onchange = async e => {
   try {
     bundle = parseBundle(await file.text());
   } catch (err) {
-    alert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
+    await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
     return;
   }
 
@@ -568,7 +588,7 @@ $('#import').onchange = async e => {
   }
 
   if (importFailed) {
-    const retry = confirm(
+    const retry = await showConfirm(
       `Import: Schreiben in die Datenbank fehlgeschlagen (${importErr?.message ?? 'unbekannter Fehler'}). ` +
       'Der Stand von vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
     );
@@ -582,7 +602,7 @@ $('#import').onchange = async e => {
   // passieren, damit der Nutzer erkennt, was und wie viele Datensätze angepasst wurden
   // (Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“).
   const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
-  alert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne (neuere lokale Stände behalten).${repairNote}`);
+  await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne (neuere lokale Stände behalten).${repairNote}`);
 };
 
 // Version sichtbar machen (einzige Quelle: js/version.js)
@@ -617,9 +637,22 @@ if ('BroadcastChannel' in window) {
   tabChannel.postMessage('hallo');
 }
 
-// Offline-Betrieb (nur über http/https, nicht über file://)
+// Offline-Betrieb (nur über http/https, nicht über file://). sw.js selbst bleibt cache-first
+// (Offline-Fähigkeit bleibt erhalten) – hier nur der fehlende Teil: sobald ein neuer Service
+// Worker übernimmt (skipWaiting/clients.claim in sw.js sorgen dafür), lädt die offene Seite sich
+// einmal automatisch neu, statt dass der Nutzer bis zum nächsten manuellen Reload eine Mischung
+// aus altem und neuem Stand sieht (kurz neue Version, dann Rücksprung auf die alte). hadController
+// verhindert einen sinnlosen Reload beim allerersten Besuch, bei dem der erste Worker die noch
+// unkontrollierte Seite ganz normal übernimmt.
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline-Modus nicht verfügbar:', err));
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
 }
 
 scheduleRender();

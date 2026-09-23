@@ -2,6 +2,12 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.0 – 2026-09-23
+
+- Nach einer Veröffentlichung lädt sich eine schon offene Seite jetzt automatisch einmal neu, sobald der neue Stand bereitsteht – bisher blieb sie auf der alten Version stehen bzw. sprang kurz auf die neue und dann zurück, bis man von Hand zweimal neu geladen hat.
+- Sämtliche Bestätigungs- und Meldungsfenster (Case/Fahrzeug/Ladeplan löschen, Ladeplan umbenennen, Import-Meldungen) laufen jetzt über eigene Popups im Truckload-Design statt über die nativen Browser-Dialoge.
+- Cases lassen sich jetzt direkt in der Bibliotheksliste löschen (🗑 neben „+“/„✎“), ohne den Umweg über „Bearbeiten“.
+
 ## V 0.7.2 – 2026-09-23
 
 - 24 MLT-Traversenwagen (Moving-Light-Truss) neu in der Bibliothek: H.O.F. MLT ONE/TWO/THREE/FOUR und Prolyte S36PRF/S36PRA, jeweils mit den vom Hersteller geführten Längen. Stückgewichte recherchiert, siehe `docs/mlt-truss-gewichte.md`. Neue Breitenklasse „36er (S36)“ für die Prolyte-Reihe, die keine eigene MLT-Baureihe führt.

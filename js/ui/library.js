@@ -54,6 +54,7 @@ export function mountLibrary(el, h) {
           : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}${companySuffix}</small></span>
       <button data-act="add" title="Über den Wizard hinzufügen (packt direkt, Häkchen abwählbar)">+</button>
       <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
+      ${c.builtin ? '' : '<button data-act="delete" title="Löschen">🗑</button>'}
     </div>`;
   };
 
@@ -114,6 +115,7 @@ export function mountLibrary(el, h) {
     // tray-remove zielt auf die eigene Stück-id (nicht den Case-Typ) – s. renderTray().
     const unplacedId = btn.closest('[data-unplaced]')?.dataset.unplaced;
     ({ new: () => h.onNew(), add: () => h.onAdd(caseId), edit: () => h.onEdit(caseId),
+       delete: () => h.onDelete(caseId),
        load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(unplacedId) })[btn.dataset.act]?.();
   });
   el.addEventListener('dragstart', e => {
