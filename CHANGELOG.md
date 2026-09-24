@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.10 – 2026-09-24
+
+- MLT TWO/THREE/FOUR und Prolyte S36PR (fest+flexibel) hatten eine geschätzte Standhöhe von 103 cm (H.O.F.-Produktseite „Gesamthöhe mit Dolly“). Nach der originalen Bemaßungszeichnung des Dolly-Rahmens korrigiert: Gesamthöhe 115 cm (1150,9 mm), Unterteil (Rollen mit Befestigung) 17 cm (172 mm). MLT ONE (eigene, niedrigere Konstruktion ohne Rollwagen-Tisch) bleibt unverändert bei 75 cm.
+
 ## V 0.7.9 – 2026-09-24
 
 - Codequalität aufgeräumt: `CASE_LIMITS` und `MAX_LABEL` wurden von drei Oberflächen-Modulen (Case-Editor, Inspector, Load-Wizard) bisher direkt aus der Speicherschicht (`js/store/io.js`) importiert statt aus der Modellschicht – ein Verstoß gegen die eigene Architekturregel. `CASE_LIMITS` ist jetzt in `js/model/validate.js` definiert, alle drei Module importieren die Grenzwerte von dort bzw. `MAX_LABEL` direkt aus `js/model/geometry.js`. Keine Verhaltensänderung.

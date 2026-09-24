@@ -93,7 +93,8 @@ const RAIL_W = 3;                  // Nenn-Breite einer Auflageleiste (cm), bei 
 export const STAND_FOOTPRINT_W = 62; // Standfläche (cm) – Case-Breite `w`
 export const STAND_TRUSS_W = 60;     // sichtbare Traversenbreite (cm)
 export const STAND_TRUSS_H = 35;     // sichtbare Traversenhöhe (cm)
-const STAND_BASE_H = 4;              // Holmhöhe (cm)
+const STAND_BASE_H = 7;              // Holmhöhe (cm) – mit STAND_WHEEL_D zusammen 17 cm
+                                      // Boden bis Unterkante Dolly (Bemaßungszeichnung „Pos. 1“)
 const STAND_RAIL_W = 10;             // Holmbreite (cm) – zwei schmale Holme statt Rollbrett
 const STAND_LEG_D = 6;               // Beindicke (cm)
 const STAND_WHEEL_D = 10;            // Rollendurchmesser (cm)

@@ -1,4 +1,4 @@
-# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3, V0.7.7)
+# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3, V0.7.7, V0.7.10)
 
 Recherchiert am 2026-09-23 für `js/data/preset-cases.js`. Alle Stückgewichte sind
 Netto-Herstellerangaben für die Traverse selbst (ohne Grundplatte/Beine/Rollen).
@@ -38,13 +38,18 @@ F44-Vorlagen. Nach Sichtung von Herstellerfotos und einer Bemaßungszeichnung
   `js/data/preset-trucks.js`) → 248 / 4 = **62 cm**. Weiterhin keine direkte
   Herstellerangabe, aber jetzt an einer nachprüfbaren Tatsache statt an einer
   Fotoschätzung festgemacht.
-- **Standhöhe** (montiert, auf Rollen/Beinen): für H.O.F. MLT TWO mit
-  103 cm belegt (Produktseite, „Gesamthöhe mit Dolly“). Für ONE/THREE/FOUR und
-  Prolyte S36PR keine Herstellerangabe gefunden – MLT TWO/THREE/FOUR und beide
-  S36PR-Varianten sehen auf allen Fotos vergleichbar hoch aus (gleicher
-  Rollwagen-Aufbau), deshalb einheitlich 103 cm als Richtwert übernommen.
+- **Standhöhe** (montiert, auf Rollen/Beinen) – **Korrektur V0.7.10**: nach der
+  originalen Bemaßungszeichnung des Dolly-Rahmens („Pos. 1“, vom Nutzer
+  bereitgestellt, dieselbe Zeichnung wie oben in der V0.7.3-Korrektur) beträgt
+  die Gesamthöhe Boden bis Oberkante Traverse **1150,9 mm ≈ 115 cm**, die
+  Höhe des Unterteils (Rollen mit Befestigung) **172 mm ≈ 17 cm**
+  (`STAND_WHEEL_D + STAND_BASE_H` in `js/model/truss.js`). Gilt laut Nutzer für
+  MLT TWO/THREE/FOUR und beide Prolyte-S36PR-Varianten (gleicher Rollwagen-
+  Aufbau). Ersetzt den vorherigen Wert von 103 cm (H.O.F.-Produktseite „Gesamt-
+  höhe mit Dolly“, MLT TWO) – die neue Zeichnung ist die genauere Quelle.
   MLT ONE steht ohne eigenen Rollwagen-Tisch sichtbar niedriger, geschätzt auf
-  75 cm (Fotovergleich, kein Herstellerwert).
+  75 cm (Fotovergleich, kein Herstellerwert, von dieser Korrektur nicht
+  betroffen).
 
 ## H.O.F. MLT ONE/TWO/THREE – Querschnitt 608×356 mm (Gurtrohr 48,3×4,5 mm)
 
