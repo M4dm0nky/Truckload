@@ -12,6 +12,17 @@ const IMBALANCE_RATIO = 0.1;
 export const ARCH_SIDES = ['left', 'right', 'both'];
 const [ARCH_LEFT, ARCH_RIGHT, ARCH_BOTH] = ARCH_SIDES;
 
+// Obergrenzen für Case-Werte aus fremden Dateien. Großzügig, aber so, dass Unsinn
+// (ein 100 m langes, 100 t schweres Case) auffällt. Auch für die `max=`-Attribute
+// im Case-Editor benutzt, damit Oberfläche und Import nicht auseinanderlaufen.
+export const CASE_LIMITS = {
+  l: 2000, w: 2000, h: 2000, // cm
+  weight: 50000, // kg
+  wheelH: 200, // cm
+  maxTopLoad: 50000, // kg
+  stock: 9999, // Stück
+};
+
 export function archBoxes(truck) {
   return (truck.wheelArches ?? []).flatMap(a => {
     const sides = a.side === ARCH_BOTH ? [ARCH_LEFT, ARCH_RIGHT] : [a.side];

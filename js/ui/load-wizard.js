@@ -3,7 +3,7 @@ import { CATEGORIES, colorFor } from '../data/categories.js';
 import { outerDims } from '../model/geometry.js';
 import { isTruss } from '../model/truss.js';
 import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS } from './caseGroups.js';
-import { MAX_LABEL } from '../store/io.js';
+import { MAX_LABEL } from '../model/geometry.js';
 import { openTrussDialog } from './truss-wizard.js';
 
 const MAX_ITEMS = 500;

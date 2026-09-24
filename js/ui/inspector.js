@@ -1,6 +1,6 @@
 import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
 import { outerDims, wheelFace } from '../model/geometry.js';
-import { MAX_LABEL } from '../store/io.js';
+import { MAX_LABEL } from '../model/geometry.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
 // (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die

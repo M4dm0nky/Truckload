@@ -1,27 +1,16 @@
 import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS, ROTATIONS, MAX_LABEL } from '../model/geometry.js';
 import { trussDims, isTruss } from '../model/truss.js';
-import { ARCH_SIDES } from '../model/validate.js';
+import { ARCH_SIDES, CASE_LIMITS } from '../model/validate.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 
-export { MAX_LABEL };
+export { MAX_LABEL, CASE_LIMITS };
 // FORMAT/VERSION nur hier benutzt (Import- und Export-Prüfung derselben Datei) — nicht mehr
 // exportiert (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
 const FORMAT = 'truckload';
 const VERSION = 1;
 const CASE_KINDS = ['case', 'truss'];
-
-// Obergrenzen für Case-Werte aus fremden Dateien. Großzügig, aber so, dass Unsinn
-// (ein 100 m langes, 100 t schweres Case) auffällt. Task 5 übernimmt dieselbe Konstante
-// für die `max=`-Attribute im Case-Editor, damit Oberfläche und Import nicht auseinanderlaufen.
-export const CASE_LIMITS = {
-  l: 2000, w: 2000, h: 2000, // cm
-  weight: 50000, // kg
-  wheelH: 200, // cm
-  maxTopLoad: 50000, // kg
-  stock: 9999, // Stück
-};
 
 const num = v => typeof v === 'number' && Number.isFinite(v);
 const arr = v => (Array.isArray(v) ? v : []);

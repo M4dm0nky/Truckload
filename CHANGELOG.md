@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.9 – 2026-09-24
+
+- Codequalität aufgeräumt: `CASE_LIMITS` und `MAX_LABEL` wurden von drei Oberflächen-Modulen (Case-Editor, Inspector, Load-Wizard) bisher direkt aus der Speicherschicht (`js/store/io.js`) importiert statt aus der Modellschicht – ein Verstoß gegen die eigene Architekturregel. `CASE_LIMITS` ist jetzt in `js/model/validate.js` definiert, alle drei Module importieren die Grenzwerte von dort bzw. `MAX_LABEL` direkt aus `js/model/geometry.js`. Keine Verhaltensänderung.
+
 ## V 0.7.8 – 2026-09-23
 
 - MLT-/Pre-Rig-Traversen standen optisch auf einem durchgehenden Rollbrett wie beim F34/F40-Wagen – tatsächlich ist der Unterbau ein Dolly (offener Rahmen mit Füßen/Rollen). Nach Fotoabgleich (H.O.F.-MLT-Katalog) korrigiert: zwei schmale Holme an den Rändern der Standfläche statt einer durchgehenden Platte, Rollen sitzen an den echten Rahmenecken.

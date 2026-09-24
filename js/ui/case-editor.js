@@ -1,7 +1,7 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
-import { CASE_LIMITS } from '../store/io.js';
+import { CASE_LIMITS } from '../model/validate.js';
 import { showConfirm } from './confirmDialog.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
