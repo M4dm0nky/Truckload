@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.12 – 2026-09-24
+
+- In der Seitenleiste gibt es nur noch den Knopf „+ Material hinzufügen“ (startet den Wizard). „+ Neues Case“, „⬛ Sonderbau“ und „+ Traverse hinzufügen“ sind dort entfernt: Die ersten beiden legten nur einen Case-Typ an, ohne ihn in den Load zu packen, sodass das Neue links nicht auftauchte. Alle drei gibt es weiterhin im Wizard, und dort landet das Neue direkt im Load.
+
 ## V 0.7.11 – 2026-09-24
 
 - Die Bibliothek (linke Seitenleiste) zeigte immer den ganzen Case-Katalog (eigene Cases, alle Presets, die 137 Listen-Cases) statt nur den Inhalt des aktuellen Loads. Jetzt zeigt sie ausschließlich das Material dieses Loads, umschaltbar zwischen „Noch nicht geladen“ (wird beim Verladen leerer) und „Alles Material“ (Gesamtüberblick, platziert + unplatziert). Neue Case-Typen zum Load hinzufügen läuft weiterhin über „+ Material hinzufügen“ (öffnet den vollen Katalog-Wizard).

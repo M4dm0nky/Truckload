@@ -41,9 +41,6 @@ export function mountLibrary(el, h) {
       <h2>Load</h2>
       <div class="lib-head-btns">
         <button data-act="load" class="primary">+ Material hinzufügen</button>
-        <button data-act="new">+ Neues Case</button>
-        <button data-act="sonderbau">⬛ Sonderbau</button>
-        <button data-act="new-truss">+ Traverse hinzufügen</button>
       </div>
     </div>
     <div class="seg case-tabs lib-view-toggle">${VIEWS.map((v, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-view="${v.id}">${esc(v.label)}</button>`).join('')}</div>
@@ -110,8 +107,7 @@ export function mountLibrary(el, h) {
     if (!btn) return;
     const caseId = btn.dataset.case ?? btn.closest('[data-case]')?.dataset.case;
     const unplacedId = btn.closest('[data-unplaced]')?.dataset.unplaced;
-    ({ new: () => h.onNew(), edit: () => h.onEdit(caseId), delete: () => h.onDelete(caseId),
-       sonderbau: () => h.onSonderbau(), 'new-truss': () => h.onAddTruss(),
+    ({ edit: () => h.onEdit(caseId), delete: () => h.onDelete(caseId),
        load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(unplacedId) })[btn.dataset.act]?.();
   });
   content.addEventListener('click', e => {
