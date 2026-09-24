@@ -223,9 +223,13 @@ lautlos den einen oder anderen Stand verliert.
 | `js/data/categories.js` | Gewerke und ihre Farben |
 | `js/data/preset-trucks.js` | Fahrzeugvorlagen |
 
-Die Bibliothek und der Wizard teilen sich die Filterlogik über `js/ui/caseGroups.js`
-(`groupCases`, `companiesOf`) und zeigen dieselben drei Abschnitte: eigene Cases,
-Vorlagen, Cases aus der Liste.
+`js/ui/caseGroups.js` (`groupCases`, `companiesOf`) mit den drei Abschnitten (eigene
+Cases, Vorlagen, Cases aus der Liste) wird seit V0.7.11 nur noch vom Wizard benutzt
+(`js/ui/load-wizard.js`, Schritt „Cases“) – dort browst man den ganzen Katalog, um
+neue Case-Typen zu einem Load hinzuzufügen. Die Seitenleiste (`js/ui/library.js`)
+zeigt dagegen nur noch den Inhalt des aktuellen Loads (platzierte + unplatzierte
+Stücke), umschaltbar zwischen „Noch nicht geladen“ und „Alles Material“ – nicht mehr
+den Katalog.
 
 ## Darstellung
 

@@ -15,7 +15,7 @@ function caseLine(c) {
   return `${l}×${w}×${h} cm · ${c.weight} kg${company}`;
 }
 
-// opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, presetCaseId, onNewCase(draft),
+// opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, onNewCase(draft),
 //   trussDlg (<dialog> für „Traverse hinzufügen“, optional – ohne wird der Knopf ausgeblendet),
 //   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js) }
 // Ergebnis: { name, truckId, items: [{ caseId, label, color }], autoPack } oder null bei Abbruch.
@@ -24,7 +24,6 @@ export function openLoadWizard(dlg, opts = {}) {
   const trucks = opts.trucks ?? [];
   let cases = [...(opts.cases ?? [])];
   const counts = new Map(); // caseId -> Anzahl
-  if (opts.presetCaseId) counts.set(opts.presetCaseId, 1);
   let activeTab = CASE_TABS[0].id; // 'cases' — Reiter der Artikelauswahl, s. caseKind() (caseGroups.js)
   const itemsState = new Map(); // caseId -> [{ label, color }]
   const total = () => [...counts.values()].reduce((a, b) => a + b, 0);

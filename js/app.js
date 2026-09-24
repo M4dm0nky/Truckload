@@ -254,7 +254,7 @@ async function addTrussFromLibrary() {
   });
 }
 
-async function runLoadWizard(mode, presetCaseId = null) {
+async function runLoadWizard(mode) {
   const s = store.get();
   // ctx() setzt einen aktiven Plan voraus (s.plan.truckId) – im Startbildschirm (mode
   // 'new', noch kein Plan gewählt) fehlt der, deshalb hier auf das Standardfahrzeug
@@ -265,7 +265,6 @@ async function runLoadWizard(mode, presetCaseId = null) {
     trucks: s.trucks,
     defaultTruckId: s.plan ? ctx().truck.id : DEFAULT_TRUCK_ID,
     defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
-    presetCaseId,
     onNewCase: newCaseForWizard,
     trussDlg: $('#dlg-truss'),
     onNewTruss: saveCaseValue,
@@ -286,9 +285,9 @@ const library = mountLibrary($('#library'), {
   onDelete: id => deleteCaseDirect(id),
   onSonderbau: () => newCaseForWizard({ category: 'Sonderbau', wheels: true, dimsInclWheels: false }),
   onAddTruss: () => addTrussFromLibrary(),
-  onAdd: id => runLoadWizard('add', id),
   onAddLoad: () => runLoadWizard('add'),
   onTrayRemove: id => edit(p => A.removeUnplaced(p, id)),
+  onSelectPlaced: id => select(id),
 });
 renderHooks.push(s => library.update(s));
 

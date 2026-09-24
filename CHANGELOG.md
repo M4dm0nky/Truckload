@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.11 – 2026-09-24
+
+- Die Bibliothek (linke Seitenleiste) zeigte immer den ganzen Case-Katalog (eigene Cases, alle Presets, die 137 Listen-Cases) statt nur den Inhalt des aktuellen Loads. Jetzt zeigt sie ausschließlich das Material dieses Loads, umschaltbar zwischen „Noch nicht geladen“ (wird beim Verladen leerer) und „Alles Material“ (Gesamtüberblick, platziert + unplatziert). Neue Case-Typen zum Load hinzufügen läuft weiterhin über „+ Material hinzufügen“ (öffnet den vollen Katalog-Wizard).
+
 ## V 0.7.10 – 2026-09-24
 
 - MLT TWO/THREE/FOUR und Prolyte S36PR (fest+flexibel) hatten eine geschätzte Standhöhe von 103 cm (H.O.F.-Produktseite „Gesamthöhe mit Dolly“). Nach der originalen Bemaßungszeichnung des Dolly-Rahmens korrigiert: Gesamthöhe 115 cm (1150,9 mm), Unterteil (Rollen mit Befestigung) 17 cm (172 mm). MLT ONE (eigene, niedrigere Konstruktion ohne Rollwagen-Tisch) bleibt unverändert bei 75 cm.

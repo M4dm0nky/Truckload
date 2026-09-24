@@ -1,8 +1,6 @@
 import { esc, swatch } from './dom.js';
-import { CATEGORIES } from '../data/categories.js';
 import { layersOf, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
-import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS } from './caseGroups.js';
 
 function trussProfileLabel(width) {
   const p = TRUSS_PROFILES.find(p => p.width === width);
@@ -19,154 +17,121 @@ function layerLabel(c) {
   const contiguous = layers.every((n, i) => i === 0 || n === layers[i - 1] + 1);
   return contiguous ? `Lage ${layers[0]}–${layers.at(-1)}` : `Lage ${layers.join(', ')}`;
 }
+function caseDetail(c) {
+  const { l, w, h } = outerDims(c);
+  return isTruss(c)
+    ? trussLabel(c)
+    : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${layerLabel(c)}` : ''}`;
+}
 
+const VIEWS = [
+  { id: 'unplaced', label: 'Noch nicht geladen' },
+  { id: 'all', label: 'Alles Material' },
+];
+
+// Seitenleiste zeigt NUR den Inhalt des aktuellen Loads (platzierte + unplatzierte Stücke),
+// nicht mehr den ganzen Case-Katalog (Nutzer-Feedback 2026-09-24: „ich möchte da nur Sachen
+// sehen die ich vorher im Wizard der Tour/Load hinzugefügt habe“). Einen neuen Case-Typ zum
+// laufenden Load hinzufügen läuft über „+ Material hinzufügen“ (öffnet den Wizard-Katalog mit
+// Suche/Filtern/Reitern, `js/ui/load-wizard.js`), das Browsing des vollen Katalogs lebt also
+// dort weiter – hier nicht dupliziert.
 export function mountLibrary(el, h) {
   el.innerHTML = `
     <div class="lib-head">
-      <h2>Cases</h2>
+      <h2>Load</h2>
       <div class="lib-head-btns">
-        <button data-act="load" class="primary">+ Cases hinzufügen</button>
+        <button data-act="load" class="primary">+ Material hinzufügen</button>
         <button data-act="new">+ Neues Case</button>
-        <button data-act="sonderbau" hidden>⬛ Sonderbau</button>
-        <button data-act="new-truss" hidden>+ Traverse hinzufügen</button>
+        <button data-act="sonderbau">⬛ Sonderbau</button>
+        <button data-act="new-truss">+ Traverse hinzufügen</button>
       </div>
     </div>
-    <div class="seg case-tabs">${CASE_TABS.map((t, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-tab="${t.id}">${esc(t.label)}</button>`).join('')}</div>
-    <input type="search" class="lib-search" placeholder="Suchen (Name oder Inhalt)">
-    <select class="lib-filter lib-filter-cat"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
-    <select class="lib-filter lib-filter-company"><option value="">Alle Firmen</option></select>
-    <div class="lib-list"></div>
-    <h3>Noch nicht verladen</h3>
-    <div class="tray"></div>`;
-  const search = el.querySelector('.lib-search');
-  const filter = el.querySelector('.lib-filter-cat');
-  const companyFilter = el.querySelector('.lib-filter-company');
-  const list = el.querySelector('.lib-list');
-  const tray = el.querySelector('.tray');
-  const tabBtns = [...el.querySelectorAll('.case-tabs button')];
-  const newBtn = el.querySelector('[data-act="new"]');
-  const sonderbauBtn = el.querySelector('[data-act="sonderbau"]');
-  const newTrussBtn = el.querySelector('[data-act="new-truss"]');
-  let activeTab = CASE_TABS[0].id; // 'cases'
+    <div class="seg case-tabs lib-view-toggle">${VIEWS.map((v, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-view="${v.id}">${esc(v.label)}</button>`).join('')}</div>
+    <div class="lib-content"></div>`;
+  const viewBtns = [...el.querySelectorAll('.lib-view-toggle button')];
+  const content = el.querySelector('.lib-content');
+  let view = VIEWS[0].id; // 'unplaced'
   let last = null;
 
-  // Gewerk-Filter ist im Sonderbau-/Traversen-Reiter bedeutungslos (s. load-wizard.js, gleiche
-  // Begründung) – dort ausgeblendet statt nur wirkungslos.
-  function syncTabUi() {
-    tabBtns.forEach(b => b.classList.toggle('on', b.dataset.tab === activeTab));
-    filter.hidden = activeTab !== 'cases';
-    newBtn.hidden = activeTab !== 'cases';
-    sonderbauBtn.hidden = activeTab !== 'sonderbau';
-    newTrussBtn.hidden = activeTab !== 'traversen';
-  }
-  for (const btn of tabBtns) btn.addEventListener('click', () => {
-    activeTab = btn.dataset.tab;
-    syncTabUi();
-    renderList();
+  for (const btn of viewBtns) btn.addEventListener('click', () => {
+    view = btn.dataset.view;
+    viewBtns.forEach(b => b.classList.toggle('on', b.dataset.view === view));
+    renderContent();
   });
-  syncTabUi();
 
-  const row = c => {
-    const { l, w, h } = outerDims(c);
-    const companySuffix = c.company ? ` · ${esc(c.company)}` : '';
+  function groupHeading(c, caseId, count) {
+    const name = c?.name ?? 'Unbekanntes Case';
     return `
-    <div class="lib-item" draggable="true" data-case="${esc(c.id)}" title="${esc([c.content, c.note].filter(Boolean).join(' · '))}">
-      ${swatch(c.color)}
-      <span class="lib-text"><b>${esc(c.name)}</b>
-        <small>${isTruss(c)
-          ? esc(trussLabel(c))
-          : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${esc(layerLabel(c))}` : ''}`}${companySuffix}</small></span>
-      <button data-act="add" title="Über den Wizard hinzufügen (packt direkt, Häkchen abwählbar)">+</button>
-      <button data-act="edit" title="${c.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
-      ${c.builtin ? '' : '<button data-act="delete" title="Löschen">🗑</button>'}
-    </div>`;
-  };
-
-  function renderCompanyOptions() {
-    const prev = companyFilter.value;
-    const companies = companiesOf(last.cases);
-    companyFilter.innerHTML = `<option value="">Alle Firmen</option>${companies.map(name => `<option${name === prev ? ' selected' : ''}>${esc(name)}</option>`).join('')}`;
-    if (!companies.includes(prev)) companyFilter.value = '';
+      <div class="lib-group-head">
+        ${swatch(c?.color)}
+        <span class="lib-text"><b>${esc(name)}</b><small>${count}× ${esc(c ? caseDetail(c) : '')}</small></span>
+        <button data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
+        ${c?.builtin ? '' : `<button data-act="delete" data-case="${esc(caseId)}" title="Löschen">🗑</button>`}
+      </div>`;
   }
 
-  function renderList() {
+  function pieceRow(caseId, u, placed) {
+    const c = last.byId.get(caseId);
+    const color = u.color ?? c?.color ?? '#888';
+    const label = u.label ?? c?.name ?? 'Unbekanntes Case';
+    if (placed) {
+      return `<div class="lib-item" data-case="${esc(caseId)}" data-placed="${esc(u.id)}">
+        ${swatch(color)}
+        <span class="lib-text">${esc(label)}</span></div>`;
+    }
+    return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
+      ${swatch(color)}
+      <span class="lib-text">${esc(label)}</span>
+      <button data-act="tray-remove" title="Entfernen">−</button></div>`;
+  }
+
+  function renderContent() {
     if (!last) return;
-    const tabCases = last.cases.filter(c => caseKind(c) === activeTab);
-    const groups = groupCases(tabCases, { q: search.value, cat: filter.value, company: companyFilter.value });
-    renderGroupList(list, groups, row, {
-      own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>',
-      presetsHeading: ' <small>(Richtwerte)</small>',
-      presets: '<p class="hint">Keine Treffer für diese Filter.</p>',
-      list: '<p class="hint">Keine Treffer für diese Filter.</p>',
-    });
+    const items = view === 'all'
+      ? [...last.plan.placements.map(p => ({ ...p, placed: true })), ...last.plan.unplaced.map(u => ({ ...u, placed: false }))]
+      : last.plan.unplaced.map(u => ({ ...u, placed: false }));
+    const groups = new Map(); // caseId -> Einträge
+    for (const it of items) groups.set(it.caseId, [...(groups.get(it.caseId) ?? []), it]);
+    if (groups.size === 0) {
+      content.innerHTML = view === 'all'
+        ? '<p class="hint">Noch kein Material in diesem Load. „+ Material hinzufügen“ öffnet den Katalog.</p>'
+        : '<p class="hint">Leer. Mit „+ Material hinzufügen“ Cases anlegen, dann ziehen oder „Rest einpacken“.</p>';
+      return;
+    }
+    content.innerHTML = [...groups].map(([caseId, entries]) => {
+      const c = last.byId.get(caseId);
+      const rows = entries.map(it => pieceRow(caseId, it, it.placed)).join('');
+      return groupHeading(c, caseId, entries.length) + rows;
+    }).join('');
   }
 
-  // Bis Task 8 eine Zeile je Case-Typ mit der Farbe des ERSTEN Stücks für die ganze Gruppe und
-  // einem „−“, das `removeUnplaced(plan, caseId)` traf – also das erste Vorkommen dieses Typs,
-  // nicht das vom Nutzer gemeinte (docs/code-review-2026-09-21.md, Nachtrag Controller: „Die
-  // Ablage zeigt … die Farbe des ersten Stücks als Aussage über alle“; Task-8-Brief: „removeUnplaced
-  // trifft das erste Stück eines Case-Typs, nicht ein bestimmtes … das ist spürbar und gehört
-  // behoben“). Jetzt eine Zeile JE STÜCK: eigene Farbe, eigene Beschriftung, eigenes „−“ über die
-  // Stück-`id` (nicht mehr über `caseId`) – ehrlich für gemischte Farben und gezielt entfernbar.
-  // Gleiche Case-Typen bleiben optisch unter einer schmalen Zählzeile gruppiert, damit eine Ablage
-  // mit vielen gleichen Cases nicht unübersichtlich wird.
-  function renderTray() {
-    const byId = new Map(last.cases.map(c => [c.id, c]));
-    const groups = new Map(); // caseId -> unplaced-Einträge
-    for (const u of last.plan.unplaced) groups.set(u.caseId, [...(groups.get(u.caseId) ?? []), u]);
-    tray.innerHTML = [...groups].map(([caseId, items]) => {
-      const c = byId.get(caseId);
-      const heading = items.length > 1
-        ? `<p class="hint tray-count">${items.length}× ${esc(c?.name ?? 'Unbekanntes Case')}</p>` : '';
-      const rows = items.map(u => {
-        const color = u.color ?? c?.color ?? '#888';
-        const label = u.label ?? c?.name ?? 'Unbekanntes Case';
-        return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
-          ${swatch(color)}
-          <span class="lib-text"><b>${esc(label)}</b></span>
-          <button data-act="tray-remove" title="Entfernen">−</button></div>`;
-      }).join('');
-      return heading + rows;
-    }).join('') || '<p class="hint">Leer. Mit „+“ Cases hierher legen, dann ziehen oder „Rest einpacken“.</p>';
-  }
-
-  search.addEventListener('input', renderList);
-  filter.addEventListener('change', renderList);
-  companyFilter.addEventListener('change', renderList);
   el.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
-    const caseId = btn.closest('[data-case]')?.dataset.case;
-    // tray-remove zielt auf die eigene Stück-id (nicht den Case-Typ) – s. renderTray().
+    const caseId = btn.dataset.case ?? btn.closest('[data-case]')?.dataset.case;
     const unplacedId = btn.closest('[data-unplaced]')?.dataset.unplaced;
-    ({ new: () => h.onNew(), add: () => h.onAdd(caseId), edit: () => h.onEdit(caseId),
-       delete: () => h.onDelete(caseId), sonderbau: () => h.onSonderbau(), 'new-truss': () => h.onAddTruss(),
+    ({ new: () => h.onNew(), edit: () => h.onEdit(caseId), delete: () => h.onDelete(caseId),
+       sonderbau: () => h.onSonderbau(), 'new-truss': () => h.onAddTruss(),
        load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(unplacedId) })[btn.dataset.act]?.();
   });
+  content.addEventListener('click', e => {
+    const placed = e.target.closest('[data-placed]');
+    if (!placed || e.target.closest('button')) return;
+    h.onSelectPlaced(placed.dataset.placed);
+  });
   el.addEventListener('dragstart', e => {
-    const item = e.target.closest('[data-case]');
+    const item = e.target.closest('[data-unplaced]');
     if (!item) return;
-    e.dataTransfer.setData('text/x-case', JSON.stringify({ caseId: item.dataset.case, unplacedId: item.dataset.unplaced ?? null }));
+    e.dataTransfer.setData('text/x-case', JSON.stringify({ caseId: item.dataset.case, unplacedId: item.dataset.unplaced }));
     e.dataTransfer.effectAllowed = 'copy';
   });
 
   return {
     update(state) {
       const casesChanged = !last || last.cases !== state.cases;
-      // `plan.unplaced` ist nur eine von mehreren Referenzen in `state.plan` – Aktionen, die nur
-      // Placements ändern (z. B. moveGroup während eines Drags), geben ein neues `plan`-Objekt
-      // zurück, lassen `plan.unplaced` dabei aber unverändert stehen (kein Spread dieses Felds).
-      // Ein Vergleich der Referenz reicht also, um echte Änderungen der Ablage von den bis zu 60
-      // Renderaufrufen pro Sekunde während eines Drags zu unterscheiden, ohne die Ablage jedes Mal
-      // neu aus dem DOM aufzubauen (docs/code-review-2026-09-21.md, „S5 — Inspector und Ablage
-      // nicht bei jedem Bild neu bauen“, hier nur der risikolose Teil: die Ablage).
-      const trayChanged = !last || last.plan.unplaced !== state.plan.unplaced;
-      last = state;
-      if (casesChanged) renderCompanyOptions();
-      if (casesChanged) renderList();
-      // casesChanged auch hier: ein bearbeitetes Case (Name/Farbe) muss sich in der Ablage
-      // spiegeln, auch wenn plan.unplaced selbst unverändert blieb.
-      if (casesChanged || trayChanged) renderTray();
+      const planChanged = !last || last.plan.unplaced !== state.plan.unplaced || last.plan.placements !== state.plan.placements;
+      last = { cases: state.cases, plan: state.plan, byId: new Map(state.cases.map(c => [c.id, c])) };
+      if (casesChanged || planChanged) renderContent();
     },
   };
 }
