@@ -2,6 +2,11 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.14 – 2026-09-25
+
+- Neuer Knopf „Truck entladen“ (neben „Rest einpacken“): legt alle Cases aus dem Truck zurück nach „Noch nicht geladen“, z. B. wenn einem das Ergebnis des automatischen Packens nicht gefällt und man von Hand laden will. Beschriftung, Farbe, Lage und „getippt“ bleiben erhalten. Mit Rückfrage, rückgängig mit ⌘Z; bei leerem Truck ausgegraut.
+- Lage (1–4) und „getippt“ lassen sich nach dem Wizard im Inspector ändern. Für ein Case im Truck gibt es dafür den neuen Block „Laden“; „getippt“ wirkt dort sofort (Häkchen raus stellt das Case auf, Häkchen rein tippt es). Stücke in „Noch nicht geladen“ lassen sich jetzt links anklicken; der Inspector zeigt dann Beschriftung, Farbe, Lage, „getippt“, „Case bearbeiten“ und „Entfernen“. Entf entfernt ein so ausgewähltes Stück.
+
 ## V 0.7.13 – 2026-09-25
 
 - Im Wizard (Schritt „Beschriften“) lässt sich jetzt für jedes einzelne Stück festlegen, wie es geladen wird: in welchen Lagen es stehen darf (Lage 1 = Boden bis Lage 4) und ob es getippt wird oder stehend fährt. Standard ist „getippt“, man hakt nur die Ausnahmen ab. Lagen, die der Case-Typ nicht erlaubt, und „getippt“ bei nicht tippbaren Cases (z. B. Traversen) sind ausgegraut.
