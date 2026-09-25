@@ -212,6 +212,19 @@ test('layer-Issue: erlaubte Lagen werden im Text numerisch sortiert', () => {
   assert.deepEqual(codes(r,'c'), ['layer']);
   assert.match(r.byPlacement.get('c')[0].message, /„led“ darf nicht in Lage 3 stehen \(erlaubt: 1, 2\)\./);
 });
+test('layer-Issue: Stück-eigene layers schränken den Case-Typ zusätzlich ein', () => {
+  // Case-Typ erlaubt Lage 1 und 2, das STÜCK selbst hat aber nur Lage 1 gesetzt — steht es in
+  // Lage 2, muss das gemeldet werden, obwohl der Case-Typ Lage 2 an sich erlaubt.
+  const RACK = mkCase('rack', 80, 60, 60, { layers: [1, 2] });
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','rack',0,94,60,{ layers: [1] })]), byId(K, RACK), mkTruck());
+  assert.deepEqual(codes(r,'b'), ['layer']);
+  assert.match(r.byPlacement.get('b')[0].message, /„rack“ darf nicht in Lage 2 stehen \(erlaubt: 1\)\./);
+});
+test('layer-Issue: Stück ohne eigene layers meldet unverändert nach Case-Typ (Regression)', () => {
+  const RACK = mkCase('rack', 80, 60, 60, { layers: [1] });
+  const r = validatePlan(plan([P('a','k',0,94,0), P('b','rack',0,94,60)]), byId(K, RACK), mkTruck());
+  assert.deepEqual(codes(r,'b'), ['layer']);
+});
 // Meldungstexte müssen die Stück-Beschriftung (it.label) nennen, nicht den Case-Typ-Namen
 // (docs/architektur.md sagt das zu; bei mehreren Exemplaren desselben Typs kann der Nutzer
 // die Meldung sonst keinem Stück zuordnen — docs/code-review-2026-09-21.md).

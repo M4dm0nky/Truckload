@@ -27,6 +27,29 @@ export function outerDims(c) {
 }
 export const DEFAULT_LAYERS = [1, 2, 3, 4];
 export const layersOf = c => (Array.isArray(c.layers) && c.layers.length ? c.layers : DEFAULT_LAYERS);
+
+// Lagen eines einzelnen STÜCKS (nicht des Case-Typs): Schnittmenge aus piece.layers und
+// layersOf(c) — ein Stück darf die Case-Typ-Lagen nur einschränken, nie erweitern. Fehlt
+// piece.layers oder ist die Schnittmenge leer (z. B. weil ein Import das Case seither auf
+// weniger Lagen begrenzt hat), gilt layersOf(c) unverändert — Altdaten ohne das neue Feld
+// packen dadurch exakt wie vorher.
+export function pieceLayers(piece, c) {
+  const base = layersOf(c);
+  if (!Array.isArray(piece?.layers) || !piece.layers.length) return base;
+  const allowed = piece.layers.filter(n => base.includes(n));
+  return allowed.length ? allowed : base;
+}
+
+// Erlaubte Ausrichtungen eines einzelnen STÜCKS. Ein nicht tippbarer Case-Typ lässt sich vom
+// Stück nicht überstimmen (immer nur „standing“). Ist der Case-Typ tippbar, entscheidet
+// piece.tipped: true zwingt aufs Tippen, false verbietet es, fehlt es (Altdaten), bleibt die
+// Wahl wie bisher beim Packer (ORIENTATIONS, aus denen chooseOrientation selbst wählt).
+export function pieceOrientations(piece, c) {
+  if (!c.tippable) return ['standing'];
+  if (piece?.tipped === true) return ['tipLong', 'tipShort'];
+  if (piece?.tipped === false) return ['standing'];
+  return ORIENTATIONS;
+}
 export const WHEEL_FACES = ['+x', '+y', '-x', '-y'];   // +x = Trucktür/Heck
 export const DOOR_FACE = '+x';
 const FACE_CYCLE = WHEEL_FACES;

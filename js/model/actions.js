@@ -20,11 +20,13 @@ function settle(p, c, others) {
   return { ...p, z: gravityZ(boxOf(c, { ...p, z: 0 }), others) };
 }
 
-export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null } = {}) {
+export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null, layers = null, tipped = null } = {}) {
   const extra = Array.from({ length: n }, (_, i) => ({
     id: newId(), caseId,
     ...(labels[i] ? { label: labels[i].slice(0, MAX_LABEL) } : {}),
     ...(color ? { color } : {}),
+    ...(layers ? { layers } : {}),
+    ...(tipped != null ? { tipped } : {}),
   }));
   return touch({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
@@ -49,9 +51,13 @@ export function placeCase(plan, caseId, { x, y }, ctx, { fromUnplacedId = null }
   // tragen (io.js verbietet in `unplaced` keine Zusatzfelder) und würde die gerade gewählte
   // Mausposition sonst stillschweigend überschreiben (docs/code-review-2026-09-21.md,
   // „actions.js:38-39 — srcExtra überschreibt x/y/z/orientation/rot“).
-  const { label, color } = src ?? {};
-  const srcExtra = { ...(label ? { label } : {}), ...(color ? { color } : {}) };
-  const base = { id: fromUnplacedId ?? ctx.newId(), caseId, x: snap(x), y: snap(y), z: 0, orientation: 'standing', rot: 0, ...srcExtra };
+  const { label, color, layers, tipped } = src ?? {};
+  const srcExtra = {
+    ...(label ? { label } : {}), ...(color ? { color } : {}),
+    ...(layers ? { layers } : {}), ...(tipped != null ? { tipped } : {}),
+  };
+  const orientation = tipped === true && canTip(c) ? 'tipLong' : 'standing';
+  const base = { id: fromUnplacedId ?? ctx.newId(), caseId, x: snap(x), y: snap(y), z: 0, orientation, rot: 0, ...srcExtra };
   const p = settle(base, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
   return touch({
     ...plan,
@@ -106,7 +112,11 @@ export const rotate = (plan, id, ctx) =>
   reorient(plan, id, ctx, p => ({ rot: ((p.rot ?? 0) + 90) % 360 }));
 
 export const cycleTip = (plan, id, ctx) =>
-  reorient(plan, id, ctx, (p, c) => (canTip(c) ? nextTip(p.orientation, p.rot) : {}));
+  reorient(plan, id, ctx, (p, c) => {
+    if (!canTip(c)) return {};
+    const next = nextTip(p.orientation, p.rot);
+    return { ...next, tipped: next.orientation !== 'standing' };
+  });
 
 // Dreht ein bereits getipptes Case so, dass die Rollen zur gewünschten Seite zeigen.
 // Ist die Richtung für die aktuelle Lage nicht erreichbar (z. B. „standing“, Traverse), passiert nichts.
@@ -155,7 +165,10 @@ export function duplicate(plan, id, ctx) {
     const copy = settle({ ...p, ...patch }, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
     return touch({ ...plan, placements: [...plan.placements, copy] });
   }
-  const trayEntry = { id: ctx.newId(), caseId: p.caseId, ...(label ? { label } : {}), ...(p.color ? { color: p.color } : {}) };
+  const trayEntry = {
+    id: ctx.newId(), caseId: p.caseId, ...(label ? { label } : {}), ...(p.color ? { color: p.color } : {}),
+    ...(p.layers ? { layers: p.layers } : {}), ...(p.tipped != null ? { tipped: p.tipped } : {}),
+  };
   return touch({ ...plan, unplaced: [...plan.unplaced, trayEntry] });
 }
 
@@ -183,9 +196,10 @@ export function setItemLabel(plan, id, { label, color } = {}) {
 export const removePlacement = (plan, id) =>
   touch({ ...plan, placements: plan.placements.filter(p => p.id !== id) });
 
-// Placement -> Ablage-Eintrag (nur id/caseId/label?/color?, keine Positions-/Lagefelder).
+// Placement -> Ablage-Eintrag (nur id/caseId/label?/color?/layers?/tipped?, keine Positions-/Orientierungsfelder).
 const placementToUnplaced = p =>
-  ({ id: p.id, caseId: p.caseId, ...(p.label ? { label: p.label } : {}), ...(p.color ? { color: p.color } : {}) });
+  ({ id: p.id, caseId: p.caseId, ...(p.label ? { label: p.label } : {}), ...(p.color ? { color: p.color } : {}),
+    ...(p.layers ? { layers: p.layers } : {}), ...(p.tipped != null ? { tipped: p.tipped } : {}) });
 
 export function toTray(plan, id) {
   const p = plan.placements.find(q => q.id === id);
@@ -204,7 +218,10 @@ const orphans = (plan, ctx) => plan.unplaced.filter(u => !ctx.caseById.has(u.cas
 function toPiece(x, ctx) {
   const c = ctx.caseById.get(x.caseId);
   if (!c) return null;
-  return { id: x.id, caseId: x.caseId, c, ...(x.label ? { label: x.label } : {}), ...(x.color ? { color: x.color } : {}) };
+  return {
+    id: x.id, caseId: x.caseId, c, ...(x.label ? { label: x.label } : {}), ...(x.color ? { color: x.color } : {}),
+    ...(x.layers ? { layers: x.layers } : {}), ...(x.tipped != null ? { tipped: x.tipped } : {}),
+  };
 }
 
 // Placements, deren Case-Typ nicht mehr in der Bibliothek steht. Sie haben keine bekannten

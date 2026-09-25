@@ -491,3 +491,52 @@ test('Regression: Bundle im alten Schema ohne updatedAt/notes/color/Obergrenzen-
   assert.equal(res.plans[0].notes, '');
   assert.equal(res.plans[0].placements[0].id, 'p1');
 });
+
+// --- Lage/Tippen je Stück (Task 1): placementOk/unplacedOk akzeptieren layers/tipped ---
+
+test('Placement mit gültigen layers/tipped wird akzeptiert', () => {
+  const p = P('a', 'own', 0, 0, 0, { layers: [1, 2], tipped: true });
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [{ ...plan([p]), truckId: 't' }] });
+  const res = parseBundle(bad);
+  assert.deepEqual(res.plans[0].placements[0].layers, [1, 2]);
+  assert.equal(res.plans[0].placements[0].tipped, true);
+});
+test('Placement ohne layers/tipped wird akzeptiert (Regression, altes Schema)', () => {
+  const p = P('a', 'own', 0, 0, 0);
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [{ ...plan([p]), truckId: 't' }] });
+  const res = parseBundle(bad);
+  assert.equal(res.plans[0].placements[0].layers, undefined);
+  assert.equal(res.plans[0].placements[0].tipped, undefined);
+});
+test('Placement mit leeren layers wird abgelehnt', () => {
+  const p = P('a', 'own', 0, 0, 0, { layers: [] });
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [{ ...plan([p]), truckId: 't' }] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Placement mit layers außerhalb 1-4 wird abgelehnt', () => {
+  const p = P('a', 'own', 0, 0, 0, { layers: [5] });
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [{ ...plan([p]), truckId: 't' }] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Placement mit doppelten layers wird abgelehnt', () => {
+  const p = P('a', 'own', 0, 0, 0, { layers: [1, 1] });
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [{ ...plan([p]), truckId: 't' }] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Placement mit tipped als Nicht-Boolean wird abgelehnt', () => {
+  const p = P('a', 'own', 0, 0, 0, { tipped: 'ja' });
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [{ ...plan([p]), truckId: 't' }] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});
+test('Ablage-Eintrag mit gültigen layers/tipped wird akzeptiert', () => {
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()],
+    plans: [{ ...plan([], [{ id: 'u1', caseId: 'own', layers: [1], tipped: false }]), truckId: 't' }] });
+  const res = parseBundle(bad);
+  assert.deepEqual(res.plans[0].unplaced[0].layers, [1]);
+  assert.equal(res.plans[0].unplaced[0].tipped, false);
+});
+test('Ablage-Eintrag mit ungültigen layers wird abgelehnt', () => {
+  const bad = bundleWith({ cases: [own], trucks: [mkTruck()],
+    plans: [{ ...plan([], [{ id: 'u1', caseId: 'own', layers: [0] }]), truckId: 't' }] });
+  assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
+});

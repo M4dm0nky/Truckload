@@ -226,3 +226,55 @@ test('autoPack: unplaced behält seine Einträge (id/label/color) statt sie zu v
   const { unplaced } = autoPack([mkItem(big, 'stück-2', { label: 'Zu groß', color: '#00ff00' })], mkTruck());
   assert.deepEqual(unplaced, [{ id: 'stück-2', caseId: 'big', label: 'Zu groß', color: '#00ff00' }]);
 });
+
+// Lage/Tippen je Stück (Task 1): ein Stück mit eigenem tipped/layers schränkt chooseOrientation
+// und buildStacks stärker ein als der Case-Typ allein — ohne diese Felder (Altdaten) bleibt
+// alles wie vorher.
+
+test('chooseOrientation: piece.tipped:true wählt nur tipLong/tipShort, nie standing', () => {
+  const c = mkCase('a', 120, 60, 100, { tippable: true });
+  const truck = mkTruck();
+  for (let i = 0; i < 10; i++) {
+    const o = chooseOrientation(c, truck, { tipped: true });
+    assert.ok(o, 'ein Kandidat muss gefunden werden');
+    assert.notEqual(o.orientation, 'standing');
+  }
+});
+test('chooseOrientation: piece.tipped:false wählt nur standing, auch bei tippbarem Case-Typ', () => {
+  const c = mkCase('a', 120, 60, 100, { tippable: true });
+  const o = chooseOrientation(c, mkTruck(), { tipped: false });
+  assert.equal(o.orientation, 'standing');
+});
+test('chooseOrientation: ohne piece-Feld bleibt das bisherige Verhalten (Regression)', () => {
+  const c = mkCase('a', 120, 60, 100, { tippable: true });
+  const truck = mkTruck();
+  assert.deepEqual(chooseOrientation(c, truck, {}), chooseOrientation(c, truck));
+  assert.deepEqual(chooseOrientation(c, truck), chooseOrientation(c, truck, undefined));
+});
+test('buildStacks: piece.layers:[1] steht immer auf dem Boden (Lage 1), nie oben auf einem anderen Stück, auch wenn der Case-Typ mehr Lagen erlaubt', () => {
+  const c = mkCase('a', 120, 60, 60); // Case-Typ erlaubt per Default alle vier Lagen
+  const { stacks } = buildStacks([
+    mkItem(c, 'i1'), mkItem(c, 'i2', { layers: [1] }),
+  ], mkTruck());
+  const stackOfI2 = stacks.find(s => s.items.some(it => it.it.id === 'i2'));
+  assert.equal(stackOfI2.items[0].it.id, 'i2', 'i2 (piece.layers:[1]) muss die Grundlage (Lage 1) seines Stapels sein, nicht darüber stehen');
+});
+test('autoPack: ein Stück ohne layers/tipped-Felder packt exakt wie vorher (Regression)', () => {
+  const c = mkCase('a', 120, 60, 30, { tippable: true });
+  const truck = mkTruck();
+  const withoutFields = autoPack(items(c, 24), truck);
+  const withEmptyFields = autoPack(items(c, 24, 'j').map(it => ({ ...it })), truck);
+  assert.deepEqual(withoutFields.placements.map(p => ({ ...p, id: null })), withEmptyFields.placements.map(p => ({ ...p, id: null })));
+});
+test('autoPack: schreibt layers/tipped des Stücks in das Placement, wenn vorhanden', () => {
+  const c = mkCase('a', 120, 60, 100, { tippable: true });
+  const { placements } = autoPack([mkItem(c, 'i1', { layers: [1], tipped: true })], mkTruck());
+  assert.equal(placements[0].tipped, true);
+  assert.deepEqual(placements[0].layers, [1]);
+});
+test('autoPack: Placement ohne layers/tipped am Stück bekommt diese Felder nicht (Regression)', () => {
+  const c = mkCase('a', 120, 60, 100, { tippable: true });
+  const { placements } = autoPack([mkItem(c, 'i1')], mkTruck());
+  assert.ok(!('tipped' in placements[0]));
+  assert.ok(!('layers' in placements[0]));
+});

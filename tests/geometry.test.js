@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
   snap, snapToEdges, stackAbove, faceSlab, DEFAULT_WHEEL_H, wheelHOf,
   DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims,
-  ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace, nextTip } from '../js/model/geometry.js';
+  ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace, nextTip,
+  pieceLayers, pieceOrientations } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80);
@@ -178,6 +179,46 @@ test('outerDims: Altdaten ohne neue Felder verhalten sich wie bisher (Regression
 test('localDims benutzt outerDims (Rollenhöhe fließt in Gesamtmaß ein)', () => {
   const c = mkCase('c', 200, 80, 200, { wheels: true, wheelH: 16, dimsInclWheels: false });
   assert.deepEqual(effectiveDims(c, { orientation: 'standing', rot: 0 }), { dx: 200, dy: 80, dz: 216 });
+});
+
+// pieceLayers: Schnittmenge aus Stück-eigenen Lagen und den Case-Typ-Lagen (layersOf). Fehlt
+// piece.layers oder ist die Schnittmenge leer, gilt layersOf(c) unverändert (Altdaten-Fallback).
+test('pieceLayers: ohne piece.layers gilt layersOf(c)', () => {
+  const c = mkCase('c', 80, 60, 60, { layers: [1, 2] });
+  assert.deepEqual(pieceLayers({}, c), [1, 2]);
+});
+test('pieceLayers: Schnittmenge aus piece.layers und layersOf(c)', () => {
+  const c = mkCase('c', 80, 60, 60, { layers: [1, 2, 3] });
+  assert.deepEqual(pieceLayers({ layers: [2, 3, 4] }, c), [2, 3]);
+});
+test('pieceLayers: leere Schnittmenge fällt auf layersOf(c) zurück', () => {
+  const c = mkCase('c', 80, 60, 60, { layers: [1, 2] });
+  assert.deepEqual(pieceLayers({ layers: [3, 4] }, c), [1, 2]);
+});
+test('pieceLayers: piece.layers ohne eigene Case-layers schneidet gegen DEFAULT_LAYERS', () => {
+  const c = mkCase('c', 80, 60, 60);
+  assert.deepEqual(pieceLayers({ layers: [1] }, c), [1]);
+});
+
+// pieceOrientations: das Stück entscheidet über tipped nur, wenn der Case-Typ das überhaupt
+// zulässt (tippable) — sonst bleibt es fest bei „standing“, egal was das Stück sagt.
+test('pieceOrientations: nicht tippbarer Case-Typ ergibt immer nur standing', () => {
+  const c = mkCase('c', 80, 60, 60, { tippable: false });
+  assert.deepEqual(pieceOrientations({ tipped: true }, c), ['standing']);
+  assert.deepEqual(pieceOrientations({}, c), ['standing']);
+});
+test('pieceOrientations: tipped true ergibt nur die getippten Lagen', () => {
+  const c = mkCase('c', 80, 60, 60, { tippable: true });
+  assert.deepEqual(pieceOrientations({ tipped: true }, c), ['tipLong', 'tipShort']);
+});
+test('pieceOrientations: tipped false ergibt nur standing', () => {
+  const c = mkCase('c', 80, 60, 60, { tippable: true });
+  assert.deepEqual(pieceOrientations({ tipped: false }, c), ['standing']);
+});
+test('pieceOrientations: ohne tipped-Feld gilt ORIENTATIONS (Altdaten-Regression)', () => {
+  const c = mkCase('c', 80, 60, 60, { tippable: true });
+  assert.deepEqual(pieceOrientations({}, c), ORIENTATIONS);
+  assert.deepEqual(pieceOrientations(undefined, c), ORIENTATIONS);
 });
 
 test('Traversenwagen: outerDims ändert die Maße nicht (wheelH ist 0, l/w/h fix)', () => {

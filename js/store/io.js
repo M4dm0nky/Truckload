@@ -85,6 +85,12 @@ function checkTruck(t) {
   if (!arr(t.wheelArches ?? []).every(checkArch)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
 }
 const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.label.length <= MAX_LABEL);
+// Stück-eigene layers: dieselbe Prüfung wie layersOk für Case-Typen (checkCase oben), nur
+// hier auf einem Placement/Ablage-Eintrag statt auf einem Case.
+const pieceLayersOk = x => x.layers === undefined || (Array.isArray(x.layers) && x.layers.length > 0
+  && new Set(x.layers).size === x.layers.length
+  && x.layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4));
+const tippedOk = x => x.tipped === undefined || typeof x.tipped === 'boolean';
 function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
     throw new Error('Ungültiger Ladeplan in der Datei.');
@@ -93,8 +99,10 @@ function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ hat ungültige Notizen.`);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
-    && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl);
-  const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u);
+    && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl)
+    && pieceLayersOk(pl) && tippedOk(pl);
+  const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u)
+    && pieceLayersOk(u) && tippedOk(u);
   if (!p.placements.every(placementOk) || !arr(p.unplaced).every(unplacedOk))
     throw new Error(`Ladeplan „${p.name}“ enthält ungültige Platzierungen.`);
   const pieceIds = [...p.placements, ...arr(p.unplaced)].map(x => x.id);

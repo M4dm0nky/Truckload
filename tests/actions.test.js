@@ -196,6 +196,67 @@ test('duplicate legt die Kopie in die Ablage, wenn nirgends im Truck Platz ist',
 // Platzierung – ein Ablage-Eintrag mit einem eigenen (fremden) x/y hätte die gerade gewählte
 // Mausposition überschrieben (docs/code-review-2026-09-21.md, „actions.js:38-39“). Nur
 // label/color werden jetzt übernommen.
+// Lage/Tippen je Stück (Task 1): addUnplaced/placeCase/cycleTip/duplicate/toTray übernehmen
+// layers/tipped genauso wie label/color.
+
+test('addUnplaced übernimmt layers und tipped', () => {
+  const pl = A.addUnplaced(plan([]), 'k', 2, counter('u'), { layers: [1, 2], tipped: true });
+  assert.deepEqual(pl.unplaced.map(u => u.layers), [[1, 2], [1, 2]]);
+  assert.deepEqual(pl.unplaced.map(u => u.tipped), [true, true]);
+});
+test('addUnplaced ohne layers/tipped setzt diese Felder nicht (Regression)', () => {
+  const pl = A.addUnplaced(plan([]), 'k', 1, counter('u'));
+  assert.ok(!('layers' in pl.unplaced[0]));
+  assert.ok(!('tipped' in pl.unplaced[0]));
+});
+
+test('placeCase: Startorientierung tipLong, wenn tipped:true und der Case-Typ tippbar ist', () => {
+  const pl0 = plan([], [{ id: 'u1', caseId: 't', tipped: true, layers: [1] }]);
+  const pl = A.placeCase(pl0, 't', { x: 0, y: 0 }, ctx(), { fromUnplacedId: 'u1' });
+  const p = pl.placements[0];
+  assert.equal(p.orientation, 'tipLong');
+  assert.equal(p.tipped, true);
+  assert.deepEqual(p.layers, [1]);
+});
+test('placeCase: tipped:true bei nicht tippbarem Case-Typ startet trotzdem standing (canTip greift)', () => {
+  const pl0 = plan([], [{ id: 'u1', caseId: 'k', tipped: true }]);
+  const pl = A.placeCase(pl0, 'k', { x: 0, y: 0 }, ctx(), { fromUnplacedId: 'u1' });
+  assert.equal(pl.placements[0].orientation, 'standing');
+});
+test('placeCase: ohne tipped-Feld startet standing (Regression, Altdaten)', () => {
+  const pl0 = plan([], [{ id: 'u1', caseId: 't' }]);
+  const pl = A.placeCase(pl0, 't', { x: 0, y: 0 }, ctx(), { fromUnplacedId: 'u1' });
+  assert.equal(pl.placements[0].orientation, 'standing');
+  assert.ok(!('tipped' in pl.placements[0]));
+});
+
+test('cycleTip aktualisiert tipped passend zur neuen Orientierung', () => {
+  const pl = A.cycleTip(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
+  assert.equal(find(pl, 'a').orientation, 'tipShort');
+  assert.equal(find(pl, 'a').tipped, true);
+  const back = A.cycleTip(pl, 'a', ctx());
+  assert.equal(find(back, 'a').orientation, 'standing');
+  assert.equal(find(back, 'a').tipped, false);
+});
+test('cycleTip an einem nicht tippbaren Case ändert tipped nicht (kein tatsächliches Tippen)', () => {
+  const pl = A.cycleTip(plan([P('a', 'k', 0, 0, 0)]), 'a', ctx());
+  assert.ok(!('tipped' in find(pl, 'a')));
+});
+
+test('placementToUnplaced (via toTray) behält layers/tipped', () => {
+  const pl = A.toTray(plan([P('a', 't', 0, 0, 0, { layers: [2], tipped: true })]), 'a');
+  assert.deepEqual(pl.unplaced[0].layers, [2]);
+  assert.equal(pl.unplaced[0].tipped, true);
+});
+
+test('duplicate: Ablage-Zweig behält layers/tipped', () => {
+  const tightTruck = mkTruck({ l: 120, w: 60, h: 60 });
+  const c = { caseById: byId(K), truck: tightTruck, newId: counter('n') };
+  const pl = A.duplicate(plan([P('a', 'k', 0, 0, 0, { layers: [1], tipped: false })]), 'a', c);
+  assert.deepEqual(pl.unplaced[0].layers, [1]);
+  assert.equal(pl.unplaced[0].tipped, false);
+});
+
 test('placeCase übernimmt aus der Ablage nur label/color, nicht ein fremdes x/y/z/orientation', () => {
   const pl0 = plan([], [{ id: 'u1', caseId: 'k', label: 'Kiste', color: '#ff00ff', x: 999, y: 999, orientation: 'tipLong', rot: 90 }]);
   const pl = A.placeCase(pl0, 'k', { x: 40, y: 40 }, ctx(), { fromUnplacedId: 'u1' });

@@ -1,4 +1,4 @@
-import { EPS, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, layersOf } from './geometry.js';
+import { EPS, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, pieceLayers } from './geometry.js';
 import { isTruss } from './truss.js';
 
 // SUPPORT_MIN/IMBALANCE_RATIO nur in dieser Datei benutzt — nicht mehr exportiert
@@ -40,7 +40,10 @@ export function buildItems(plan, caseById) {
   for (const p of plan.placements) {
     const c = caseById.get(p.caseId);
     if (!c) { missing.push(p); continue; }
-    items.push({ id: p.id, p, c, box: boxOf(c, p), label: p.label ?? c.name, color: p.color ?? c.color });
+    items.push({
+      id: p.id, p, c, box: boxOf(c, p), label: p.label ?? c.name, color: p.color ?? c.color,
+      layers: p.layers, tipped: p.tipped,
+    });
   }
   return { items, missing };
 }
@@ -145,7 +148,7 @@ export function validatePlan(plan, caseById, truck) {
     const n = layers.get(it.id);
     if (n > 4) add(it.id, 'tooManyLayers', `„${it.label}“ steht in Lage ${n} – mehr als 4 Lagen sind nicht vorgesehen.`);
     else {
-      const allowed = layersOf(it.c);
+      const allowed = pieceLayers(it.p, it.c);
       if (!allowed.includes(n)) add(it.id, 'layer', `„${it.label}“ darf nicht in Lage ${n} stehen (erlaubt: ${[...allowed].sort((a, b) => a - b).join(', ')}).`);
     }
   }
