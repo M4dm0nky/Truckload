@@ -1,4 +1,4 @@
-import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, MAX_LABEL, nextTip } from './geometry.js';
+import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, MAX_LABEL, nextTip, layersOf } from './geometry.js';
 import { archBoxes, buildItems } from './validate.js';
 import { autoPack } from './packer.js';
 import { canTip } from './truss.js';
@@ -191,6 +191,71 @@ export function setItemLabel(plan, id, { label, color } = {}) {
     placements: plan.placements.map(patch),
     unplaced: plan.unplaced.map(patch),
   });
+}
+
+// Sucht ein Stück per id in Placements ODER Ablage – gemeinsamer Fundort für Aktionen, die ein
+// einzelnes Stück unabhängig davon patchen, in welcher der beiden Listen es gerade liegt.
+function findPiece(plan, id) {
+  const placement = plan.placements.find(p => p.id === id);
+  if (placement) return { list: 'placements', item: placement };
+  const unplaced = plan.unplaced.find(u => u.id === id);
+  if (unplaced) return { list: 'unplaced', item: unplaced };
+  return null;
+}
+
+// Gültig: Array, nicht leer, nur Ganzzahlen 1–4, keine Duplikate. Die Oberfläche verhindert das
+// bereits selbst (Checkboxen 1–4), die Aktion schützt sich trotzdem gegen fremden Aufruf.
+const isValidLayers = layers =>
+  Array.isArray(layers) && layers.length > 0
+  && layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4)
+  && new Set(layers).size === layers.length;
+
+export function setPieceLayers(plan, id, layers, ctx) {
+  const found = findPiece(plan, id);
+  if (!found) return plan;
+  const c = ctx.caseById.get(found.item.caseId);
+  if (!c) return plan;
+  if (!isValidLayers(layers)) return plan;
+  const allowed = layersOf(c);
+  const filtered = layers.filter(n => allowed.includes(n));
+  if (!filtered.length) return plan;
+  const sorted = [...filtered].sort((a, b) => a - b);
+  // Entspricht die gefilterte Menge genau layersOf(c) (unabhängig von der Reihenfolge dort),
+  // ist das Feld überflüssig – dann fehlendes Feld statt eines redundanten.
+  const allowedSet = new Set(allowed);
+  const isDefault = sorted.length === allowedSet.size && sorted.every(n => allowedSet.has(n));
+  const orig = found.item;
+  const unchanged = isDefault
+    ? !('layers' in orig)
+    : Array.isArray(orig.layers) && orig.layers.length === sorted.length && orig.layers.every((n, i) => n === sorted[i]);
+  if (unchanged) return plan;
+  const patch = it => {
+    if (it.id !== id) return it;
+    if (isDefault) {
+      const { layers: _drop, ...rest } = it;
+      return rest;
+    }
+    return { ...it, layers: sorted };
+  };
+  return touch({ ...plan, placements: plan.placements.map(patch), unplaced: plan.unplaced.map(patch) });
+}
+
+export function setPieceTipped(plan, id, tipped, ctx) {
+  const found = findPiece(plan, id);
+  if (!found) return plan;
+  const c = ctx.caseById.get(found.item.caseId);
+  if (!c || !canTip(c)) return plan;
+  if (found.list === 'unplaced') {
+    if (found.item.tipped === tipped) return plan;
+    const patch = it => (it.id === id ? { ...it, tipped } : it);
+    return touch({ ...plan, unplaced: plan.unplaced.map(patch) });
+  }
+  const p = found.item;
+  const isTippedNow = p.orientation !== 'standing';
+  if (tipped !== isTippedNow) return cycleTip(plan, id, ctx);
+  if (p.tipped === tipped) return plan;
+  const patch = it => (it.id === id ? { ...it, tipped } : it);
+  return touch({ ...plan, placements: plan.placements.map(patch) });
 }
 
 export const removePlacement = (plan, id) =>

@@ -243,6 +243,97 @@ test('cycleTip an einem nicht tippbaren Case ändert tipped nicht (kein tatsäch
   assert.ok(!('tipped' in find(pl, 'a')));
 });
 
+// Task 1: setPieceLayers/setPieceTipped ändern Lage/Tippen eines einzelnen Stücks – unabhängig
+// davon, ob es platziert ist oder in der Ablage liegt (Inspector, Task 2 baut UI-Checkboxen
+// darauf auf).
+test('setPieceLayers setzt layers an einem Placement, Position/Orientierung bleiben unverändert', () => {
+  const pl = A.setPieceLayers(plan([P('a', 'k', 10, 20, 0, { rot: 90 })]), 'a', [1], ctx());
+  const p = find(pl, 'a');
+  assert.deepEqual(p.layers, [1]);
+  assert.equal(p.x, 10);
+  assert.equal(p.y, 20);
+  assert.equal(p.z, 0);
+  assert.equal(p.rot, 90);
+  assert.equal(p.orientation, 'standing');
+});
+test('setPieceLayers wirkt ebenso auf ein Ablage-Stück', () => {
+  const pl = A.setPieceLayers(plan([], [{ id: 'u1', caseId: 'k' }]), 'u1', [1], ctx());
+  assert.deepEqual(pl.unplaced[0].layers, [1]);
+});
+test('setPieceLayers: [4,3,2,1] bei Standard-Lagen entfernt ein vorhandenes layers-Feld (entspricht layersOf(c))', () => {
+  const pl = A.setPieceLayers(plan([P('a', 'k', 0, 0, 0, { layers: [2] })]), 'a', [4, 3, 2, 1], ctx());
+  assert.ok(!('layers' in find(pl, 'a')));
+});
+test('setPieceLayers: Typ mit layers:[1,2] – [1,2,3] wird zu „kein Feld“', () => {
+  const c2 = mkCase('c2', 120, 60, 60, { layers: [1, 2] });
+  const c = { caseById: byId(c2), truck: mkTruck(), newId: counter('n') };
+  const pl = A.setPieceLayers(plan([P('a', 'c2', 0, 0, 0, { layers: [1] })]), 'a', [1, 2, 3], c);
+  assert.ok(!('layers' in find(pl, 'a')));
+});
+test('setPieceLayers: Typ mit layers:[1,2] – [2,3] wird zu [2]', () => {
+  const c2 = mkCase('c2', 120, 60, 60, { layers: [1, 2] });
+  const c = { caseById: byId(c2), truck: mkTruck(), newId: counter('n') };
+  const pl = A.setPieceLayers(plan([P('a', 'c2', 0, 0, 0)]), 'a', [2, 3], c);
+  assert.deepEqual(find(pl, 'a').layers, [2]);
+});
+test('setPieceLayers: [3,4] bei Typ [1,2] liefert denselben Plan (nichts Erlaubtes übrig)', () => {
+  const c2 = mkCase('c2', 120, 60, 60, { layers: [1, 2] });
+  const c = { caseById: byId(c2), truck: mkTruck(), newId: counter('n') };
+  const pl0 = plan([P('a', 'c2', 0, 0, 0)]);
+  assert.equal(A.setPieceLayers(pl0, 'a', [3, 4], c), pl0);
+});
+test('setPieceLayers: [] liefert denselben Plan', () => {
+  const pl0 = plan([P('a', 'k', 0, 0, 0)]);
+  assert.equal(A.setPieceLayers(pl0, 'a', [], ctx()), pl0);
+});
+test('setPieceLayers: [0] liefert denselben Plan', () => {
+  const pl0 = plan([P('a', 'k', 0, 0, 0)]);
+  assert.equal(A.setPieceLayers(pl0, 'a', [0], ctx()), pl0);
+});
+test('setPieceLayers: [1,1] (doppelt) liefert denselben Plan', () => {
+  const pl0 = plan([P('a', 'k', 0, 0, 0)]);
+  assert.equal(A.setPieceLayers(pl0, 'a', [1, 1], ctx()), pl0);
+});
+test('setPieceLayers: unbekannte id liefert denselben Plan', () => {
+  const pl0 = plan([P('a', 'k', 0, 0, 0)]);
+  assert.equal(A.setPieceLayers(pl0, 'unbekannt', [1], ctx()), pl0);
+});
+test('setPieceLayers: fehlender Case-Typ liefert denselben Plan', () => {
+  const pl0 = plan([P('a', 'weg', 0, 0, 0)]);
+  assert.equal(A.setPieceLayers(pl0, 'a', [1], ctx()), pl0);
+});
+
+test('setPieceTipped(false) auf getipptes Placement kippt zurück (standing) und setzt tipped:false', () => {
+  const tipped = A.cycleTip(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
+  assert.equal(find(tipped, 'a').orientation, 'tipShort');
+  const pl = A.setPieceTipped(tipped, 'a', false, ctx());
+  const p = find(pl, 'a');
+  assert.equal(p.orientation, 'standing');
+  assert.equal(p.tipped, false);
+});
+test('setPieceTipped(true) auf stehendes Placement tippt und setzt tipped:true', () => {
+  const pl = A.setPieceTipped(plan([P('a', 't', 0, 0, 0)]), 'a', true, ctx());
+  const p = find(pl, 'a');
+  assert.notEqual(p.orientation, 'standing');
+  assert.equal(p.tipped, true);
+});
+test('setPieceTipped auf ein Ablage-Stück setzt nur das Feld', () => {
+  const pl = A.setPieceTipped(plan([], [{ id: 'u1', caseId: 't' }]), 'u1', true, ctx());
+  assert.equal(pl.unplaced[0].tipped, true);
+});
+test('setPieceTipped bei nicht tippbarem Case liefert denselben Plan', () => {
+  const pl0 = plan([P('a', 'k', 0, 0, 0)]);
+  assert.equal(A.setPieceTipped(pl0, 'a', true, ctx()), pl0);
+});
+test('setPieceTipped: gleicher Wert liefert denselben Plan (Placement, Soll=Ist)', () => {
+  const pl0 = plan([P('a', 't', 0, 0, 0, { tipped: false })]);
+  assert.equal(A.setPieceTipped(pl0, 'a', false, ctx()), pl0);
+});
+test('setPieceTipped: gleicher Wert liefert denselben Plan (Ablage)', () => {
+  const pl0 = plan([], [{ id: 'u1', caseId: 't', tipped: true }]);
+  assert.equal(A.setPieceTipped(pl0, 'u1', true, ctx()), pl0);
+});
+
 test('placementToUnplaced (via toTray) behält layers/tipped', () => {
   const pl = A.toTray(plan([P('a', 't', 0, 0, 0, { layers: [2], tipped: true })]), 'a');
   assert.deepEqual(pl.unplaced[0].layers, [2]);
