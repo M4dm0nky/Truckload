@@ -252,7 +252,11 @@ export function setPieceTipped(plan, id, tipped, ctx) {
   }
   const p = found.item;
   const isTippedNow = p.orientation !== 'standing';
-  if (tipped !== isTippedNow) return cycleTip(plan, id, ctx);
+  if (tipped && !isTippedNow) return cycleTip(plan, id, ctx);
+  // Aufstellen NICHT über cycleTip: das ist ein gerichteter "einmal weiter kippen"-Schritt
+  // (nextTip() in geometry.js), der von tipLong/tipShort aus je nach rot auch in einer ANDEREN
+  // getippten Lage landen kann statt auf standing (Fix-Runde 1) – hier ist "standing" verlangt.
+  if (!tipped && isTippedNow) return reorient(plan, id, ctx, () => ({ orientation: 'standing', tipped: false }));
   if (p.tipped === tipped) return plan;
   const patch = it => (it.id === id ? { ...it, tipped } : it);
   return touch({ ...plan, placements: plan.placements.map(patch) });

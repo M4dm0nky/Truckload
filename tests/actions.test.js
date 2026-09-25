@@ -302,6 +302,10 @@ test('setPieceLayers: fehlender Case-Typ liefert denselben Plan', () => {
   const pl0 = plan([P('a', 'weg', 0, 0, 0)]);
   assert.equal(A.setPieceLayers(pl0, 'a', [1], ctx()), pl0);
 });
+test('setPieceLayers: [4,3,2,1] entfernt ein vorhandenes layers-Feld auch bei einem Ablage-Stück', () => {
+  const pl = A.setPieceLayers(plan([], [{ id: 'u1', caseId: 'k', layers: [2] }]), 'u1', [4, 3, 2, 1], ctx());
+  assert.ok(!('layers' in pl.unplaced[0]));
+});
 
 test('setPieceTipped(false) auf getipptes Placement kippt zurück (standing) und setzt tipped:false', () => {
   const tipped = A.cycleTip(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
@@ -317,6 +321,23 @@ test('setPieceTipped(true) auf stehendes Placement tippt und setzt tipped:true',
   assert.notEqual(p.orientation, 'standing');
   assert.equal(p.tipped, true);
 });
+// Fix-Runde 1 [critical]: setPieceTipped(false) rief für ein getipptes Placement bisher cycleTip
+// auf – das ist aber ein GERICHTETER „einmal weiter kippen“-Schritt (nextTip() in geometry.js),
+// der je nach Ausgangs-rot auch in einer ANDEREN getippten Lage landen kann statt auf standing.
+// Reproduziert mit einem Placement, wie es Auto-Pack/Import erzeugen kann (nicht über cycleTip
+// selbst entstanden): tipLong/rot 0 -> cycleTip landete auf tipShort statt standing.
+// Alle vier packer-typischen Ausgangslagen (tipLong/tipShort x rot 0/90) müssen auf
+// { orientation: 'standing', tipped: false } führen.
+for (const [orientation, rot] of [['tipLong', 0], ['tipLong', 90], ['tipShort', 0], ['tipShort', 90]]) {
+  test(`setPieceTipped(false) stellt ${orientation}/rot ${rot} sicher auf standing (nicht über cycleTip)`, () => {
+    const pl0 = plan([P('a', 't', 0, 0, 0, { orientation, rot, tipped: true })]);
+    const pl = A.setPieceTipped(pl0, 'a', false, ctx());
+    const p = find(pl, 'a');
+    assert.equal(p.orientation, 'standing');
+    assert.equal(p.tipped, false);
+    assert.equal(p.rot, rot, 'rot bleibt erhalten (kein Umlegen über cycleTip)');
+  });
+}
 test('setPieceTipped auf ein Ablage-Stück setzt nur das Feld', () => {
   const pl = A.setPieceTipped(plan([], [{ id: 'u1', caseId: 't' }]), 'u1', true, ctx());
   assert.equal(pl.unplaced[0].tipped, true);
