@@ -139,7 +139,17 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .wiz-groups { display: grid; gap: 12px; max-height: 420px; overflow: auto; }
 .wiz-group { display: grid; gap: 8px; }
 .wiz-group legend { display: flex; align-items: center; gap: 10px; color: var(--text); }
-.wiz-item { grid-template-columns: 1fr auto; align-items: center; }
+/* `.wiz-item` sitzt zusammen mit `.row` auf demselben Element — `.row.wiz-item` statt nur
+   `.wiz-item`, sonst gewinnt `.editor .row` (zwei Klassen) trotz späterer Quellposition gegen
+   die schwächere Ein-Klassen-Regel und das Grid-Layout von `.row` bleibt bestehen. */
+.row.wiz-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.wiz-item input[name="label"] { flex: 1 1 140px; min-width: 100px; }
+.wiz-item input[type="color"] { flex: none; }
+.wiz-layers { display: flex; align-items: center; gap: 4px; flex: none; color: var(--muted); font-size: 12px; }
+.wiz-layers-label { margin-right: 2px; }
+.wiz-layers .check { gap: 2px; }
+.wiz-tipped { flex: none; }
+.wiz-layer-hint { flex-basis: 100%; }
 
 .lib-head { display: block; }
 .lib-head-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

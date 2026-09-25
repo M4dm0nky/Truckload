@@ -44,6 +44,23 @@ oder `plan.unplaced[]` (Ablage). Trägt `id`, `caseId` und — seit V 0.4.0 — 
 `label` (Beschriftung, höchstens `MAX_LABEL` Zeichen) und `color`. Platzierte Stücke haben
 zusätzlich `x`, `y`, `z`, `orientation` und `rot`.
 
+Zwei weitere optionale Stück-Felder schränken den Case-Typ nur ein, erweitern ihn nie, und
+fallen bei Fehlen auf das bisherige Case-Typ-Verhalten zurück (Altdaten ohne diese Felder
+laden also unverändert):
+
+- `layers` — eine nichtleere Teilmenge von 1 bis 4. `pieceLayers(piece, c)`
+  (`js/model/geometry.js`) bildet die Schnittmenge aus `piece.layers` und `layersOf(c)`
+  (den Case-Typ-Lagen); fehlt `piece.layers` oder ist die Schnittmenge leer (z. B. weil ein
+  Import das Case seither auf weniger Lagen begrenzt hat), gilt `layersOf(c)` unverändert.
+- `tipped` — `true` zwingt aufs Tippen, `false` verbietet es, fehlt es, bleibt die bisherige
+  Wahl beim Packer maßgeblich (`pieceOrientations(piece, c)`, nicht tippbare Case-Typen
+  lassen sich davon nie überstimmen). Wird ein Stück platziert, entscheidet
+  `tipped === true && canTip(c)` über die Startausrichtung (`tipLong` statt `standing`).
+
+Der Wizard (Schritt „Beschriften“, `js/ui/load-wizard.js`) setzt beide Felder je Stück
+vor: `layers` mit allen von `layersOf(c)` erlaubten Lagen, `tipped` mit `canTip(c)` — der
+Nutzer hakt Ausnahmen ab, statt jedes Stück einzeln hochzuziehen.
+
 `MAX_LABEL` (= 40) liegt in `js/model/geometry.js` — dort, weil es ein Modul ohne eigene
 Importe ist, das `js/store/io.js` (Prüfung `labelOk`) ohnehin schon importiert, und `js/ui/*`
 sowohl Modell als auch Store benutzen darf. `js/model/actions.js` kürzt jeden gesetzten oder

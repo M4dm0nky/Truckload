@@ -1,7 +1,7 @@
 import { esc, swatch } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
-import { outerDims } from '../model/geometry.js';
-import { isTruss } from '../model/truss.js';
+import { outerDims, layersOf } from '../model/geometry.js';
+import { isTruss, canTip } from '../model/truss.js';
 import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS } from './caseGroups.js';
 import { MAX_LABEL } from '../model/geometry.js';
 import { openTrussDialog } from './truss-wizard.js';
@@ -18,14 +18,15 @@ function caseLine(c) {
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, onNewCase(draft),
 //   trussDlg (<dialog> für „Traverse hinzufügen“, optional – ohne wird der Knopf ausgeblendet),
 //   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js) }
-// Ergebnis: { name, truckId, items: [{ caseId, label, color }], autoPack } oder null bei Abbruch.
+// Ergebnis: { name, truckId, items: [{ caseId, label, color, layers, tipped }], autoPack } oder
+// null bei Abbruch.
 export function openLoadWizard(dlg, opts = {}) {
   const mode = opts.mode ?? 'new';
   const trucks = opts.trucks ?? [];
   let cases = [...(opts.cases ?? [])];
   const counts = new Map(); // caseId -> Anzahl
   let activeTab = CASE_TABS[0].id; // 'cases' — Reiter der Artikelauswahl, s. caseKind() (caseGroups.js)
-  const itemsState = new Map(); // caseId -> [{ label, color }]
+  const itemsState = new Map(); // caseId -> [{ label, color, layers, tipped }]
   const total = () => [...counts.values()].reduce((a, b) => a + b, 0);
 
   const steps = mode === 'add' ? ['cases', 'labels'] : ['load', 'cases', 'labels'];
@@ -229,7 +230,15 @@ export function openLoadWizard(dlg, opts = {}) {
       const n = counts.get(c.id) ?? 0;
       if (n <= 0) { itemsState.delete(c.id); continue; }
       const prev = itemsState.get(c.id) ?? [];
-      const next = Array.from({ length: n }, (_, i) => prev[i] ?? { label: `${c.name} ${i + 1}`.slice(0, MAX_LABEL), color: colorFor(c.category) });
+      // Vorbelegung je Stück: alle vom Case-Typ erlaubten Lagen angehakt, „getippt“ nur, wenn der
+      // Typ es überhaupt zulässt — der Nutzer hakt Ausnahmen ab, statt jedes Stück einzeln
+      // hochzuziehen (Anforderung: Vorgabe „getippt“, nur Ausnahmen abwählen).
+      const next = Array.from({ length: n }, (_, i) => prev[i] ?? {
+        label: `${c.name} ${i + 1}`.slice(0, MAX_LABEL),
+        color: colorFor(c.category),
+        layers: [...layersOf(c)],
+        tipped: canTip(c),
+      });
       itemsState.set(c.id, next);
     }
   }
@@ -239,6 +248,8 @@ export function openLoadWizard(dlg, opts = {}) {
     groupsEl.innerHTML = ids.map(id => {
       const c = cases.find(x => x.id === id);
       const arr = itemsState.get(id);
+      const allowed = layersOf(c);
+      const tippable = canTip(c);
       return `
         <fieldset class="wiz-group" data-case="${esc(id)}">
           <legend>${esc(c.name)} <button type="button" data-act="color-all">Farbe auf alle übernehmen</button></legend>
@@ -246,6 +257,12 @@ export function openLoadWizard(dlg, opts = {}) {
             <div class="row wiz-item" data-i="${i}">
               <input name="label" value="${esc(it.label)}" maxlength="${MAX_LABEL}">
               <input type="color" name="color" value="${esc(it.color)}">
+              <span class="wiz-layers">
+                <span class="wiz-layers-label">Lage</span>
+                ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-layer="${n}" ${it.layers.includes(n) ? 'checked' : ''} ${allowed.includes(n) ? '' : 'disabled'}>${n}</label>`).join('')}
+              </span>
+              <label class="check wiz-tipped"><input type="checkbox" name="tipped" ${it.tipped ? 'checked' : ''} ${tippable ? '' : 'disabled'}>getippt</label>
+              <small class="hint wiz-layer-hint" hidden>Mindestens eine Lage nötig.</small>
             </div>`).join('')}
         </fieldset>`;
     }).join('') || '<p class="hint">Keine Cases ausgewählt.</p>';
@@ -259,6 +276,23 @@ export function openLoadWizard(dlg, opts = {}) {
     if (!it) return;
     if (e.target.name === 'label') it.label = e.target.value;
     if (e.target.name === 'color') it.color = e.target.value;
+    if (e.target.name === 'tipped') it.tipped = e.target.checked;
+    if (e.target.dataset.layer) {
+      const n = Number(e.target.dataset.layer);
+      const hint = rowEl.querySelector('.wiz-layer-hint');
+      if (e.target.checked) {
+        if (!it.layers.includes(n)) it.layers = [...it.layers, n].sort((a, b) => a - b);
+        hint.hidden = true;
+      } else if (it.layers.length <= 1) {
+        // Die letzte angehakte Lage lässt sich nicht abwählen — ein Stück ohne jede Lage wäre
+        // nirgends platzierbar. Häkchen bleibt gesetzt, kurzer Hinweis statt stillem Ignorieren.
+        e.target.checked = true;
+        hint.hidden = false;
+      } else {
+        it.layers = it.layers.filter(x => x !== n);
+        hint.hidden = true;
+      }
+    }
   });
   groupsEl.addEventListener('click', e => {
     const btn = e.target.closest('[data-act="color-all"]');
@@ -317,8 +351,8 @@ export function openLoadWizard(dlg, opts = {}) {
         if (n <= 0) continue;
         const arr = itemsState.get(c.id) ?? [];
         for (let i = 0; i < n; i++) {
-          const it = arr[i] ?? { label: '', color: colorFor(c.category) };
-          items.push({ caseId: c.id, label: it.label.trim(), color: it.color });
+          const it = arr[i] ?? { label: '', color: colorFor(c.category), layers: [...layersOf(c)], tipped: canTip(c) };
+          items.push({ caseId: c.id, label: it.label.trim(), color: it.color, layers: it.layers, tipped: it.tipped });
         }
       }
       resolve({

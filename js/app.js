@@ -257,7 +257,12 @@ async function runLoadWizard(mode) {
   if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));
   edit((p, c) => {
     let next = res.items.reduce((pl, it) =>
-      A.addUnplaced(pl, it.caseId, 1, uid, { labels: it.label ? [it.label] : [], color: it.color ?? null }), p);
+      A.addUnplaced(pl, it.caseId, 1, uid, {
+        labels: it.label ? [it.label] : [],
+        color: it.color ?? null,
+        layers: it.layers,
+        tipped: it.tipped,
+      }), p);
     if (res.autoPack) next = A.packRest(next, c);
     return next;
   });

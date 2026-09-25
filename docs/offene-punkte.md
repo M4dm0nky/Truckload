@@ -218,3 +218,6 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
 - Gewichte im Inspector schnell nachtragen können, ohne den Case-Editor zu öffnen.
 - Mehrere Trucks je Show, mit Verteilung der Cases auf die Fahrzeuge.
 - Ladereihenfolge nach Ausladereihenfolge statt nach Position.
+- Lage/Tippen nach dem Wizard im Inspector ändern. Bisher lassen sich `layers` und `tipped`
+  eines Stücks nur beim Anlegen im Wizard setzen; wer nachträglich eine Ausnahme korrigieren
+  will, muss das Stück löschen und neu anlegen.
