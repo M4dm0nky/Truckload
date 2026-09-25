@@ -14,10 +14,11 @@ const MAX_ITEMS = 500;
 // überhaupt tippbar ist (sonst wäre der Wert ohnehin ohne Wirkung). Ohne diese Reduktion würde
 // jedes Stück, das der Nutzer nie bewusst eingeschränkt hat, trotzdem `layers`/`tipped` als
 // feste Werte tragen — eine spätere Änderung am Case-Typ (z. B. eine neu erlaubte Lage) käme
-// dann bei diesen Stücken nie an, obwohl es dafür (Stand heute) keine eigene Oberfläche gibt,
-// um das nachträglich zu korrigieren (docs/offene-punkte.md, „Lage/Tippen nach dem Wizard im
-// Inspector ändern“). Die Vorbelegung/Anzeige der Checkboxen bleibt davon unberührt — die
-// zeigt weiterhin `layersOf(c)`/`canTip(c)`, nur das gespeicherte ERGEBNIS wird reduziert.
+// dann bei diesen Stücken nie an. Nachträglich lassen sich beide Felder je Stück im Inspector
+// ändern (`A.setPieceLayers`/`A.setPieceTipped`, js/ui/inspector.js), mit derselben
+// Reduktionsregel. Die Vorbelegung/Anzeige der Checkboxen hier im Wizard bleibt davon
+// unberührt — die zeigt weiterhin `layersOf(c)`/`canTip(c)`, nur das gespeicherte ERGEBNIS
+// wird reduziert.
 export function reduceWizardItem(it, c) {
   const allowed = layersOf(c);
   const sameLayers = it.layers.length === allowed.length && it.layers.every(n => allowed.includes(n));

@@ -282,6 +282,17 @@ test('setPieceLayers: [3,4] bei Typ [1,2] liefert denselben Plan (nichts Erlaubt
   const pl0 = plan([P('a', 'c2', 0, 0, 0)]);
   assert.equal(A.setPieceLayers(pl0, 'a', [3, 4], c), pl0);
 });
+// Ein gespeichertes `layers:[3]` ist bei Typ [1,2] bereits ungültig geworden (z. B. weil der
+// Case-Typ nachträglich auf weniger Lagen begrenzt wurde) – setPieceLayers filtert die neue
+// Anfrage trotzdem nur gegen layersOf(c), unabhängig vom bisherigen (fremden) Feldwert. Fragt
+// der Nutzer dabei genau die volle Typ-Menge an, verschwindet das Feld statt eines erneut
+// redundanten Werts (dieselbe Regel wie beim Standard-Fall oben).
+test('setPieceLayers: Typ [1,2] mit vorhandenem, ungültigem layers:[3] – Anfrage [1,2,3,4] entfernt das Feld', () => {
+  const c2 = mkCase('c2', 120, 60, 60, { layers: [1, 2] });
+  const c = { caseById: byId(c2), truck: mkTruck(), newId: counter('n') };
+  const pl = A.setPieceLayers(plan([P('a', 'c2', 0, 0, 0, { layers: [3] })]), 'a', [1, 2, 3, 4], c);
+  assert.ok(!('layers' in find(pl, 'a')));
+});
 test('setPieceLayers: [] liefert denselben Plan', () => {
   const pl0 = plan([P('a', 'k', 0, 0, 0)]);
   assert.equal(A.setPieceLayers(pl0, 'a', [], ctx()), pl0);
@@ -340,6 +351,14 @@ for (const [orientation, rot] of [['tipLong', 0], ['tipLong', 90], ['tipShort', 
 }
 test('setPieceTipped auf ein Ablage-Stück setzt nur das Feld', () => {
   const pl = A.setPieceTipped(plan([], [{ id: 'u1', caseId: 't' }]), 'u1', true, ctx());
+  assert.equal(pl.unplaced[0].tipped, true);
+});
+// Befund Abschluss-Review: die Inspector-Anzeige für Ablage-Stücke zeigt „getippt“ nur noch
+// bei tipped:true (nicht mehr ?? canTip(c)) – dieser Test hält das zugehörige Verhalten der
+// Aktion fest: ein Ablage-Stück mit ausdrücklichem tipped:false wird durch das Häkchen auf
+// tipped:true umgestellt, unabhängig vom fehlenden Feld im Standardfall (s. Test oben).
+test('setPieceTipped(true) auf ein Ablage-Stück mit tipped:false setzt tipped:true', () => {
+  const pl = A.setPieceTipped(plan([], [{ id: 'u1', caseId: 't', tipped: false }]), 'u1', true, ctx());
   assert.equal(pl.unplaced[0].tipped, true);
 });
 test('setPieceTipped bei nicht tippbarem Case liefert denselben Plan', () => {

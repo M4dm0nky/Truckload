@@ -272,7 +272,10 @@ const library = mountLibrary($('#library'), {
   onEdit: id => editCase(id),
   onDelete: id => deleteCaseDirect(id),
   onAddLoad: () => runLoadWizard('add'),
-  onTrayRemove: id => edit(p => A.removeUnplaced(p, id)),
+  onTrayRemove: id => {
+    edit(p => A.removeUnplaced(p, id));
+    if (store.get().selectedId === id) select(null);
+  },
   onSelectPlaced: id => select(id),
   onSelectUnplaced: id => select(id),
 });
@@ -448,6 +451,7 @@ renderHooks.push((s, d) => {
   if (truckHtml !== lastTruckHtml) $('#truck-select').innerHTML = lastTruckHtml = truckHtml;
   $('#undo').disabled = !store.canUndo();
   $('#redo').disabled = !store.canRedo();
+  $('#unload-all').disabled = !s.plan.placements.length;
 });
 
 // Ladepläne

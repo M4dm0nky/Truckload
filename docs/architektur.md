@@ -61,6 +61,14 @@ Der Wizard (Schritt „Beschriften“, `js/ui/load-wizard.js`) setzt beide Felde
 vor: `layers` mit allen von `layersOf(c)` erlaubten Lagen, `tipped` mit `canTip(c)` — der
 Nutzer hakt Ausnahmen ab, statt jedes Stück einzeln hochzuziehen.
 
+Beide Felder lassen sich danach im Inspector je Stück ändern (`A.setPieceLayers`/
+`A.setPieceTipped`, `js/ui/inspector.js`), nach derselben Reduktionsregel wie
+`reduceWizardItem` im Wizard: Lagen, die genau dem Case-Typ entsprechen, werden nicht
+gespeichert, `tipped` gibt es nur für tippbare Case-Typen, und Aufstellen (`tipped:false`
+auf einem platzierten Stück) geht direkt auf `standing`, nicht über `cycleTip`. `A.unloadAll`
+(Knopf „Truck entladen“) legt alle Placements zurück in die Ablage und behält dabei Label,
+Farbe, `layers` und `tipped` je Stück.
+
 `MAX_LABEL` (= 40) liegt in `js/model/geometry.js` — dort, weil es ein Modul ohne eigene
 Importe ist, das `js/store/io.js` (Prüfung `labelOk`) ohnehin schon importiert, und `js/ui/*`
 sowohl Modell als auch Store benutzen darf. `js/model/actions.js` kürzt jeden gesetzten oder
@@ -103,6 +111,12 @@ nicht anhand fester `rot`-Werte — welche der beiden getippten Lagen (`tipLong`
 dabei herauskommt, hängt davon ab, ob gerade Länge oder Breite in Fahrtrichtung steht. Zweimal
 in Folge Tippen landet deshalb wieder bei `standing` (Hin und zurück), nicht bei der jeweils
 dritten Lage — die ist nur über eine Drehung (`rotate`, Taste R) vor dem Tippen erreichbar.
+Das gilt für einen über Tippen selbst erreichten Zustand; bei einer vom Packer erzeugten
+Ausgangslage (z. B. `tipLong` mit `rot 0`) kann `nextTip` stattdessen über die jeweils andere
+Achse kippen, weil der Schritt gerichtet ist, nicht auf `standing` zielt (docs/offene-punkte.md,
+„Kleinigkeiten“). Verlässlich steht das Case über das „getippt“-Häkchen im Inspector
+(`setPieceTipped`, s. u.), das für `tipped:false` immer direkt `standing` setzt statt `cycleTip`
+aufzurufen.
 Bis V 0.7.2 setzte `cycleTip` `rot` bei jedem Übergang stattdessen fest so, dass die Rollen zur
 Tür zeigen, unabhängig von der Ausgangsdrehung — stand die lange Seite in Fahrtrichtung, kippte
 das Case dadurch sichtbar zur Seite statt nach vorn (Nutzer-Feedback 2026-09-23). Die

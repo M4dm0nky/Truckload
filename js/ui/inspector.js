@@ -11,8 +11,10 @@ const WHEEL_FACE_LABEL = { '+x': 'Tür', '-x': 'Front', '-y': 'links', '+y': 're
 
 // Block „Laden“ – für ein platziertes Stück (piece = das Placement, tippedOn aus der
 // Orientierung) genauso wie für ein Ablage-Stück (piece = der Ablage-Eintrag, tippedOn aus
-// `tipped ?? canTip(c)`) – Optik/Klassen wie im Wizard (js/ui/load-wizard.js), damit das
-// Häkchen-Verhalten (letzte Lage nicht abwählbar) demselben Muster folgt.
+// `item.tipped === true` – fehlt das Feld, entscheidet beim Platzieren `placeCase` frei und
+// setzt standing, das Häkchen darf hier also nicht `canTip(c)` als Vorgabe zeigen) – Optik/
+// Klassen wie im Wizard (js/ui/load-wizard.js), damit das Häkchen-Verhalten (letzte Lage
+// nicht abwählbar) demselben Muster folgt.
 function loadBlock(piece, c, tippedOn) {
   const allowed = layersOf(c);
   const layers = pieceLayers(piece, c);
@@ -79,7 +81,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck 
         <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selectedUnplaced.label)}"></label>
         <label>Farbe<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
       </div>
-      ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped ?? canTip(selectedUnplaced.c))}
+      ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
       <div class="btns">
         <button data-act="edit-case">Case bearbeiten</button>
         <button data-act="delete" class="danger">Entfernen</button>
