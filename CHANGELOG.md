@@ -2,6 +2,12 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.13 – 2026-09-25
+
+- Im Wizard (Schritt „Beschriften“) lässt sich jetzt für jedes einzelne Stück festlegen, wie es geladen wird: in welchen Lagen es stehen darf (Lage 1 = Boden bis Lage 4) und ob es getippt wird oder stehend fährt. Standard ist „getippt“, man hakt nur die Ausnahmen ab. Lagen, die der Case-Typ nicht erlaubt, und „getippt“ bei nicht tippbaren Cases (z. B. Traversen) sind ausgegraut.
+- Der automatische Packer hält sich an diese Einstellungen: getippte Stücke packt er nur getippt, stehende nur stehend. Passt ein Stück so nicht in den Truck, bleibt es in „Noch nicht geladen“. Wer ein Stück im Truck von Hand tippt oder aufstellt, ändert damit auch seine Einstellung, sodass „Alles neu packen“ die Handänderung nicht rückgängig macht.
+- Bestehende Loads laden und packen unverändert: Stücke ohne diese Einstellung verhalten sich wie bisher.
+
 ## V 0.7.12 – 2026-09-24
 
 - In der Seitenleiste gibt es nur noch den Knopf „+ Material hinzufügen“ (startet den Wizard). „+ Neues Case“, „⬛ Sonderbau“ und „+ Traverse hinzufügen“ sind dort entfernt: Die ersten beiden legten nur einen Case-Typ an, ohne ihn in den Load zu packen, sodass das Neue links nicht auftauchte. Alle drei gibt es weiterhin im Wizard, und dort landet das Neue direkt im Load.
