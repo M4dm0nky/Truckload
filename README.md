@@ -55,6 +55,10 @@ So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gel�
 Gefällt das Ergebnis nicht, legt „Truck entladen“ alle Cases zurück nach „Noch nicht
 geladen“, um sie von Hand zu laden (rückgängig mit ⌘Z).
 
+Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im Inspector ändern
+– sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
+Zeile in der Seitenleiste anklicken).
+
 ## Mitgelieferte Cases
 
 In der Bibliothek und im Wizard gibt es neben „Eigene Cases“ und den Vorlagen einen

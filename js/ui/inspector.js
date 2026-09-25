@@ -1,6 +1,7 @@
 import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
-import { outerDims, wheelFace } from '../model/geometry.js';
+import { outerDims, wheelFace, layersOf, pieceLayers } from '../model/geometry.js';
 import { MAX_LABEL } from '../model/geometry.js';
+import { canTip } from '../model/truss.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
 // (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die
@@ -8,7 +9,26 @@ import { MAX_LABEL } from '../model/geometry.js';
 const WHEEL_FACE_ORDER = ['+x', '-x', '-y', '+y'];
 const WHEEL_FACE_LABEL = { '+x': 'Tür', '-x': 'Front', '-y': 'links', '+y': 'rechts' };
 
-export function renderInspector(el, { selected, result, truck }) {
+// Block „Laden“ – für ein platziertes Stück (piece = das Placement, tippedOn aus der
+// Orientierung) genauso wie für ein Ablage-Stück (piece = der Ablage-Eintrag, tippedOn aus
+// `tipped ?? canTip(c)`) – Optik/Klassen wie im Wizard (js/ui/load-wizard.js), damit das
+// Häkchen-Verhalten (letzte Lage nicht abwählbar) demselben Muster folgt.
+function loadBlock(piece, c, tippedOn) {
+  const allowed = layersOf(c);
+  const layers = pieceLayers(piece, c);
+  const tippable = canTip(c);
+  return `
+    <div class="insp-load">
+      <span class="wiz-layers">
+        <span class="wiz-layers-label">Lage</span>
+        ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-layer="${n}" ${layers.includes(n) ? 'checked' : ''} ${allowed.includes(n) ? '' : 'disabled'}>${n}</label>`).join('')}
+      </span>
+      <label class="check wiz-tipped"><input type="checkbox" name="tipped" ${tippedOn ? 'checked' : ''} ${tippable ? '' : 'disabled'}>getippt</label>
+      <small class="hint wiz-layer-hint" hidden>Mindestens eine Lage nötig.</small>
+    </div>`;
+}
+
+export function renderInspector(el, { selected, selectedUnplaced, result, truck }) {
   const t = result.totals;
   const pct = Math.min(100, Math.round(t.weight / t.payload * 100));
   const tipped = selected && selected.p.orientation !== 'standing';
@@ -38,6 +58,7 @@ export function renderInspector(el, { selected, result, truck }) {
         <dt>Gewicht</dt><dd>${selected.c.weight} kg · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
       </dl>
       ${wheelRow}
+      ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
         <button data-act="rotate">Drehen <kbd>R</kbd></button>
         <!-- Truthy-Check statt canTip(c) (js/model/truss.js) — bewusst, s. Kommentar an der
@@ -50,7 +71,20 @@ export function renderInspector(el, { selected, result, truck }) {
         <button data-act="delete" class="danger">Entfernen <kbd>Entf</kbd></button>
       </div>
       ${(result.byPlacement.get(selected.id) ?? []).map(i => `<p class="issue">${esc(i.message)}</p>`).join('')}
-    </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>';
+    </section>` : (selectedUnplaced ? `
+    <section class="insp-sel insp-unplaced" data-id="${esc(selectedUnplaced.id)}">
+      <h2>${swatch(selectedUnplaced.color)}${esc(selectedUnplaced.label)}</h2>
+      <p class="hint">Noch nicht geladen</p>
+      <div class="insp-label">
+        <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selectedUnplaced.label)}"></label>
+        <label>Farbe<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
+      </div>
+      ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped ?? canTip(selectedUnplaced.c))}
+      <div class="btns">
+        <button data-act="edit-case">Case bearbeiten</button>
+        <button data-act="delete" class="danger">Entfernen</button>
+      </div>
+    </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>');
 
   el.innerHTML = `${sel}
     <section class="insp-totals">

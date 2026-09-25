@@ -71,12 +71,13 @@ export function mountLibrary(el, h) {
     const c = last.byId.get(caseId);
     const color = u.color ?? c?.color ?? '#888';
     const label = u.label ?? c?.name ?? 'Unbekanntes Case';
+    const selCls = u.id === last.selectedId ? ' sel' : '';
     if (placed) {
-      return `<div class="lib-item" data-case="${esc(caseId)}" data-placed="${esc(u.id)}">
+      return `<div class="lib-item${selCls}" data-case="${esc(caseId)}" data-placed="${esc(u.id)}">
         ${swatch(color)}
         <span class="lib-text">${esc(label)}</span></div>`;
     }
-    return `<div class="lib-item" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
+    return `<div class="lib-item${selCls}" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
       ${swatch(color)}
       <span class="lib-text">${esc(label)}</span>
       <button data-act="tray-remove" title="Entfernen">−</button></div>`;
@@ -111,9 +112,11 @@ export function mountLibrary(el, h) {
        load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(unplacedId) })[btn.dataset.act]?.();
   });
   content.addEventListener('click', e => {
+    if (e.target.closest('button')) return;
     const placed = e.target.closest('[data-placed]');
-    if (!placed || e.target.closest('button')) return;
-    h.onSelectPlaced(placed.dataset.placed);
+    if (placed) return h.onSelectPlaced(placed.dataset.placed);
+    const unplaced = e.target.closest('[data-unplaced]');
+    if (unplaced) h.onSelectUnplaced(unplaced.dataset.unplaced);
   });
   el.addEventListener('dragstart', e => {
     const item = e.target.closest('[data-unplaced]');
@@ -126,8 +129,9 @@ export function mountLibrary(el, h) {
     update(state) {
       const casesChanged = !last || last.cases !== state.cases;
       const planChanged = !last || last.plan.unplaced !== state.plan.unplaced || last.plan.placements !== state.plan.placements;
-      last = { cases: state.cases, plan: state.plan, byId: new Map(state.cases.map(c => [c.id, c])) };
-      if (casesChanged || planChanged) renderContent();
+      const selChanged = !last || last.selectedId !== state.selectedId;
+      last = { cases: state.cases, plan: state.plan, selectedId: state.selectedId, byId: new Map(state.cases.map(c => [c.id, c])) };
+      if (casesChanged || planChanged || selChanged) renderContent();
     },
   };
 }

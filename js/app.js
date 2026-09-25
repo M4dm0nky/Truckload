@@ -274,6 +274,7 @@ const library = mountLibrary($('#library'), {
   onAddLoad: () => runLoadWizard('add'),
   onTrayRemove: id => edit(p => A.removeUnplaced(p, id)),
   onSelectPlaced: id => select(id),
+  onSelectUnplaced: id => select(id),
 });
 renderHooks.push(s => library.update(s));
 
@@ -295,16 +296,38 @@ attachSelect($('#svg-rear'), select);
 // Inspector
 renderHooks.push((s, d) => {
   const selected = d.result.items.find(it => it.id === s.selectedId) ?? null;
-  renderInspector($('#inspector'), { selected, result: d.result, truck: d.truck });
+  // Kein Placement gefunden, aber eine Auswahl gesetzt: das Stück liegt noch in der Ablage
+  // (Task 2) – Label/Farbe mit demselben Rückfall auf Case-Name/Gewerkfarbe wie buildItems()
+  // (js/model/validate.js) es für Placements schon macht.
+  let selectedUnplaced = null;
+  if (!selected && s.selectedId) {
+    const u = s.plan.unplaced.find(x => x.id === s.selectedId);
+    const c = u && d.caseById.get(u.caseId);
+    if (u && c) selectedUnplaced = { id: u.id, item: u, c, label: u.label ?? c.name, color: u.color ?? c.color };
+  }
+  renderInspector($('#inspector'), { selected, selectedUnplaced, result: d.result, truck: d.truck });
 });
 const withSel = fn => { const id = store.get().selectedId; if (id) fn(id); };
+// Case-Typ eines Stücks unabhängig davon finden, ob es gerade platziert oder in der Ablage
+// liegt – „Case bearbeiten“ muss für beide funktionieren.
+const findCaseIdForPiece = id => {
+  const s = store.get();
+  return s.plan.placements.find(p => p.id === id)?.caseId
+    ?? s.plan.unplaced.find(u => u.id === id)?.caseId;
+};
 const ACTIONS = {
   rotate: id => edit((p, c) => A.rotate(p, id, c)),
   tip: id => edit((p, c) => A.cycleTip(p, id, c)),
   dup: id => edit((p, c) => A.duplicate(p, id, c)),
   tray: id => { edit(p => A.toTray(p, id)); select(null); },
-  delete: id => { edit(p => A.removePlacement(p, id)); select(null); },
-  'edit-case': id => editCase(store.get().plan.placements.find(p => p.id === id)?.caseId),
+  // Entf auf einem Ablage-Stück muss A.removeUnplaced treffen, nicht A.removePlacement (das
+  // liefe für eine unbekannte Placement-id ins Leere und ließe das Stück in der Ablage stehen).
+  delete: id => {
+    const isPlaced = store.get().plan.placements.some(p => p.id === id);
+    edit(p => (isPlaced ? A.removePlacement(p, id) : A.removeUnplaced(p, id)));
+    select(null);
+  },
+  'edit-case': id => editCase(findCaseIdForPiece(id)),
   wheelFace: id => {
     const p = store.get().plan.placements.find(q => q.id === id);
     if (!p) return;
@@ -322,10 +345,25 @@ $('#inspector').addEventListener('click', e => {
 });
 $('#inspector').addEventListener('change', e => {
   const name = e.target.name;
-  const id = e.target.closest('[data-id]')?.dataset.id;
+  const sectionEl = e.target.closest('[data-id]');
+  const id = sectionEl?.dataset.id;
   if (!id) return;
   if (name === 'label') return edit((p, c) => A.setItemLabel(p, id, { label: e.target.value.trim() }));
   if (name === 'color') return edit((p, c) => A.setItemLabel(p, id, { color: e.target.value }));
+  if (name === 'tipped') return edit((p, c) => A.setPieceTipped(p, id, e.target.checked, c));
+  if (e.target.dataset.layer) {
+    // Wie im Wizard (js/ui/load-wizard.js): letzte angehakte Lage lässt sich nicht abwählen –
+    // Häkchen wieder setzen, Hinweis zeigen, keine Aktion.
+    const checked = [...sectionEl.querySelectorAll('[data-layer]:checked')].map(cb => Number(cb.dataset.layer));
+    const hint = sectionEl.querySelector('.wiz-layer-hint');
+    if (!checked.length) {
+      e.target.checked = true;
+      if (hint) hint.hidden = false;
+      return;
+    }
+    if (hint) hint.hidden = true;
+    edit((p, c) => A.setPieceLayers(p, id, checked, c));
+  }
 });
 
 // Tastatur
@@ -341,6 +379,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     const step = e.shiftKey ? 1 : 5;
     const p = store.get().plan.placements.find(q => q.id === id);
+    if (!p) return; // Ablage-Stück ausgewählt: hat kein x/y, hier nichts zu verschieben
     edit((pl, c) => A.moveGroup(pl, id, p.x + arrow[0] * step, p.y + arrow[1] * step, c, { grid: step, edges: false }));
   });
 });
