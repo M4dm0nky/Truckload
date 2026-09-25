@@ -2,6 +2,11 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.15 – 2026-09-25
+
+- Im Wizard (Schritt „Beschriften“) gibt es über allen Stücken die Zeile „Alle Stücke“ mit je einem Häkchen für Lage 1–4 und „getippt“. Ein Klick setzt oder entfernt die Einstellung bei allen Stücken auf einmal, z. B. Lage 4 für alle abwählen. Stücke, deren Case-Typ die Lage oder das Tippen nicht erlaubt, bleiben unberührt. Sind die Stücke unterschiedlich eingestellt, zeigt das Häkchen einen Strich. Wäre eine Lage bei einem Stück die letzte, bleibt sie stehen, mit Hinweis.
+- Neue Vorgabe im Wizard: „getippt“ sowie Lage 1 und 2 sind angehakt, Lage 3 und 4 nicht. Erlaubt ein Case-Typ weder Lage 1 noch 2, sind seine eigenen Lagen vorbelegt.
+
 ## V 0.7.14 – 2026-09-25
 
 - Neuer Knopf „Truck entladen“ (neben „Rest einpacken“): legt alle Cases aus dem Truck zurück nach „Noch nicht geladen“, z. B. wenn einem das Ergebnis des automatischen Packens nicht gefällt und man von Hand laden will. Beschriftung, Farbe, Lage und „getippt“ bleiben erhalten. Mit Rückfrage, rückgängig mit ⌘Z; bei leerem Truck ausgegraut.

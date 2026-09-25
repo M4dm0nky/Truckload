@@ -17,8 +17,7 @@ const MAX_ITEMS = 500;
 // dann bei diesen Stücken nie an. Nachträglich lassen sich beide Felder je Stück im Inspector
 // ändern (`A.setPieceLayers`/`A.setPieceTipped`, js/ui/inspector.js), mit derselben
 // Reduktionsregel. Die Vorbelegung/Anzeige der Checkboxen hier im Wizard bleibt davon
-// unberührt — die zeigt weiterhin `layersOf(c)`/`canTip(c)`, nur das gespeicherte ERGEBNIS
-// wird reduziert.
+// unberührt (s. defaultWizardLayers), nur das gespeicherte ERGEBNIS wird reduziert.
 export function reduceWizardItem(it, c) {
   const allowed = layersOf(c);
   const sameLayers = it.layers.length === allowed.length && it.layers.every(n => allowed.includes(n));
@@ -26,6 +25,48 @@ export function reduceWizardItem(it, c) {
     ...(sameLayers ? {} : { layers: it.layers }),
     ...(canTip(c) ? { tipped: it.tipped } : {}),
   };
+}
+
+// Vorbelegung je Stück im Wizard: Lage 1 und 2 (soweit der Case-Typ sie erlaubt), Lage 3/4 aus
+// (Nutzerwunsch 2026-09-25). Erlaubt ein Case-Typ weder Lage 1 noch 2, gelten seine eigenen
+// Lagen — sonst hätte das Stück keine einzige Lage (eigene Entscheidung für diesen Randfall).
+export function defaultWizardLayers(c) {
+  const allowed = layersOf(c);
+  const low = allowed.filter(n => n <= 2);
+  return [...(low.length ? low : allowed)];
+}
+
+// Globale Kopfzeile „Alle Stücke“: `entries` = [{ it, c }] (Wizard-Stück + Case-Typ).
+// setLayerForAll schaltet Lage n bei allen Stücken, deren Case-Typ n erlaubt. Beim Abwählen
+// bleibt n dort stehen, wo es die letzte Lage wäre (dieselbe Regel wie je Zeile); Rückgabe ist
+// die Anzahl dieser Stücke, damit die Oberfläche darauf hinweisen kann.
+export function setLayerForAll(entries, n, on) {
+  let kept = 0;
+  for (const { it, c } of entries) {
+    if (!layersOf(c).includes(n)) continue;
+    if (on) {
+      if (!it.layers.includes(n)) it.layers = [...it.layers, n].sort((a, b) => a - b);
+    } else if (it.layers.includes(n)) {
+      if (it.layers.length <= 1) kept++;
+      else it.layers = it.layers.filter(x => x !== n);
+    }
+  }
+  return kept;
+}
+
+export function setTippedForAll(entries, on) {
+  for (const { it, c } of entries) if (canTip(c)) it.tipped = on;
+}
+
+// Zustand eines Kopf-Häkchens (key = Lage 1–4 oder 'tipped') über alle betroffenen Stücke:
+// 'on' alle, 'off' keins, 'mixed' gemischt, 'none' kein Stück, für das es überhaupt gilt.
+export function bulkState(entries, key) {
+  const vals = key === 'tipped'
+    ? entries.filter(e => canTip(e.c)).map(e => e.it.tipped)
+    : entries.filter(e => layersOf(e.c).includes(key)).map(e => e.it.layers.includes(key));
+  if (!vals.length) return 'none';
+  if (vals.every(Boolean)) return 'on';
+  return vals.some(Boolean) ? 'mixed' : 'off';
 }
 
 function caseLine(c) {
@@ -77,6 +118,15 @@ export function openLoadWizard(dlg, opts = {}) {
         <p class="hint wiz-limit-hint" hidden></p>
       </section>
       <section class="wiz-step" data-step="labels" hidden>
+        <div class="row wiz-all">
+          <b>Alle Stücke:</b>
+          <span class="wiz-layers">
+            <span class="wiz-layers-label">Lage</span>
+            ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-all-layer="${n}">${n}</label>`).join('')}
+          </span>
+          <label class="check wiz-tipped"><input type="checkbox" data-all-tipped>getippt</label>
+          <small class="hint wiz-all-hint" hidden></small>
+        </div>
         <div class="wiz-groups"></div>
         <label class="check"><input type="checkbox" name="autoPack" checked> danach automatisch packen</label>
       </section>
@@ -104,6 +154,8 @@ export function openLoadWizard(dlg, opts = {}) {
   const list = dlg.querySelector('.wiz-case-list');
   const limitHint = dlg.querySelector('.wiz-limit-hint');
   const groupsEl = dlg.querySelector('.wiz-groups');
+  const allEl = dlg.querySelector('.wiz-all');
+  const allHint = dlg.querySelector('.wiz-all-hint');
   const backBtn = dlg.querySelector('[data-act="back"]');
   const nextBtn = dlg.querySelector('[data-act="next"]');
   const finishBtn = dlg.querySelector('[value="finish"]');
@@ -250,13 +302,12 @@ export function openLoadWizard(dlg, opts = {}) {
       const n = counts.get(c.id) ?? 0;
       if (n <= 0) { itemsState.delete(c.id); continue; }
       const prev = itemsState.get(c.id) ?? [];
-      // Vorbelegung je Stück: alle vom Case-Typ erlaubten Lagen angehakt, „getippt“ nur, wenn der
-      // Typ es überhaupt zulässt — der Nutzer hakt Ausnahmen ab, statt jedes Stück einzeln
-      // hochzuziehen (Anforderung: Vorgabe „getippt“, nur Ausnahmen abwählen).
+      // Vorbelegung je Stück: Lage 1+2 (defaultWizardLayers), „getippt“ nur, wenn der Typ es
+      // überhaupt zulässt — der Nutzer ändert Ausnahmen je Zeile oder alles über die Kopfzeile.
       const next = Array.from({ length: n }, (_, i) => prev[i] ?? {
         label: `${c.name} ${i + 1}`.slice(0, MAX_LABEL),
         color: colorFor(c.category),
-        layers: [...layersOf(c)],
+        layers: defaultWizardLayers(c),
         tipped: canTip(c),
       });
       itemsState.set(c.id, next);
@@ -286,7 +337,37 @@ export function openLoadWizard(dlg, opts = {}) {
             </div>`).join('')}
         </fieldset>`;
     }).join('') || '<p class="hint">Keine Cases ausgewählt.</p>';
+    syncAllHead();
   }
+  // Alle Stücke mit ihrem Case-Typ, für die Kopfzeile „Alle Stücke“.
+  function allEntries() {
+    return cases.flatMap(c => (itemsState.get(c.id) ?? []).slice(0, counts.get(c.id) ?? 0).map(it => ({ it, c })));
+  }
+  function syncAllHead() {
+    const entries = allEntries();
+    for (const box of allEl.querySelectorAll('input[type="checkbox"]')) {
+      const st = bulkState(entries, 'allTipped' in box.dataset ? 'tipped' : Number(box.dataset.allLayer));
+      box.checked = st === 'on';
+      box.indeterminate = st === 'mixed';
+      box.disabled = st === 'none';
+    }
+  }
+  allEl.addEventListener('change', e => {
+    const box = e.target;
+    const entries = allEntries();
+    allHint.hidden = true;
+    if ('allTipped' in box.dataset) setTippedForAll(entries, box.checked);
+    else {
+      const kept = setLayerForAll(entries, Number(box.dataset.allLayer), box.checked);
+      if (kept) {
+        allHint.textContent = kept === 1
+          ? '1 Stück behält diese Lage – mindestens eine Lage nötig.'
+          : `${kept} Stücke behalten diese Lage – mindestens eine Lage nötig.`;
+        allHint.hidden = false;
+      }
+    }
+    renderGroups();
+  });
   groupsEl.addEventListener('input', e => {
     const rowEl = e.target.closest('.wiz-item');
     const groupEl = e.target.closest('.wiz-group');
@@ -313,6 +394,7 @@ export function openLoadWizard(dlg, opts = {}) {
         hint.hidden = true;
       }
     }
+    if (e.target.name === 'tipped' || e.target.dataset.layer) syncAllHead();
   });
   groupsEl.addEventListener('click', e => {
     const btn = e.target.closest('[data-act="color-all"]');
@@ -371,7 +453,7 @@ export function openLoadWizard(dlg, opts = {}) {
         if (n <= 0) continue;
         const arr = itemsState.get(c.id) ?? [];
         for (let i = 0; i < n; i++) {
-          const it = arr[i] ?? { label: '', color: colorFor(c.category), layers: [...layersOf(c)], tipped: canTip(c) };
+          const it = arr[i] ?? { label: '', color: colorFor(c.category), layers: defaultWizardLayers(c), tipped: canTip(c) };
           items.push({ caseId: c.id, label: it.label.trim(), color: it.color, ...reduceWizardItem(it, c) });
         }
       }
