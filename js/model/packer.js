@@ -148,7 +148,7 @@ export function autoPack(items, truck, { obstacles = [] } = {}) {
         ...(it.label ? { label: it.label } : {}),
         ...(it.color ? { color: it.color } : {}),
         ...(it.layers ? { layers: it.layers } : {}),
-        ...(it.tipped !== undefined ? { tipped: it.tipped } : {}),
+        ...(it.tipped != null ? { tipped: it.tipped } : {}),
       });
     }
   }

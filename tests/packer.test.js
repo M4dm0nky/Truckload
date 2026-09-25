@@ -278,3 +278,19 @@ test('autoPack: Placement ohne layers/tipped am Stück bekommt diese Felder nich
   assert.ok(!('tipped' in placements[0]));
   assert.ok(!('layers' in placements[0]));
 });
+
+// Fix-Runde 2 (Befund „Testlücke: erzwungenes Tippen, das nicht passt“): piece.tipped:true
+// erzwingt tipLong/tipShort (geometry.js, pieceOrientations) — passen beide nicht in den
+// Truck, gibt es KEINEN Kandidaten mehr (auch nicht „standing“, obwohl das Case stehend
+// passen würde), das Stück muss also unplaced landen und dabei layers/tipped behalten.
+test('autoPack: piece.tipped:true, dessen getippte Maße nicht passen, landet in unplaced und behält layers/tipped', () => {
+  // l=200/w=300/h=50, stehend passend (rot 90: dx=300, dy=200, dz=50), aber beide getippten
+  // Lagen brauchen dz=300 bzw. dz=200 — mit der kleinen Truckhöhe 60 passt keine der beiden.
+  const c = mkCase('a', 200, 300, 50, { tippable: true });
+  const truck = mkTruck({ h: 60 });
+  assert.ok(chooseOrientation(c, truck), 'stehend muss ohne piece.tipped passen (Testannahme)');
+  const { placements, unplaced } = autoPack(
+    [mkItem(c, 'i1', { layers: [1], tipped: true })], truck);
+  assert.deepEqual(placements, []);
+  assert.deepEqual(unplaced, [{ id: 'i1', caseId: 'a', layers: [1], tipped: true }]);
+});

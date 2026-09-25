@@ -8,6 +8,25 @@ import { openTrussDialog } from './truss-wizard.js';
 
 const MAX_ITEMS = 500;
 
+// Reduziert ein im Wizard bearbeitetes Stück auf die Felder, die tatsächlich eine bewusste
+// Einschränkung sind: `layers` nur, wenn das Stück eine ECHTE Teilmenge der vom Case-Typ
+// erlaubten Lagen trägt (nicht einfach alle angehakt lässt), `tipped` nur, wenn der Case-Typ
+// überhaupt tippbar ist (sonst wäre der Wert ohnehin ohne Wirkung). Ohne diese Reduktion würde
+// jedes Stück, das der Nutzer nie bewusst eingeschränkt hat, trotzdem `layers`/`tipped` als
+// feste Werte tragen — eine spätere Änderung am Case-Typ (z. B. eine neu erlaubte Lage) käme
+// dann bei diesen Stücken nie an, obwohl es dafür (Stand heute) keine eigene Oberfläche gibt,
+// um das nachträglich zu korrigieren (docs/offene-punkte.md, „Lage/Tippen nach dem Wizard im
+// Inspector ändern“). Die Vorbelegung/Anzeige der Checkboxen bleibt davon unberührt — die
+// zeigt weiterhin `layersOf(c)`/`canTip(c)`, nur das gespeicherte ERGEBNIS wird reduziert.
+export function reduceWizardItem(it, c) {
+  const allowed = layersOf(c);
+  const sameLayers = it.layers.length === allowed.length && it.layers.every(n => allowed.includes(n));
+  return {
+    ...(sameLayers ? {} : { layers: it.layers }),
+    ...(canTip(c) ? { tipped: it.tipped } : {}),
+  };
+}
+
 function caseLine(c) {
   const company = c.company ? ` · ${c.company}` : '';
   if (isTruss(c)) return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück${company}`;
@@ -352,7 +371,7 @@ export function openLoadWizard(dlg, opts = {}) {
         const arr = itemsState.get(c.id) ?? [];
         for (let i = 0; i < n; i++) {
           const it = arr[i] ?? { label: '', color: colorFor(c.category), layers: [...layersOf(c)], tipped: canTip(c) };
-          items.push({ caseId: c.id, label: it.label.trim(), color: it.color, layers: it.layers, tipped: it.tipped });
+          items.push({ caseId: c.id, label: it.label.trim(), color: it.color, ...reduceWizardItem(it, c) });
         }
       }
       resolve({
