@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState } from '../js/ui/load-wizard.js';
+import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer } from '../js/ui/load-wizard.js';
 import { mkCase } from './fixtures.js';
 
 // Lage/Tippen je Stück, Fix-Runde 2 (Befund „Wizard speichert Vorgaben als Stück-Einschränkung“):
@@ -58,8 +58,8 @@ test('Vorbelegung: Lage 1 und 2, wenn der Case-Typ sie erlaubt', () => {
   assert.deepEqual(defaultWizardLayers(mkCase('a', 120, 60, 60, { layers: [2, 3] })), [2]);
 });
 
-test('Vorbelegung: erlaubt der Case-Typ weder Lage 1 noch 2, gelten seine eigenen Lagen', () => {
-  assert.deepEqual(defaultWizardLayers(mkCase('a', 120, 60, 60, { layers: [3, 4] })), [3, 4]);
+test('Vorbelegung: Lage 3/4 nie vorab, auch wenn der Case-Typ weder Lage 1 noch 2 erlaubt', () => {
+  assert.deepEqual(defaultWizardLayers(mkCase('a', 120, 60, 60, { layers: [3, 4] })), []);
 });
 
 const entry = (layers, typeLayers = [1, 2, 3, 4], tippable = true, tipped = false) =>
@@ -94,4 +94,9 @@ test('bulkState: on / off / mixed / none', () => {
   assert.equal(bulkState([entry([1], [1, 2])], 4), 'none');
   assert.equal(bulkState([entry([1], [1, 2, 3, 4], true, true), entry([1], [1, 2, 3, 4], false)], 'tipped'), 'on');
   assert.equal(bulkState([entry([1], [1, 2, 3, 4], false)], 'tipped'), 'none');
+});
+
+test('countWithoutLayer zählt Stücke ohne angehakte Lage', () => {
+  assert.equal(countWithoutLayer([entry([]), entry([3]), entry([])]), 2);
+  assert.equal(countWithoutLayer([entry([1])]), 0);
 });

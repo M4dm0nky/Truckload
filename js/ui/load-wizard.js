@@ -27,14 +27,15 @@ export function reduceWizardItem(it, c) {
   };
 }
 
-// Vorbelegung je Stück im Wizard: Lage 1 und 2 (soweit der Case-Typ sie erlaubt), Lage 3/4 aus
-// (Nutzerwunsch 2026-09-25). Erlaubt ein Case-Typ weder Lage 1 noch 2, gelten seine eigenen
-// Lagen — sonst hätte das Stück keine einzige Lage (eigene Entscheidung für diesen Randfall).
+// Vorbelegung je Stück im Wizard: Lage 1 und 2 (soweit der Case-Typ sie erlaubt); Lage 3/4 sind
+// nie vorab angehakt, sondern werden immer von Hand geklickt (Nutzerwunsch 2026-09-25) — auch
+// wenn der Case-Typ weder Lage 1 noch 2 erlaubt. Ein solches Stück startet ohne Lage, „Fertig“
+// blockiert dann, bis eine angehakt ist (countWithoutLayer).
 export function defaultWizardLayers(c) {
-  const allowed = layersOf(c);
-  const low = allowed.filter(n => n <= 2);
-  return [...(low.length ? low : allowed)];
+  return layersOf(c).filter(n => n <= 2);
 }
+
+export const countWithoutLayer = entries => entries.filter(e => !e.it.layers.length).length;
 
 // Globale Kopfzeile „Alle Stücke“: `entries` = [{ it, c }] (Wizard-Stück + Case-Typ).
 // setLayerForAll schaltet Lage n bei allen Stücken, deren Case-Typ n erlaubt. Beim Abwählen
@@ -128,6 +129,7 @@ export function openLoadWizard(dlg, opts = {}) {
           <small class="hint wiz-all-hint" hidden></small>
         </div>
         <div class="wiz-groups"></div>
+        <p class="hint wiz-nolayer-hint" hidden></p>
         <label class="check"><input type="checkbox" name="autoPack" checked> danach automatisch packen</label>
       </section>
       <menu>
@@ -156,6 +158,7 @@ export function openLoadWizard(dlg, opts = {}) {
   const groupsEl = dlg.querySelector('.wiz-groups');
   const allEl = dlg.querySelector('.wiz-all');
   const allHint = dlg.querySelector('.wiz-all-hint');
+  const noLayerHint = dlg.querySelector('.wiz-nolayer-hint');
   const backBtn = dlg.querySelector('[data-act="back"]');
   const nextBtn = dlg.querySelector('[data-act="next"]');
   const finishBtn = dlg.querySelector('[value="finish"]');
@@ -333,7 +336,7 @@ export function openLoadWizard(dlg, opts = {}) {
                 ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-layer="${n}" ${it.layers.includes(n) ? 'checked' : ''} ${allowed.includes(n) ? '' : 'disabled'}>${n}</label>`).join('')}
               </span>
               <label class="check wiz-tipped"><input type="checkbox" name="tipped" ${it.tipped ? 'checked' : ''} ${tippable ? '' : 'disabled'}>getippt</label>
-              <small class="hint wiz-layer-hint" hidden>Mindestens eine Lage nötig.</small>
+              <small class="hint wiz-layer-hint" ${it.layers.length ? 'hidden' : ''}>Mindestens eine Lage nötig.</small>
             </div>`).join('')}
         </fieldset>`;
     }).join('') || '<p class="hint">Keine Cases ausgewählt.</p>';
@@ -395,6 +398,7 @@ export function openLoadWizard(dlg, opts = {}) {
       }
     }
     if (e.target.name === 'tipped' || e.target.dataset.layer) syncAllHead();
+    if (e.target.dataset.layer && !countWithoutLayer(allEntries())) noLayerHint.hidden = true;
   });
   groupsEl.addEventListener('click', e => {
     const btn = e.target.closest('[data-act="color-all"]');
@@ -439,6 +443,15 @@ export function openLoadWizard(dlg, opts = {}) {
     return true;
   }
   nextBtn.addEventListener('click', () => { if (validateStep()) showStep(stepIdx + 1); });
+  // Ein Stück ohne Lage wäre nirgends platzierbar (kommt nur bei Case-Typen vor, die weder Lage 1
+  // noch 2 erlauben, s. defaultWizardLayers) — „Fertig“ erst, wenn jedes Stück eine Lage hat.
+  finishBtn.addEventListener('click', e => {
+    const n = countWithoutLayer(allEntries());
+    if (!n) return;
+    e.preventDefault();
+    noLayerHint.textContent = n === 1 ? 'Bei 1 Stück ist keine Lage angehakt.' : `Bei ${n} Stücken ist keine Lage angehakt.`;
+    noLayerHint.hidden = false;
+  });
   backBtn.addEventListener('click', () => showStep(stepIdx - 1));
   showStep(0);
 

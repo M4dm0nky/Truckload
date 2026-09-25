@@ -2,6 +2,10 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.16 – 2026-09-25
+
+- Wizard: Lage 3 und 4 sind nie mehr vorab angehakt, auch nicht bei Case-Typen, die weder Lage 1 noch 2 erlauben. Ein solches Stück startet ohne Lage; „Fertig“ geht erst, wenn bei jedem Stück eine Lage angehakt ist, mit Hinweis. Vorgabe bleibt: Lage 1, Lage 2 und „getippt“ angehakt.
+
 ## V 0.7.15 – 2026-09-25
 
 - Im Wizard (Schritt „Beschriften“) gibt es über allen Stücken die Zeile „Alle Stücke“ mit je einem Häkchen für Lage 1–4 und „getippt“. Ein Klick setzt oder entfernt die Einstellung bei allen Stücken auf einmal, z. B. Lage 4 für alle abwählen. Stücke, deren Case-Typ die Lage oder das Tippen nicht erlaubt, bleiben unberührt. Sind die Stücke unterschiedlich eingestellt, zeigt das Häkchen einen Strich. Wäre eine Lage bei einem Stück die letzte, bleibt sie stehen, mit Hinweis.
