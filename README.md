@@ -52,6 +52,8 @@ So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gel�
 3. **Beschriften** – jedes einzelne Stück bekommt eine vorbelegte Beschriftung (z. B. „Kabelcase 1“ … „6“), die sich überschreiben lässt, sowie optional eine Gruppenfarbe. Dazu je Stück Häkchen für Lage (1–4, vorbelegt mit den vom Case-Typ erlaubten Lagen) und „getippt“ (vorbelegt an, wenn der Case-Typ es zulässt) – nicht erlaubte Lagen bzw. „getippt“ bei nicht tippbaren Cases sind ausgegraut, die letzte angehakte Lage lässt sich nicht abwählen. Ein Häkchen steuert, ob danach automatisch gepackt wird.
 
 „Fertig“ legt den Load an und packt ihn bei aktiviertem Häkchen automatisch in den Truck.
+Gefällt das Ergebnis nicht, legt „Truck entladen“ alle Cases zurück nach „Noch nicht
+geladen“, um sie von Hand zu laden (rückgängig mit ⌘Z).
 
 ## Mitgelieferte Cases
 

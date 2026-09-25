@@ -249,6 +249,24 @@ test('placementToUnplaced (via toTray) behält layers/tipped', () => {
   assert.equal(pl.unplaced[0].tipped, true);
 });
 
+test('unloadAll legt alle Stücke in die Ablage, Stück-Felder bleiben, Positionen nicht', () => {
+  const pl0 = plan(
+    [P('a', 't', 0, 0, 0, { label: 'Amp 1', color: '#ff0000', layers: [1, 2], tipped: true }), P('b', 'k', 200, 0, 0)],
+    [{ id: 'u1', caseId: 'k' }],
+  );
+  const pl = A.unloadAll(pl0);
+  assert.deepEqual(pl.placements, []);
+  assert.deepEqual(pl.unplaced, [
+    { id: 'u1', caseId: 'k' },
+    { id: 'a', caseId: 't', label: 'Amp 1', color: '#ff0000', layers: [1, 2], tipped: true },
+    { id: 'b', caseId: 'k' },
+  ]);
+});
+test('unloadAll bei leerem Truck gibt denselben Plan zurück (kein leerer Undo-Schritt)', () => {
+  const pl0 = plan([], [{ id: 'u1', caseId: 'k' }]);
+  assert.equal(A.unloadAll(pl0), pl0);
+});
+
 test('duplicate: Ablage-Zweig behält layers/tipped', () => {
   const tightTruck = mkTruck({ l: 120, w: 60, h: 60 });
   const c = { caseById: byId(K), truck: tightTruck, newId: counter('n') };

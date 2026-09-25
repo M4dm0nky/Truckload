@@ -211,6 +211,11 @@ export function toTray(plan, id) {
   });
 }
 
+export function unloadAll(plan) {
+  if (!plan.placements.length) return plan;
+  return touch({ ...plan, placements: [], unplaced: [...plan.unplaced, ...plan.placements.map(placementToUnplaced)] });
+}
+
 const orphans = (plan, ctx) => plan.unplaced.filter(u => !ctx.caseById.has(u.caseId));
 
 // Wandelt ein Placement/Unplaced-Eintrag in ein Packer-Stück mit aufgelöstem Case um.

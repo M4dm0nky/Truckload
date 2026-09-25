@@ -354,6 +354,12 @@ $('#pack-all').onclick = async () => {
   edit((p, c) => A.packAll(p, c));
 };
 $('#pack-rest').onclick = () => edit((p, c) => A.packRest(p, c));
+$('#unload-all').onclick = async () => {
+  if (!store.get().plan.placements.length) return;
+  if (!await showConfirm('Alle Cases aus dem Truck zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)')) return;
+  edit(p => A.unloadAll(p));
+  select(null);
+};
 // setMode/setCaseColors schrieben DOM-Zustand (hidden/classList) bisher direkt UND an den
 // renderHooks vorbei, zusätzlich verdoppelt durch zwei manuelle Startzeilen für caseColors (die
 // für mode ganz fehlten) – abgeleiteter Zustand an drei Stellen statt an einer
