@@ -1,4 +1,4 @@
-# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3, V0.7.7, V0.7.10, V0.7.17)
+# Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3, V0.7.7, V0.7.10, V0.7.17, V0.7.18)
 
 Recherchiert am 2026-09-23 für `js/data/preset-cases.js`. Alle Stückgewichte sind
 Netto-Herstellerangaben für die Traverse selbst (ohne Grundplatte/Beine/Rollen).
@@ -37,7 +37,14 @@ F44-Vorlagen. Nach Sichtung von Herstellerfotos und einer Bemaßungszeichnung
   (Sattelauflieger, 248 cm Innenbreite, `preset-sattel`/`preset-mega` in
   `js/data/preset-trucks.js`) → 248 / 4 = **62 cm**. Weiterhin keine direkte
   Herstellerangabe, aber jetzt an einer nachprüfbaren Tatsache statt an einer
-  Fotoschätzung festgemacht.
+  Fotoschätzung festgemacht. Bestätigt V0.7.18 (Nutzerangabe 2026-09-26):
+  Standard-Sattelauflieger (Tautliner) innen ca. 13,62 × 2,48 × 2,65–2,70 m
+  (mindestens 2,44 m bis zu den Planengestellen); 4 × 62 cm = 248 cm.
+- **Traverse ist das breiteste Teil** (Nutzerangabe 2026-09-26, V0.7.18): bei
+  allen diesen Container-/Pre-Rig-Traversen sind die Dollys etwas schmaler als
+  die Traverse. Um wie viel, ist nicht belegt – in der Darstellung ist der Dolly
+  je Seite 2 cm schmaler als die Traverse (`STAND_DOLLY_INSET` in
+  `js/model/truss.js`, eigene optische Annahme, ohne Einfluss aufs Packen).
 - **Standhöhe** (montiert, auf Rollen/Beinen) – **Korrektur V0.7.10**: nach der
   originalen Bemaßungszeichnung des Dolly-Rahmens („Pos. 1“, vom Nutzer
   bereitgestellt, dieselbe Zeichnung wie oben in der V0.7.3-Korrektur) beträgt

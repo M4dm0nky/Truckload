@@ -42,6 +42,17 @@ export function removeUnplaced(plan, id) {
   return touch({ ...plan, unplaced: next });
 }
 
+// Raster plus Einrasten an Truckwänden und Kanten der anderen Boxen – gemeinsam für das Absetzen
+// aus der Liste (placeCase) und das Verschieben im Truck (moveGroup). `w`/`d` = Grundfläche.
+function snapPos(x, y, w, d, others, truck, { grid = 5, edges = true } = {}) {
+  let nx = snap(x, grid), ny = snap(y, grid);
+  if (edges) {
+    nx = snapToEdges(nx, w, [0, truck.l, ...others.flatMap(b => [b.x0, b.x1])]);
+    ny = snapToEdges(ny, d, [0, truck.w, ...others.flatMap(b => [b.y0, b.y1])]);
+  }
+  return { nx, ny };
+}
+
 export function placeCase(plan, caseId, { x, y }, ctx, { fromUnplacedId = null } = {}) {
   const c = ctx.caseById.get(caseId);
   if (!c) return plan;
@@ -57,8 +68,15 @@ export function placeCase(plan, caseId, { x, y }, ctx, { fromUnplacedId = null }
     ...(layers ? { layers } : {}), ...(tipped != null ? { tipped } : {}),
   };
   const orientation = tipped === true && canTip(c) ? 'tipLong' : 'standing';
-  const base = { id: fromUnplacedId ?? ctx.newId(), caseId, x: snap(x), y: snap(y), z: 0, orientation, rot: 0, ...srcExtra };
-  const p = settle(base, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
+  // Vorher nur snap() aufs 5-cm-Raster: ein 62 cm breiter MLT-Wagen landete neben einem anderen
+  // bei y = 60 statt 62, ragte 2 cm hinein und wurde von settle() obendrauf gestellt – 4 Wagen
+  // passten so beim Hineinziehen nicht nebeneinander in 248 cm (Nutzer-Befund 2026-09-26).
+  // Jetzt dasselbe Kanten-Einrasten wie beim Verschieben (moveGroup).
+  const others = otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []);
+  const draft = { id: fromUnplacedId ?? ctx.newId(), caseId, x, y, z: 0, orientation, rot: 0, ...srcExtra };
+  const fb = boxOf(c, draft);
+  const { nx, ny } = snapPos(x, y, fb.x1 - fb.x0, fb.y1 - fb.y0, others, ctx.truck);
+  const p = settle({ ...draft, x: nx, y: ny }, c, others);
   return touch({
     ...plan,
     placements: [...plan.placements, p],
@@ -73,11 +91,7 @@ export function moveGroup(plan, id, x, y, ctx, { grid = 5, edges = true } = {}) 
   const group = stackAbove(id, items);
   const others = otherBoxes(items, ctx.truck, group);
   const w = root.box.x1 - root.box.x0, d = root.box.y1 - root.box.y0;
-  let nx = snap(x, grid), ny = snap(y, grid);
-  if (edges) {
-    nx = snapToEdges(nx, w, [0, ctx.truck.l, ...others.flatMap(b => [b.x0, b.x1])]);
-    ny = snapToEdges(ny, d, [0, ctx.truck.w, ...others.flatMap(b => [b.y0, b.y1])]);
-  }
+  const { nx, ny } = snapPos(x, y, w, d, others, ctx.truck, { grid, edges });
   const nz = gravityZ({ x0: nx, y0: ny, x1: nx + w, y1: ny + d }, others);
   const ddx = nx - root.p.x, ddy = ny - root.p.y, ddz = nz - root.p.z;
   if (!ddx && !ddy && !ddz) return plan;

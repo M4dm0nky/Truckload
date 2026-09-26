@@ -572,3 +572,32 @@ test('packRest nimmt ein bereits platziertes Waisen-Placement ebenfalls aus den 
   const r = validatePlan(pl, c.caseById, c.truck);
   assert.ok(!r.issues.some(i => i.code === 'collision'));
 });
+
+// Absetzen aus der Liste rastet wie das Verschieben an Nachbarkanten/Wänden ein (Nutzer-Befund
+// 2026-09-26: 4 MLT-Wagen à 62 cm passten beim Hineinziehen nicht nebeneinander in 248 cm – das
+// reine 5-cm-Raster setzte den Wagen 2 cm in den Nachbarn, settle() stellte ihn obendrauf).
+const W62 = mkCase('w', 300, 62, 115, { tippable: false });
+const ctx62 = () => ({ caseById: byId(W62), truck: mkTruck(), newId: counter('n') });
+
+test('placeCase: 4 × 62 cm nebeneinander in 248 cm – alle am Boden, keine Warnung', () => {
+  let pl = plan([]);
+  for (const y of [0, 62, 124, 186]) pl = A.placeCase(pl, 'w', { x: 0, y }, ctx62());
+  assert.deepEqual(pl.placements.map(p => [p.y, p.z]), [[0, 0], [62, 0], [124, 0], [186, 0]]);
+  const r = validatePlan(pl, byId(W62), mkTruck());
+  assert.equal(r.issues.length, 0);
+});
+
+test('placeCase: grobe Position rastet an der Nachbarkante ein statt hineinzuragen', () => {
+  const pl = A.placeCase(plan([P('a', 'w', 0, 0, 0)]), 'w', { x: 3, y: 58 }, ctx62());
+  const p = pl.placements.at(-1);
+  assert.equal(p.y, 62);
+  assert.equal(p.x, 0);
+  assert.equal(p.z, 0);
+});
+
+test('placeCase: frei abgesetzt (fern von Kanten) bleibt auf dem 5-cm-Raster', () => {
+  const pl = A.placeCase(plan([]), 'k', { x: 402, y: 91 }, ctx());
+  const p = pl.placements[0];
+  assert.equal(p.x, 400);
+  assert.equal(p.y, 90);
+});

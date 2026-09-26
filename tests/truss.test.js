@@ -481,3 +481,23 @@ test('Vorlagen: MLT ONE 115 cm hoch mit offenem Rahmen, ab MLT TWO und Prolyte g
   for (const c of one) { assert.equal(c.h, 115); assert.equal(c.truss.frame, undefined); }
   for (const c of rest) { assert.equal(c.h, 115); assert.equal(c.truss.frame, 'closed'); }
 });
+
+// Nutzerangabe 2026-09-26: bei Container-/Pre-Rig-Traversen ist immer die Traverse das breiteste
+// Teil, die Dollys sind etwas schmaler. Holme (auch Querholme) und Rollen liegen deshalb innerhalb
+// der Traversenbreite, nicht an den Rändern der Standfläche.
+for (const [name, mk] of [['offen', mkStandingCase], ['geschlossen', mkClosedCase]]) {
+  for (const rot of [0, 90]) {
+    test(`trussShape stehend (${name}, ${rot}°): Dolly schmaler als die Traverse`, () => {
+      const c = mk(160, 115);
+      const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot };
+      const s = trussShape(c, p, boxOf(c, p));
+      const wa = s.widAxis, piece = s.pieces[0];
+      const dollyParts = [s.dollies[0], ...s.wheels, ...s.rails.filter(r => r.z1 <= s.dollies[0].z1 + 1e-9)];
+      assert.ok(dollyParts.length >= 6);
+      for (const b of dollyParts) {
+        assert.ok(b[`${wa}0`] > piece[`${wa}0`] + 1e-9, 'Dolly beginnt innerhalb der Traverse');
+        assert.ok(b[`${wa}1`] < piece[`${wa}1`] - 1e-9, 'Dolly endet innerhalb der Traverse');
+      }
+    });
+  }
+}

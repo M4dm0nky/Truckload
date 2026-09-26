@@ -98,6 +98,10 @@ const STAND_BASE_H = 7;              // Holmhöhe (cm) – mit STAND_WHEEL_D zus
 const STAND_RAIL_W = 10;             // Holmbreite (cm) – zwei schmale Holme statt Rollbrett
 const STAND_LEG_D = 6;               // Beindicke (cm)
 const STAND_WHEEL_D = 10;            // Rollendurchmesser (cm)
+// Die Traverse ist immer das breiteste Teil, der Dolly etwas schmaler (Nutzerangabe 2026-09-26).
+// Um wie viel, ist nicht bekannt – 2 cm je Seite ist eine eigene, rein optische Annahme; das
+// Packen rechnet weiter mit der Standfläche STAND_FOOTPRINT_W.
+const STAND_DOLLY_INSET = 2;         // Einzug des Dollys gegenüber der Traverse je Seite (cm)
 
 // Reine Geometrie eines platzierten Traversenwagens: zwei Rollwagen an den Enden (über die volle
 // Wagenbreite, mit je 4 Rollen), darauf `count` Traversenstücke – 2 nebeneinander, Lagen übereinander,
@@ -186,8 +190,9 @@ export function trussShape(c, p, box) {
 }
 
 // Geometrie einer stehenden Pre-Rig-Traverse (H.O.F. MLT/Prolyte S36PR): eine schmale Grundplatte
-// mit Rollen an den 4 Ecken ganz unten, darüber 4 Beine hoch bis zur Traverse, die – schmaler als
-// die Standfläche, mittig darüber – den oberen Abschluss bildet. Nutzt denselben Rückgabe-Vertrag
+// mit Rollen an den 4 Ecken ganz unten, darüber 4 Beine hoch bis zur Traverse, die mittig darüber
+// den oberen Abschluss bildet und das breiteste Teil ist (der Dolly ist um STAND_DOLLY_INSET je
+// Seite schmaler). Nutzt denselben Rückgabe-Vertrag
 // wie die Wagen-Variante oben (`dollies`/`wheels`/`pieces`/`boards`/`rails`), damit view2d.js/
 // view3d.js ohne eigene Fallunterscheidung zeichnen können: `boards`/`dollies` sind hier die eine
 // Grundplatte (Bezugsfläche für Beschriftung), `rails` sind hier die 4 Beine (gleiche schlichte
@@ -217,24 +222,25 @@ function standingTrussShape(truss, p, box) {
   // Rollen an den 4 Ecken der Standfläche, ganz unten – wie beim echten Dolly sitzen sie an den
   // Rahmenenden, nicht mittig eingerückt (Referenz: H.O.F.-MLT-Katalog, „MLT TWO Truss and
   // Folding Dolly“, S. 40/41).
+  const truss0 = wid0 + (wid1 - wid0 - STAND_TRUSS_W) / 2, truss1 = truss0 + STAND_TRUSS_W;
+  const dolly0 = truss0 + STAND_DOLLY_INSET, dolly1 = truss1 - STAND_DOLLY_INSET;
   const wheelZ1 = z0 + STAND_WHEEL_D;
-  const footprint = mk([len0, len1], [wid0, wid1], [z0, wheelZ1]);
+  const footprint = mk([len0, len1], [dolly0, dolly1], [z0, wheelZ1]);
   const wheels = cornerBoxes(footprint, [lenAxis, widAxis, 'z'], STAND_WHEEL_D, 0, [z0, wheelZ1]);
 
   // Offener Rahmen statt durchgehendem Rollbrett: der Dolly ist ein Dolly (Füße mit Rollen), kein
   // Rollbrett wie beim F34/F40-Wagen oben (Nutzer-Feedback 2026-09-23, Fotoabgleich H.O.F.-Katalog
-  // S. 40/41 – zwei schmale Holme über die volle Länge an den Rändern der Standfläche, dazwischen
+  // S. 40/41 – zwei schmale Holme über die volle Länge an den Rändern des Dollys, dazwischen
   // offen, statt einer massiven Platte).
   const railZ0 = wheelZ1, railZ1 = railZ0 + STAND_BASE_H;
-  const rail0 = mk([len0, len1], [wid0, wid0 + STAND_RAIL_W], [railZ0, railZ1]);
-  const rail1 = mk([len0, len1], [wid1 - STAND_RAIL_W, wid1], [railZ0, railZ1]);
+  const rail0 = mk([len0, len1], [dolly0, dolly0 + STAND_RAIL_W], [railZ0, railZ1]);
+  const rail1 = mk([len0, len1], [dolly1 - STAND_RAIL_W, dolly1], [railZ0, railZ1]);
   const closed = truss.frame === 'closed';
   const cross = closed ? [
-    mk([len0, len0 + STAND_RAIL_W], [wid0 + STAND_RAIL_W, wid1 - STAND_RAIL_W], [railZ0, railZ1]),
-    mk([len1 - STAND_RAIL_W, len1], [wid0 + STAND_RAIL_W, wid1 - STAND_RAIL_W], [railZ0, railZ1]),
+    mk([len0, len0 + STAND_RAIL_W], [dolly0 + STAND_RAIL_W, dolly1 - STAND_RAIL_W], [railZ0, railZ1]),
+    mk([len1 - STAND_RAIL_W, len1], [dolly0 + STAND_RAIL_W, dolly1 - STAND_RAIL_W], [railZ0, railZ1]),
   ] : [];
 
-  const truss0 = wid0 + (wid1 - wid0 - STAND_TRUSS_W) / 2, truss1 = truss0 + STAND_TRUSS_W;
   const trussZ0 = Math.max(railZ1, z1 - STAND_TRUSS_H);
   const trussBox = mk([len0, len1], [truss0, truss1], [trussZ0, z1]);
   const legFace = mk([len0, len1], [truss0, truss1], [railZ1, trussZ0]);

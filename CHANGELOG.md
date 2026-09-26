@@ -2,6 +2,11 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.18 – 2026-09-26
+
+- Zieht man ein Case aus der Liste in den Truck, rastet es jetzt an den Kanten der Nachbarn und an den Wänden ein, genau wie beim Verschieben im Truck. Vorher wurde nur auf 5 cm gerundet: Ein 62 cm breiter MLT-Wagen landete so 2 cm im Nachbarn und wurde obendrauf gestellt, deshalb passten beim Hineinziehen keine 4 Wagen nebeneinander in den Sattelauflieger (248 cm). Jetzt stehen sie sauber nebeneinander.
+- MLT- und Prolyte-Traversen: Der Dolly ist jetzt schmaler gezeichnet als die Traverse, denn die Traverse ist immer das breiteste Teil. Das ist nur Optik, am Packen ändert sich nichts.
+
 ## V 0.7.17 – 2026-09-26
 
 - MLT ONE steht jetzt 115 cm hoch, genauso hoch wie die anderen MLT- und Prolyte-Dollys (vorher 75 cm, geschätzt). Das gilt auch in bestehenden Loads: Steht über einer MLT ONE schon etwas, kann es nun als Überschneidung angezeigt werden.
