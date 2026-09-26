@@ -110,7 +110,7 @@ const STAND_WHEEL_D = 10;            // Rollendurchmesser (cm)
 // (Bezugsfläche/Beschriftung). `box` ist die platzierte Box (x0…z1, Truck-Koordinaten); `p.rot`
 // bestimmt, ob die Traversenlänge entlang x oder y verläuft.
 export function trussShape(c, p, box) {
-  if (c.truss.standing) return standingTrussShape(p, box);
+  if (c.truss.standing) return standingTrussShape(c.truss, p, box);
   const { width, count } = c.truss;
   const rot90 = ((p.rot ?? 0) % 180) === 90;
   const lenAxis = rot90 ? 'y' : 'x';
@@ -195,7 +195,11 @@ export function trussShape(c, p, box) {
 // Zickzack-Zeichnung wie beim Wagen, nur ein einziges Stück). `profileWidth` gibt view2d.js/
 // view3d.js die sichtbare Traversenbreite für die Rohr-Stärke vor, weil `c.truss.width` bei
 // stehenden Traversen die Standfläche meint, nicht den Querschnitt.
-function standingTrussShape(p, box) {
+// `truss.frame === 'closed'` (ab MLT TWO und Prolyte S36PR, Nutzerangabe 2026-09-25): der Dolly ist
+// ein rundum geschlossener Alu-Rahmen – zwei Querholme an den Stirnseiten verbinden die Längsholme,
+// `alu: true` lässt view3d.js den Wagen silbern zeichnen. Ohne `frame` (MLT ONE, Altdaten) bleibt es
+// beim offenen Rahmen mit zwei Längsholmen.
+function standingTrussShape(truss, p, box) {
   const rot90 = ((p.rot ?? 0) % 180) === 90;
   const lenAxis = rot90 ? 'y' : 'x';
   const widAxis = rot90 ? 'x' : 'y';
@@ -224,6 +228,11 @@ function standingTrussShape(p, box) {
   const railZ0 = wheelZ1, railZ1 = railZ0 + STAND_BASE_H;
   const rail0 = mk([len0, len1], [wid0, wid0 + STAND_RAIL_W], [railZ0, railZ1]);
   const rail1 = mk([len0, len1], [wid1 - STAND_RAIL_W, wid1], [railZ0, railZ1]);
+  const closed = truss.frame === 'closed';
+  const cross = closed ? [
+    mk([len0, len0 + STAND_RAIL_W], [wid0 + STAND_RAIL_W, wid1 - STAND_RAIL_W], [railZ0, railZ1]),
+    mk([len1 - STAND_RAIL_W, len1], [wid0 + STAND_RAIL_W, wid1 - STAND_RAIL_W], [railZ0, railZ1]),
+  ] : [];
 
   const truss0 = wid0 + (wid1 - wid0 - STAND_TRUSS_W) / 2, truss1 = truss0 + STAND_TRUSS_W;
   const trussZ0 = Math.max(railZ1, z1 - STAND_TRUSS_H);
@@ -236,6 +245,6 @@ function standingTrussShape(p, box) {
   // in `rails` mit untergebracht statt einen zweiten, unbeschrifteten Bezugskörper einzuführen.
   return {
     lenAxis, widAxis, dollies: [rail0], wheels, pieces: [trussBox], boards: [rail0],
-    rails: [...legs, rail1], profileWidth: STAND_TRUSS_W,
+    rails: [...legs, rail1, ...cross], profileWidth: STAND_TRUSS_W, ...(closed ? { alu: true } : {}),
   };
 }

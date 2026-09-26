@@ -424,3 +424,60 @@ test('trussShape: stehende Pre-Rig-Traverse bei 90° – Länge verläuft entlan
   assert.equal(s.pieces[0].y1 - s.pieces[0].y0, 160);
   for (const b of [...s.dollies, ...s.wheels, ...s.pieces, ...s.rails]) checkInsideBox(box, b);
 });
+
+// Rahmenform der Pre-Rig-Dollys (Nutzerangabe 2026-09-25): ab MLT TWO und bei Prolyte S36PR ist der
+// Dolly ein geschlossener Alu-Rahmen (Lang- und Kurzseiten verbunden), nur MLT ONE hat die einfache
+// Version mit offenen Kurzseiten. Fehlt `frame` (MLT ONE, Altdaten), bleibt es beim offenen Rahmen.
+const mkClosedCase = (length, height) => {
+  const c = mkStandingCase(length, height);
+  return { ...c, truss: { ...c.truss, frame: 'closed' } };
+};
+
+test('trussShape: geschlossener Rahmen – 2 Querholme an den Stirnseiten zwischen den Längsholmen, alu', () => {
+  const open = mkStandingCase(160, 115);
+  const closed = mkClosedCase(160, 115);
+  const p = { x: 10, y: 20, z: 0, orientation: 'standing', rot: 0 };
+  const box = boxOf(closed, p);
+  const so = trussShape(open, p, box);
+  const sc = trussShape(closed, p, box);
+  assert.equal(sc.rails.length, so.rails.length + 2);
+  assert.equal(sc.alu, true);
+  const cross = sc.rails.slice(-2);
+  const rail0 = sc.dollies[0];
+  for (const r of cross) {
+    checkInsideBox(box, r);
+    assert.equal(r.z0, rail0.z0);
+    assert.equal(r.z1, rail0.z1);
+    assert.ok(r.y0 >= rail0.y1 - 1e-9 && r.y1 <= box.y1 - (rail0.y1 - rail0.y0) + 1e-9, 'zwischen den Längsholmen');
+  }
+  assert.equal(Math.min(...cross.map(r => r.x0)), box.x0);
+  assert.equal(Math.max(...cross.map(r => r.x1)), box.x1);
+});
+
+test('trussShape: ohne frame (MLT ONE/Altdaten) – offener Rahmen, kein alu', () => {
+  const c = mkStandingCase(160, 115);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const s = trussShape(c, p, boxOf(c, p));
+  assert.equal(s.rails.length, 5);
+  assert.ok(!s.alu);
+});
+
+test('trussShape: geschlossener Rahmen bei 90° – Querholme an den Stirnseiten entlang y', () => {
+  const c = mkClosedCase(160, 115);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 90 };
+  const box = boxOf(c, p);
+  const cross = trussShape(c, p, box).rails.slice(-2);
+  for (const r of cross) checkInsideBox(box, r);
+  assert.equal(Math.min(...cross.map(r => r.y0)), box.y0);
+  assert.equal(Math.max(...cross.map(r => r.y1)), box.y1);
+});
+
+test('Vorlagen: MLT ONE 115 cm hoch mit offenem Rahmen, ab MLT TWO und Prolyte geschlossen', async () => {
+  const { PRESET_CASES } = await import('../js/data/preset-cases.js');
+  const one = PRESET_CASES.filter(c => c.id.startsWith('preset-hof-mlt1-'));
+  const rest = PRESET_CASES.filter(c => /^preset-(hof-mlt[234]-|prolyte-)/.test(c.id));
+  assert.equal(one.length, 3);
+  assert.equal(rest.length, 21);
+  for (const c of one) { assert.equal(c.h, 115); assert.equal(c.truss.frame, undefined); }
+  for (const c of rest) { assert.equal(c.h, 115); assert.equal(c.truss.frame, 'closed'); }
+});

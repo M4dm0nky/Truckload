@@ -1,6 +1,6 @@
 // Service-Worker: hält die App offline vor. Strategie: sofort aus dem Cache antworten,
 // im Hintergrund die neue Version holen (Updates wirken beim nächsten Öffnen).
-const CACHE = 'truckload-v0.7.16';
+const CACHE = 'truckload-v0.7.17';
 const ASSETS = [
   './',
   'index.html',

@@ -2,6 +2,11 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.7.17 – 2026-09-26
+
+- MLT ONE steht jetzt 115 cm hoch, genauso hoch wie die anderen MLT- und Prolyte-Dollys (vorher 75 cm, geschätzt). Das gilt auch in bestehenden Loads: Steht über einer MLT ONE schon etwas, kann es nun als Überschneidung angezeigt werden.
+- Die Dollys von MLT TWO, THREE, FOUR und Prolyte S36PR (fest und flexibel) sind jetzt ein geschlossener Rahmen: An den kurzen Seiten verbinden Querholme die Längsholme. In 3D ist der ganze Wagen silbern. MLT ONE behält die einfache, dunkle Version mit offenen kurzen Seiten.
+
 ## V 0.7.16 – 2026-09-25
 
 - Wizard: Lage 3 und 4 sind nie mehr vorab angehakt, auch nicht bei Case-Typen, die weder Lage 1 noch 2 erlauben. Ein solches Stück startet ohne Lage; „Fertig“ geht erst, wenn bei jedem Stück eine Lage angehakt ist, mit Hinweis. Vorgabe bleibt: Lage 1, Lage 2 und „getippt“ angehakt.

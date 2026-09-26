@@ -408,8 +408,12 @@ export async function createView3d(container) {
     const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
     content.add(edges(box, edgeMat));
 
+    // Geschlossener Alu-Rahmen (ab MLT TWO/Prolyte, s. standingTrussShape) silbern statt der dunklen
+    // Rollbrett-/Holm-Optik – Holme, Querholme und Beine einheitlich.
+    const boardMat = shape.alu ? MAT_ALU : MAT_DOLLY_BOARD;
+    const railMat = shape.alu ? MAT_ALU : MAT_DOLLY_RAIL;
     shape.boards.forEach((b, i) => {
-      content.add(boxMesh(b, MAT_DOLLY_BOARD), edges(b, MAT_EDGE_ALU));
+      content.add(boxMesh(b, boardMat), edges(b, MAT_EDGE_ALU));
       // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in
       // validate.js: `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie
       // mehr greifen (docs/code-review-2026-09-21.md, „N5 — it.color ?? c.color ist
@@ -442,7 +446,7 @@ export async function createView3d(container) {
         if (pl) content.add(labelMesh(pl, it.label ? `${seq}. ${it.label}` : `${seq}.`, ALU_HEX));
       }
     });
-    for (const r of shape.rails) content.add(boxMesh(r, MAT_DOLLY_RAIL));
+    for (const r of shape.rails) content.add(boxMesh(r, railMat));
     for (const w of shape.wheels) content.add(...wheelMesh(w, 'bottom'));
 
     const profileWidth = shape.profileWidth ?? c.truss.width;
