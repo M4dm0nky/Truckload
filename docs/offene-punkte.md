@@ -1,7 +1,7 @@
 # Offene Punkte
 
-Stand V 0.7.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0 und aus
-Hinweisen des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine
+Stand V 0.8.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Änderungen bis 0.8.0 und aus Hinweisen des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine
 Einschätzung der Nützlichkeit. Erledigtes ist raus — der vollständige Abgleich aller 97
 markierten Befunde aus der Meilenstein-Review V 0.6.0 (die Kopfzeile des Berichts nennt
 fälschlich 75 — spätere Abschnitte waren in der Zählung nicht enthalten) steht im Bericht
@@ -183,6 +183,24 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   speichern, Aufräumen über 🗑), ist hier aber wahrscheinlicher, weil der Dialog auf
   wiederholte Nutzung über mehrere Loads hinweg ausgelegt ist. Eine Wiederverwendung
   vorhandener, exakt passender Case-Typen wäre eine sinnvolle Folge-Aufgabe.
+
+## Aus V 0.7.15 bis V 0.8.0 (2026-09-25 bis 2026-09-27) offen gelassen
+
+- **Mausrad oder Trackpad wird an der Schrittgröße erkannt** (`attachZoom`, `js/ui/zoom2d.js`).
+  Zeilen-Modus oder große, rein senkrechte Schritte gelten als Mausrad (zoomen), alles andere
+  als Trackpad-Wischen (verschieben). Mäuse mit sehr feinem Scrollen würden den Ausschnitt
+  deshalb verschieben statt zoomen. Geprüft ist das nur mit simulierten Eingaben, nicht an
+  echter Hardware. Die Knöpfe „−“/„+“ funktionieren in jedem Fall.
+- **Die Dolly-Breite der Pre-Rig-Traversen ist geschätzt.** Belegt ist nur, dass die Traverse
+  das breiteste Teil ist (Nutzerangabe). Der Einzug von 2 cm je Seite (`STAND_DOLLY_INSET`) ist
+  eine optische Annahme ohne Einfluss aufs Packen. Ein echtes Maß würde ihn ersetzen.
+- **Wizard-Stücke tragen `layers: [1, 2]` als gespeicherte Einschränkung**, weil die Vorbelegung
+  seit V 0.7.15 nicht mehr alle erlaubten Lagen umfasst. Erlaubt ein Case-Typ später mehr oder
+  weniger Lagen, kommt das bei diesen Stücken nicht an; die Schnittmengenregel
+  (`pieceLayers`) verhindert nur, dass ein Stück mehr darf als sein Typ.
+- **Zoom: Beschriftungen und Linien wachsen mit.** Sie sind in Truck-Einheiten gezeichnet und
+  werden beim Hineinzoomen entsprechend größer bzw. dicker. Beim Prüfen der Abstände hilft das
+  eher, bei sehr starkem Zoom verdeckt die Schrift aber mehr vom Case.
 
 ## Kleinigkeiten
 

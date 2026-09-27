@@ -76,7 +76,8 @@ Fast immer ein **Patch**-Schritt (z. B. 0.7.2 → 0.7.3) — auch für echte Ver
 änderungen, nicht nur für Datenpflege. Minor/Major nur auf ausdrücklichen Wunsch des
 Nutzers (z. B. ein Meilenstein wie V0.7.0). Vor dem Commit kurz die vorgeschlagene nächste
 Nummer nennen und bestätigen lassen — danach wie unten beschrieben ohne weitere Rückfrage
-committen und veröffentlichen.
+committen und veröffentlichen. Minor/Major-Stände bekommen zusätzlich einen annotierten
+Git-Tag (`git tag -a v0.8.0 -m "Version 0.8.0"`), Patch-Stände nicht.
 
 Ist der zuletzt veröffentlichte Stand noch nicht live (lokale Commits, die noch nicht
 gepusht wurden), zählt für den Vorschlag der **zuletzt veröffentlichte** Stand als

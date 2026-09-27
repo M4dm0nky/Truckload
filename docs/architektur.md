@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.7.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.8.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -58,8 +58,15 @@ laden also unverändert):
   `tipped === true && canTip(c)` über die Startausrichtung (`tipLong` statt `standing`).
 
 Der Wizard (Schritt „Beschriften“, `js/ui/load-wizard.js`) setzt beide Felder je Stück
-vor: `layers` mit allen von `layersOf(c)` erlaubten Lagen, `tipped` mit `canTip(c)` — der
-Nutzer hakt Ausnahmen ab, statt jedes Stück einzeln hochzuziehen.
+vor: `layers` mit `defaultWizardLayers(c)`, also den vom Case-Typ erlaubten Lagen aus
+{1, 2} (Lage 3/4 nie vorab, Nutzerwunsch V 0.7.15/0.7.16), `tipped` mit `canTip(c)`.
+Erlaubt ein Case-Typ weder Lage 1 noch 2, startet das Stück ohne Lage; „Fertig“ blockiert
+dann (`countWithoutLayer`), bis jedes Stück eine Lage hat. Die Kopfzeile „Alle Stücke“
+schaltet eine Lage bzw. „getippt“ für alle Stücke auf einmal (`setLayerForAll`,
+`setTippedForAll`, Anzeige über `bulkState` inklusive „gemischt“) und hält sich dabei an
+dieselben Grenzen: nur wo der Case-Typ es erlaubt, und die letzte Lage eines Stücks bleibt.
+Folge der Vorbelegung: Stücke aus dem Wizard tragen `layers: [1, 2]` als gespeicherte
+Einschränkung, sofern der Case-Typ mehr erlaubt (`reduceWizardItem`).
 
 Beide Felder lassen sich danach im Inspector je Stück ändern (`A.setPieceLayers`/
 `A.setPieceTipped`, `js/ui/inspector.js`), nach derselben Reduktionsregel wie
@@ -92,7 +99,15 @@ Alles in Zentimetern und Kilogramm.
 - `y` = Breite ab der linken Wand
 - `z` = Höhe ab Ladefläche
 
-`EPS = 0.5` cm ist die Toleranz für alle Überlappungs- und Auflageprüfungen.
+`EPS = 0.5` cm ist die Toleranz für alle Überlappungs- und Auflageprüfungen. Die
+gespeicherten Maße bleiben die echten; Spielraum gibt es nur hier.
+
+Neue Positionen rasten auf ein 5-cm-Raster und danach an Truckwänden und Kanten der
+anderen Boxen ein (`snapPos` in `js/model/actions.js`, Toleranz 8 cm über `snapToEdges`).
+Das gilt seit V 0.7.18 für das Hineinziehen aus der Liste (`placeCase`) genauso wie für das
+Verschieben im Truck (`moveGroup`). Vorher rastete `placeCase` nur aufs Raster: Ein 62 cm
+breiter Wagen landete neben einem anderen bei 60 statt 62 cm, ragte hinein und wurde von
+`settle()` obendrauf gestellt.
 
 ## Ausrichtung und Rollenrichtung
 
@@ -182,21 +197,33 @@ tippbar.
 ### Pre-Rig-Traversen (`standing: true`)
 
 Ein zweiter, seit V 0.7.3 unterstützter Aufbau für Moving-Light-Pre-Rig-Traversen (H.O.F. MLT,
-Prolyte S36PR): `truss: { length, width, count: 1, standing: true, height }`. Anders als der
-Wagen oben (mehrere Stücke auf einem gemeinsamen Flachwagen) ist hier **ein Stück immer eine
-einzelne, komplett montierte Traverse** auf 4 Beinen über einer eigenen Grundplatte mit Rollen —
-so wird sie auch fertig aufgerüstet (mit montierten Movern) in den Truck gerollt. `width` meint
-hier die Standfläche (`STAND_FOOTPRINT_W`, 62 cm – 4 Stück nebeneinander in einem 40-Tonner, 248 cm Innenbreite), nicht den Traversen-
-Querschnitt; `height` die Standhöhe (je Modell recherchiert/abgeschätzt, siehe
-`docs/mlt-truss-gewichte.md`) und wird — anders als bei der Wagen-Variante — direkt mitgegeben
-statt aus `count`/`width` errechnet. `trussDims()` gibt dafür `{l: length, w: width, h: height}`
-unverändert zurück, ohne die `MAX_TRUSS_WIDTH`-Grenze zu prüfen (die gilt nur fürs Nebeneinander-
-Passen auf dem Wagen). `trussShape()` liefert denselben Rückgabe-Vertrag wie oben, nur anders
-befüllt: `dollies`/`boards` sind hier die eine Grundplatte, `rails` sind die 4 Beine, `pieces`
-enthält die eine Traverse (Rechteck-Querschnitt `STAND_TRUSS_W`×`STAND_TRUSS_H`, schmaler als die
-Standfläche, mittig obenauf). Ein zusätzliches Feld `profileWidth` sagt view2d.js/view3d.js, mit
-welcher Breite die Gurtrohre gezeichnet werden — `c.truss.width` wäre hier die falsche (zu breite)
-Standfläche statt des Querschnitts.
+Prolyte S36PR): `truss: { length, width, count: 1, standing: true, height, frame? }`. Anders als
+der Wagen oben (mehrere Stücke auf einem gemeinsamen Flachwagen) ist hier **ein Stück immer eine
+einzelne, komplett montierte Traverse** auf 4 Beinen über einem eigenen Dolly mit Rollen — so
+wird sie auch fertig aufgerüstet (mit montierten Movern) in den Truck gerollt.
+
+- `width` ist die Standfläche fürs Packen, `STAND_FOOTPRINT_W = 62` cm: 4 Stück passen genau
+  nebeneinander in einen Sattelauflieger mit 248 cm Innenbreite (Nutzerangabe, bestätigt
+  V 0.7.18). Gegen die Wände und die Nachbarn gilt die übliche Toleranz `EPS`.
+- `height` ist die Standhöhe und wird direkt mitgegeben, statt aus `count`/`width` errechnet.
+  Seit V 0.7.17 sind alle Vorlagen 115 cm hoch, auch MLT ONE (Quellen in
+  `docs/mlt-truss-gewichte.md`).
+- `frame: 'closed'` (MLT TWO/THREE/FOUR, Prolyte S36PR) steht für einen rundum geschlossenen
+  Alu-Rahmen: Querholme an den Stirnseiten verbinden die Längsholme, und `trussShape()` meldet
+  `alu: true`, womit `view3d.js` den ganzen Dolly silbern zeichnet. Fehlt `frame` (MLT ONE,
+  Altdaten), bleibt es beim offenen, dunklen Rahmen mit zwei Längsholmen.
+- Die Traverse ist immer das breiteste Teil (`STAND_TRUSS_W` × `STAND_TRUSS_H`, mittig in der
+  Standfläche). Der Dolly (Holme, Querholme, Rollen) ist je Seite um `STAND_DOLLY_INSET` (2 cm,
+  eigene optische Annahme) schmaler als die Traverse. Das betrifft nur die Darstellung, nicht
+  das Packen.
+
+`trussDims()` gibt für stehende Traversen `{l: length, w: width, h: height}` unverändert zurück,
+ohne die `MAX_TRUSS_WIDTH`-Grenze zu prüfen (die gilt nur fürs Nebeneinander-Passen auf dem
+Wagen). `trussShape()` liefert denselben Rückgabe-Vertrag wie oben, nur anders befüllt:
+`dollies`/`boards` sind der erste Längsholm (Bezugsfläche für die Beschriftung), `rails` sind
+die 4 Beine, der zweite Längsholm und gegebenenfalls die 2 Querholme, `pieces` enthält die eine
+Traverse. Ein zusätzliches Feld `profileWidth` sagt view2d.js/view3d.js, mit welcher Breite die
+Gurtrohre gezeichnet werden — `c.truss.width` wäre hier die Standfläche statt des Querschnitts.
 
 ## Gewicht: 0 kg ist nicht „unbekannt“
 
@@ -249,7 +276,7 @@ lautlos den einen oder anderen Stand verliert.
 
 | Datei | Inhalt |
 |---|---|
-| `js/data/preset-cases.js` | 17 generische Vorlagen (Richtwerte) |
+| `js/data/preset-cases.js` | 38 Vorlagen: 14 generische Cases und Traversenwagen (Richtwerte) und 24 Pre-Rig-Traversen (MLT/S36PR); dazu 2 Legacy-Einträge, die nur noch für alte Ladepläne existieren |
 | `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, `source: 'liste'` plus `company` |
 | `js/data/categories.js` | Gewerke und ihre Farben |
 | `js/data/preset-trucks.js` | Fahrzeugvorlagen |
@@ -270,6 +297,17 @@ Alu-Profil, Kugelecken, Deckelfuge, Griffen und Rollen, Traversenwagen mit Rollb
 Gurtrohren. `js/ui/view3d.js` macht dasselbe in Three.js, mit geteilten Geometrien und
 Materialien (`userData.shared` — diese werden beim Aufräumen **nicht** verworfen; alles
 selbst Erzeugte muss freigegeben werden).
+
+Jede der drei 2D-Ansichten lässt sich seit V 0.8.0 für sich zoomen und verschieben
+(`js/ui/zoom2d.js`). Gezoomt wird allein über die `viewBox`: `renderView` setzt sie über
+`applyViewBox(svg, full)`, das je SVG den Zoom aus einer `WeakMap` holt und bei einem anderen
+Truck (anderes `full`) zurücksetzt. Weil jede Umrechnung Bildschirm → Truck über
+`getScreenCTM()` läuft (`toSvg`), funktionieren Verschieben und Hineinziehen gezoomt ohne
+Sonderfall. Die Rechnung (`zoomAt`, `panBy`, `resolveViewBox`) ist rein und getestet; der
+Ausschnitt bleibt immer innerhalb des ganzen Trucks und ist mindestens `MIN_VIEW_W` (40 cm)
+breit. Mausrad und Trackpad-Wischen unterscheidet `attachZoom` an der Schrittgröße
+(Zeilen-Modus oder `|deltaY| ≥ 50` ohne `deltaX` gilt als Mausrad), Pinch kommt als `wheel`
+mit `ctrlKey`. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
 
 Beschriftungen stehen auf allen Seiten: in 2D auf jeder sichtbaren Fläche, in 3D als
 Canvas-Textur auf vier Seiten plus Deckel (`js/ui/labelTexture.js` liefert die Flächen und

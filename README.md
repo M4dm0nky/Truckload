@@ -31,6 +31,7 @@ npm test
 - [docs/offene-punkte.md](docs/offene-punkte.md) – bekannte Schwächen und Ideen, nach Nützlichkeit sortiert
 - [docs/code-review-2026-09-21.md](docs/code-review-2026-09-21.md) – vollständige Code-Review zum Meilenstein V 0.6.0
 - [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md) – Herleitung und Quellen der geschätzten Case-Gewichte
+- [docs/mlt-truss-gewichte.md](docs/mlt-truss-gewichte.md) – Maße, Gewichte und Quellen der Pre-Rig-Traversen (MLT/S36PR)
 - [docs/superpowers/plans/](docs/superpowers/plans/) – die Pläne aller bisherigen Versionen
 
 ## Wichtig: Datensicherung
@@ -45,11 +46,17 @@ So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gel�
 
 ## Neuen Load anlegen
 
-„Neuer Ladeplan“ öffnet einen Wizard mit drei Schritten:
+„Neu“ (oben links) öffnet einen Wizard mit drei Schritten. „+ Material hinzufügen“ in der
+Seitenleiste öffnet denselben Wizard für den aktuellen Load, dann ohne den ersten Schritt.
 
 1. **Load** – Name und Fahrzeug (Truck) wählen.
 2. **Cases** – aus der Bibliothek Cases mit Stückzahl auswählen, oder über „+ Neues Case“ bzw. „⬛ Sonderbau“ direkt neue Cases anlegen. „+ Traverse hinzufügen“ legt mengenbasiert klassische F34/F40-Wagen oder Pre-Rig-Traversen (MLT/S36PR) an.
-3. **Beschriften** – jedes einzelne Stück bekommt eine vorbelegte Beschriftung (z. B. „Kabelcase 1“ … „6“), die sich überschreiben lässt, sowie optional eine Gruppenfarbe. Dazu je Stück Häkchen für Lage (1–4, vorbelegt mit den vom Case-Typ erlaubten Lagen) und „getippt“ (vorbelegt an, wenn der Case-Typ es zulässt) – nicht erlaubte Lagen bzw. „getippt“ bei nicht tippbaren Cases sind ausgegraut, die letzte angehakte Lage lässt sich nicht abwählen. Ein Häkchen steuert, ob danach automatisch gepackt wird.
+3. **Beschriften** – jedes einzelne Stück bekommt eine vorbelegte Beschriftung (z. B. „Kabelcase 1“ … „6“), die sich überschreiben lässt, sowie optional eine Gruppenfarbe. Dazu je Stück Häkchen für Lage (1–4) und „getippt“:
+   - Vorbelegt sind Lage 1 und 2 sowie „getippt“. Lage 3 und 4 sind nie vorab angehakt, sie werden immer von Hand geklickt.
+   - Die Zeile „Alle Stücke“ oben setzt oder entfernt ein Häkchen bei allen Stücken auf einmal, z. B. Lage 4 für alle. Sind die Stücke unterschiedlich eingestellt, zeigt das Häkchen einen Strich.
+   - Nicht erlaubte Lagen und „getippt“ bei nicht tippbaren Cases sind ausgegraut und bleiben auch beim Klick in „Alle Stücke“ unberührt.
+   - Die letzte angehakte Lage eines Stücks lässt sich nicht abwählen. Erlaubt ein Case-Typ weder Lage 1 noch 2, startet sein Stück ohne Lage, und „Fertig“ geht erst, wenn dort eine angehakt ist.
+   - Ein Häkchen steuert, ob danach automatisch gepackt wird.
 
 „Fertig“ legt den Load an und packt ihn bei aktiviertem Häkchen automatisch in den Truck.
 Gefällt das Ergebnis nicht, legt „Truck entladen“ alle Cases zurück nach „Noch nicht
@@ -58,6 +65,21 @@ geladen“, um sie von Hand zu laden (rückgängig mit ⌘Z).
 Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im Inspector ändern
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
 Zeile in der Seitenleiste anklicken).
+
+## 2D-Ansicht: Zoomen und Verschieben
+
+Draufsicht, Seitenansicht und Rückansicht lassen sich jede für sich vergrößern, z. B. um
+genau zu prüfen, wie die Cases stehen:
+
+- **Zoomen:** Mausrad oder zwei Finger auf dem Trackpad auseinanderziehen, jeweils an der
+  Mausposition. Oder die Knöpfe „−“ und „+“ oben rechts in jeder Ansicht.
+- **Verschieben:** mit zwei Fingern wischen oder auf freier Fläche ziehen. Ziehen auf einem
+  Case verschiebt weiterhin das Case.
+- **Ganzer Truck:** Doppelklick auf freie Fläche oder der Knopf „Alles“.
+
+Cases lassen sich auch gezoomt verschieben und aus der Liste hineinziehen. Beim
+Hineinziehen rastet ein Case, wie beim Verschieben, an den Kanten der Nachbarn und an den
+Wänden ein. Der Ausdruck zeigt immer den ganzen Truck.
 
 ## Mitgelieferte Cases
 
