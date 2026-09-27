@@ -33,7 +33,7 @@
     </div>
   </section>
   <header class="topbar" hidden>
-    <strong class="brand">Truckload <span id="app-version" class="version">V 0.7.18</span></strong>
+    <strong class="brand">Truckload <span id="app-version" class="version">V 0.8.0</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
       <select id="plan-select" title="Ladeplan"></select>
@@ -74,9 +74,9 @@
     <aside id="library" class="panel library"></aside>
     <section class="stage">
       <div id="views2d" class="views2d">
-        <figure class="view view-top"><figcaption>Draufsicht <small>Stirnwand links · Tür rechts</small></figcaption><svg id="svg-top"></svg></figure>
-        <figure class="view view-side"><figcaption>Seitenansicht <small>von links</small></figcaption><svg id="svg-side"></svg></figure>
-        <figure class="view view-rear"><figcaption>Rückansicht <small>von der Tür</small></figcaption><svg id="svg-rear"></svg></figure>
+        <figure class="view view-top"><figcaption>Draufsicht <small>Stirnwand links · Tür rechts</small><span class="zoom" data-zoom="svg-top"><button type="button" data-z="out" title="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen">Alles</button></span></figcaption><svg id="svg-top"></svg></figure>
+        <figure class="view view-side"><figcaption>Seitenansicht <small>von links</small><span class="zoom" data-zoom="svg-side"><button type="button" data-z="out" title="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen">Alles</button></span></figcaption><svg id="svg-side"></svg></figure>
+        <figure class="view view-rear"><figcaption>Rückansicht <small>von der Tür</small><span class="zoom" data-zoom="svg-rear"><button type="button" data-z="out" title="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen">Alles</button></span></figcaption><svg id="svg-rear"></svg></figure>
       </div>
       <div id="view3d" class="view3d" hidden></div>
     </section>

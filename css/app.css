@@ -54,8 +54,10 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .views2d { flex: 1; display: grid; grid-template-columns: 3fr 1fr; grid-template-rows: 1.2fr 1fr; gap: 10px; padding: 10px; min-height: 0; }
 .view { margin: 0; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .view-top { grid-column: 1 / -1; }
-.view figcaption { padding: 6px 10px; font-weight: 600; }
-.view figcaption small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+.view figcaption { padding: 6px 10px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; row-gap: 4px; }
+.view figcaption small { color: var(--muted); font-weight: 400; margin-left: 6px; white-space: nowrap; }
+.view figcaption .zoom { margin-left: auto; display: flex; gap: 4px; }
+.view figcaption .zoom button { padding: 1px 8px; font-size: 12px; font-weight: 400; }
 .view svg { flex: 1; width: 100%; min-height: 0; touch-action: none; user-select: none; }
 .view3d { flex: 1; min-height: 0; }
 

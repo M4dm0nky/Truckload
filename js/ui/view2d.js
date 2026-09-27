@@ -1,3 +1,4 @@
+import { applyViewBox } from './zoom2d.js';
 import { svgEl } from './dom.js';
 import { project, unproject, drawOrder, wheelView } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
@@ -329,7 +330,8 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
   addDefs(svg, uid);
   const W = mode === 'rear' ? truck.w : truck.l;
   const H = mode === 'top' ? truck.w : truck.h;
-  svg.setAttribute('viewBox', `${-PAD} ${-PAD} ${W + 2 * PAD} ${H + 2 * PAD}`);
+  // Ganzer Truck samt Rand – oder der gezoomte Ausschnitt dieser Ansicht (zoom2d.js).
+  applyViewBox(svg, { x: -PAD, y: -PAD, w: W + 2 * PAD, h: H + 2 * PAD });
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
   svgEl('rect', { x: 0, y: 0, width: W, height: H, class: 'truck' }, svg);

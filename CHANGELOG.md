@@ -2,6 +2,15 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.0 – 2026-09-27
+
+- In den 2D-Ansichten (Draufsicht, Seitenansicht, Rückansicht) lässt sich jetzt zoomen, jede Ansicht für sich, zum Beispiel um genau zu prüfen, wie die Cases stehen.
+  - Mausrad oder Trackpad (zwei Finger auseinander) zoomt an der Mausposition.
+  - Wischen mit zwei Fingern oder Ziehen auf freier Fläche verschiebt den Ausschnitt.
+  - Doppelklick auf freie Fläche zeigt wieder den ganzen Truck.
+  - In jeder Überschrift gibt es die Knöpfe „−“, „+“ und „Alles“.
+- Cases lassen sich auch gezoomt verschieben und aus der Liste hineinziehen. Der Ausdruck zeigt immer den ganzen Truck.
+
 ## V 0.7.18 – 2026-09-26
 
 - Zieht man ein Case aus der Liste in den Truck, rastet es jetzt an den Kanten der Nachbarn und an den Wänden ein, genau wie beim Verschieben im Truck. Vorher wurde nur auf 5 cm gerundet: Ein 62 cm breiter MLT-Wagen landete so 2 cm im Nachbarn und wurde obendrauf gestellt, deshalb passten beim Hineinziehen keine 4 Wagen nebeneinander in den Sattelauflieger (248 cm). Jetzt stehen sie sauber nebeneinander.

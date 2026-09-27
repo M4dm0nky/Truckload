@@ -15,6 +15,7 @@ import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
+import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
 import { buildPrint } from './ui/print.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
@@ -294,6 +295,13 @@ attachTopInteractions($('#svg-top'), {
   },
 });
 attachSelect($('#svg-side'), select);
+// Zoom/Verschieben je 2D-Ansicht (Mausrad, Trackpad, Ziehen auf freier Fläche, Knöpfe − / + / Alles).
+for (const id of ['svg-top', 'svg-side', 'svg-rear']) attachZoom($(`#${id}`));
+document.querySelectorAll('.zoom').forEach(el => el.addEventListener('click', e => {
+  const z = e.target.closest('button')?.dataset.z;
+  const svg = $(`#${el.dataset.zoom}`);
+  if (z === 'in') zoomIn(svg); else if (z === 'out') zoomOut(svg); else if (z === 'all') resetZoom(svg);
+}));
 attachSelect($('#svg-rear'), select);
 
 // Inspector
