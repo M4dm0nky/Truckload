@@ -177,6 +177,14 @@ V 0.7.0 kennt auch der Füllgrad-Score in `chooseOrientation` (`packer.js`) dies
 Case wird dadurch eher getippt als sinnlos hoch gestellt, wenn Tippen weniger Lademeter
 braucht.
 
+**Sortenrein (seit V 0.8.3):** `orderSorts(items, mode)` gruppiert nach `caseId` und ordnet nach
+`plan.packOrder` (`'volume'`: Einzelvolumen absteigend, Traversen zuletzt; `'count'`: Stückzahl,
+dann Volumen, dann Name; fehlt das Feld, gilt `'volume'`). `buildStacks` stapelt je Sorte; die
+nächste Sorte darf nur den letzten offenen Stapel der vorigen auffüllen. `placeStacks` stellt
+Sorte für Sorte, jede nur ab dem x0 der letzten Reihe der vorigen (`minX`), und `packRest`
+beginnt hinter der vorhandenen Ladung (`startX`). Spec:
+`docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md`.
+
 ## Traversenwagen
 
 Ein eigener Case-Typ mit `kind: 'truss'` und `truss: { length, width, count }`.

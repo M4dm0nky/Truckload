@@ -404,6 +404,8 @@ $('#pack-all').onclick = async () => {
   edit((p, c) => A.packAll(p, c));
 };
 $('#pack-rest').onclick = () => edit((p, c) => A.packRest(p, c));
+// Sortenreine Reihenfolge je Load; wirkt beim nächsten „Alles neu packen“/„Rest einpacken“.
+$('#pack-order').onchange = e => edit(p => A.setPackOrder(p, e.target.value));
 $('#unload-all').onclick = async () => {
   if (!store.get().plan.placements.length) return;
   if (!await showConfirm('Alle Cases aus dem Truck zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)')) return;
@@ -460,6 +462,7 @@ renderHooks.push((s, d) => {
   $('#undo').disabled = !store.canUndo();
   $('#redo').disabled = !store.canRedo();
   $('#unload-all').disabled = !s.plan.placements.length;
+  $('#pack-order').value = s.plan.packOrder ?? 'volume';
 });
 
 // Ladepläne

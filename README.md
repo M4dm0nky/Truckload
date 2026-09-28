@@ -62,6 +62,15 @@ Seitenleiste öffnet denselben Wizard für den aktuellen Load, dann ohne den ers
 Gefällt das Ergebnis nicht, legt „Truck entladen“ alle Cases zurück nach „Noch nicht
 geladen“, um sie von Hand zu laden (rückgängig mit ⌘Z).
 
+Automatisch gepackt wird **sortenrein**: Jeder Case-Typ kommt als eigener Block von der Stirnwand
+zur Tür. Die Reihenfolge wählt man je Load neben „Alles neu packen“:
+- **Große zuerst** – nach Einzelvolumen, Traversen immer zuletzt (Vorgabe).
+- **Stückzahl zuerst** – der Case-Typ mit den meisten gleichen Stücken zuerst.
+
+Füllt eine Sorte ihre letzte Reihe nicht, darf die nächste die freien Spuren dieser Reihe
+belegen und den letzten, nicht vollen Stapel auffüllen – weiter vorn wird nie gemischt.
+„Rest einpacken“ hängt neue Sorten hinter die vorhandene Ladung.
+
 Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im Inspector ändern
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
 Zeile in der Seitenleiste anklicken).
