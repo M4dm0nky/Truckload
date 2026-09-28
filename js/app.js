@@ -75,6 +75,19 @@ export function edit(fn, history = true) {
 }
 export const select = id => store.update(s => (s.selectedId === id ? s : { ...s, selectedId: id }));
 
+// F2+F6 (Fix-Welle 2026-09-28): nach „Alles neu packen", „Rest einpacken" und dem Wizard-
+// Autopack meldet sich die App, wenn danach noch Stücke in der Ablage liegen – sonst merkt der
+// Nutzer die Lücke nur, wenn er die Ablage zufällig aufklappt. `edit()` ist synchron, store.get()
+// liefert direkt danach den frischen Stand.
+async function warnIfUnplaced() {
+  const n = store.get().plan.unplaced.length;
+  if (!n) return;
+  const msg = n === 1
+    ? '1 Case passt nicht in den Truck und bleibt in „Noch nicht geladen“.'
+    : `${n} Cases passen nicht in den Truck und bleiben in „Noch nicht geladen“.`;
+  await showAlert(msg);
+}
+
 let frame = 0;
 export function scheduleRender() {
   if (frame) return;
@@ -267,6 +280,7 @@ async function runLoadWizard(mode) {
     if (res.autoPack) next = A.packRest(next, c);
     return next;
   });
+  if (res.autoPack) await warnIfUnplaced();
 }
 
 const library = mountLibrary($('#library'), {
@@ -402,8 +416,12 @@ $('#pack-all').onclick = async () => {
   const s = store.get();
   if (s.plan.placements.length && !await showConfirm('Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)')) return;
   edit((p, c) => A.packAll(p, c));
+  await warnIfUnplaced();
 };
-$('#pack-rest').onclick = () => edit((p, c) => A.packRest(p, c));
+$('#pack-rest').onclick = async () => {
+  edit((p, c) => A.packRest(p, c));
+  await warnIfUnplaced();
+};
 // Sortenreine Reihenfolge je Load; wirkt beim nächsten „Alles neu packen“/„Rest einpacken“.
 $('#pack-order').onchange = e => edit(p => A.setPackOrder(p, e.target.value));
 $('#unload-all').onclick = async () => {

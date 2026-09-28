@@ -626,9 +626,45 @@ test('packAll: packOrder count = Stückzahl zuerst', () => {
   assert.equal(firstAtWall(A.packAll({ ...unplacedMix(), packOrder: 'count' }, ctxBS())), 'small');
 });
 
-test('packRest: neue Sorten schließen hinter der vorhandenen Ladung an, keine Lücke weiter vorn', () => {
-  const pl0 = plan([P('a', 'big', 0, 0, 0)], [{ id: 's0', caseId: 'small' }]);
+// Ruling F3: startX in packRest ist das größte x0 der vorhandenen BODENSTÜCKE (letzte Reihe),
+// nicht mehr das größte x1 (deren Tür-Kante). Der ursprüngliche Test unten prüfte genau das alte
+// Verhalten (x1 als Grenze) mit nur einer einzigen Reihe – dort ist x0 der Reihe ebenfalls 0,
+// weshalb der Test angepasst wurde: zwei Reihen 'big' machen die letzte Reihe (x0=120) sichtbar,
+// und 'small' darf nie eine Lücke in der FRÜHEREN Reihe (x0=0) füllen.
+test('packRest: neue Sorten schließen an die letzte Reihe der vorhandenen Ladung an (Ruling F3: startX = x0, nicht x1)', () => {
+  const pl0 = plan([
+    P('a', 'big', 0, 0, 0), P('b', 'big', 0, 60, 0), P('c', 'big', 0, 120, 0),
+    P('d', 'big', 120, 0, 0),
+  ], [{ id: 's0', caseId: 'small' }]);
   const pl = A.packRest(pl0, ctxBS());
   const s = pl.placements.find(p => p.id === 's0');
-  assert.ok(s.x >= 120, `small bei x=${s.x}, sollte hinter der Ladung (x ≥ 120) stehen`);
+  assert.equal(s.x, 120, `small bei x=${s.x}, sollte in der letzten Reihe (x=120) stehen, nie in der Lücke der ersten Reihe (x=0)`);
+});
+
+test('F3: packRest füllt freie Spuren der letzten Reihe (y), statt eine neue Reihe an x1 zu beginnen', () => {
+  // stackable:false, damit die zwei neuen Stücke als getrennte Bodenplätze in den freien Spuren
+  // landen, statt sich (wie stapelbare 'k' es täten) einfach übereinanderzustapeln.
+  const N = mkCase('n', 120, 60, 60, { stackable: false });
+  const c2 = { caseById: byId(K, T, N), truck: mkTruck(), newId: counter('n') };
+  const pl0 = plan(
+    [P('a', 'n', 0, 0, 0), P('b', 'n', 0, 60, 0)],
+    [{ id: 'u1', caseId: 'n' }, { id: 'u2', caseId: 'n' }],
+  );
+  const pl = A.packRest(pl0, c2);
+  const news = pl.placements.filter(p => p.id === 'u1' || p.id === 'u2');
+  assert.equal(news.length, 2);
+  assert.ok(news.every(p => p.x === 0), `neue Stücke sollten die freie Spur x=0 füllen, nicht x=120 (${news.map(p => p.x)})`);
+  assert.deepEqual(news.map(p => p.y).sort((a, b) => a - b), [120, 180]);
+});
+
+test('F3: passt ein Stück hinter/neben einer bis zur Tür reichenden Ladung nicht mehr, landet es in der Ablage statt vorn in einer Lücke', () => {
+  const truck = mkTruck({ l: 120 });
+  const c2 = { caseById: byId(BIG, SMALL), truck, newId: counter('n') };
+  const pl0 = plan([
+    P('a', 'big', 0, 0, 0), P('b', 'big', 0, 60, 0), P('c', 'big', 0, 120, 0), P('d', 'big', 0, 180, 0),
+  ], [{ id: 's0', caseId: 'small' }]);
+  const pl = A.packRest(pl0, c2);
+  assert.equal(pl.unplaced.length, 1);
+  assert.equal(pl.unplaced[0].id, 's0');
+  assert.ok(!pl.placements.some(p => p.id === 's0'), 's0 darf nicht irgendwo vorn in einer Lücke landen');
 });

@@ -64,8 +64,8 @@ function canAddToStack(stack, c, dz, truck) {
 
 // Sortenrein packen (Nutzerwunsch 2026-09-28, Spec docs/superpowers/specs/2026-09-28-sortenrein-
 // packen-design.md): eine Sorte ist ein Case-Typ (caseId) und wird als Block geladen.
-// 'volume' = „Große zuerst" (Einzelvolumen absteigend, Traversen immer zuletzt),
-// 'count' = „Stückzahl zuerst" (Anzahl absteigend, dann Volumen, dann Name).
+// 'volume' = „Große zuerst“ (Einzelvolumen absteigend, Traversen immer zuletzt),
+// 'count' = „Stückzahl zuerst“ (Anzahl absteigend, dann Volumen, dann Name).
 export const PACK_ORDERS = ['volume', 'count'];
 const volumeOf = c => { const { l, w, h } = outerDims(c); return l * w * h; };
 
@@ -86,9 +86,9 @@ export function orderSorts(itemList, mode = 'volume') {
 }
 
 // itemList: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
-// Stapel entstehen je Sorte (orderSorts). Einzige Ausnahme vom „nur Gleiches auf Gleichem”: die
+// Stapel entstehen je Sorte (orderSorts). Einzige Ausnahme vom „nur Gleiches auf Gleichem“: die
 // nächste Sorte darf zuerst den LETZTEN noch offenen Stapel der unmittelbar vorigen Sorte
-// auffüllen (Nutzerregel „Letzter Stapel darf aufgefüllt werden”) – mit denselben Grenzen wie
+// auffüllen (Nutzerregel „Letzter Stapel darf aufgefüllt werden“) – mit denselben Grenzen wie
 // immer (gleiche Grundfläche, Lagen je Stück, höchstens 4 Lagen, nichts Schweres auf Leichtes,
 // maxTopLoad). Jeder Stapel trägt `sort` = Index der Sorte, die ihn begonnen hat.
 export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
@@ -97,10 +97,16 @@ export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
   const minLayer = (it, c) => Math.min(...pieceLayers(it, c));
   const fits = (s, it, c, o) => s.key === `${o.d.dx}x${o.d.dy}` && s.items.length < 4
     && pieceLayers(it, c).includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck);
-  const push = (s, it, c, o) => {
+  // `weight` bleibt das Gesamtgewicht des Stapels (für canAddToStack/maxTopLoad), `ownWeight`
+  // zählt NUR das Gewicht der Stücke der Sorte, die den Stapel begonnen hat (Ruling F1) – so
+  // sortiert placeStacks Stapel einer Sorte nicht fälschlich nach dem Gewicht, das eine SPÄTERE
+  // Sorte beim Auffüllen obendrauf gesetzt hat. `mixed` markiert einen Stapel, der Stücke einer
+  // späteren Sorte trägt; ein solcher Stapel steht innerhalb seiner Sorte immer zuletzt.
+  const push = (s, it, c, o, own) => {
     s.items.push({ it, c, o, z: s.height });
     s.height += o.d.dz;
     s.weight += c.weight;
+    if (own) s.ownWeight += c.weight; else s.mixed = true;
   };
   let prevLast = null; // letzter Stapel, in dem die vorige Sorte zuletzt etwas abgelegt hat
 
@@ -117,18 +123,26 @@ export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
     let last = null;
     const addTo = (list, onMiss) => {
       for (const { it, c, o } of list) {
-        const target = (prevLast && fits(prevLast, it, c, o) ? prevLast : null) ?? own.find(s => fits(s, it, c, o));
-        if (target) { push(target, it, c, o); last = target; } else onMiss({ it, c, o });
+        const usePrev = prevLast && fits(prevLast, it, c, o);
+        const target = usePrev ? prevLast : own.find(s => fits(s, it, c, o));
+        if (target) { push(target, it, c, o, !usePrev); last = target; } else onMiss({ it, c, o });
       }
     };
     addTo(withFloor, ({ it, c, o }) => {
-      const s = { key: `${o.d.dx}x${o.d.dy}`, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, sort, items: [{ it, c, o, z: 0 }] };
+      const s = { key: `${o.d.dx}x${o.d.dy}`, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, ownWeight: c.weight, sort, items: [{ it, c, o, z: 0 }] };
       own.push(s);
       stacks.push(s);
       last = s;
     });
     addTo(withoutFloor, ({ it }) => unplaced.push(it));
-    if (last) prevLast = last;
+    // Ruling F4: prevLast ist wörtlich der Stapel, den DIESE Sorte begonnen oder zuletzt
+    // aufgefüllt hat – nur wenn `last` tatsächlich von dieser Sorte begonnen wurde
+    // (`stack.sort === sort`), darf die nächste Sorte ihn weiter auffüllen. Eine Sorte, die
+    // komplett in der Ablage landet (last bleibt null) oder nur den Stapel der VORIGEN Sorte
+    // aufgefüllt hat (last.sort !== sort), lässt prevLast verfallen statt es unverändert
+    // weiterzureichen – sonst könnte eine übernächste Sorte eine dazwischenliegende
+    // überspringen.
+    prevLast = (last && last.sort === sort) ? last : null;
   });
   return { stacks, unplaced };
 }
@@ -136,24 +150,36 @@ export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
 // Stellt die Stapel Sorte für Sorte (stack.sort, Reihenfolge wie von buildStacks geliefert) per
 // Bottom-Left in den Truck. Jede Sorte sucht nur Punkte mit x ≥ minX: für die erste Sorte ist das
 // `startX` (0 bzw. hinter einer vorhandenen Ladung), für jede weitere das x0 der letzten Reihe der
-// vorigen Sorte – so füllt sie deren freie Spuren (Nutzerregel „Lücke auffüllen"), kommt aber nie
-// weiter nach vorn. Innerhalb einer Sorte stehen schwerere Stapel weiter vorn (wie bisher).
+// vorigen Sorte – so füllt sie deren freie Spuren (Nutzerregel „Lücke auffüllen“), kommt aber nie
+// weiter nach vorn. Innerhalb einer Sorte stehen die nach `ownWeight` schwereren Stapel weiter
+// vorn, ein von der nächsten Sorte aufgefüllter (`mixed`) Stapel immer zuletzt (Ruling F1).
 export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) {
   const blocked = [...archBoxes(truck), ...obstacles];
-  const points = [{ x: startX, y: 0 }, { x: 0, y: 0 }, ...blocked.flatMap(b => [
+  // Kein eigener Seed { x: 0, y: 0 } mehr (Ruling F5): { x: startX, y: 0 } reicht als Startpunkt,
+  // ein zusätzlicher Nullpunkt war bei startX > 0 ohnehin nie ein gültiger Kandidat.
+  const points = [{ x: startX, y: 0 }, ...blocked.flatMap(b => [
     { x: b.x1, y: b.y0 }, { x: b.x0, y: b.y1 }, { x: b.x1, y: 0 }, { x: 0, y: b.y1 },
   ])];
   const placed = [], failed = [];
   let minX = startX;
   const sorts = [...new Set(stacks.map(s => s.sort ?? 0))];
   for (const sort of sorts) {
-    const group = stacks.filter(s => (s.sort ?? 0) === sort).sort((a, b) => b.weight - a.weight);
+    // Ruling F1: NUR nach `ownWeight` (Gewicht der eigenen Sorte) sortieren, nicht nach dem
+    // Gesamtgewicht – sonst würde ein von der NÄCHSTEN Sorte aufgefüllter Stapel durch das
+    // zusätzliche Gewicht fälschlich nach vorn rutschen. Ein aufgefüllter (`mixed`) Stapel
+    // steht innerhalb seiner Sorte außerdem immer zuletzt, unabhängig vom Gewicht.
+    const group = stacks.filter(s => (s.sort ?? 0) === sort)
+      .sort((a, b) => (a.mixed ? 1 : 0) - (b.mixed ? 1 : 0) || (b.ownWeight ?? b.weight) - (a.ownWeight ?? a.weight));
     const boxesHere = [];
     for (const s of group) {
       points.sort((p, q) => p.x - q.x || p.y - q.y);
       let hit = null;
-      for (const pt of points) {
-        if (pt.x < minX - 1e-6) continue;
+      for (const rawPt of points) {
+        // Ruling F5: ein Punkt mit x < minX wird nicht verworfen, sondern auf minX geklemmt
+        // geprüft – seine y-Koordinate (z. B. die Ecke eines weiter vorn liegenden Hindernisses)
+        // bleibt so als Kandidat für eine freie Spur der aktuellen Reihe erhalten. Duplikate
+        // durch die Klemmung sind unschädlich.
+        const pt = rawPt.x < minX - 1e-6 ? { x: minX, y: rawPt.y } : rawPt;
         // swap dreht den Stapel im Grundriss um 90°, wenn er sonst nirgends passt.
         // Das gibt eine zuvor gewählte Rollenrichtung bewusst auf — Platz geht vor
         // Rollenrichtung, sonst wäre der Stapel gar nicht unterzubringen (siehe autoPack).

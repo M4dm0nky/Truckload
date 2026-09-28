@@ -322,7 +322,7 @@ function toPiece(x, ctx) {
 const missingCasePlacements = (plan, ctx) => plan.placements.filter(p => !ctx.caseById.has(p.caseId));
 
 // Reihenfolge des sortenreinen Packens je Load (Nutzerwunsch 2026-09-28). Fehlt das Feld
-// (Altdaten), packt autoPack mit seiner Vorgabe 'volume' („Große zuerst").
+// (Altdaten), packt autoPack mit seiner Vorgabe 'volume' („Große zuerst“).
 export function setPackOrder(plan, order) {
   if (!PACK_ORDERS.includes(order) || plan.packOrder === order) return plan;
   return touch({ ...plan, packOrder: order });
@@ -338,15 +338,19 @@ export function packAll(plan, ctx) {
   });
 }
 
-// Rest einpacken: neue Sorten schließen sortenrein HINTER der vorhandenen Ladung an (startX = deren
-// Tür-Kante) statt Lücken weiter vorn zu füllen – sonst stünde die Nachladung mitten in fremden
-// Blöcken (eigene Entscheidung, Spec 2026-09-28).
+// Rest einpacken: neue Sorten schließen sortenrein an die LETZTE REIHE der vorhandenen Ladung an
+// (startX = deren x0, Ruling F3) statt an deren Tür-Kante (x1) – so füllen sie freie Spuren der
+// letzten Reihe (Nutzerregel „Lücke auffüllen“), landen aber nie vor dieser Reihe, mitten in
+// fremden Blöcken (eigene Entscheidung, Spec 2026-09-28).
 export function packRest(plan, ctx) {
   const { items } = buildItems(plan, ctx.caseById);
   const list = plan.unplaced.map(u => toPiece(u, ctx)).filter(Boolean);
   const missing = missingCasePlacements(plan, ctx);
   if (!list.length && !missing.length) return plan;
-  const startX = items.length ? Math.max(...items.map(it => it.box.x1)) : 0;
+  // Nur Bodenstücke (z0 ≈ 0) bestimmen die letzte Reihe – ein oben aufgesetztes Stück kann ein
+  // größeres/kleineres x0 als sein Bodenstück haben und würde die Reihe sonst verfälschen.
+  const floorItems = items.filter(it => Math.abs(it.box.z0) < 1e-6);
+  const startX = floorItems.length ? Math.max(...floorItems.map(it => it.box.x0)) : 0;
   const { placements, unplaced } = list.length
     ? autoPack(list, ctx.truck, { obstacles: items.map(it => it.box), order: plan.packOrder, startX })
     : { placements: [], unplaced: [] };

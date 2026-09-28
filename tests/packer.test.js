@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseOrientation, buildStacks, autoPack, orderSorts, PACK_ORDERS } from '../js/model/packer.js';
+import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts, PACK_ORDERS } from '../js/model/packer.js';
 import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
 import { mkCase, mkTruck, SPRINTER, plan, byId } from './fixtures.js';
@@ -388,14 +388,27 @@ function columns(placements) {
 }
 function checkSortenrein(placements, sortOrder) {
   const rank = new Map(sortOrder.map((id, i) => [id, i]));
-  // Stapel: unten eine Sorte, oben höchstens die direkt folgende.
+  const floor = placements.filter(p => p.z === 0);
+  // Je Sorte das größte x0 ihrer Bodenstapel (= x0 der letzten Reihe dieser Sorte).
+  const lastRowX = new Map();
+  for (const id of sortOrder) {
+    const xs = floor.filter(p => p.caseId === id).map(p => p.x);
+    if (xs.length) lastRowX.set(id, Math.max(...xs));
+  }
+  // Stapel: unten eine Sorte, oben höchstens die direkt folgende – und eine gemischte Säule
+  // (Ruling F1) steht nur in der letzten Reihe der UNTEREN Sorte, nie in einer früheren Reihe.
   for (const col of columns(placements)) {
     const r = col.map(p => rank.get(p.caseId));
     for (let i = 1; i < r.length; i++) assert.ok(r[i] === r[i - 1] || r[i] === r[i - 1] + 1, `Stapel gemischt: ${col.map(p => p.caseId)}`);
-    assert.ok(new Set(r).size <= 2);
+    const distinctSorts = new Set(r);
+    assert.ok(distinctSorts.size <= 2);
+    if (distinctSorts.size === 2) {
+      const lowerId = sortOrder[Math.min(...r)];
+      assert.equal(col[0].x, lastRowX.get(lowerId),
+        `gemischte Säule (${col.map(p => p.caseId)}) steht nicht in der letzten Reihe von ${lowerId}`);
+    }
   }
   // Blöcke: die Bodenstapel einer Sorte beginnen nie vor der letzten Reihe der vorigen.
-  const floor = placements.filter(p => p.z === 0);
   for (let i = 1; i < sortOrder.length; i++) {
     const prev = floor.filter(p => p.caseId === sortOrder[i - 1]);
     const cur = floor.filter(p => p.caseId === sortOrder[i]);
@@ -439,4 +452,129 @@ test('placeStacks: startX schiebt die erste Sorte hinter eine vorhandene Ladung'
   const K = mkCase('k', 120, 60, 60);
   const { placements } = autoPack([mkItem(K, 'k1')], mkTruck(), { startX: 300 });
   assert.equal(placements[0].x, 300);
+});
+
+// F1 (Fix-Welle 2026-09-28): der aufgefüllte Mischstapel sprang bisher an die Stirnwand, weil
+// placeStacks innerhalb einer Sorte nach dem GESAMTGEWICHT sortierte – das Auffüllen durch die
+// nächste Sorte machte den Stapel schwerer als seine unangetasteten Geschwister und schob ihn
+// dadurch fälschlich nach vorn. Ruling: nur nach dem Gewicht der EIGENEN Sorte sortieren
+// (`ownWeight`) und einen aufgefüllten Stapel innerhalb seiner Sorte immer zuletzt stellen.
+test('F1 (Fixtures): aufgefüllter Mischstapel steht in der letzten Reihe der Basissorte, nicht an der Stirnwand', () => {
+  const heavy = mkCase('heavy', 120, 60, 60, { weight: 100, layers: [1] });
+  const light = mkCase('light', 120, 60, 60, { weight: 90 });
+  // Schmaler Truck (eine Spur) zwingt die vier heavy-Stapel hintereinander in x-Richtung, statt
+  // nebeneinander in eine Reihe – so ist die „letzte Reihe" eindeutig das größte x0.
+  const truck = mkTruck({ w: 70, l: 2000 });
+  const { placements } = autoPack([...items(heavy, 4, 'h'), ...items(light, 1, 'l')], truck, { order: 'count' });
+  const heavyFloor = placements.filter(p => p.caseId === 'heavy' && p.z === 0);
+  const lastRowX = Math.max(...heavyFloor.map(p => p.x));
+  const mixedCol = columns(placements).find(col =>
+    col.some(p => p.caseId === 'heavy') && col.some(p => p.caseId === 'light'));
+  assert.ok(mixedCol, 'es muss eine Mischsäule aus heavy und light geben');
+  assert.equal(mixedCol[0].x, lastRowX,
+    `Mischstapel steht bei x=${mixedCol[0].x}, sollte bei der letzten Reihe x=${lastRowX} stehen`);
+  assert.notEqual(mixedCol[0].x, 0,
+    'vor dem Fix landete der (jetzt schwerste) Mischstapel fälschlich an der Stirnwand x=0');
+});
+
+// Realer Fall aus der Reproduktion (.superpowers/sdd/2026-09-28-sortenrein-packen/p9.mjs):
+// 9× 19″-Rack 20 HE (Lage 1, eigener Stapel je Stück) + 4× Packcase 80×60×60 (Lage 1+2,
+// nicht getippt) im Sattelauflieger. Volumen-Reihenfolge: Rack zuerst (größeres Volumen),
+// Packcase danach – der erste Packcase füllt den letzten Rack-Stapel auf.
+function rackMixLoad() {
+  const out = [];
+  const add = (caseId, n, extra) => { for (let i = 0; i < n; i++) out.push({ id: `${caseId}#${i}`, caseId, c: ALLC.get(caseId), ...extra }); };
+  add('preset-rack-20he', 9, { layers: [1] });
+  add('preset-pack-80x60x60', 4, { layers: [1, 2], tipped: false });
+  return out;
+}
+test('F1 (p9-Konstellation): Rack+Packcase-Mischstapel steht in der letzten Rack-Reihe, nicht an der Stirnwand', () => {
+  const { placements, unplaced } = autoPack(rackMixLoad(), SATTEL, { order: 'volume' });
+  assert.deepEqual(unplaced, []);
+  const rackFloor = placements.filter(p => p.caseId === 'preset-rack-20he' && p.z === 0);
+  const lastRowX = Math.max(...rackFloor.map(p => p.x));
+  const mixedCol = columns(placements).find(col =>
+    col.some(p => p.caseId === 'preset-rack-20he') && col.some(p => p.caseId === 'preset-pack-80x60x60'));
+  assert.ok(mixedCol, 'es muss eine Mischsäule aus Rack und Packcase geben');
+  assert.equal(mixedCol[0].x, lastRowX,
+    `Mischsäule steht bei x=${mixedCol[0].x}, sollte in der letzten Rack-Reihe x=${lastRowX} stehen`);
+});
+
+// F4: prevLast wörtlich „unmittelbar vorige Sorte" – nur der Stapel, den GENAU diese Sorte
+// begonnen (oder zuletzt aufgefüllt) hat, darf von der nächsten Sorte weiter aufgefüllt werden.
+test('F4: Sorte komplett in der Ablage lässt prevLast verfallen – eine übernächste Sorte darf sie nicht überspringen', () => {
+  const x = mkCase('x', 120, 60, 60, { weight: 50, layers: [1, 2] });
+  const tooBig = mkCase('toobig', 2000, 60, 60, { weight: 999 });
+  const b = mkCase('b', 120, 60, 60, { weight: 10 });
+  // order 'count': x (3 Stück) zuerst, dann toobig (2, passt nirgends -> komplett Ablage),
+  // dann b (1 Stück, gleiche Grundfläche und Gewicht wie x, würde ohne den Fix den offenen
+  // x-Stapel auffüllen, obwohl toobig dazwischenliegt).
+  const { stacks, unplaced } = buildStacks(
+    [...items(x, 3, 'x'), ...items(tooBig, 2, 't'), ...items(b, 1, 'b')],
+    mkTruck(), { order: 'count' },
+  );
+  assert.deepEqual(unplaced.map(u => u.caseId), ['toobig', 'toobig']);
+  const xStacks = stacks.filter(s => s.items.some(i => i.c.id === 'x'));
+  assert.ok(xStacks.every(s => s.items.every(i => i.c.id === 'x')),
+    'b darf keinen x-Stapel auffüllen – die dazwischenliegende Sorte „toobig" ist komplett in der Ablage');
+  const bStack = stacks.find(s => s.items.some(i => i.c.id === 'b'));
+  assert.deepEqual(bStack.items.map(i => i.c.id), ['b']);
+});
+
+test('F4: Sorte B füllt nur den Stapel von A auf (kein eigener Stapel) – Sorte C darf trotzdem nicht darauf', () => {
+  const a = mkCase('a', 120, 60, 60, { weight: 50, layers: [1, 2] });
+  const b = mkCase('b', 120, 60, 60, { weight: 10 });
+  const c2 = mkCase('c', 120, 60, 60, { weight: 5 });
+  // order 'count': a (3 Stück) -> [a,a] und [a]; b (1 Stück, gleiche Zahl wie c, Gleichstand
+  // nach Volumen -> nach Namen: 'b' vor 'c') füllt NUR den offenen [a]-Stapel auf und beginnt
+  // dabei nie einen eigenen Stapel; c darf deshalb nicht auf [a,b] weiterpacken.
+  const { stacks } = buildStacks(
+    [...items(a, 3, 'a'), ...items(b, 1, 'b'), ...items(c2, 1, 'c')],
+    mkTruck(), { order: 'count' },
+  );
+  const mixedStack = stacks.find(s => s.items.some(i => i.c.id === 'b'));
+  assert.deepEqual(mixedStack.items.map(i => i.c.id), ['a', 'b']);
+  const cStack = stacks.find(s => s.items.some(i => i.c.id === 'c'));
+  assert.deepEqual(cStack.items.map(i => i.c.id), ['c'],
+    'c darf den a/b-Stapel nicht weiter auffüllen, weil B nie einen eigenen Stapel begonnen hat');
+});
+
+// F5: Kandidatenpunkte mit x < minX werden auf minX geklemmt statt verworfen, damit eine freie
+// Spur weiter hinten (bekannt über einen Eckpunkt eines weiter vorn liegenden Hindernisses)
+// nicht verlorengeht.
+test('F5: placeStacks klemmt Kandidatenpunkte mit x < minX auf minX, statt sie zu verwerfen', () => {
+  const truck = mkTruck({ l: 1000, w: 248, h: 270 });
+  const obstacle = { x0: 0, y0: 0, x1: 1000, y1: 188, z0: 0, z1: 9999 };
+  const stack = { key: '60x60', dx: 60, dy: 60, height: 60, weight: 10, ownWeight: 10, sort: 0, items: [] };
+  const { placed, failed } = placeStacks([stack], truck, [obstacle], { startX: 120 });
+  // Ohne Klemmung: (minX,0) kollidiert mit dem Hindernis, (1000,0) ragt über die Trucklänge
+  // hinaus – der Stapel würde in `failed` landen, obwohl bei (minX, 188) eine freie Spur liegt
+  // (Eckpunkt (0,188) des Hindernisses, hier auf minX geklemmt statt verworfen).
+  assert.equal(failed.length, 0, 'der Stapel sollte einen Platz finden');
+  assert.equal(placed.length, 1);
+  assert.equal(placed[0].box.x0, 120);
+  assert.equal(placed[0].box.y0, 188);
+});
+
+// F9: zusätzliche Regressionstests.
+test('F9: mehrere Sorten im SPRINTER – keine placementIssues, nichts geht verloren', () => {
+  const K = mkCase('k', 60, 60, 60);
+  const W = mkCase('w', 100, 60, 60, { weight: 50 });
+  const list = [...items(K, 8, 'k'), ...items(W, 6, 'w')];
+  const { placements, unplaced } = autoPack(list, SPRINTER, { order: 'volume' });
+  assert.equal(placements.length + unplaced.length, list.length);
+  assert.deepEqual(placementIssues(validatePlan(plan(placements), byId(K, W), SPRINTER)), []);
+});
+
+test('F9: eine Sorte mit gemischt getippt/stehend wird vollständig und fehlerfrei platziert', () => {
+  const t = mkCase('t', 120, 60, 100, { tippable: true });
+  const list = [
+    ...Array.from({ length: 3 }, (_, i) => mkItem(t, `tip${i}`, { tipped: true })),
+    ...Array.from({ length: 3 }, (_, i) => mkItem(t, `std${i}`, { tipped: false })),
+  ];
+  const truck = mkTruck();
+  const { placements, unplaced } = autoPack(list, truck, { order: 'volume' });
+  assert.equal(unplaced.length, 0);
+  assert.equal(placements.length, 6);
+  assert.deepEqual(placementIssues(validatePlan(plan(placements), byId(t), truck)), []);
 });
