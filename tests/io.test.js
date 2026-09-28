@@ -552,5 +552,10 @@ test('Import: packOrder volume/count erlaubt, anderer Wert wird abgewiesen', () 
     const b = parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), packOrder }] }));
     assert.equal(b.plans[0].packOrder, packOrder);
   }
-  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), packOrder: 'x' }] })));
+  try {
+    parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), packOrder: 'x' }] }));
+    assert.fail('Sollte einen Fehler werfen');
+  } catch (err) {
+    assert.match(err.message, /hat eine unbekannte Pack-Reihenfolge/);
+  }
 });
