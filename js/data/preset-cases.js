@@ -33,12 +33,21 @@ const MLT = (id, name, length, pieceWeight, standH, frame) => {
 };
 
 // Truckmaß (EU): Breiten 60/80/120 cm, gehen in 240 cm Innenbreite auf (Megacase, Gäng-Case).
+// Leere Standard-Pack-/Kabelcases: je Maß genau eines, neutral benannt, 0 kg (Nutzerwunsch
+// 2026-09-28 – ob Kabel oder sonst etwas hineinkommt, ist egal, wichtig ist nur das Maß; Gewicht
+// hängt vom Inhalt ab und bleibt deshalb 0 statt eines geschätzten Richtwerts). Ersetzt die
+// früheren „Kabelcase/Packcase Truckmaß“-Vorlagen und die leeren Pack-/Transflex-Cases aus der
+// Liste – die bleiben unten bzw. in case-library.js als `legacy` für alte Ladepläne erhalten.
+const PACK = (l, w, h) => P(`packcase-${l}x${w}x${h}`, `Packcase ${l}×${w}×${h}`, 'Sonstiges', l, w, h, 0);
+
 export const PRESET_CASES = [
-  P('kabel-120x60x60', 'Kabelcase Truckmaß 120×60×60', 'Strom', 120, 60, 60, 110),
-  P('kabel-120x60x80', 'Kabelcase Truckmaß 120×60×80', 'Strom', 120, 60, 80, 140),
-  P('pack-80x60x60', 'Packcase Truckmaß 80×60×60', 'Sonstiges', 80, 60, 60, 70),
-  P('pack-60x60x60', 'Packcase Truckmaß 60×60×60', 'Sonstiges', 60, 60, 60, 50),
-  P('pack-120x80x80', 'Packcase Truckmaß 120×80×80', 'Sonstiges', 120, 80, 80, 150),
+  PACK(60, 60, 60),
+  PACK(60, 60, 73),
+  PACK(80, 60, 60),
+  PACK(120, 60, 60),
+  PACK(120, 60, 73),
+  PACK(120, 60, 80),
+  PACK(120, 80, 80),
   P('rack-12he', '19″-Rack 12 HE auf Rollen', 'Ton', 80, 60, 85, 90, { tippable: false }),
   P('rack-20he', '19″-Rack 20 HE auf Rollen', 'Ton', 80, 60, 120, 140, { tippable: false, maxTopLoad: 80, layers: [1] }),
   P('mh-2er', 'Moving-Head-Case (2 Stück)', 'Licht', 120, 60, 85, 120, { tippable: false }),
@@ -78,7 +87,15 @@ export const PRESET_CASES = [
   MLT('prolyte-s36pra-122', 'Traversenwagen S36PRA flexibel 1,22 m – Prolyte', 122, 27.00, 115, 'closed'),
   MLT('prolyte-s36pra-244', 'Traversenwagen S36PRA flexibel 2,44 m – Prolyte', 244, 38.70, 115, 'closed'),
   MLT('prolyte-s36pra-305', 'Traversenwagen S36PRA flexibel 3,05 m – Prolyte', 305, 45.16, 115, 'closed'),
-  // Legacy (V0.2) – nicht mehr in der Bibliothek gelistet, bleiben aber für alte Ladepläne bestehen.
+  // Legacy – nicht mehr in der Bibliothek gelistet, bleiben aber für alte Ladepläne bestehen.
+  // Seit V0.8.1 durch die Packcases oben ersetzt (Maße und Gewichte unverändert, damit bestehende
+  // Loads nicht unbemerkt anders aussehen oder wiegen):
+  P('kabel-120x60x60', 'Kabelcase Truckmaß 120×60×60', 'Strom', 120, 60, 60, 110, { legacy: true }),
+  P('kabel-120x60x80', 'Kabelcase Truckmaß 120×60×80', 'Strom', 120, 60, 80, 140, { legacy: true }),
+  P('pack-80x60x60', 'Packcase Truckmaß 80×60×60', 'Sonstiges', 80, 60, 60, 70, { legacy: true }),
+  P('pack-60x60x60', 'Packcase Truckmaß 60×60×60', 'Sonstiges', 60, 60, 60, 50, { legacy: true }),
+  P('pack-120x80x80', 'Packcase Truckmaß 120×80×80', 'Sonstiges', 120, 80, 80, 150, { legacy: true }),
+  // Seit V0.2:
   P('truss-29-3m', 'Traverse 29er Dreipunkt 3 m', 'Rigging', 300, 29, 29, 15, { tippable: false, wheelH: 0, legacy: true }),
   P('truss-dolly', 'Traversen-Dolly 29er (8× 2 m)', 'Rigging', 200, 60, 70, 180, { tippable: false, legacy: true }),
 ];

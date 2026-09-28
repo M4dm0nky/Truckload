@@ -43,6 +43,10 @@ const slug = name => name.toLowerCase()
   .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+// `legacy: true` (Aufräumen V0.8.1, Nutzerwunsch 2026-09-28): in keiner Auswahl mehr gelistet,
+// aber weiter vorhanden, damit alte Ladepläne ihre Stücke unverändert behalten. Betrifft die
+// leeren Pack-/Transflex-Cases (ersetzt durch „Packcase L×B×H“ in preset-cases.js) und die
+// Traversen aus der Liste (Traversenwagen baut man über „+ Traverse hinzufügen“).
 export const CASE_LIBRARY = [
   C('Lakabaum (flach) -BBM', 'Strom', 112, 60, 53, 'BBM'),
   C('Lakabaum (Transflex) -BBM', 'Strom', 120, 60, 75, 'BBM'),
@@ -52,11 +56,11 @@ export const CASE_LIBRARY = [
   C('Laka Loom 5fach -CAB', 'Strom', 100, 60, 73, 'CAB'),
   C('Laka Loom 45m -CAB', 'Strom', 120, 60, 73, 'CAB'),
   C('Powerlocksatz 10m -CAB', 'Strom', 120, 60, 55, 'CAB'),
-  C('Packcase (Transflex) -BBM', 'Sonstiges', 120, 60, 73, 'BBM'),
-  C('Packwürfel -BBM', 'Sonstiges', 60, 60, 73, 'BBM'),
+  C('Packcase (Transflex) -BBM', 'Sonstiges', 120, 60, 73, 'BBM', '', { legacy: true }),
+  C('Packwürfel -BBM', 'Sonstiges', 60, 60, 73, 'BBM', '', { legacy: true }),
   C('V-Mat (Schubladen tipbar) -BBM', 'Sonstiges', 114, 48, 72, 'BBM'),
-  C('Transflex gross -CAB', 'Sonstiges', 120, 60, 73, 'CAB'),
-  C('Transflex klein (Würfel) -CAB', 'Sonstiges', 60, 60, 73, 'CAB'),
+  C('Transflex gross -CAB', 'Sonstiges', 120, 60, 73, 'CAB', '', { legacy: true }),
+  C('Transflex klein (Würfel) -CAB', 'Sonstiges', 60, 60, 73, 'CAB', '', { legacy: true }),
   C('Case klein Adapter -Jäger', 'Sonstiges', 60, 49, 56, 'Jäger'),
   C('Dimmer 24ch -CAB', 'Strom', 82, 60, 120, 'CAB', 'MA'),
   C('Dimmer 48ch -CAB', 'Strom', 82, 60, 154, 'CAB', 'MA'),
@@ -177,12 +181,12 @@ export const CASE_LIBRARY = [
   C('Dolly Rack 28 HEx2 -CAB', 'Ton', 120, 80, 160, 'CAB'),
   C('MoCo 12ch -CAB', 'Rigging', 70, 60, 90, 'CAB', 'MoCo'),
   C('MoCo 32ch -CAB', 'Rigging', 80, 60, 113, 'CAB', 'MoCo'),
-  C('Truss lose 40er -BBM', 'Rigging', 200, 40, 40, 'BBM'),
-  C('Trussdolly 40er -BBM', 'Rigging', 300, 80, 210, 'BBM'),
+  C('Truss lose 40er -BBM', 'Rigging', 200, 40, 40, 'BBM', '', { legacy: true }),
+  C('Trussdolly 40er -BBM', 'Rigging', 300, 80, 210, 'BBM', '', { legacy: true }),
   C('FD34 2m CUSTOMIZE -CAB', 'Rigging', 200, 60, 135, 'CAB'),
-  C('MLT 120 x2 -CAB', 'Rigging', 125, 60.5, 210, 'CAB'),
-  C('MLT 160 x2 -CAB', 'Rigging', 165, 60.5, 210, 'CAB'),
-  C('MLT 240 x2 -CAB', 'Rigging', 245, 60.5, 210, 'CAB'),
+  C('MLT 120 x2 -CAB', 'Rigging', 125, 60.5, 210, 'CAB', '', { legacy: true }),
+  C('MLT 160 x2 -CAB', 'Rigging', 165, 60.5, 210, 'CAB', '', { legacy: true }),
+  C('MLT 240 x2 -CAB', 'Rigging', 245, 60.5, 210, 'CAB', '', { legacy: true }),
   C('Rigpack -CAB', 'Rigging', 90, 60, 65, 'CAB'),
   C('Slick -CAB', 'Rigging', 252, 40, 189, 'CAB'),
   C('SkyPanel 120 x2-AED', 'Licht', 155, 60, 80, 'AED', 'ARRI', { weight: 65, note: 'Gewicht geschätzt: 2 × SkyPanel S120 à 16.5 kg + Case' }),

@@ -276,8 +276,13 @@ lautlos den einen oder anderen Stand verliert.
 
 | Datei | Inhalt |
 |---|---|
-| `js/data/preset-cases.js` | 38 Vorlagen: 14 generische Cases und Traversenwagen (Richtwerte) und 24 Pre-Rig-Traversen (MLT/S36PR); dazu 2 Legacy-Einträge, die nur noch für alte Ladepläne existieren |
-| `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, `source: 'liste'` plus `company` |
+| `js/data/preset-cases.js` | 40 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines, 0 kg), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen und 24 Pre-Rig-Traversen (MLT/S36PR); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren |
+| `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, `source: 'liste'` plus `company`; davon 9 `legacy` (seit V 0.8.1 ausgeblendet: leere Pack-/Transflex-Cases und die Traversen der Liste), 128 sichtbar |
+
+`legacy: true` heißt: in keiner Auswahl mehr (`groupCases`, `companiesOf` in
+`js/ui/caseGroups.js`), aber weiter vorhanden, damit bestehende Ladepläne ihre Stücke mit
+unverändertem Namen, Maß und Gewicht behalten. Ersetzte Einträge werden deshalb nie gelöscht,
+nur ausgeblendet.
 | `js/data/categories.js` | Gewerke und ihre Farben |
 | `js/data/preset-trucks.js` | Fahrzeugvorlagen |
 

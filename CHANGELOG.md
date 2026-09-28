@@ -2,6 +2,12 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.1 – 2026-09-28
+
+- Case-Datenbank aufgeräumt: Leere Standard-Pack- und Kabelcases gibt es je Maß nur noch einmal, als „Packcase L×B×H“ mit 0 kg unter den Vorlagen. Es sind 7 Größen: 60×60×60, 60×60×73, 80×60×60, 120×60×60, 120×60×73, 120×60×80 und 120×80×80. Sie ersetzen die Vorlagen „Kabelcase/Packcase Truckmaß“ sowie „Packcase (Transflex)“, „Packwürfel“, „Transflex gross“ und „Transflex klein“ aus der Liste. Cases mit konkretem Inhalt (z. B. Powerlocksatz, Multicore, Laka Loom) bleiben.
+- Die Traversen aus der Liste sind aus der Auswahl verschwunden: MLT 120/160/240 x2, Trussdolly 40er und Truss lose 40er. Traversenwagen baut man über „+ Traverse hinzufügen“.
+- Bestehende Loads laden unverändert: Die früheren Einträge sind nur ausgeblendet und behalten in alten Plänen Namen, Maß und Gewicht.
+
 ## V 0.8.0 – 2026-09-27
 
 - In den 2D-Ansichten (Draufsicht, Seitenansicht, Rückansicht) lässt sich jetzt zoomen, jede Ansicht für sich, zum Beispiel um genau zu prüfen, wie die Cases stehen.

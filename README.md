@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.8.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.8.1** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -84,15 +84,23 @@ Wänden ein. Der Ausdruck zeigt immer den ganzen Truck.
 ## Mitgelieferte Cases
 
 In der Bibliothek und im Wizard gibt es neben „Eigene Cases“ und den Vorlagen einen
-eigenen Abschnitt „Cases aus deiner Liste“ mit 137 Cases – übernommen aus der privaten
+eigenen Abschnitt „Cases aus deiner Liste“ mit 128 Cases – übernommen aus der privaten
 Excel-Tabelle „Casemaße Complete.xlsx“ (Blatt „Data Cases“), in der die Maße über Jahre
 gepflegt wurden. Jeder Eintrag zeigt den Hersteller im Feld „Inhalt“ sowie die Firma, und
 beide Listen lassen sich zusätzlich nach Firma filtern.
 
+Leere Standard-Pack- und Kabelcases gibt es je Maß nur einmal, als „Packcase L×B×H“ mit
+0 kg unter den Vorlagen (60×60×60, 60×60×73, 80×60×60, 120×60×60, 120×60×73, 120×60×80,
+120×80×80). Ob später Kabel oder etwas anderes hineinkommt, spielt fürs Laden keine Rolle.
+Cases mit konkretem Inhalt (z. B. Powerlocksatz, Multicore, Laka Loom) bleiben eigene
+Einträge. Traversenwagen stehen nicht mehr in der Liste; die baut man über
+„+ Traverse hinzufügen“. Die früheren Einträge (9 leere Pack-/Kabelcases, 5 Traversen)
+sind nur ausgeblendet: Alte Ladepläne zeigen sie weiter unverändert.
+
 Für 65 dieser Cases gibt es ein recherchiertes Schätzgewicht (Netto-Gerätegewicht plus
 Case-Anteil, nachvollziehbar mit Quellen in [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)).
 Zwei weitere Cases (die beiden FR10-Zeilen) tragen ihr unverändertes Originalgewicht aus
-der Tabelle und zählen ausdrücklich nicht als Schätzung. Die restlichen 70 stehen bewusst
+der Tabelle und zählen ausdrücklich nicht als Schätzung. Die restlichen 61 stehen bewusst
 bei 0 kg – lieber ehrlich 0 kg als eine erfundene Zahl – und lassen sich im Inspector
 jederzeit nachtragen.
 

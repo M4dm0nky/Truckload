@@ -5,7 +5,7 @@ import { isTruss } from '../model/truss.js';
 
 // Liefert die im Datensatz vorkommenden Firmen, alphabetisch sortiert.
 export function companiesOf(cases) {
-  return [...new Set(cases.map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+  return [...new Set(cases.filter(c => !c.legacy).map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 }
 
 // Die 3 Reiter der Artikelauswahl (Bibliothek + Wizard-Case-Liste): Traversen sind eigene
@@ -41,7 +41,8 @@ export function groupCases(cases, { q = '', cat = '', company = '' } = {}) {
     // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
     own: cases.filter(c => !c.builtin && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
     presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && match(c)),
-    list: cases.filter(c => c.builtin && c.source === 'liste' && match(c)),
+    // `!c.legacy`: ersetzte Listen-Einträge (Aufräumen V0.8.1) bleiben nur für alte Ladepläne.
+    list: cases.filter(c => c.builtin && !c.legacy && c.source === 'liste' && match(c)),
   };
 }
 

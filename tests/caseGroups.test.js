@@ -91,3 +91,16 @@ test('leere Eingabe liefert leere Gruppen statt zu werfen', () => {
   assert.deepEqual(groupCases([]), { own: [], presets: [], list: [] });
   assert.deepEqual(companiesOf([]), []);
 });
+
+// Aufräumen 2026-09-28: ersetzte Listen-Einträge (Standard-Pack-/Kabelcases, Traversen aus der
+// Liste) bleiben für alte Ladepläne erhalten, tauchen aber in keiner Auswahl mehr auf.
+test('groupCases schließt legacy-Einträge auch aus der Liste aus', () => {
+  const cases = [listCase('l1', 'CAB'), listCase('l2', 'CAB', { legacy: true })];
+  const { list } = groupCases(cases);
+  assert.deepEqual(list.map(c => c.id), ['l1']);
+});
+
+test('companiesOf nennt keine Firma, die nur noch an ausgeblendeten Einträgen hängt', () => {
+  const cases = [listCase('l1', 'CAB'), listCase('l2', 'Nur-Alt', { legacy: true })];
+  assert.deepEqual(companiesOf(cases), ['CAB']);
+});
