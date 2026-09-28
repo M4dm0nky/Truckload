@@ -173,8 +173,30 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
     const boxesHere = [];
     for (const s of group) {
       points.sort((p, q) => p.x - q.x || p.y - q.y);
+      const fits = box => box.x1 <= truck.l + 1e-6 && box.y1 <= truck.w + 1e-6 && !blocked.some(b => overlaps(b, box));
+      const swaps = s.dx === s.dy ? [false] : [false, true];
       let hit = null;
-      for (const rawPt of points) {
+      // Zuerst im Spurraster der Sorte ab der linken Wand (y = k · Stapelbreite): sonst setzt
+      // Bottom-Left die Sorte in die Ecke neben der letzten Reihe der vorigen Sorte, deren Spuren
+      // eine andere Breite haben – 62er-Wagen landeten so bei y = 60/122/184, an der Wand blieben
+      // 60 cm übrig und es passten nur 3 statt 4 nebeneinander (Nutzer-Befund 2026-09-28).
+      const xs = [...new Set(points.map(p => Math.max(p.x, minX)))].sort((a, b) => a - b);
+      // Je x gewinnt die kleinste freie Spur-y über beide Grundriss-Drehungen, bei Gleichstand
+      // ungedreht – dieselbe Vorrangfolge wie die Eckensuche unten (Punkt vor Drehung).
+      for (const x of xs) {
+        for (const swap of swaps) {
+          const dx = swap ? s.dy : s.dx, dy = swap ? s.dx : s.dy;
+          for (let y = 0; y + dy <= truck.w + 1e-6; y += dy) {
+            const box = { x0: x, y0: y, z0: 0, x1: x + dx, y1: y + dy, z1: s.height };
+            if (!fits(box)) continue;
+            if (!hit || y < hit.box.y0 - 1e-6) hit = { box, swap };
+            break;
+          }
+        }
+        if (hit) break;
+      }
+      // Rückfall, wenn im Raster nichts passt (z. B. Radkästen im Transporter): freie Eckensuche.
+      if (!hit) for (const rawPt of points) {
         // Ruling F5: ein Punkt mit x < minX wird nicht verworfen, sondern auf minX geklemmt
         // geprüft – seine y-Koordinate (z. B. die Ecke eines weiter vorn liegenden Hindernisses)
         // bleibt so als Kandidat für eine freie Spur der aktuellen Reihe erhalten. Duplikate
@@ -183,11 +205,10 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
         // swap dreht den Stapel im Grundriss um 90°, wenn er sonst nirgends passt.
         // Das gibt eine zuvor gewählte Rollenrichtung bewusst auf — Platz geht vor
         // Rollenrichtung, sonst wäre der Stapel gar nicht unterzubringen (siehe autoPack).
-        for (const swap of s.dx === s.dy ? [false] : [false, true]) {
+        for (const swap of swaps) {
           const dx = swap ? s.dy : s.dx, dy = swap ? s.dx : s.dy;
           const box = { x0: pt.x, y0: pt.y, z0: 0, x1: pt.x + dx, y1: pt.y + dy, z1: s.height };
-          if (box.x1 > truck.l + 1e-6 || box.y1 > truck.w + 1e-6) continue;
-          if (blocked.some(b => overlaps(b, box))) continue;
+          if (!fits(box)) continue;
           hit = { box, swap };
           break;
         }

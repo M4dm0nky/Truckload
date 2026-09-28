@@ -2,6 +2,11 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.4 – 2026-09-28
+
+- Beim sortenreinen Packen steht jede Sorte jetzt in eigenen Spuren ab der Wand. Vorher setzte der Packer den ersten MLT-Wagen neben die letzte Reihe der vorigen Sorte (z. B. neben Packcases mit 60 cm Breite). Dadurch passten nur 3 statt 4 MLTs nebeneinander. Jetzt stehen 4 × 62 cm nebeneinander im 248-cm-Auflieger. Der Beispiel-Load braucht damit bei „Große zuerst“ 8,6 m statt 10,6 m.
+- Passt eine Sorte nirgends in ihre Spuren, etwa neben den Radkästen im Transporter, sucht der Packer wie bisher frei nach einem Platz.
+
 ## V 0.8.3 – 2026-09-28
 
 - Automatisch gepackt wird jetzt sortenrein: Jeder Case-Typ kommt als eigener Block, von der Stirnwand zur Tür, statt dass verschiedene Cases durcheinander nebeneinander und übereinander stehen.

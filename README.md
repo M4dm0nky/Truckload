@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.8.3** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.8.4** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -69,7 +69,7 @@ zur Tür. Die Reihenfolge wählt man je Load neben „Alles neu packen“:
 
 Füllt eine Sorte ihre letzte Reihe nicht, darf die nächste die freien Spuren dieser Reihe
 belegen und den letzten, nicht vollen Stapel auffüllen – weiter vorn wird nie gemischt.
-„Rest einpacken“ hängt neue Sorten hinter die vorhandene Ladung.
+„Rest einpacken“ setzt neue Cases an die letzte Reihe der vorhandenen Ladung an, weiter vorn füllt es keine Lücken.
 
 Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im Inspector ändern
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die

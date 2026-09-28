@@ -182,7 +182,7 @@ braucht.
 dann Volumen, dann Name; fehlt das Feld, gilt `'volume'`). `buildStacks` stapelt je Sorte; die
 nächste Sorte darf nur den letzten offenen Stapel der vorigen auffüllen. `placeStacks` stellt
 Sorte für Sorte, jede nur ab dem x0 der letzten Reihe der vorigen (`minX`), und `packRest`
-beginnt hinter der vorhandenen Ladung (`startX`). Spec:
+beginnt an der letzten Reihe der vorhandenen Ladung (`startX` = größtes x0 der Bodenstücke). Seit V 0.8.4 stellt `placeStacks` jeden Stapel zuerst im Spurraster seiner Sorte ab der linken Wand (y = k · Stapelbreite) und fällt nur, wenn dort nichts passt (Radkästen), auf die freie Eckensuche zurück – sonst übernahm eine Sorte die Spurlage der vorigen, und 62er-Wagen passten neben 60er-Spuren nur zu dritt statt zu viert. Spec:
 `docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md`.
 
 ## Traversenwagen

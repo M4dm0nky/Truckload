@@ -578,3 +578,32 @@ test('F9: eine Sorte mit gemischt getippt/stehend wird vollständig und fehlerfr
   assert.equal(placements.length, 6);
   assert.deepEqual(placementIssues(validatePlan(plan(placements), byId(t), truck)), []);
 });
+
+// Spurraster je Sorte (Nutzer 2026-09-28: „Du stellst immer noch nicht 4× MLT nebeneinander“):
+// Bottom-Left setzte den ersten MLT in die Ecke neben der letzten Packcase-Reihe (y = 60) – danach
+// lagen die Wagen bei 60/122/184, an der Wand blieben 60 cm für 62 cm Wagen, also nur 3 je Reihe.
+// Jede Sorte steht jetzt in ihrem eigenen Raster ab der Wand (y = k · Stapelbreite).
+const floorLanes = (placements, caseId) =>
+  [...new Set(placements.filter(p => p.caseId === caseId && p.z === 0).map(p => p.y))].sort((a, b) => a - b);
+
+for (const order of ['volume', 'count']) {
+  test(`Beispiel-Load (${order}): 4 MLT nebeneinander in den Spuren 0/62/124/186, 8 Bodenstapel`, () => {
+    const { placements, unplaced } = autoPack(exampleLoad(), SATTEL, { order });
+    assert.deepEqual(unplaced, []);
+    assert.deepEqual(floorLanes(placements, 'preset-hof-mlt2-240'), [0, 62, 124, 186]);
+    assert.equal(placements.filter(p => p.caseId === 'preset-hof-mlt2-240' && p.z === 0).length, 8);
+    assert.deepEqual(placementIssues(validatePlan(plan(placements), ALLC, SATTEL)), []);
+  });
+}
+
+test('Spurraster: 62er-Sorte nach 60er-Sorte steht in den Spuren 0/62/124/186', () => {
+  const narrow = mkCase('narrow', 60, 60, 60, { stackable: false });   // 60er-Spuren
+  const wagon = mkCase('wagon', 240, 62, 115, { stackable: false });
+  // 9 narrow (mehr Stück als wagon → bei „Stückzahl zuerst“ vorn) → 2 volle Reihen à 4, Reihe 3
+  // mit 1 bei y = 0 → Lücke y 60–248 in der letzten Reihe, in die der erste Wagen rutschen würde.
+  const list = [...items(narrow, 9, 'n'), ...items(wagon, 8, 'w')];
+  const { placements, unplaced } = autoPack(list, mkTruck(), { order: 'count' });
+  assert.deepEqual(unplaced, []);
+  assert.deepEqual(floorLanes(placements, 'wagon'), [0, 62, 124, 186]);
+  assert.deepEqual(placementIssues(validatePlan(plan(placements), byId(narrow, wagon), mkTruck())), []);
+});
