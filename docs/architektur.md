@@ -158,6 +158,14 @@ Stelle, an der aus einem Case Maße werden — dadurch ziehen Kollisionsprüfung
 Lagen, Schwerpunkt, Packer, 2D, 3D und Druck ohne Sonderfall mit. Anzeigen (Bibliothek,
 Inspector, Wizard) müssen ebenfalls `outerDims` verwenden, nicht `c.l/c.w/c.h`.
 
+Die mitgelieferten Cases (Liste und Vorlagen) sind **inkl. Rollen** gemessen
+(`dimsInclWheels: true`) und haben Blue Wheel Ø 100 mm mit `wheelH: 13` (Nutzerangabe
+2026-09-28; bis V 0.8.1 12 cm). Ihre Belegung im Truck ist damit genau das eingetragene Maß;
+die Rollenhöhe bestimmt nur, wie hoch Rollen und Korpus gezeichnet werden. Kleine Cases unter
+ca. 45 cm Höhe (Pulte, Hazer, kleine 19″-Racks) haben keine Rollen (`wheels: false`).
+`DEFAULT_WHEEL_H = 12` gilt weiter für Altdaten ohne Angabe, damit ein eigenes Case mit
+„Maß ohne Rollen“ nicht unbemerkt höher wird.
+
 ## Lagen
 
 Ein Case trägt `layers`, eine Teilmenge von 1 bis 4 (fehlt = alle). Lage 1 ist der Boden.
@@ -313,6 +321,11 @@ Ausschnitt bleibt immer innerhalb des ganzen Trucks und ist mindestens `MIN_VIEW
 breit. Mausrad und Trackpad-Wischen unterscheidet `attachZoom` an der Schrittgröße
 (Zeilen-Modus oder `|deltaY| ≥ 50` ohne `deltaX` gilt als Mausrad), Pinch kommt als `wheel`
 mit `ctrlKey`. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
+
+Kugelecken ragen nie über das Außenmaß hinaus — das gemessene Maß enthält sie schon. Ihr
+Mittelpunkt liegt um den Radius nach innen versetzt (`cornerCenters`/`cornerCenters3d`,
+`CORNER_R` in `js/ui/caseStyle.js`, gemeinsam für 2D, 3D und Druck). Bis V 0.8.1 saßen sie
+mittig auf der Ecke und standen bis zu 6 cm über.
 
 Beschriftungen stehen auf allen Seiten: in 2D auf jeder sichtbaren Fläche, in 3D als
 Canvas-Textur auf vier Seiten plus Deckel (`js/ui/labelTexture.js` liefert die Flächen und

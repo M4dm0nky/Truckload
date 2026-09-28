@@ -30,10 +30,13 @@
 
 import { colorFor } from './categories.js';
 
+// Rollen: Blue Wheel Ø 100 mm, 13 cm (Nutzerangabe 2026-09-28; bis V0.8.1 12 cm). Die Maße der
+// Liste sind inkl. Rollen gemessen (dimsInclWheels) – die Rollenhöhe ändert also nicht, wie viel
+// Platz ein Case im Truck belegt, nur wie hoch Rollen und Korpus gezeichnet werden.
 const C = (name, category, l, w, h, company, content = '', opts = {}) => ({
   id: `lib-${slug(name)}`, builtin: true, source: 'liste', name, content, category,
   color: colorFor(category), l, w, h, weight: 0, tippable: true, stackable: true,
-  maxTopLoad: null, stock: null, wheels: true, wheelH: 12, dimsInclWheels: true,
+  maxTopLoad: null, stock: null, wheels: true, wheelH: 13, dimsInclWheels: true,
   company, ...opts,
 });
 
@@ -71,16 +74,18 @@ export const CASE_LIBRARY = [
   C('Markus Tools -ROW only -CAB', 'Strom', 60, 60, 118, 'CAB'),
   C('MLVT 24ch -CAB', 'Strom', 75, 60, 95, 'CAB'),
   C('MLVT 48ch -CAB', 'Strom', 120, 60, 95, 'CAB'),
-  C('MLVT 63A 19" -CAB', 'Strom', 65, 55, 33, 'CAB'),
+  // Kleine Cases unter ca. 45 cm Höhe haben keine Rollen (Nutzerangabe 2026-09-28): MLVT 63A 19″,
+  // ChamSys-Pulte, ZR44, Look Viper NT, SF Data II, SF TourHazer II – Maß unverändert.
+  C('MLVT 63A 19" -CAB', 'Strom', 65, 55, 33, 'CAB', '', { wheels: false, wheelH: 0 }),
   C('Multicore -CAB', 'Strom', 80, 61, 60, 'CAB'),
   C('Multicore LK24 -CAB', 'Strom', 80, 61, 60, 'CAB'),
   C('Multicore LK37 -CAB', 'Strom', 80, 60, 73, 'CAB'),
   C('Powerlock-VT groß -CAB', 'Strom', 147, 80, 94, 'CAB'),
   C('Powerlock-VT klein -CAB', 'Strom', 85, 60, 83, 'CAB'),
   C('MLVT 63A Hotpatch ROW -CAB', 'Strom', 80, 55, 99, 'CAB'),
-  C('ChamSys MQ100 -CAB', 'Licht', 71, 67, 29, 'CAB', 'ChamSys', { weight: 30, note: 'Gewicht geschätzt: 1 × ChamSys MQ100 à 14.2 kg + Case' }),
-  C('ChamSys MQ500 -CAB', 'Licht', 93, 66, 30, 'CAB', 'ChamSys', { weight: 45, note: 'Gewicht geschätzt: 1 × ChamSys MQ500 à 32 kg + Case' }),
-  C('ChamSys Wing Compact -CAB', 'Licht', 60, 35, 20, 'CAB', 'ChamSys'),
+  C('ChamSys MQ100 -CAB', 'Licht', 71, 67, 29, 'CAB', 'ChamSys', { wheels: false, wheelH: 0, weight: 30, note: 'Gewicht geschätzt: 1 × ChamSys MQ100 à 14.2 kg + Case' }),
+  C('ChamSys MQ500 -CAB', 'Licht', 93, 66, 30, 'CAB', 'ChamSys', { wheels: false, wheelH: 0, weight: 45, note: 'Gewicht geschätzt: 1 × ChamSys MQ500 à 32 kg + Case' }),
+  C('ChamSys Wing Compact -CAB', 'Licht', 60, 35, 20, 'CAB', 'ChamSys', { wheels: false, wheelH: 0 }),
   C('gMA2 FS -CAB', 'Licht', 138, 32, 93, 'CAB', '', { weight: 60, note: 'Gewicht geschätzt: 1 × grandMA2 full-size à 46 kg + Case' }),
   C('gMA2 Light -CAB', 'Licht', 100, 32, 93, 'CAB', '', { weight: 50, note: 'Gewicht geschätzt: 1 × grandMA2 light à 37 kg + Case' }),
   C('Astera AX5 -BBM', 'Licht', 75, 62, 59, 'BBM', 'Astera', { weight: 20, note: 'Gewicht geschätzt: 1 × Astera AX5 à 3.4 kg + Case' }),
@@ -109,9 +114,9 @@ export const CASE_LIBRARY = [
   C('JDC-1 x6 -CAB', 'Licht', 120, 60, 58, 'CAB', 'GLP', { weight: 85, note: 'Gewicht geschätzt: 6 × JDC-1 à 11.6 kg + Case' }),
   C('AF-2 -BBM', 'Licht', 80, 40, 95, 'BBM', 'Jem', { weight: 30, note: 'Gewicht geschätzt: 1 × AF-2 à 15.7 kg + Case' }),
   C('AF-1 -CAB', 'Licht', 44, 23, 58, 'CAB', 'Jem', { weight: 25, note: 'Gewicht geschätzt: 1 × AF-1 à 10 kg + Case' }),
-  C('ZR44 -CAB', 'Licht', 78, 37, 34, 'CAB', 'Jem', { weight: 35, note: 'Gewicht geschätzt: 1 × ZR44 à 19 kg + Case' }),
+  C('ZR44 -CAB', 'Licht', 78, 37, 34, 'CAB', 'Jem', { wheels: false, wheelH: 0, weight: 35, note: 'Gewicht geschätzt: 1 × ZR44 à 19 kg + Case' }),
   C('Das K - Annahme -Kraftklub', 'Licht', 320, 80, 200, 'Kraftklub', 'Kraftklub'),
-  C('Look Viper NT -CAB', 'Licht', 57, 30, 36, 'CAB', 'Look Solutions', { weight: 25, note: 'Gewicht geschätzt: 1 × Look Viper NT à 8.6 kg + Case' }),
+  C('Look Viper NT -CAB', 'Licht', 57, 30, 36, 'CAB', 'Look Solutions', { wheels: false, wheelH: 0, weight: 25, note: 'Gewicht geschätzt: 1 × Look Viper NT à 8.6 kg + Case' }),
   C('Atomic 3000 LEDx8 -CAB', 'Licht', 120, 60, 72, 'CAB', 'Martin', { weight: 85, note: 'Gewicht geschätzt: 8 × Atomic 3000 LED à 7.8 kg + Case' }),
   C('Atomic 3000 x4 no wheels -CAB', 'Licht', 120, 60, 36.5, 'CAB', 'Martin', { wheels: false, weight: 45, note: 'Gewicht geschätzt: 4 × Atomic 3000 LED à 7.8 kg + Case' }),
   C('Atomic 3000 x4 wheels -CAB', 'Licht', 120, 60, 50, 'CAB', 'Martin', { weight: 45, note: 'Gewicht geschätzt: 4 × Atomic 3000 LED à 7.8 kg + Case' }),
@@ -136,8 +141,8 @@ export const CASE_LIBRARY = [
   C('SGM Q7 x4 -CAB', 'Licht', 60, 60, 75, 'CAB', 'SGM', { weight: 45, note: 'Gewicht geschätzt: 4 × SGM Q-7 à 8.1 kg + Case' }),
   C('SGM Q7 x6 -CAB', 'Licht', 90, 60, 72, 'CAB', 'SGM', { weight: 65, note: 'Gewicht geschätzt: 6 × SGM Q-7 à 8.1 kg + Case' }),
   C('SF Fan Fogger -CAB', 'Licht', 86, 40, 86, 'CAB', 'Smoke Factory', { weight: 40, note: 'Gewicht geschätzt: 1 × SF Fan Fogger à 24 kg + Case' }),
-  C('SF Data II -CAB', 'Licht', 64, 35, 35, 'CAB', 'Smoke Factory', { weight: 30, note: 'Gewicht geschätzt: 1 × SF Data II à 12.8 kg + Case' }),
-  C('SF TourHazer II -CAB', 'Licht', 53, 25, 41, 'CAB', 'Smoke Factory', { weight: 30, note: 'Gewicht geschätzt: 1 × SF TourHazer II à 16.5 kg + Case' }),
+  C('SF Data II -CAB', 'Licht', 64, 35, 35, 'CAB', 'Smoke Factory', { wheels: false, wheelH: 0, weight: 30, note: 'Gewicht geschätzt: 1 × SF Data II à 12.8 kg + Case' }),
+  C('SF TourHazer II -CAB', 'Licht', 53, 25, 41, 'CAB', 'Smoke Factory', { wheels: false, wheelH: 0, weight: 30, note: 'Gewicht geschätzt: 1 × SF TourHazer II à 16.5 kg + Case' }),
   C('Intellipix -BBM', 'Licht', 120, 67, 73, 'BBM'),
   C('Sunstrips Sandwich -CAB', 'Licht', 220, 60, 125, 'CAB'),
   C('ETC S4 x8 -CAB', 'Licht', 119, 60, 83, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: 8 × ETC Source Four (19°/26°/36°/50°) à 6.3 kg + Case' }),

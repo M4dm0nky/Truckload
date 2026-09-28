@@ -51,8 +51,10 @@ test('feste Werte je Eintrag', () => {
     assert.equal(c.stackable, true, c.name);
     assert.equal(c.maxTopLoad, null, c.name);
     assert.equal(c.stock, null, c.name);
-    // Rollenhöhe ist überall 12 cm, außer bei den kleinen 19"-Racks ohne Rollen – die tragen 0.
-    assert.equal(c.wheelH, RACKS_OHNE_ROLLEN.has(c.name) ? 0 : 12, c.name);
+    // Rollenhöhe ist überall 13 cm (Blue Wheel Ø 100 mm, seit V0.8.2), außer bei Cases ohne
+    // Rollen (kleine 19"-Racks, seit V0.8.2 auch Pulte/Hazer unter 45 cm) – die tragen 0.
+    if (c.wheels !== false) assert.equal(c.wheelH, 13, c.name);
+    if (RACKS_OHNE_ROLLEN.has(c.name)) assert.equal(c.wheels, false, c.name);
     assert.equal(c.dimsInclWheels, true, c.name);
     assert.equal(c.layers, undefined, c.name);
     assert.equal(typeof c.company, 'string', c.name);
@@ -146,7 +148,7 @@ test('kleine 19" -Racks (1-6 HE) haben keine Rollen, der 16-HE-Eintrag „on whe
   const mitRollen = byName('19" 16HE on wheels-CAB');
   assert.ok(mitRollen);
   assert.notEqual(mitRollen.wheels, false);
-  assert.equal(mitRollen.wheelH, 12);
+  assert.equal(mitRollen.wheelH, 13); // Blue Wheel Ø 100 mm (Nutzerangabe 2026-09-28)
 });
 
 test('die fünf unbrauchbaren Rigging-Zeilen fehlen', () => {
@@ -166,4 +168,39 @@ test('Firmenschreibweise ist zusammengeführt (motion/Motion, RentALL/RentAll)',
   assert.ok(!companies.has('RentALL'));
   assert.ok(companies.has('Motion'));
   assert.ok(companies.has('RentAll'));
+});
+
+// Maßprüfung 2026-09-28 (Nutzerangabe: Listenhöhen sind inkl. Rollen gemessen, Rollen sind
+// Blue Wheel Ø 100 mm; die kleinen Cases unter ca. 45 cm haben keine Rollen).
+import { PRESET_CASES as PRESETS_ALL } from '../js/data/preset-cases.js';
+import { outerDims, wheelHOf } from '../js/model/geometry.js';
+
+const BUILTINS = [...PRESETS_ALL, ...CASE_LIBRARY];
+
+test('mitgelieferte Cases: Belegung = eingetragenes Maß (inkl. Rollen), keine Änderung durch Rollenhöhe', () => {
+  for (const c of BUILTINS) {
+    assert.notEqual(c.dimsInclWheels, false, c.id);
+    assert.deepEqual(outerDims(c), { l: c.l, w: c.w, h: c.h }, c.id);
+  }
+});
+
+test('mitgelieferte Cases mit Rollen: 13 cm (Blue Wheel Ø 100 mm)', () => {
+  for (const c of BUILTINS.filter(c => wheelHOf(c) > 0)) assert.equal(c.wheelH, 13, c.id);
+});
+
+test('kleine Cases ohne Rollen', () => {
+  const ids = ['lib-mlvt-63a-19-cab', 'lib-chamsys-mq100-cab', 'lib-chamsys-mq500-cab', 'lib-chamsys-wing-compact-cab',
+    'lib-zr44-cab', 'lib-look-viper-nt-cab', 'lib-sf-data-ii-cab', 'lib-sf-tourhazer-ii-cab'];
+  for (const id of ids) {
+    const c = CASE_LIBRARY.find(x => x.id === id);
+    assert.ok(c, id);
+    assert.equal(wheelHOf(c), 0, id);
+  }
+  const small = CASE_LIBRARY.filter(c => !c.legacy && c.h < 45 && wheelHOf(c) > 0);
+  assert.deepEqual(small.map(c => c.id), []);
+});
+
+test('Regression Altdaten: eigenes Case ohne wheelH, Maß ohne Rollen → weiter h + 12', () => {
+  const own = { id: 'o', l: 100, w: 60, h: 70, dimsInclWheels: false };
+  assert.equal(outerDims(own).h, 82);
 });

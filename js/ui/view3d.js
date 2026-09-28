@@ -1,6 +1,6 @@
 import { archBoxes } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
-import { caseColors, CASE_BLACK, DETAIL_MIN } from './caseStyle.js';
+import { caseColors, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
 import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
@@ -227,15 +227,13 @@ export async function createView3d(container) {
     l.position.set((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2);
     return l;
   };
-  const cornerSpheres = b => {
-    const out = [];
-    for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1]) for (const z of [b.z0, b.z1]) {
-      const s = new THREE.Mesh(GEO_SPHERE, MAT_CORNER);
-      s.position.set(x, y, z);
-      out.push(s);
-    }
-    return out;
-  };
+  // Kugelecken innerhalb des Außenmaßes (caseStyle.js, cornerCenters3d) – GEO_SPHERE hat r = 2,5.
+  const cornerSpheres = b => cornerCenters3d(b, CORNER_R_SIMPLE).map(({ x, y, z }) => {
+    const s = new THREE.Mesh(GEO_SPHERE, MAT_CORNER);
+    s.position.set(x, y, z);
+    s.scale.setScalar(CORNER_R_SIMPLE / 2.5);
+    return s;
+  });
 
   // Rolle im Rollenschacht w (Höhe wh entlang der Normalen n, Fußabdruck d×d in a1/a2):
   // Schwenkplatte an der Karosserieseite, Gabel (2 Bleche) hinunter zur Achse, Rad + Nabe.
@@ -546,8 +544,7 @@ export async function createView3d(container) {
         edgeBars(body, profileBoxes);
         const col = it.id === selectedId ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N;
         for (let i = 0; i < 12; i++) profileColors.push(col);
-        for (const x of [body.x0, body.x1]) for (const y of [body.y0, body.y1]) for (const z of [body.z0, body.z1])
-          cornerPositions.push({ x, y, z });
+        cornerPositions.push(...cornerCenters3d(body, CORNER_R));
 
         if (face === 'bottom') {
           const zSeam = body.z0 + bh * 0.25;
@@ -584,7 +581,7 @@ export async function createView3d(container) {
     if (profileMesh) content.add(profileMesh);
     const latchMesh = buildInstanced(GEO_BOX, MAT_CHROME, latchBoxesAll, null);
     if (latchMesh) content.add(latchMesh);
-    const cornerMesh = buildInstancedSpheres(cornerPositions, 4, MAT_CHROME);
+    const cornerMesh = buildInstancedSpheres(cornerPositions, CORNER_R, MAT_CHROME);
     if (cornerMesh) content.add(cornerMesh);
     const chordMesh = buildInstancedCylinders(MAT_PROFILE, chordSegs, chordColors);
     if (chordMesh) content.add(chordMesh);

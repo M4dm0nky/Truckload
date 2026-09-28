@@ -2,6 +2,13 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.2 – 2026-09-28
+
+- Die Kugelecken der Cases sind jetzt klein und sitzen innerhalb des Cases, in 2D, in 3D und im Ausdruck. Vorher saßen sie mittig auf der Ecke und standen bis zu 6 cm über das Case hinaus, bei aneinanderstehenden Cases sogar in den Nachbarn. Am Packen ändert das nichts, gerechnet wurde schon immer mit dem echten Außenmaß.
+- Die mitgelieferten Cases haben jetzt 13 cm hohe Rollen (Blue Wheel Ø 100 mm) statt 12 cm. Weil ihre Maße inklusive Rollen gemessen sind, belegt kein Case dadurch mehr oder weniger Platz im Truck. Es ändert sich nur, wie hoch Rollen und Korpus gezeichnet werden.
+- Kleine Cases unter ca. 45 cm Höhe haben keine Rollen mehr: MLVT 63A 19″, ChamSys MQ100/MQ500/Wing Compact, ZR44, Look Viper NT, SF Data II und SF TourHazer II. Ihr Maß bleibt gleich.
+- Geprüft: Im Truck belegt jedes Case genau sein Außenmaß, auch getippt. Rollen werden nur dazugerechnet, wenn beim Case „Maß ist ohne Rollen“ gewählt ist.
+
 ## V 0.8.1 – 2026-09-28
 
 - Case-Datenbank aufgeräumt: Leere Standard-Pack- und Kabelcases gibt es je Maß nur noch einmal, als „Packcase L×B×H“ mit 0 kg unter den Vorlagen. Es sind 7 Größen: 60×60×60, 60×60×73, 80×60×60, 120×60×60, 120×60×73, 120×60×80 und 120×80×80. Sie ersetzen die Vorlagen „Kabelcase/Packcase Truckmaß“ sowie „Packcase (Transflex)“, „Packwürfel“, „Transflex gross“ und „Transflex klein“ aus der Liste. Cases mit konkretem Inhalt (z. B. Powerlocksatz, Multicore, Laka Loom) bleiben.

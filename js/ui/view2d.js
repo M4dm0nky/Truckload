@@ -3,7 +3,7 @@ import { svgEl } from './dom.js';
 import { project, unproject, drawOrder, wheelView } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
-import { caseColors, DETAIL_MIN } from './caseStyle.js';
+import { caseColors, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters } from './caseStyle.js';
 import { archBoxes } from '../model/validate.js';
 import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
@@ -179,10 +179,7 @@ function drawSimpleBody(g, bodyRect, colors) {
       fill: colors.stripe, class: 'stripe',
     }, g);
   }
-  for (const [cx, cy] of [
-    [bodyRect.u0, bodyRect.v0], [bodyRect.u1, bodyRect.v0],
-    [bodyRect.u0, bodyRect.v1], [bodyRect.u1, bodyRect.v1],
-  ]) svgEl('circle', { cx, cy, r: 4, class: 'corner' }, g);
+  for (const [cx, cy] of cornerCenters(bodyRect, CORNER_R_SIMPLE)) svgEl('circle', { cx, cy, r: CORNER_R_SIMPLE, class: 'corner' }, g);
 }
 
 // Flightcase-Look: Alu-Hybridprofil, Laminat-Korpus, Kugelecken, Deckelfuge mit Butterfly-
@@ -215,10 +212,9 @@ function drawFlightcaseBody(g, bodyRect, colors, mode, face, uid, detailed) {
     fill: colors.stripe, class: 'stripe',
   }, g);
 
-  for (const [cx, cy] of [
-    [bodyRect.u0, bodyRect.v0], [bodyRect.u1, bodyRect.v0],
-    [bodyRect.u0, bodyRect.v1], [bodyRect.u1, bodyRect.v1],
-  ]) svgEl('circle', { cx, cy, r: 6, class: 'corner ball', style: `fill:url(#${uid}-corner)` }, g);
+  // Kugelecken innerhalb des Außenmaßes (caseStyle.js, cornerCenters).
+  for (const [cx, cy] of cornerCenters(bodyRect, CORNER_R))
+    svgEl('circle', { cx, cy, r: CORNER_R, class: 'corner ball', style: `fill:url(#${uid}-corner)` }, g);
 
   if (mode === 'top' || face !== 'bottom') return;
 

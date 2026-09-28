@@ -4,7 +4,7 @@ import { trussDims, STAND_FOOTPRINT_W, wagonWeight } from '../model/truss.js';
 const NOTE = 'Richtwert – Maße und Gewicht an dein Case anpassen';
 const P = (id, name, category, l, w, h, weight, opts = {}) => ({
   id: `preset-${id}`, builtin: true, name, content: '', category, color: colorFor(category),
-  l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, wheelH: 12,
+  l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, wheelH: 13, // Blue Wheel Ø 100 mm, Maß inkl. Rollen
   dimsInclWheels: true, note: NOTE, ...opts,
 });
 // F34 (34er) ≈ 6 kg/m, F44 (40er) ≈ 8 kg/m Traversengewicht; Wagen (Paar) ≈ 2 × 12 kg.
