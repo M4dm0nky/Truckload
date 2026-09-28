@@ -2,6 +2,17 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.3 – 2026-09-28
+
+- Automatisch gepackt wird jetzt sortenrein: Jeder Case-Typ kommt als eigener Block, von der Stirnwand zur Tür, statt dass verschiedene Cases durcheinander nebeneinander und übereinander stehen.
+- Neben „Alles neu packen“ wählt man je Load die Reihenfolge:
+  - „Große zuerst“ (Vorgabe): nach Größe des einzelnen Cases, Traversen immer zuletzt.
+  - „Stückzahl zuerst“: der Case-Typ mit den meisten gleichen Stücken zuerst.
+- Gemischt wird nur an der Grenze zweier Blöcke: Füllt eine Sorte ihre letzte Reihe nicht, darf die nächste die freien Plätze dieser Reihe belegen und den letzten, nicht vollen Stapel auffüllen. Weiter vorn nie.
+- „Rest einpacken“ setzt neue Cases an die letzte Reihe der vorhandenen Ladung an und füllt keine Lücken weiter vorn.
+- Bleiben nach dem Packen Cases übrig, sagt die App jetzt, wie viele nicht in den Truck passen und in „Noch nicht geladen“ bleiben. Das gilt auch beim Packen aus dem Wizard.
+- Sortenrein braucht oft etwas mehr Ladelänge als gemischt. Bestehende Loads ändern sich erst beim nächsten „Alles neu packen“.
+
 ## V 0.8.2 – 2026-09-28
 
 - Die Kugelecken der Cases sind jetzt klein und sitzen innerhalb des Cases, in 2D, in 3D und im Ausdruck. Vorher saßen sie mittig auf der Ecke und standen bis zu 6 cm über das Case hinaus, bei aneinanderstehenden Cases sogar in den Nachbarn. Am Packen ändert das nichts, gerechnet wurde schon immer mit dem echten Außenmaß.
