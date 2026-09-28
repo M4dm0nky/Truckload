@@ -4,6 +4,9 @@ import { chooseOrientation, buildStacks, autoPack, orderSorts, PACK_ORDERS } fro
 import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
 import { mkCase, mkTruck, SPRINTER, plan, byId } from './fixtures.js';
+import { PRESET_CASES } from '../js/data/preset-cases.js';
+import { CASE_LIBRARY } from '../js/data/case-library.js';
+import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
 
 const mkItem = (c, id, extra = {}) => ({ id, caseId: c.id, c, ...extra });
 const items = (c, n, pre = 'i') => Array.from({ length: n }, (_, i) => mkItem(c, `${pre}${i + 1}`));
@@ -358,4 +361,82 @@ test('buildStacks: gleiche Sorte mit unterschiedlichem tipped bleibt eine Sorte 
   const { stacks } = buildStacks(list, mkTruck());
   assert.ok(stacks.length >= 1);
   assert.ok(stacks.every(s => s.sort === 0));
+});
+
+// Task 2: Sortenrein platzieren (placeStacks, autoPack)
+// Beispiel-Load des Nutzers (2026-09-28): 10 × Mac Viper x2, 16 × MLT TWO 2,4 m, 30 × Packcase
+// 120×60×60 im Sattelauflieger; Viper und Packcases wie aus dem Wizard (Lage 1+2, getippt).
+const ALLC = new Map([...PRESET_CASES, ...CASE_LIBRARY].map(c => [c.id, c]));
+const SATTEL = PRESET_TRUCKS.find(t => t.id === 'preset-sattel');
+function exampleLoad() {
+  const out = [];
+  const add = (caseId, n, extra) => { for (let i = 0; i < n; i++) out.push({ id: `${caseId}#${i}`, caseId, c: ALLC.get(caseId), ...extra }); };
+  add('lib-mac-viper-x2-cab', 10, { layers: [1, 2], tipped: true });
+  add('preset-hof-mlt2-240', 16, {});
+  add('preset-packcase-120x60x60', 30, { layers: [1, 2], tipped: true });
+  return out;
+}
+// Je Säule (x,y) die caseIds von unten nach oben.
+function columns(placements) {
+  const cols = new Map();
+  for (const p of [...placements].sort((a, b) => a.z - b.z)) {
+    const k = `${p.x}|${p.y}`;
+    if (!cols.has(k)) cols.set(k, []);
+    cols.get(k).push(p);
+  }
+  return [...cols.values()];
+}
+function checkSortenrein(placements, sortOrder) {
+  const rank = new Map(sortOrder.map((id, i) => [id, i]));
+  // Stapel: unten eine Sorte, oben höchstens die direkt folgende.
+  for (const col of columns(placements)) {
+    const r = col.map(p => rank.get(p.caseId));
+    for (let i = 1; i < r.length; i++) assert.ok(r[i] === r[i - 1] || r[i] === r[i - 1] + 1, `Stapel gemischt: ${col.map(p => p.caseId)}`);
+    assert.ok(new Set(r).size <= 2);
+  }
+  // Blöcke: die Bodenstapel einer Sorte beginnen nie vor der letzten Reihe der vorigen.
+  const floor = placements.filter(p => p.z === 0);
+  for (let i = 1; i < sortOrder.length; i++) {
+    const prev = floor.filter(p => p.caseId === sortOrder[i - 1]);
+    const cur = floor.filter(p => p.caseId === sortOrder[i]);
+    if (!prev.length || !cur.length) continue;
+    assert.ok(Math.min(...cur.map(p => p.x)) >= Math.max(...prev.map(p => p.x)),
+      `${sortOrder[i]} beginnt vor der letzten Reihe von ${sortOrder[i - 1]}`);
+  }
+}
+
+test('Beispiel-Load, Große zuerst: Viper → Packcase → MLT, sortenrein, alles geladen, fehlerfrei', () => {
+  const { placements, unplaced } = autoPack(exampleLoad(), SATTEL, { order: 'volume' });
+  assert.deepEqual(unplaced, []);
+  assert.equal(placements.length, 56);
+  checkSortenrein(placements, ['lib-mac-viper-x2-cab', 'preset-packcase-120x60x60', 'preset-hof-mlt2-240']);
+  assert.equal(placements.find(p => p.x === 0 && p.y === 0 && p.z === 0).caseId, 'lib-mac-viper-x2-cab');
+  assert.deepEqual(placementIssues(validatePlan(plan(placements), ALLC, SATTEL)), []);
+});
+
+test('Beispiel-Load, Stückzahl zuerst: Packcase → MLT → Viper, sortenrein, alles geladen, fehlerfrei', () => {
+  const { placements, unplaced } = autoPack(exampleLoad(), SATTEL, { order: 'count' });
+  assert.deepEqual(unplaced, []);
+  checkSortenrein(placements, ['preset-packcase-120x60x60', 'preset-hof-mlt2-240', 'lib-mac-viper-x2-cab']);
+  assert.equal(placements.find(p => p.x === 0 && p.y === 0 && p.z === 0).caseId, 'preset-packcase-120x60x60');
+  assert.deepEqual(placementIssues(validatePlan(plan(placements), ALLC, SATTEL)), []);
+});
+
+test('Lücke der letzten Reihe: die nächste Sorte füllt freie Spuren, steht aber nie davor', () => {
+  // 5 Wagen à 62 cm (4 passen in eine Reihe) → Reihe 2 hat 1 Wagen und 3 freie Spuren.
+  const wagon = mkCase('wagon', 240, 62, 115, { stackable: false });
+  const box = mkCase('box', 60, 60, 60, { stackable: false });
+  const list = [...items(wagon, 5, 'w'), ...items(box, 3, 'b')];
+  const { placements } = autoPack(list, mkTruck(), { order: 'volume' });
+  const lastRowX = Math.max(...placements.filter(p => p.caseId === 'wagon').map(p => p.x));
+  const boxes = placements.filter(p => p.caseId === 'box');
+  assert.equal(boxes.length, 3);
+  assert.ok(boxes.every(p => p.x >= lastRowX), 'box nie vor der letzten Wagenreihe');
+  assert.ok(boxes.some(p => p.x === lastRowX), 'box füllt die freie Spur der letzten Reihe');
+});
+
+test('placeStacks: startX schiebt die erste Sorte hinter eine vorhandene Ladung', () => {
+  const K = mkCase('k', 120, 60, 60);
+  const { placements } = autoPack([mkItem(K, 'k1')], mkTruck(), { startX: 300 });
+  assert.equal(placements[0].x, 300);
 });

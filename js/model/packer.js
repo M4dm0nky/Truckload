@@ -133,42 +133,57 @@ export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
   return { stacks, unplaced };
 }
 
-export function placeStacks(stacks, truck, obstacles = []) {
+// Stellt die Stapel Sorte für Sorte (stack.sort, Reihenfolge wie von buildStacks geliefert) per
+// Bottom-Left in den Truck. Jede Sorte sucht nur Punkte mit x ≥ minX: für die erste Sorte ist das
+// `startX` (0 bzw. hinter einer vorhandenen Ladung), für jede weitere das x0 der letzten Reihe der
+// vorigen Sorte – so füllt sie deren freie Spuren (Nutzerregel „Lücke auffüllen"), kommt aber nie
+// weiter nach vorn. Innerhalb einer Sorte stehen schwerere Stapel weiter vorn (wie bisher).
+export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) {
   const blocked = [...archBoxes(truck), ...obstacles];
-  const points = [{ x: 0, y: 0 }, ...blocked.flatMap(b => [
+  const points = [{ x: startX, y: 0 }, { x: 0, y: 0 }, ...blocked.flatMap(b => [
     { x: b.x1, y: b.y0 }, { x: b.x0, y: b.y1 }, { x: b.x1, y: 0 }, { x: 0, y: b.y1 },
   ])];
   const placed = [], failed = [];
-  for (const s of [...stacks].sort((a, b) => b.weight - a.weight)) {
-    points.sort((p, q) => p.x - q.x || p.y - q.y);
-    let hit = null;
-    for (const pt of points) {
-      // swap dreht den Stapel im Grundriss um 90°, wenn er sonst nirgends passt.
-      // Das gibt eine zuvor gewählte Rollenrichtung bewusst auf — Platz geht vor
-      // Rollenrichtung, sonst wäre der Stapel gar nicht unterzubringen (siehe autoPack).
-      for (const swap of s.dx === s.dy ? [false] : [false, true]) {
-        const dx = swap ? s.dy : s.dx, dy = swap ? s.dx : s.dy;
-        const box = { x0: pt.x, y0: pt.y, z0: 0, x1: pt.x + dx, y1: pt.y + dy, z1: s.height };
-        if (box.x1 > truck.l + 1e-6 || box.y1 > truck.w + 1e-6) continue;
-        if (blocked.some(b => overlaps(b, box))) continue;
-        hit = { box, swap };
-        break;
+  let minX = startX;
+  const sorts = [...new Set(stacks.map(s => s.sort ?? 0))];
+  for (const sort of sorts) {
+    const group = stacks.filter(s => (s.sort ?? 0) === sort).sort((a, b) => b.weight - a.weight);
+    const boxesHere = [];
+    for (const s of group) {
+      points.sort((p, q) => p.x - q.x || p.y - q.y);
+      let hit = null;
+      for (const pt of points) {
+        if (pt.x < minX - 1e-6) continue;
+        // swap dreht den Stapel im Grundriss um 90°, wenn er sonst nirgends passt.
+        // Das gibt eine zuvor gewählte Rollenrichtung bewusst auf — Platz geht vor
+        // Rollenrichtung, sonst wäre der Stapel gar nicht unterzubringen (siehe autoPack).
+        for (const swap of s.dx === s.dy ? [false] : [false, true]) {
+          const dx = swap ? s.dy : s.dx, dy = swap ? s.dx : s.dy;
+          const box = { x0: pt.x, y0: pt.y, z0: 0, x1: pt.x + dx, y1: pt.y + dy, z1: s.height };
+          if (box.x1 > truck.l + 1e-6 || box.y1 > truck.w + 1e-6) continue;
+          if (blocked.some(b => overlaps(b, box))) continue;
+          hit = { box, swap };
+          break;
+        }
+        if (hit) break;
       }
-      if (hit) break;
+      if (!hit) { failed.push(s); continue; }
+      blocked.push(hit.box);
+      boxesHere.push(hit.box);
+      placed.push({ stack: s, ...hit });
+      points.push({ x: hit.box.x1, y: hit.box.y0 }, { x: hit.box.x0, y: hit.box.y1 });
     }
-    if (!hit) { failed.push(s); continue; }
-    blocked.push(hit.box);
-    placed.push({ stack: s, ...hit });
-    points.push({ x: hit.box.x1, y: hit.box.y0 }, { x: hit.box.x0, y: hit.box.y1 });
+    if (boxesHere.length) minX = Math.max(...boxesHere.map(b => b.x0));
   }
   return { placed, failed };
 }
 
 // items: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
 // Die erzeugten Placements übernehmen id/label/color/layers/tipped des Stücks statt eine neue ID zu vergeben.
-export function autoPack(items, truck, { obstacles = [] } = {}) {
-  const { stacks, unplaced } = buildStacks(items, truck);
-  const { placed, failed } = placeStacks(stacks, truck, obstacles);
+// order: 'volume' | 'count' (PACK_ORDERS), startX: frühestes x der ersten Sorte (Rest einpacken).
+export function autoPack(items, truck, { obstacles = [], order = 'volume', startX = 0 } = {}) {
+  const { stacks, unplaced } = buildStacks(items, truck, { order });
+  const { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
   const placements = [];
   for (const { stack, box, swap } of placed) {
     for (const { it, o, z } of stack.items) {
