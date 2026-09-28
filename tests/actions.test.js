@@ -601,3 +601,34 @@ test('placeCase: frei abgesetzt (fern von Kanten) bleibt auf dem 5-cm-Raster', (
   assert.equal(p.x, 400);
   assert.equal(p.y, 90);
 });
+
+// Sortenrein packen: Reihenfolge je Load (plan.packOrder), Altdaten ohne Feld = 'volume'.
+const BIG = mkCase('big', 120, 60, 100);
+const SMALL = mkCase('small', 60, 60, 60);
+const ctxBS = () => ({ caseById: byId(BIG, SMALL), truck: mkTruck(), newId: counter('n') });
+const firstAtWall = pl => pl.placements.find(p => p.x === 0 && p.y === 0 && p.z === 0).caseId;
+const unplacedMix = () => plan([], [
+  ...Array.from({ length: 5 }, (_, i) => ({ id: `s${i}`, caseId: 'small' })),
+  { id: 'b0', caseId: 'big' },
+]);
+
+test('setPackOrder: nur volume/count, sonst unverändert', () => {
+  const p0 = plan([]);
+  assert.equal(A.setPackOrder(p0, 'count').packOrder, 'count');
+  assert.equal(A.setPackOrder(p0, 'quatsch'), p0);
+});
+
+test('packAll: ohne packOrder (Altdaten) = Große zuerst', () => {
+  assert.equal(firstAtWall(A.packAll(unplacedMix(), ctxBS())), 'big');
+});
+
+test('packAll: packOrder count = Stückzahl zuerst', () => {
+  assert.equal(firstAtWall(A.packAll({ ...unplacedMix(), packOrder: 'count' }, ctxBS())), 'small');
+});
+
+test('packRest: neue Sorten schließen hinter der vorhandenen Ladung an, keine Lücke weiter vorn', () => {
+  const pl0 = plan([P('a', 'big', 0, 0, 0)], [{ id: 's0', caseId: 'small' }]);
+  const pl = A.packRest(pl0, ctxBS());
+  const s = pl.placements.find(p => p.id === 's0');
+  assert.ok(s.x >= 120, `small bei x=${s.x}, sollte hinter der Ladung (x ≥ 120) stehen`);
+});

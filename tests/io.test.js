@@ -540,3 +540,17 @@ test('Ablage-Eintrag mit ungültigen layers wird abgelehnt', () => {
     plans: [{ ...plan([], [{ id: 'u1', caseId: 'own', layers: [0] }]), truckId: 't' }] });
   assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
 });
+
+test('Import: Plan ohne packOrder (altes Schema) lädt unverändert', () => {
+  const text = exportBundle({ cases: [], trucks: [], plans: [plan([])] });
+  const b = parseBundle(text);
+  assert.equal(b.plans[0].packOrder, undefined);
+});
+
+test('Import: packOrder volume/count erlaubt, anderer Wert wird abgewiesen', () => {
+  for (const packOrder of ['volume', 'count']) {
+    const b = parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), packOrder }] }));
+    assert.equal(b.plans[0].packOrder, packOrder);
+  }
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), packOrder: 'x' }] })));
+});

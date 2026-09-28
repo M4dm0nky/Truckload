@@ -2,6 +2,7 @@ import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS, ROTATIONS, MAX_LABEL } from '../model/geometry.js';
 import { trussDims, isTruss } from '../model/truss.js';
 import { ARCH_SIDES, CASE_LIMITS } from '../model/validate.js';
+import { PACK_ORDERS } from '../model/packer.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 
@@ -94,9 +95,11 @@ const tippedOk = x => x.tipped === undefined || typeof x.tipped === 'boolean';
 function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
     throw new Error('Ungültiger Ladeplan in der Datei.');
-  if (!updatedAtOk(p)) throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Zeitstempel.`);
+  if (!updatedAtOk(p)) throw new Error(`Ladeplan „${p.name}” hat einen ungültigen Zeitstempel.`);
   if (p.notes !== undefined && (typeof p.notes !== 'string' || p.notes.length > 2000))
-    throw new Error(`Ladeplan „${p.name}“ hat ungültige Notizen.`);
+    throw new Error(`Ladeplan „${p.name}” hat ungültige Notizen.`);
+  if (p.packOrder !== undefined && !PACK_ORDERS.includes(p.packOrder))
+    throw new Error(`Ladeplan „${p.name}” hat eine unbekannte Pack-Reihenfolge.`);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
     && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl)
