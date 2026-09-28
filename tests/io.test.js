@@ -556,6 +556,6 @@ test('Import: packOrder volume/count erlaubt, anderer Wert wird abgewiesen', () 
     parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), packOrder: 'x' }] }));
     assert.fail('Sollte einen Fehler werfen');
   } catch (err) {
-    assert.match(err.message, /hat eine unbekannte Pack-Reihenfolge/);
+    assert.match(err.message, /^Ladeplan „.*“ hat eine unbekannte Pack-Reihenfolge\.$/);
   }
 });
