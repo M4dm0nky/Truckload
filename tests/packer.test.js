@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseOrientation, buildStacks, autoPack } from '../js/model/packer.js';
+import { chooseOrientation, buildStacks, autoPack, orderSorts, PACK_ORDERS } from '../js/model/packer.js';
 import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
 import { mkCase, mkTruck, SPRINTER, plan, byId } from './fixtures.js';
@@ -293,4 +293,69 @@ test('autoPack: piece.tipped:true, dessen getippte Maße nicht passen, landet in
     [mkItem(c, 'i1', { layers: [1], tipped: true })], truck);
   assert.deepEqual(placements, []);
   assert.deepEqual(unplaced, [{ id: 'i1', caseId: 'a', layers: [1], tipped: true }]);
+});
+
+// Sortenrein packen (Spec docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md).
+const sortsOf = groups => groups.map(g => g[0].caseId);
+
+test('PACK_ORDERS: genau volume und count', () => {
+  assert.deepEqual(PACK_ORDERS, ['volume', 'count']);
+});
+
+test('orderSorts volume: größtes Einzelvolumen zuerst, Traversen immer zuletzt', () => {
+  const big = mkCase('big', 120, 60, 100);
+  const small = mkCase('small', 60, 60, 60);
+  const truss = mkCase('truss', 300, 62, 115, { kind: 'truss', truss: { length: 300, width: 62, count: 1, standing: true, height: 115 } });
+  const list = [...items(small, 5, 's'), ...items(truss, 2, 't'), ...items(big, 1, 'b')];
+  assert.deepEqual(sortsOf(orderSorts(list, 'volume')), ['big', 'small', 'truss']);
+});
+
+test('orderSorts count: meiste gleiche Stücke zuerst, Gleichstand nach Volumen', () => {
+  const a = mkCase('a', 120, 60, 60);
+  const b = mkCase('b', 120, 60, 100);
+  const c = mkCase('c', 60, 60, 60);
+  const list = [...items(a, 2, 'a'), ...items(b, 2, 'b'), ...items(c, 7, 'c')];
+  assert.deepEqual(sortsOf(orderSorts(list, 'count')), ['c', 'b', 'a']);
+});
+
+test('buildStacks: Stapel mischen keine Sorten, außer dem letzten offenen Stapel der vorigen Sorte', () => {
+  const heavy = mkCase('heavy', 120, 60, 60, { weight: 300 });
+  const light = mkCase('light', 120, 60, 60, { weight: 30 });
+  // 3 × heavy → Stapel [h,h,h] (4 Lagen erlaubt, Truck 270 hoch: 3×60 + 60 = 240 passt),
+  // danach 3 × light: das erste light füllt den offenen heavy-Stapel auf, der Rest bildet eigene.
+  const { stacks } = buildStacks([...items(light, 3, 'l'), ...items(heavy, 3, 'h')], mkTruck(), { order: 'count' });
+  const ids = stacks.map(s => s.items.map(i => i.c.id));
+  assert.deepEqual(ids[0], ['heavy', 'heavy', 'heavy', 'light']);
+  assert.deepEqual(ids.slice(1), [['light', 'light']]);
+  assert.deepEqual(stacks.map(s => s.sort), [0, 1]);
+});
+
+test('buildStacks: nur der LETZTE offene Stapel der vorigen Sorte wird aufgefüllt, nie ein früherer', () => {
+  const a = mkCase('a', 120, 60, 60, { weight: 100, layers: [1, 2] });
+  const b = mkCase('b', 120, 60, 60, { weight: 10 });
+  // a: 3 Stück, höchstens 2 Lagen → Stapel [a,a] und [a]. b füllt nur den letzten ([a]) auf,
+  // bis er voll ist (4 Lagen, 240 cm ≤ 270), nie den früheren [a,a] – der hat noch Platz für
+  // Lage 3 und 4 und bleibt trotzdem sortenrein.
+  const { stacks } = buildStacks([...items(a, 3, 'a'), ...items(b, 3, 'b')], mkTruck(), { order: 'count' });
+  const ids = stacks.map(s => s.items.map(i => i.c.id));
+  assert.deepEqual(ids, [['a', 'a'], ['a', 'b', 'b', 'b']]);
+});
+
+test('buildStacks: Stück ohne Lage 1 ohne passenden offenen Stapel der vorigen Sorte → Ablage, nie fremder Stapel', () => {
+  const first = mkCase('first', 120, 60, 60, { weight: 50 });
+  const mid = mkCase('mid', 80, 60, 60, { weight: 40 });
+  const onlyTop = mkCase('onlyTop', 120, 60, 60, { weight: 10, layers: [2] });
+  // count: first ×3, mid ×2, onlyTop ×1 → die unmittelbar vorige Sorte von onlyTop ist mid (andere
+  // Grundfläche). Die passenden first-Stapel gehören nicht dazu → onlyTop geht in die Ablage.
+  const { unplaced, stacks } = buildStacks([...items(first, 3, 'f'), ...items(mid, 2, 'm'), ...items(onlyTop, 1, 'o')], mkTruck(), { order: 'count' });
+  assert.deepEqual(unplaced.map(u => u.caseId), ['onlyTop']);
+  assert.ok(stacks.every(s => !s.items.some(i => i.c.id === 'onlyTop')));
+});
+
+test('buildStacks: gleiche Sorte mit unterschiedlichem tipped bleibt eine Sorte (gleiches sort)', () => {
+  const t = mkCase('t', 120, 60, 100, { tippable: true });
+  const list = [mkItem(t, 'a', { tipped: true }), mkItem(t, 'b', { tipped: false })];
+  const { stacks } = buildStacks(list, mkTruck());
+  assert.ok(stacks.length >= 1);
+  assert.ok(stacks.every(s => s.sort === 0));
 });

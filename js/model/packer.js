@@ -1,5 +1,6 @@
-import { ROTATIONS, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations } from './geometry.js';
+import { ROTATIONS, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations, outerDims } from './geometry.js';
 import { archBoxes } from './validate.js';
+import { isTruss } from './truss.js';
 
 export function chooseOrientation(c, truck, piece = {}) {
   const opts = [];
@@ -61,43 +62,74 @@ function canAddToStack(stack, c, dz, truck) {
   return true;
 }
 
+// Sortenrein packen (Nutzerwunsch 2026-09-28, Spec docs/superpowers/specs/2026-09-28-sortenrein-
+// packen-design.md): eine Sorte ist ein Case-Typ (caseId) und wird als Block geladen.
+// 'volume' = „Große zuerst" (Einzelvolumen absteigend, Traversen immer zuletzt),
+// 'count' = „Stückzahl zuerst" (Anzahl absteigend, dann Volumen, dann Name).
+export const PACK_ORDERS = ['volume', 'count'];
+const volumeOf = c => { const { l, w, h } = outerDims(c); return l * w * h; };
+
+export function orderSorts(itemList, mode = 'volume') {
+  const groups = new Map();
+  for (const it of itemList) {
+    if (!groups.has(it.caseId)) groups.set(it.caseId, []);
+    groups.get(it.caseId).push(it);
+  }
+  const nameOf = g => String(g[0].c.name ?? g[0].caseId);
+  const byVolume = (a, b) => volumeOf(b[0].c) - volumeOf(a[0].c);
+  const byCount = (a, b) => b.length - a.length;
+  const byName = (a, b) => nameOf(a).localeCompare(nameOf(b), 'de');
+  const trussLast = (a, b) => (isTruss(a[0].c) ? 1 : 0) - (isTruss(b[0].c) ? 1 : 0);
+  return [...groups.values()].sort(mode === 'count'
+    ? (a, b) => byCount(a, b) || byVolume(a, b) || byName(a, b)
+    : (a, b) => trussLast(a, b) || byVolume(a, b) || byCount(a, b) || byName(a, b));
+}
+
 // itemList: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
-export function buildStacks(itemList, truck) {
+// Stapel entstehen je Sorte (orderSorts). Einzige Ausnahme vom „nur Gleiches auf Gleichem”: die
+// nächste Sorte darf zuerst den LETZTEN noch offenen Stapel der unmittelbar vorigen Sorte
+// auffüllen (Nutzerregel „Letzter Stapel darf aufgefüllt werden”) – mit denselben Grenzen wie
+// immer (gleiche Grundfläche, Lagen je Stück, höchstens 4 Lagen, nichts Schweres auf Leichtes,
+// maxTopLoad). Jeder Stapel trägt `sort` = Index der Sorte, die ihn begonnen hat.
+export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
   const stacks = [], unplaced = [];
-  const entries = itemList.map(it => ({ it, c: it.c, o: chooseOrientation(it.c, truck, it) }));
-  for (const e of entries) if (!e.o) unplaced.push(e.it);
   const maxLayer = (it, c) => Math.max(...pieceLayers(it, c));
   const minLayer = (it, c) => Math.min(...pieceLayers(it, c));
-  const ready = entries.filter(e => e.o);
-  const withFloor = ready.filter(e => pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
-    maxLayer(a.it, a.c) - maxLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
-  const withoutFloor = ready.filter(e => !pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
-    minLayer(a.it, a.c) - minLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
-
-  // Gemeinsamer Rumpf: einen passenden Stapel suchen und das Stück dort anhängen. Nur der
-  // Rückfall unterscheidet sich zwischen den beiden Durchläufen (neuen Stapel anlegen, weil ein
-  // Stück selbst Bodenkontakt haben darf, vs. in die Ablage legen, weil ein Stück ohne Boden
-  // unter ihm nirgends stehen kann) — genau der Unterschied bleibt als Parameter `onMiss`
-  // erhalten, der Rest war Zeile für Zeile identisch (docs/code-review-2026-09-21.md,
-  // „packer.js:65-90“).
-  const addTo = (entries, onMiss) => {
-    for (const { it, c, o } of entries) {
-      const key = `${o.d.dx}x${o.d.dy}`;
-      const allowed = pieceLayers(it, c);
-      const target = stacks.find(s => s.key === key && s.items.length < 4
-        && allowed.includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck));
-      if (target) {
-        target.items.push({ it, c, o, z: target.height });
-        target.height += o.d.dz;
-        target.weight += c.weight;
-      } else {
-        onMiss({ it, c, o });
-      }
-    }
+  const fits = (s, it, c, o) => s.key === `${o.d.dx}x${o.d.dy}` && s.items.length < 4
+    && pieceLayers(it, c).includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck);
+  const push = (s, it, c, o) => {
+    s.items.push({ it, c, o, z: s.height });
+    s.height += o.d.dz;
+    s.weight += c.weight;
   };
-  addTo(withFloor, ({ it, c, o }) =>
-    stacks.push({ key: `${o.d.dx}x${o.d.dy}`, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, items: [{ it, c, o, z: 0 }] }));
-  addTo(withoutFloor, ({ it }) => unplaced.push(it));
+  let prevLast = null; // letzter Stapel, in dem die vorige Sorte zuletzt etwas abgelegt hat
+
+  orderSorts(itemList, order).forEach((group, sort) => {
+    const entries = group.map(it => ({ it, c: it.c, o: chooseOrientation(it.c, truck, it) }));
+    for (const e of entries) if (!e.o) unplaced.push(e.it);
+    const ready = entries.filter(e => e.o);
+    const withFloor = ready.filter(e => pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
+      maxLayer(a.it, a.c) - maxLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
+    const withoutFloor = ready.filter(e => !pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
+      minLayer(a.it, a.c) - minLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
+
+    const own = [];
+    let last = null;
+    const addTo = (list, onMiss) => {
+      for (const { it, c, o } of list) {
+        const target = (prevLast && fits(prevLast, it, c, o) ? prevLast : null) ?? own.find(s => fits(s, it, c, o));
+        if (target) { push(target, it, c, o); last = target; } else onMiss({ it, c, o });
+      }
+    };
+    addTo(withFloor, ({ it, c, o }) => {
+      const s = { key: `${o.d.dx}x${o.d.dy}`, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, sort, items: [{ it, c, o, z: 0 }] };
+      own.push(s);
+      stacks.push(s);
+      last = s;
+    });
+    addTo(withoutFloor, ({ it }) => unplaced.push(it));
+    if (last) prevLast = last;
+  });
   return { stacks, unplaced };
 }
 
