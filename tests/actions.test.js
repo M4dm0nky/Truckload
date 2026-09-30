@@ -701,7 +701,7 @@ test('setPackRules: normalisiert, schreibt packRules, unverändert = gleiche Ref
   assert.deepEqual(rulesFor(p1), p1.packRules, 'packRules gewinnt gegen packOrder');
 });
 
-test('packAll: Gruppe bleibt erhalten und Regel „Gruppe zuletzt" wirkt', () => {
+test('packAll: Gruppe bleibt erhalten und Regel „Gruppe zuletzt“ wirkt', () => {
   const big = mkCase('big', 120, 60, 60);
   const ctx = { caseById: byId(gCase, big), truck: mkTruck(), newId: counter('n') };
   let p = A.addUnplaced(plan([]), 'g', 4, counter('g'), { group: 'Motoren' });
