@@ -84,6 +84,17 @@ const matches = (r, blk) => {
   return it.c.category === r.value;
 };
 
+// Rang eines Blocks in einer Auswahlregel: −1 = zuerst (Stirnwand), +1 = zuletzt (Tür), 0 = trifft nicht.
+const rankOf = (r, blk) => (matches(r, blk) ? (r.pos === 'first' ? -1 : 1) : 0);
+
+// Deckschicht (Spec 2026-09-30-deckschicht-design.md): ein Stück darf nur auf einen Block steigen,
+// der in JEDER Auswahlregel denselben Rang hat – sonst würde z. B. „Gruppe Motoren: zuletzt“ durch
+// eine Deckschicht weiter vorn unterlaufen. Maßregeln (Volumen, Stückzahl) spielen keine Rolle.
+export const sameSelectorRank = (rules, a, b) =>
+  normalizeRules(rules).every(r => MEASURE_BY.includes(r.by) || rankOf(r, a) === rankOf(r, b));
+
+export const mixTopFor = plan => plan?.mixTop === true;
+
 // Ein Block = Array von Stücken { caseId, c, group? } desselben Case-Typs und derselben Gruppe.
 // Schlusskriterien: Name, dann Gruppe (ohne Gruppe zuerst). Bei völligem Gleichstand bleibt die
 // Eingabereihenfolge (Array.prototype.sort ist stabil) – wie bisher in orderSorts.
@@ -91,8 +102,7 @@ export function blockComparator(rules) {
   const cmps = normalizeRules(rules).map(r => {
     if (r.by === 'volume') return (a, b) => volumeOf(b[0].c) - volumeOf(a[0].c);
     if (r.by === 'count') return (a, b) => b.length - a.length;
-    const rank = blk => (matches(r, blk) ? (r.pos === 'first' ? -1 : 1) : 0);
-    return (a, b) => rank(a) - rank(b);
+    return (a, b) => rankOf(r, a) - rankOf(r, b);
   });
   const nameOf = blk => String(blk[0].c.name ?? blk[0].caseId);
   cmps.push((a, b) => nameOf(a).localeCompare(nameOf(b), 'de'));

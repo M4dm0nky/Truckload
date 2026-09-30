@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   legacyRules, rulesFor, ruleOk, normalizeRules, addRule, moveRule, removeRule,
   blockComparator, ruleTargets, ruleActive, describeRule, MAX_RULES,
+  sameSelectorRank, mixTopFor,
 } from '../js/model/packRules.js';
 import { mkCase, byId } from './fixtures.js';
 
@@ -121,6 +122,23 @@ test('ruleActive: Auswahlregel nur aktiv, wenn ihr Ziel im Load vorkommt', () =>
   assert.equal(ruleActive({ by: 'category', value: 'Licht', pos: 'first' }, t), false);
   assert.equal(ruleActive({ by: 'truss', pos: 'last' }, t), false);
   assert.equal(ruleActive({ by: 'volume' }, t), true);
+});
+
+test('sameSelectorRank: gleicher Rang in allen Auswahlregeln, Maßregeln zählen nicht', () => {
+  const mot = block(big, 2, 'Motoren'), plain = block(big, 2), tiny = block(small, 2);
+  const rules = [{ by: 'group', value: 'Motoren', pos: 'last' }, { by: 'volume' }];
+  assert.equal(sameSelectorRank(rules, plain, tiny), true, 'beide ohne Treffer, Volumen egal');
+  assert.equal(sameSelectorRank(rules, mot, plain), false, 'Motoren zuletzt, plain nicht');
+  assert.equal(sameSelectorRank(rules, mot, block(small, 1, 'Motoren')), true);
+  assert.equal(sameSelectorRank([{ by: 'truss', pos: 'first' }], block(truss, 1), tiny), false);
+  assert.equal(sameSelectorRank([], mot, tiny), true, 'ohne Regeln immer gleich');
+});
+
+test('mixTopFor: nur true schaltet ein (Altdaten ohne Feld = aus)', () => {
+  assert.equal(mixTopFor({ mixTop: true }), true);
+  assert.equal(mixTopFor({ mixTop: false }), false);
+  assert.equal(mixTopFor({}), false);
+  assert.equal(mixTopFor(undefined), false);
 });
 
 test('describeRule: deutsche Texte mit typografischen Anführungszeichen', () => {
