@@ -2,6 +2,14 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.8 – 2026-09-30
+
+- Korrektur: „FD34 2m CUSTOMIZE“ und „Slick“ sind aus deiner Liste entfernt. Beide
+  waren Traversen-Reste-Cases mit 0 kg – die falsche Begründung dafür war, du würdest die
+  enthaltene Traverse beim Aufbau selbst wägen. Tatsächlich baust du Traversen über
+  „+ Traverse hinzufügen“, dort ist das Gewicht je Profil längst hinterlegt. Alte
+  Ladepläne mit diesen beiden Cases laden unverändert weiter.
+
 ## V 0.8.7 – 2026-09-30
 
 - 24 Cases aus deiner Liste, die bisher 0 kg trugen (u. a. Powerlock-Verteiler, Dimmerracks,
