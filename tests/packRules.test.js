@@ -118,10 +118,10 @@ test('ruleActive: Auswahlregel nur aktiv, wenn ihr Ziel im Load vorkommt', () =>
 test('describeRule: deutsche Texte mit typografischen Anführungszeichen', () => {
   const cases = byId(big);
   assert.equal(describeRule({ by: 'truss', pos: 'last' }, cases), 'Traversen: zuletzt (Tür)');
-  assert.equal(describeRule({ by: 'group', value: 'Motoren', pos: 'last' }, cases), 'Gruppe „Motoren": zuletzt (Tür)');
-  assert.equal(describeRule({ by: 'case', value: 'big', pos: 'first' }, cases), 'Case-Typ „big": zuerst (Stirnwand)');
-  assert.equal(describeRule({ by: 'case', value: 'weg', pos: 'first' }, cases), 'Case-Typ „weg": zuerst (Stirnwand)');
-  assert.equal(describeRule({ by: 'category', value: 'Ton', pos: 'first' }, cases), 'Gewerk „Ton": zuerst (Stirnwand)');
+  assert.equal(describeRule({ by: 'group', value: 'Motoren', pos: 'last' }, cases), 'Gruppe „Motoren”: zuletzt (Tür)');
+  assert.equal(describeRule({ by: 'case', value: 'big', pos: 'first' }, cases), 'Case-Typ „big”: zuerst (Stirnwand)');
+  assert.equal(describeRule({ by: 'case', value: 'weg', pos: 'first' }, cases), 'Case-Typ „weg”: zuerst (Stirnwand)');
+  assert.equal(describeRule({ by: 'category', value: 'Ton', pos: 'first' }, cases), 'Gewerk „Ton”: zuerst (Stirnwand)');
   assert.equal(describeRule({ by: 'volume' }, cases), 'Große zuerst');
   assert.equal(describeRule({ by: 'count' }, cases), 'Stückzahl zuerst');
 });

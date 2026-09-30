@@ -12,7 +12,7 @@ const SELECT_BY = ['truss', 'group', 'case', 'category'];
 const MEASURE_BY = ['volume', 'count'];
 const POSITIONS = ['first', 'last'];
 export const POS_LABEL = { first: 'zuerst (Stirnwand)', last: 'zuletzt (Tür)' };
-// Reihenfolge und Beschriftung für die Auswahl „Regel hinzufügen" (js/ui/pack-rules.js).
+// Reihenfolge und Beschriftung für die Auswahl „Regel hinzufügen” (js/ui/pack-rules.js).
 export const RULE_KINDS = [
   { by: 'group', label: 'Gruppe' },
   { by: 'case', label: 'Case-Typ' },
@@ -46,7 +46,7 @@ const canonical = r => (MEASURE_BY.includes(r.by) ? { by: r.by }
   : r.by === 'truss' ? { by: 'truss', pos: r.pos }
   : { by: r.by, value: r.value.trim(), pos: r.pos });
 
-// Eine Regel je Art und Ziel: „Gruppe Motoren" kann nicht zugleich zuerst und zuletzt stehen.
+// Eine Regel je Art und Ziel: „Gruppe Motoren” kann nicht zugleich zuerst und zuletzt stehen.
 export const ruleKey = r => (r.value === undefined ? r.by : `${r.by}\u0000${r.value.trim()}`);
 
 export function normalizeRules(rules) {
@@ -138,7 +138,7 @@ export function describeRule(r, caseById) {
   if (r.by === 'count') return 'Stückzahl zuerst';
   const pos = POS_LABEL[r.pos];
   if (r.by === 'truss') return `Traversen: ${pos}`;
-  if (r.by === 'group') return `Gruppe „${r.value}": ${pos}`;
-  if (r.by === 'case') return `Case-Typ „${caseById.get(r.value)?.name ?? r.value}": ${pos}`;
-  return `Gewerk „${r.value}": ${pos}`;
+  if (r.by === 'group') return `Gruppe „${r.value}”: ${pos}`;
+  if (r.by === 'case') return `Case-Typ „${caseById.get(r.value)?.name ?? r.value}”: ${pos}`;
+  return `Gewerk „${r.value}”: ${pos}`;
 }
