@@ -1,3 +1,26 @@
+## Packcases (Standardgewicht, Nutzerangabe 2026-09-30)
+
+Anders als die recherchierten Gewichte unten ist das hier kein recherchierter Wert,
+sondern ein Standardwert des Nutzers: Das Standard-Packcase ist 120×60×60 ohne Rollen,
+also 120×60×80 hoch mit Rollen. Es wiegt als Standard 100 kg (änderbar), alle anderen
+Packcases werden danach nach Volumen ab- bzw. aufgestuft. Die mitgelieferten Packcases
+sind inklusive Rollen gemessen, die Referenz ist deshalb der Eintrag „Packcase
+120×60×80“. Formel: `round(100 × l·w·h / (120·60·80))`.
+
+| Packcase | Volumen | Gewicht |
+|---|---|---|
+| 60×60×60 | 0,216 m³ | 38 kg |
+| 60×60×73 | 0,263 m³ | 46 kg |
+| 80×60×60 | 0,288 m³ | 50 kg |
+| 120×60×60 | 0,432 m³ | 75 kg |
+| 120×60×73 | 0,526 m³ | 91 kg |
+| 120×60×80 | 0,576 m³ | 100 kg (Standard) |
+| 120×80×80 | 0,768 m³ | 133 kg |
+
+Im Code steht die Formel (`PACK` in `js/data/preset-cases.js`), nicht die einzelnen
+Zahlen. Legacy-Einträge (die früheren „Packcase/Kabelcase Truckmaß …“-Vorlagen) sind
+unverändert und behalten ihre alten Gewichte.
+
 # Gewichtsrecherche für die Case-Bibliothek (Task 2, V0.5.0)
 
 Recherchiert am 2026-09-20 für `js/data/case-library.js`. Formel je Eintrag:

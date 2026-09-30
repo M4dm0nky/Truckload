@@ -116,8 +116,10 @@ gepflegt wurden. Jeder Eintrag zeigt den Hersteller im Feld „Inhalt“ sowie d
 beide Listen lassen sich zusätzlich nach Firma filtern.
 
 Leere Standard-Pack- und Kabelcases gibt es je Maß nur einmal, als „Packcase L×B×H“ mit
-0 kg unter den Vorlagen (60×60×60, 60×60×73, 80×60×60, 120×60×60, 120×60×73, 120×60×80,
-120×80×80). Ob später Kabel oder etwas anderes hineinkommt, spielt fürs Laden keine Rolle.
+einem Standardgewicht (120×60×80, das Standard-Packcase 120×60×60 plus Rollen, = 100 kg,
+die übrigen nach Volumen, z. B. 60×60×60 = 38 kg, 120×80×80 = 133 kg) unter den Vorlagen
+(60×60×60, 60×60×73, 80×60×60, 120×60×60, 120×60×73, 120×60×80, 120×80×80). Ob später
+Kabel oder etwas anderes hineinkommt, spielt fürs Laden keine Rolle.
 Cases mit konkretem Inhalt (z. B. Powerlocksatz, Multicore, Laka Loom) bleiben eigene
 Einträge. Traversenwagen stehen nicht mehr in der Liste; die baut man über
 „+ Traverse hinzufügen“. Die früheren Einträge (9 leere Pack-/Kabelcases, 5 Traversen)

@@ -23,18 +23,27 @@ const REPLACED = [
 ];
 const TRUSS_OUT = ['lib-mlt-120-x2-cab', 'lib-mlt-160-x2-cab', 'lib-mlt-240-x2-cab', 'lib-trussdolly-40er-bbm', 'lib-truss-lose-40er-bbm'];
 
-test('je Standardmaß genau ein sichtbares Packcase, 0 kg, Name nach Maß', () => {
+test('je Standardmaß genau ein sichtbares Packcase, Gewicht nach Volumen, Name nach Maß', () => {
   const packs = visible.filter(c => c.name.startsWith('Packcase '));
   assert.equal(packs.length, PACK_DIMS.length);
   for (const [l, w, h] of PACK_DIMS) {
     const hit = packs.filter(c => c.l === l && c.w === w && c.h === h);
     assert.equal(hit.length, 1, `${l}×${w}×${h}`);
     assert.equal(hit[0].name, `Packcase ${l}×${w}×${h}`);
-    assert.equal(hit[0].weight, 0);
+    // Nutzerangabe 2026-09-30: Standard-Packcase 120×60×80 (120×60×60 plus Rollen) = 100 kg, die übrigen nach Volumen.
+    assert.equal(hit[0].weight, Math.round(100 * l * w * h / (120 * 60 * 80)), `${l}×${w}×${h}`);
     assert.equal(hit[0].id, `preset-packcase-${l}x${w}x${h}`);
     assert.equal(hit[0].tippable, true);
     assert.equal(hit[0].stackable, true);
   }
+});
+
+test('Packcase-Gewichte: Tabelle der Nutzerangabe', () => {
+  const w = dims => visible.find(c => c.name === `Packcase ${dims}`).weight;
+  assert.deepEqual(
+    ['60×60×60', '60×60×73', '80×60×60', '120×60×60', '120×60×73', '120×60×80', '120×80×80'].map(w),
+    [38, 46, 50, 75, 91, 100, 133]);
+  assert.equal(byId('preset-pack-120x80x80').weight, 150, 'legacy-Eintrag behält sein altes Gewicht');
 });
 
 test('ersetzte Einträge und Listen-Traversen existieren weiter, sind aber ausgeblendet', () => {
