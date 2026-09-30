@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.8.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.8.5. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -44,7 +44,7 @@ oder `plan.unplaced[]` (Ablage). Trägt `id`, `caseId` und — seit V 0.4.0 — 
 `label` (Beschriftung, höchstens `MAX_LABEL` Zeichen) und `color`. Platzierte Stücke haben
 zusätzlich `x`, `y`, `z`, `orientation` und `rot`.
 
-Zwei weitere optionale Stück-Felder schränken den Case-Typ nur ein, erweitern ihn nie, und
+Drei weitere optionale Stück-Felder schränken den Case-Typ nur ein, erweitern ihn nie, und
 fallen bei Fehlen auf das bisherige Case-Typ-Verhalten zurück (Altdaten ohne diese Felder
 laden also unverändert):
 
@@ -56,6 +56,13 @@ laden also unverändert):
   Wahl beim Packer maßgeblich (`pieceOrientations(piece, c)`, nicht tippbare Case-Typen
   lassen sich davon nie überstimmen). Wird ein Stück platziert, entscheidet
   `tipped === true && canTip(c)` über die Startausrichtung (`tipLong` statt `standing`).
+- `group` — ein freier, getrimmter Gruppenname (höchstens `MAX_LABEL` Zeichen), gesetzt über
+  `A.setPieceGroup` (Wizard-Schritt „Beschriften“ oder Inspector). Er wandert wie `tipped` an
+  jeder Stelle mit, an der ein Stück kopiert oder umgebaut wird: `toPiece`,
+  `placementToUnplaced`, `duplicate`, `placeCase` (über `addUnplaced`) und `autoPack`
+  (Placements tragen `group` wie `layers`/`tipped` weiter). Fehlt es, bildet ein Stück beim
+  sortenreinen Packen keinen eigenen Gruppenblock, sondern läuft mit den übrigen Stücken
+  seines Case-Typs (Abschnitt „Sortenrein“ unten).
 
 Der Wizard (Schritt „Beschriften“, `js/ui/load-wizard.js`) setzt beide Felder je Stück
 vor: `layers` mit `defaultWizardLayers(c)`, also den vom Case-Typ erlaubten Lagen aus
@@ -177,9 +184,22 @@ V 0.7.0 kennt auch der Füllgrad-Score in `chooseOrientation` (`packer.js`) dies
 Case wird dadurch eher getippt als sinnlos hoch gestellt, wenn Tippen weniger Lademeter
 braucht.
 
-**Sortenrein (seit V 0.8.3):** `orderSorts(items, mode)` gruppiert nach `caseId` und ordnet nach
-`plan.packOrder` (`'volume'`: Einzelvolumen absteigend, Traversen zuletzt; `'count'`: Stückzahl,
-dann Volumen, dann Name; fehlt das Feld, gilt `'volume'`). `buildStacks` stapelt je Sorte; die
+**Sortenrein (seit V 0.8.3), Pack-Regeln (seit V 0.8.5):** `orderSorts(items, rules)` gruppiert
+nach Block — `caseId` **und** Gruppe (`js/model/packRules.js`): Stücke desselben Case-Typs mit
+unterschiedlicher Gruppe (oder ohne Gruppe) bilden eigene Blöcke. Sortiert wird mit
+`blockComparator(rules)`. `rules` ist `plan.packRules` (höchstens 20 Regeln), oder — fehlt das
+Feld — `legacyRules(plan.packOrder)` (beides über `rulesFor(plan)`), was exakt die früheren
+`packOrder`-Ordnungen nachbildet: `'volume'`/fehlend → Traversen zuletzt, dann Einzelvolumen
+absteigend, dann Stückzahl absteigend; `'count'` → Stückzahl absteigend, dann Einzelvolumen
+absteigend (Regressionstest in `tests/packer.test.js`). Eine `Rule` ist entweder eine
+Auswahlregel (`by: 'truss'|'group'|'case'|'category'`, bei den letzten drei mit `value`, dazu
+`pos: 'first'|'last'`) — sie schiebt einen passenden Block vor („zuerst“, Stirnwand) oder hinter
+(„zuletzt“, Tür) die unentschiedenen — oder eine Maßregel (`by: 'volume'|'count'`) ohne `value`
+und `pos`, die nach Einzelvolumen bzw. Stückzahl absteigend sortiert. Bei Gleichstand aller
+Regeln entscheidet der Name, dann die Gruppe, dann bleibt die Eingabereihenfolge
+(`Array.prototype.sort` ist stabil). Ein String-Argument (`'volume'`/`'count'`) wird weiterhin
+über `legacyRules` übersetzt — bestehende Tests und Aufrufer bleiben gültig, `PACK_ORDERS` gilt
+weiter für den Import alter Dateien. `buildStacks` stapelt je Block; die
 nächste Sorte darf nur den letzten offenen Stapel der vorigen auffüllen. `placeStacks` stellt
 Sorte für Sorte, jede nur ab dem x0 der letzten Reihe der vorigen (`minX`), und `packRest`
 beginnt an der letzten Reihe der vorhandenen Ladung (`startX` = größtes x0 der Bodenstücke). Seit V 0.8.4 stellt `placeStacks` jeden Stapel zuerst im Spurraster seiner Sorte ab der linken Wand (y = k · Stapelbreite) und fällt nur, wenn dort nichts passt (Radkästen), auf die freie Eckensuche zurück – sonst übernahm eine Sorte die Spurlage der vorigen, und 62er-Wagen passten neben 60er-Spuren nur zu dritt statt zu viert. Spec:
@@ -262,6 +282,12 @@ Bei gleicher ID gewinnt immer das eigene Case, und jede ID kommt genau einmal vo
 gewänne. Schlägt das Laden aus IndexedDB fehl (privates Fenster, blockierter Speicher,
 korrupte Datenbank), startet die App trotzdem mit den mitgelieferten Vorlagen
 (`repo.loadAllFallback()`) und zeigt ein Banner, statt als weiße Seite abzustürzen.
+
+Seit V 0.8.5 kommt ein eigener Store `ruleSets` dazu (Pack-Regelsets als Vorlage, `js/store/db.js`,
+`DB_VERSION` 1 → 2 — `onupgradeneeded` legt fehlende Stores schon vorher idempotent an, ein
+bestehendes Schema bricht dadurch nicht). Ein Regelset ist `{ id, name, rules, updatedAt }` und
+läuft in Sicherung/Import wie ein Plan mit (per ID, neuerer `updatedAt`-Stand gewinnt); Bundles
+ohne `ruleSets` (ältere Sicherungen) ergeben beim Einlesen einfach eine leere Liste.
 
 Export und Import laufen über ein JSON-Bundle (`js/store/io.js`). Mitgelieferte Cases
 (`builtin: true`) landen **nicht** in der Datei; Pläne verweisen weiter per `caseId` darauf.

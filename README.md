@@ -63,9 +63,26 @@ Gefällt das Ergebnis nicht, legt „Truck entladen“ alle Cases zurück nach �
 geladen“, um sie von Hand zu laden (rückgängig mit ⌘Z).
 
 Automatisch gepackt wird **sortenrein**: Jeder Case-Typ kommt als eigener Block von der Stirnwand
-zur Tür. Die Reihenfolge wählt man je Load neben „Alles neu packen“:
-- **Große zuerst** – nach Einzelvolumen, Traversen immer zuletzt (Vorgabe).
-- **Stückzahl zuerst** – der Case-Typ mit den meisten gleichen Stücken zuerst.
+zur Tür, Stücke mit eigener Gruppe bilden dabei einen eigenen Block. Die Reihenfolge legt man über
+„Pack-Regeln …“ neben „Alles neu packen“ fest: eine Rangliste von Regeln – oben steht die
+wichtigste, bei Gleichstand entscheidet die nächste.
+
+Eine Regel spricht Traversen, eine Gruppe, einen Case-Typ oder ein Gewerk an und schiebt den
+passenden Block „zuerst“ (an die Stirnwand) oder „zuletzt“ (an die Tür), zum Beispiel „Gruppe
+„Motoren“: zuletzt“ oder „Traversen: zuerst“. Dazu kommen zwei Maßregeln ohne eigenes Ziel:
+**Große zuerst** (nach Einzelvolumen) und **Stückzahl zuerst** (der Case-Typ mit den meisten
+gleichen Stücken zuerst).
+
+Eine eigene Gruppe je Stück (z. B. „Motoren“) vergibt man im Wizard, Schritt „Beschriften“ – dort
+mit „Gruppe auf alle übernehmen“ für alle Stücke eines Case-Typs auf einmal –, oder nachträglich
+im Inspector.
+
+Eine Rangliste lässt sich als **Regelset** unter einem Namen sichern und über „Regelset
+übernehmen …“ in jedem anderen Load wieder einsetzen.
+
+Alte Loads ohne eigene Rangliste packen unverändert weiter: Fehlt sie, gilt automatisch die
+bisherige Reihenfolge – bei ehemals „Große zuerst“ Traversen zuletzt, dann nach Einzelvolumen,
+dann nach Stückzahl; bei ehemals „Stückzahl zuerst“ nach Stückzahl, dann nach Einzelvolumen.
 
 Füllt eine Sorte ihre letzte Reihe nicht, darf die nächste die freien Spuren dieser Reihe
 belegen und den letzten, nicht vollen Stapel auffüllen – weiter vorn wird nie gemischt.

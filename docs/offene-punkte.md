@@ -202,6 +202,22 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   werden beim Hineinzoomen entsprechend größer bzw. dicker. Beim Prüfen der Abstände hilft das
   eher, bei sehr starkem Zoom verdeckt die Schrift aber mehr vom Case.
 
+## Aus den Pack-Regeln (2026-09-30) offen
+
+- **Teil B „Mischen erlaubt“** (schwer nach unten, leicht und klein nach oben, Stapel mit
+  unterschiedlichen Grundflächen) ist noch nicht umgesetzt. Vom Nutzer gewünscht, braucht aber
+  eine eigene Spec — Teil A dieses Plans (die Rangliste der Blöcke) ändert nur, in welcher
+  Reihenfolge sortenreine Blöcke von der Stirnwand zur Tür kommen, nicht, ob innerhalb eines
+  Stapels gemischt werden darf.
+- **Keine automatische Motor-Erkennung.** Eine Regel auf „Motoren“ trifft nur, was der Nutzer
+  selbst über die Gruppe oder den Case-Typ als Motor kennzeichnet — es gibt keine Erkennung
+  über Gewicht, Name oder Gewerk.
+- **Regeln verweisen über den Wert auf Gruppen- oder Case-Namen**, nicht über eine feste ID.
+  Benennt man eine Gruppe danach um, greift die Regel nicht mehr — der Dialog zeigt sie dann
+  ausgegraut mit „(nicht in diesem Load)“, löscht sie aber nicht automatisch.
+- **Regelsets überschreiben sich beim Speichern unter demselben Namen ohne Rückfrage** (eigene
+  Entscheidung) — wie ein neues Case im Case-Editor unter vorhandenem Namen.
+
 ## Kleinigkeiten
 
 - Der Firmenfilter springt still auf „Alle Firmen“, wenn die gewählte Firma aus den Daten
