@@ -599,7 +599,7 @@ for (const order of ['volume', 'count']) {
 test('Spurraster: 62er-Sorte nach 60er-Sorte steht in den Spuren 0/62/124/186', () => {
   const narrow = mkCase('narrow', 60, 60, 60, { stackable: false });   // 60er-Spuren
   const wagon = mkCase('wagon', 240, 62, 115, { stackable: false });
-  // 9 narrow (mehr Stück als wagon → bei „Stückzahl zuerst” vorn) → 2 volle Reihen à 4, Reihe 3
+  // 9 narrow (mehr Stück als wagon → bei „Stückzahl zuerst“ vorn) → 2 volle Reihen à 4, Reihe 3
   // mit 1 bei y = 0 → Lücke y 60–248 in der letzten Reihe, in die der erste Wagen rutschen würde.
   const list = [...items(narrow, 9, 'n'), ...items(wagon, 8, 'w')];
   const { placements, unplaced } = autoPack(list, mkTruck(), { order: 'count' });
@@ -626,7 +626,7 @@ test('orderSorts: Regel-Array und alter String liefern bei Altdaten dieselbe Rei
   assert.deepEqual(ids(orderSorts(list, 'count')), ['small', 'tr', 'big']);
 });
 
-test('autoPack: Gruppe „Motoren” zuletzt steht an der Tür, Traversen zuerst an der Stirnwand', () => {
+test('autoPack: Gruppe „Motoren“ zuletzt steht an der Tür, Traversen zuerst an der Stirnwand', () => {
   const mot = mkCase('mot', 80, 60, 60, { weight: 45 });
   const pack = mkCase('pack', 120, 60, 60, { weight: 50 });
   const tr = mkCase('tr', 240, 62, 115, { kind: 'truss', stackable: false, weight: 120, truss: { length: 240, width: 62, count: 1, standing: true, height: 115 } });
