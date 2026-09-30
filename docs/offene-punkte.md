@@ -212,11 +212,15 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
 - **Keine automatische Motor-Erkennung.** Eine Regel auf „Motoren“ trifft nur, was der Nutzer
   selbst über die Gruppe oder den Case-Typ als Motor kennzeichnet — es gibt keine Erkennung
   über Gewicht, Name oder Gewerk.
-- **Regeln verweisen über den Wert auf Gruppen- oder Case-Namen**, nicht über eine feste ID.
-  Benennt man eine Gruppe danach um, greift die Regel nicht mehr — der Dialog zeigt sie dann
-  ausgegraut mit „(nicht in diesem Load)“, löscht sie aber nicht automatisch.
+- **Gruppen- und Gewerk-Regeln verweisen über den Wert auf den Namen**, nicht über eine feste
+  ID (Case-Typ-Regeln dagegen speichern die `caseId` — ein umbenannter Case-Typ bricht sie
+  nicht). Benennt man eine Gruppe oder ein Gewerk danach um, greift die Regel nicht mehr — der
+  Dialog zeigt sie dann ausgegraut mit „(nicht in diesem Load)“, löscht sie aber nicht
+  automatisch.
 - **Regelsets überschreiben sich beim Speichern unter demselben Namen ohne Rückfrage** (eigene
-  Entscheidung) — wie ein neues Case im Case-Editor unter vorhandenem Namen.
+  Entscheidung).
+- **Ein Regelset löschen passiert ohne Rückfrage und lässt sich nicht rückgängig machen**
+  (eigene Entscheidung).
 
 ## Kleinigkeiten
 

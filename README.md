@@ -77,8 +77,8 @@ Eine eigene Gruppe je Stück (z. B. „Motoren“) vergibt man im Wizard, Schrit
 mit „Gruppe auf alle übernehmen“ für alle Stücke eines Case-Typs auf einmal –, oder nachträglich
 im Inspector.
 
-Eine Rangliste lässt sich als **Regelset** unter einem Namen sichern und über „Regelset
-übernehmen …“ in jedem anderen Load wieder einsetzen.
+Eine Rangliste lässt sich als **Regelset** unter einem Namen sichern und über „Übernehmen“ im
+Regelsets-Abschnitt des Dialogs in jedem anderen Load wieder einsetzen.
 
 Alte Loads ohne eigene Rangliste packen unverändert weiter: Fehlt sie, gilt automatisch die
 bisherige Reihenfolge – bei ehemals „Große zuerst“ Traversen zuletzt, dann nach Einzelvolumen,

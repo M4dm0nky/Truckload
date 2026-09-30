@@ -57,7 +57,8 @@ laden also unverändert):
   lassen sich davon nie überstimmen). Wird ein Stück platziert, entscheidet
   `tipped === true && canTip(c)` über die Startausrichtung (`tipLong` statt `standing`).
 - `group` — ein freier, getrimmter Gruppenname (höchstens `MAX_LABEL` Zeichen), gesetzt über
-  `A.setPieceGroup` (Wizard-Schritt „Beschriften“ oder Inspector). Er wandert wie `tipped` an
+  `addUnplaced({ group })` (Wizard-Schritt „Beschriften“, `js/app.js`) oder `A.setPieceGroup`
+  (Inspector). Er wandert wie `tipped` an
   jeder Stelle mit, an der ein Stück kopiert oder umgebaut wird: `toPiece`,
   `placementToUnplaced`, `duplicate`, `placeCase` (über `addUnplaced`) und `autoPack`
   (Placements tragen `group` wie `layers`/`tipped` weiter). Fehlt es, bildet ein Stück beim
