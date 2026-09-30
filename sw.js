@@ -39,6 +39,7 @@ const ASSETS = [
   'js/ui/labelTexture.js',
   'js/ui/library.js',
   'js/ui/load-wizard.js',
+  'js/ui/pack-rules.js',
   'js/ui/print.js',
   'js/ui/projection.js',
   'js/ui/truck-editor.js',

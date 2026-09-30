@@ -9,6 +9,8 @@ import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js'
 import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
 import { openLoadWizard } from './ui/load-wizard.js';
+import { openPackRules } from './ui/pack-rules.js';
+import { rulesFor, ruleTargets, describeRule } from './model/packRules.js';
 import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
@@ -52,7 +54,7 @@ try {
 // `plans` enthält weiterhin ALLE geladenen Pläne (für die Liste im Startbildschirm), ohne
 // Sonderbehandlung.
 export const store = createStore({
-  cases: data.cases, trucks: data.trucks, plans: data.plans,
+  cases: data.cases, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
   plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(),
 });
 
@@ -422,8 +424,44 @@ $('#pack-rest').onclick = async () => {
   edit((p, c) => A.packRest(p, c));
   await warnIfUnplaced();
 };
-// Sortenreine Reihenfolge je Load; wirkt beim nächsten „Alles neu packen“/„Rest einpacken“.
-$('#pack-order').onchange = e => edit(p => A.setPackOrder(p, e.target.value));
+// Pack-Regeln je Load (Spec 2026-09-30): Rangliste im eigenen Dialog, Regelsets als Vorlage.
+async function saveRuleSetValue(name, rules) {
+  const existing = store.get().ruleSets.find(r => r.name.toLowerCase() === name.toLowerCase());
+  const value = stamp({ id: existing?.id ?? uid(), name, rules });
+  try {
+    await repo.saveRuleSet(value);
+  } catch (err) {
+    await showAlert(`Regelset konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
+    return undefined;
+  }
+  store.update(s => ({ ...s, ruleSets: [...s.ruleSets.filter(r => r.id !== value.id), value] }));
+  return value;
+}
+async function deleteRuleSetValue(id) {
+  try {
+    await repo.deleteRuleSet(id);
+  } catch (err) {
+    await showAlert(`Regelset konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
+    return false;
+  }
+  store.update(s => ({ ...s, ruleSets: s.ruleSets.filter(r => r.id !== id) }));
+  return true;
+}
+$('#pack-rules').onclick = async () => {
+  const s = store.get(), c = ctx(s);
+  const res = await openPackRules($('#dlg-rules'), {
+    rules: rulesFor(s.plan),
+    targets: ruleTargets([...s.plan.placements, ...s.plan.unplaced], c.caseById),
+    caseById: c.caseById,
+    ruleSets: [...s.ruleSets].sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    onSaveRuleSet: saveRuleSetValue,
+    onDeleteRuleSet: deleteRuleSetValue,
+  });
+  if (!res) return;
+  // Ein einziger Undo-Schritt für „Regeln setzen und neu packen“.
+  edit((p, cx) => { const next = A.setPackRules(p, res.rules); return res.repack ? A.packAll(next, cx) : next; });
+  if (res.repack) await warnIfUnplaced();
+};
 $('#unload-all').onclick = async () => {
   if (!store.get().plan.placements.length) return;
   if (!await showConfirm('Alle Cases aus dem Truck zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)')) return;
@@ -480,7 +518,7 @@ renderHooks.push((s, d) => {
   $('#undo').disabled = !store.canUndo();
   $('#redo').disabled = !store.canRedo();
   $('#unload-all').disabled = !s.plan.placements.length;
-  $('#pack-order').value = s.plan.packOrder ?? 'volume';
+  $('#pack-rules').title = `Reihenfolge beim automatischen Packen: ${rulesFor(s.plan).map(r => describeRule(r, d.caseById)).join(' · ') || 'nach Name'}`;
 });
 
 // Ladepläne
@@ -650,7 +688,7 @@ function downloadJSON(filename, text) {
 $('#export').onclick = () => {
   const s = store.get();
   const plans = [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)];
-  downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans }));
+  downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans, ruleSets: s.ruleSets }));
 };
 
 // Inhalt der zuletzt heruntergeladenen Vor-Import-Sicherung, damit sie sich bei Bedarf
@@ -681,7 +719,7 @@ $('#import').onchange = async e => {
   // s0.plan ist null, wenn der Import vom Startbildschirm ausgelöst wird (Task 1: kein Plan
   // automatisch angelegt) – dann gibt es keinen aktuellen Plan, der in die Sicherung
   // gehört, nur die schon gespeicherten.
-  const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: s0.plan ? [s0.plan, ...s0.plans] : s0.plans });
+  const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: s0.plan ? [s0.plan, ...s0.plans] : s0.plans, ruleSets: s0.ruleSets });
   lastPreImportBackup = { name: backupName, text: backupText };
   downloadJSON(backupName, backupText);
 
@@ -702,7 +740,7 @@ $('#import').onchange = async e => {
     // (Befund Daten-5). Zwischenzeitliche Änderungen des Nutzers gehen so nicht verloren.
     store.update(s => {
       merge = repo.mergeImportedBundle(s, bundle);
-      return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan };
+      return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan, ruleSets: merge.ruleSets };
     });
     // Eine einzige Transaktion statt unabhängiger Promise.all-Schreibvorgänge (Befund:
     // „Teil-Import lässt Store und Datenbank auseinanderlaufen“ ging tiefer, als es zuerst
@@ -717,7 +755,7 @@ $('#import').onchange = async e => {
     // zeigt möglicherweise Daten, die nicht (vollständig) geschrieben wurden. Zurück auf
     // den Stand vor dem Import – der ist noch da (s0) und stimmt mit der Datenbank überein
     // (Befund: „Teil-Import lässt Store und Datenbank auseinanderlaufen“).
-    store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan }));
+    store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan, ruleSets: s0.ruleSets }));
   } finally {
     // include() gehört in ein finally: würfe irgendetwas zwischen exclude() und hier, bliebe
     // der Autosave für diesen Plan sonst den Rest der Sitzung stumm tot. restore:true, wenn
@@ -743,7 +781,7 @@ $('#import').onchange = async e => {
   // passieren, damit der Nutzer erkennt, was und wie viele Datensätze angepasst wurden
   // (Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“).
   const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
-  await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne (neuere lokale Stände behalten).${repairNote}`);
+  await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets (neuere lokale Stände behalten).${repairNote}`);
 };
 
 // Version sichtbar machen (einzige Quelle: js/version.js)

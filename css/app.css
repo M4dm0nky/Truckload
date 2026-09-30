@@ -125,6 +125,13 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .editor input:disabled, .editor select:disabled { opacity: .5; }
 .editor label:has(> input:disabled), .editor label:has(> select:disabled) { color: var(--muted); opacity: .6; }
 
+#dlg-rules { width: min(560px, 90vw); }
+.rule-list { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.rule-list .rule { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; align-items: center; }
+.rule-list .rule.inactive .rule-text { color: var(--muted); }
+.rule-add-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rule-add-row input { flex: 1; min-width: 160px; }
+
 #dlg-wizard { width: min(760px, 96vw); }
 .wizard { max-height: 86vh; overflow: auto; }
 .wiz-progress { display: flex; gap: 6px; margin: -4px 0 4px; }
