@@ -17,29 +17,32 @@ Nutzerentscheidungen (2026-09-30):
 - **Wer auf wen darf:** Haben beide Stücke eine Gruppe, nur bei gleicher Gruppe. Hat keins eine
   Gruppe, nur bei gleichem Gewerk. Hat eins eine Gruppe und das andere nicht, dann nicht.
 - **Gewichte:** „Jedes Case wird ein Gewicht bekommen.“ Die Packcases bekommen sofort ein
-  Standardgewicht: die großen 100 kg, die übrigen nach Volumen abgestuft.
+  Standardgewicht: das Standard-Packcase 120×60×80 (mit Rollen) 100 kg, die übrigen nach Volumen.
 
 ## Packcase-Gewichte (Nutzerangabe)
 
-Eigene Auslegung der Vorgabe „großen Packcases 100 kg, je nach Volumen abstufen“: Das größte
-Packcase (120×80×80) wiegt 100 kg, jedes andere `round(100 × Volumen / Volumen(120×80×80))`.
+Vorgabe des Nutzers (2026-09-30): Das Standard-Packcase ist 120×60×60 ohne Rollen, also 120×60×80
+hoch mit Rollen. Es wiegt als Standard 100 kg (änderbar), alle anderen Packcases werden danach nach
+Volumen ab- bzw. aufgestuft. Die mitgelieferten Packcases sind inklusive Rollen gemessen, die
+Referenz ist deshalb der Eintrag „Packcase 120×60×80“. Formel: `round(100 × l·w·h / (120·60·80))`.
 
 | Packcase | Volumen | Gewicht |
 |---|---|---|
-| 60×60×60 | 0,216 m³ | 28 kg |
-| 60×60×73 | 0,263 m³ | 34 kg |
-| 80×60×60 | 0,288 m³ | 38 kg |
-| 120×60×60 | 0,432 m³ | 56 kg |
-| 120×60×73 | 0,526 m³ | 68 kg |
-| 120×60×80 | 0,576 m³ | 75 kg |
-| 120×80×80 | 0,768 m³ | 100 kg |
+| 60×60×60 | 0,216 m³ | 38 kg |
+| 60×60×73 | 0,263 m³ | 46 kg |
+| 80×60×60 | 0,288 m³ | 50 kg |
+| 120×60×60 | 0,432 m³ | 75 kg |
+| 120×60×73 | 0,526 m³ | 91 kg |
+| 120×60×80 | 0,576 m³ | 100 kg (Standard) |
+| 120×80×80 | 0,768 m³ | 133 kg |
 
-- Das ist ein Standardwert des Nutzers, kein recherchierter Wert. Er wird so in
-  `docs/casemasse-gewichte.md` dokumentiert.
-- Die Formel steht im Code (`PACK` in `js/data/preset-cases.js`), nicht die einzelnen Zahlen.
-- Mitgelieferte Cases werden bei jedem Start neu erzeugt. Bestehende Loads mit Packcases zeigen
-  das neue Gewicht deshalb sofort, Nutzlast und Schwerpunkt ändern sich entsprechend.
-- Die Platzierung ändert sich erst beim nächsten „Alles neu packen“. Das kommt in den CHANGELOG.
+- Standardwert des Nutzers, kein recherchierter Wert, dokumentiert in `docs/casemasse-gewichte.md`.
+- Im Code steht die Formel (`PACK` in `js/data/preset-cases.js`), nicht die einzelnen Zahlen.
+  „Änderbar“: Ein anderer Standard ist eine Zeile im Code; für ein einzelnes Case geht es über
+  „Case bearbeiten“ (eigene Kopie).
+- Mitgelieferte Cases werden bei jedem Start neu erzeugt: Bestehende Loads mit Packcases zeigen das
+  neue Gewicht sofort (Nutzlast, Schwerpunkt), die Platzierung ändert sich erst beim nächsten „Alles
+  neu packen“ (CHANGELOG).
 - Die `legacy`-Einträge („Packcase Truckmaß …“) behalten ihre alten Gewichte.
 
 ## Deckschicht

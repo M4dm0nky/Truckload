@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Die Packcases bekommen Standardgewichte. Ein zuschaltbarer Schalter „Deckschicht mischen“ je Load lässt leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks auf die Stapel früherer Blöcke steigen. Die Blöcke bleiben sortenrein am Boden.
+**Goal:** Die Packcases bekommen Standardgewichte (120×60×80 = 100 kg, übrige nach Volumen). Ein zuschaltbarer Schalter „Deckschicht mischen“ je Load lässt leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks auf die Stapel früherer Blöcke steigen. Die Blöcke bleiben sortenrein am Boden.
 
 **Architecture:**
 - `buildStacks` in `js/model/packer.js` bekommt einen dritten Weg zwischen „eigener Stapel“ und „neuer Stapel“: die Deckschicht auf einen Stapel eines früheren Blocks.
@@ -23,7 +23,7 @@
   - Plan ohne `mixTop` packt wie bisher.
   - Regelset ohne `mixTop` bedeutet: aus.
   - Jede Datenmodell-Änderung braucht einen Regressionstest mit Daten im alten Schema.
-- Packcase-Gewicht = `Math.round(100 × l·w·h / (120·80·80))` (Nutzerangabe 2026-09-30, eigene Auslegung). Die `legacy`-Einträge bleiben unverändert.
+- Packcase-Gewicht = `Math.round(100 × l·w·h / (120·60·80))` (Nutzerangabe 2026-09-30: Standard-Packcase 120×60×60 ohne bzw. 120×60×80 mit Rollen = 100 kg, alle anderen nach Volumen). Die `legacy`-Einträge bleiben unverändert.
 - Eine Deckschicht nur, wenn alles davon gilt:
   - gleiche Gruppe, oder beide ohne Gruppe und gleiches Gewerk;
   - gleicher Rang in jeder Auswahlregel;
@@ -56,15 +56,15 @@
 - Modify: `README.md` (Absatz „Leere Standard-Pack- und Kabelcases …“)
 
 **Interfaces:**
-- Produces: `preset-packcase-*` mit `weight = Math.round(100 * l * w * h / (120 * 80 * 80))`.
+- Produces: `preset-packcase-*` mit `weight = Math.round(100 * l * w * h / (120 * 60 * 80))`.
 
 - [ ] **Step 1: Failing Test.** In `tests/packcases.test.js` im Test „je Standardmaß genau ein sichtbares Packcase …“:
   - Den Titel ändern auf `'je Standardmaß genau ein sichtbares Packcase, Gewicht nach Volumen, Name nach Maß'`.
   - `assert.equal(hit[0].weight, 0);` ersetzen durch:
 
 ```js
-    // Nutzerangabe 2026-09-30: größtes Packcase 120×80×80 = 100 kg, die übrigen nach Volumen.
-    assert.equal(hit[0].weight, Math.round(100 * l * w * h / (120 * 80 * 80)), `${l}×${w}×${h}`);
+    // Nutzerangabe 2026-09-30: Standard-Packcase 120×60×80 (120×60×60 plus Rollen) = 100 kg, die übrigen nach Volumen.
+    assert.equal(hit[0].weight, Math.round(100 * l * w * h / (120 * 60 * 80)), `${l}×${w}×${h}`);
 ```
 
   - Dazu einen neuen Test anhängen:
@@ -74,7 +74,7 @@ test('Packcase-Gewichte: Tabelle der Nutzerangabe', () => {
   const w = dims => visible.find(c => c.name === `Packcase ${dims}`).weight;
   assert.deepEqual(
     ['60×60×60', '60×60×73', '80×60×60', '120×60×60', '120×60×73', '120×60×80', '120×80×80'].map(w),
-    [28, 34, 38, 56, 68, 75, 100]);
+    [38, 46, 50, 75, 91, 100, 133]);
   assert.equal(byId('preset-pack-120x80x80').weight, 150, 'legacy-Eintrag behält sein altes Gewicht');
 });
 ```
@@ -85,12 +85,12 @@ test('Packcase-Gewichte: Tabelle der Nutzerangabe', () => {
 ```js
 // Truckmaß (EU): Breiten 60/80/120 cm, gehen in 240 cm Innenbreite auf (Megacase, Gäng-Case).
 // Leere Standard-Pack-/Kabelcases: je Maß genau eines, neutral benannt (Nutzerwunsch 2026-09-28).
-// Gewicht seit V 0.8.6 als Standardwert des Nutzers (2026-09-30): das größte Packcase 120×80×80
-// wiegt 100 kg, die übrigen nach Volumen abgestuft (eigene Auslegung von „große 100 kg, nach
-// Volumen abstufen“, docs/casemasse-gewichte.md). Ersetzt die früheren „Kabelcase/Packcase
+// Gewicht seit V 0.8.6 als Standardwert des Nutzers (2026-09-30): das Standard-Packcase 120×60×60
+// ohne bzw. 120×60×80 mit Rollen wiegt 100 kg, alle anderen nach Volumen ab- bzw. aufgestuft
+// (docs/casemasse-gewichte.md). Ein anderer Standard ist eine Änderung an PACK_REF_VOLUME/100. Ersetzt die früheren „Kabelcase/Packcase
 // Truckmaß“-Vorlagen und die leeren Pack-/Transflex-Cases aus der Liste – die bleiben unten bzw. in
 // case-library.js als `legacy` für alte Ladepläne erhalten.
-const PACK_REF_VOLUME = 120 * 80 * 80;
+const PACK_REF_VOLUME = 120 * 60 * 80;
 const PACK = (l, w, h) => P(`packcase-${l}x${w}x${h}`, `Packcase ${l}×${w}×${h}`, 'Sonstiges', l, w, h,
   Math.round(100 * l * w * h / PACK_REF_VOLUME));
 ```
@@ -101,9 +101,9 @@ const PACK = (l, w, h) => P(`packcase-${l}x${w}x${h}`, `Packcase ${l}×${w}×${h
   - Erst analysieren, warum sich das Ergebnis mit dem neuen Gewicht ändert. Ist die neue Erwartung fachlich richtig (z. B. ein Stapel sortiert anders, weil jetzt ein Gewicht da ist), die Erwartung anpassen und mit einem Kommentar `// V 0.8.6: Packcases wiegen jetzt …, deshalb …` versehen.
   - Ist sie nicht richtig, DONE_WITH_CONCERNS melden.
 - [ ] **Step 5: Doku.**
-  - `docs/casemasse-gewichte.md`: Abschnitt „Packcases (Standardgewicht, Nutzerangabe 2026-09-30)“ mit der Tabelle aus der Spec, der Formel, dem Hinweis „Standardwert des Nutzers, kein recherchierter Wert; eigene Auslegung: größtes Packcase = 100 kg, übrige nach Volumen“ und „Legacy-Einträge unverändert“.
-  - `README.md`: Im Absatz über die Packcases „mit 0 kg“ ersetzen durch „mit einem Standardgewicht (120×80×80 = 100 kg, die kleineren nach Volumen, z. B. 60×60×60 = 28 kg)“.
-- [ ] **Step 6:** Anführungszeichen in allen geänderten Dateien per python prüfen, dann committen: `feat: Standardgewichte für Packcases (100 kg für 120×80×80, nach Volumen)`
+  - `docs/casemasse-gewichte.md`: Abschnitt „Packcases (Standardgewicht, Nutzerangabe 2026-09-30)“ mit der Tabelle aus der Spec, der Formel, dem Hinweis „Standardwert des Nutzers, kein recherchierter Wert: Standard-Packcase 120×60×60 ohne bzw. 120×60×80 mit Rollen = 100 kg, übrige nach Volumen“ und „Legacy-Einträge unverändert“.
+  - `README.md`: Im Absatz über die Packcases „mit 0 kg“ ersetzen durch „mit einem Standardgewicht (120×60×80, das Standard-Packcase 120×60×60 plus Rollen, = 100 kg, die übrigen nach Volumen, z. B. 60×60×60 = 38 kg, 120×80×80 = 133 kg)“.
+- [ ] **Step 6:** Anführungszeichen in allen geänderten Dateien per python prüfen, dann committen: `feat: Standardgewichte für Packcases (120×60×80 = 100 kg, übrige nach Volumen)`
 
 ---
 
