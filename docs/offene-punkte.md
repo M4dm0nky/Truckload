@@ -204,11 +204,18 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
 
 ## Aus den Pack-Regeln (2026-09-30) offen
 
-- **Teil B „Mischen erlaubt“** (schwer nach unten, leicht und klein nach oben, Stapel mit
-  unterschiedlichen Grundflächen) ist noch nicht umgesetzt. Vom Nutzer gewünscht, braucht aber
-  eine eigene Spec — Teil A dieses Plans (die Rangliste der Blöcke) ändert nur, in welcher
-  Reihenfolge sortenreine Blöcke von der Stirnwand zur Tür kommen, nicht, ob innerhalb eines
-  Stapels gemischt werden darf.
+- **Eine Ebene trägt nur ein Stück.** Die Deckschicht (seit V 0.8.6) stellt kleine Cases nie
+  nebeneinander auf ein großes, auch wenn nebeneinander noch Platz wäre (eigene Entscheidung,
+  YAGNI) — Nutzen gegen Aufwand einer echten Bin-Packing-Lösung innerhalb einer Lage abgewogen.
+- **0-kg-Cases mischen nicht.** Ein Case ohne Gewichtsangabe kommt weder als Deckschicht auf ein
+  fremdes Case, noch trägt es eine fremde Deckschicht — 0 kg heißt unbekannt, nicht leicht.
+- **Die Lagen-Vorgabe 1+2 begrenzt die Deckschicht.** Der Wizard hakt Lage 1 und 2 vor; ein
+  Stapel aus zwei gleichen Cases ist damit schon voll, eine Deckschicht bräuchte Lage 3. Das wird
+  in der README erklärt, nicht automatisch umgangen — eine Lagen-Einschränkung ist eine bewusste
+  Nutzerangabe.
+- **Die Packcase-Gewichte sind eine Auslegung der Nutzerangabe**, kein recherchierter Wert:
+  100 kg fürs Standard-Packcase 120×60×80 (mit Rollen), die übrigen linear nach Volumen. Siehe
+  `docs/casemasse-gewichte.md`.
 - **Keine automatische Motor-Erkennung.** Eine Regel auf „Motoren“ trifft nur, was der Nutzer
   selbst über die Gruppe oder den Case-Typ als Motor kennzeichnet — es gibt keine Erkennung
   über Gewicht, Name oder Gewerk.

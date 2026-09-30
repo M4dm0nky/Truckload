@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.8.5. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.8.6. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -206,6 +206,26 @@ Sorte für Sorte, jede nur ab dem x0 der letzten Reihe der vorigen (`minX`), und
 beginnt an der letzten Reihe der vorhandenen Ladung (`startX` = größtes x0 der Bodenstücke). Seit V 0.8.4 stellt `placeStacks` jeden Stapel zuerst im Spurraster seiner Sorte ab der linken Wand (y = k · Stapelbreite) und fällt nur, wenn dort nichts passt (Radkästen), auf die freie Eckensuche zurück – sonst übernahm eine Sorte die Spurlage der vorigen, und 62er-Wagen passten neben 60er-Spuren nur zu dritt statt zu viert. Spec:
 `docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md`.
 
+**Deckschicht (seit V 0.8.6):** optionaler Schalter `plan.mixTop` (`mixTopFor(plan)`,
+`js/model/packRules.js`), umgesetzt in `buildStacks` (`js/model/packer.js`). Für jedes Stück
+probiert `addTo` vier Wege der Reihe nach: (1) den letzten offenen Stapel des vorigen Blocks
+auffüllen (`prevLast`, wie bisher), (2) einen eigenen Stapel gleicher Grundfläche (wie bisher),
+(3) nur bei `mixTop`, wenn beides scheitert: als Deckschicht auf einen Stapel eines **früheren**
+Blocks, (4) sonst ein neuer Stapel am Boden. Kandidaten für (3) sind die Stapel früherer Blöcke
+in Entstehungsreihenfolge; es gewinnt der erste passende (näher an der Stirnwand) – deshalb
+können mehrere kleine Cases auf demselben großen landen, statt sich zu verteilen (README,
+Abschnitt „Deckschicht mischen“).
+
+`capFits(s, it, c, o, truck)` prüft, ob ein Stück als Deckschicht auf Stapel `s` passt:
+`belongsTogether(a, ca, b, cb)` (beide mit Gruppe → gleiche Gruppe, beide ohne → gleiches
+Gewerk, gemischt → nein) zwischen dem Stück und dem Gründungsstück des Stapels,
+`sameSelectorRank(rules, a, b)` (`packRules.js` – für jede Auswahlregel derselbe Rang wie der
+Block des Stapels, sonst könnte eine Deckschicht ein „zuletzt“ unterlaufen), keine Traversen auf
+keiner Seite, beide Gewichte bekannt (`> 0`, 0 kg = unbekannt) und nicht schwerer als das oberste
+Stück, sowie dieselben Grenzen wie beim normalen Stapeln (`canAddToStack`, `pieceLayers`, 4
+Lagen). Ein Stapel mit Deckschicht (`s.capped = true`) nimmt kein Stück seiner eigenen Sorte mehr
+an und gilt wie ein aufgefüllter Stapel als `mixed` (steht innerhalb seines Blocks zuletzt).
+
 ## Traversenwagen
 
 Ein eigener Case-Typ mit `kind: 'truss'` und `truss: { length, width, count }`.
@@ -319,7 +339,7 @@ lautlos den einen oder anderen Stand verliert.
 
 | Datei | Inhalt |
 |---|---|
-| `js/data/preset-cases.js` | 40 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines, 0 kg), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen und 24 Pre-Rig-Traversen (MLT/S36PR); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren |
+| `js/data/preset-cases.js` | 40 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen und 24 Pre-Rig-Traversen (MLT/S36PR); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren |
 | `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, `source: 'liste'` plus `company`; davon 9 `legacy` (seit V 0.8.1 ausgeblendet: leere Pack-/Transflex-Cases und die Traversen der Liste), 128 sichtbar |
 
 `legacy: true` heißt: in keiner Auswahl mehr (`groupCases`, `companiesOf` in
@@ -328,6 +348,16 @@ unverändertem Namen, Maß und Gewicht behalten. Ersetzte Einträge werden desha
 nur ausgeblendet.
 | `js/data/categories.js` | Gewerke und ihre Farben |
 | `js/data/preset-trucks.js` | Fahrzeugvorlagen |
+
+Die 7 Packcases tragen seit V 0.8.6 ein Standardgewicht statt 0 kg: `PACK(l, w, h)` in
+`js/data/preset-cases.js` rechnet `Math.round(100 * l * w * h / PACK_REF_VOLUME)` mit
+`PACK_REF_VOLUME = 120 * 60 * 80` (Referenz: das Standard-Packcase 120×60×60 ohne Rollen, also
+120×60×80 inkl. Rollen, wiegt 100 kg – Nutzerangabe, keine Recherche, dokumentiert in
+`docs/casemasse-gewichte.md`). Alle anderen Packcase-Maße werden danach nach Volumen ab- bzw.
+aufgestuft; die Formel steht im Code, nicht die einzelnen Zahlen. Mitgelieferte Cases entstehen
+bei jedem Start neu (`mergeOwnWithBuiltins`) – ein anderer Standard ist eine Codezeile, ein
+einzelnes Case ändert man über „Case bearbeiten“ (eigene Kopie). Die `legacy`-Einträge behalten
+ihre alten Gewichte.
 
 `js/ui/caseGroups.js` (`groupCases`, `companiesOf`) mit den drei Abschnitten (eigene
 Cases, Vorlagen, Cases aus der Liste) wird seit V0.7.11 nur noch vom Wizard benutzt

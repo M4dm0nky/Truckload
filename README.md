@@ -80,6 +80,34 @@ im Inspector.
 Eine Rangliste lässt sich als **Regelset** unter einem Namen sichern und über „Übernehmen“ im
 Regelsets-Abschnitt des Dialogs in jedem anderen Load wieder einsetzen.
 
+### Deckschicht mischen
+
+Der Schalter „Deckschicht mischen“ im Dialog „Pack-Regeln …“ füllt freie Höhe auf den Stapeln
+mit leichteren, kleineren Cases aus einem späteren Block, statt für sie eine eigene Bodenfläche
+zu belegen – „schwer nach unten, leicht und klein nach oben“. Sortenrein bleibt dabei der Boden:
+Nur was oben auf einem Stapel noch Platz hat, wird gemischt.
+
+Ein Stück darf nur auf ein Case seiner eigenen Sorte, oder auf ein anderes, wenn beide dieselbe
+Gruppe tragen, oder – haben beide keine Gruppe – dasselbe Gewerk. Dazu muss es leichter oder
+gleich schwer sein als das oberste Stück des Stapels und mit seiner Grundfläche (ungedreht oder
+um 90° gedreht) vollständig darauf passen. Cases ohne Gewicht (0 kg) mischen nicht – weder als
+Deckschicht auf ein fremdes Case, noch tragen sie eine fremde Deckschicht, weil dort das Gewicht
+unbekannt ist.
+
+Die Lagen je Stück gelten dabei weiter: Mit der Wizard-Vorgabe Lage 1 und 2 ist ein Stapel aus
+zwei gleichen Cases schon voll, eine Deckschicht bräuchte dann Lage 3. Die Regel greift also vor
+allem dort, wo ein Stapel niedriger bleibt als die Truckhöhe – bei nicht stapelbaren Sorten auf
+nur einer Lage, bei einer ungeraden letzten Reihe, oder wenn die kleinen Cases Lage 3 bzw. 4
+erlauben. Auch mit Deckschicht bleiben die Pack-Regeln gewahrt (eine Deckschicht wandert nie vor
+einen Block, der laut Rangliste eigentlich zuletzt kommen soll), trägt eine Ebene nur ein Stück
+(keine kleinen Cases nebeneinander auf einem großen), und Traversenwagen tragen nie etwas Fremdes
+und stehen nie auf einer Deckschicht. Da es dabei immer der erste passende Stapel gewinnt, kann es
+vorkommen, dass sich mehrere kleine Cases auf demselben großen Case stapeln, statt sich auf
+mehrere große Cases zu verteilen.
+
+Der Schalter gilt je Load und wandert, wie die Rangliste selbst, mit einem gespeicherten
+Regelset mit.
+
 Alte Loads ohne eigene Rangliste packen unverändert weiter: Fehlt sie, gilt automatisch die
 bisherige Reihenfolge – bei ehemals „Große zuerst“ Traversen zuletzt, dann nach Einzelvolumen,
 dann nach Stückzahl; bei ehemals „Stückzahl zuerst“ nach Stückzahl, dann nach Einzelvolumen.
