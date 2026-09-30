@@ -599,11 +599,60 @@ for (const order of ['volume', 'count']) {
 test('Spurraster: 62er-Sorte nach 60er-Sorte steht in den Spuren 0/62/124/186', () => {
   const narrow = mkCase('narrow', 60, 60, 60, { stackable: false });   // 60er-Spuren
   const wagon = mkCase('wagon', 240, 62, 115, { stackable: false });
-  // 9 narrow (mehr Stück als wagon → bei „Stückzahl zuerst“ vorn) → 2 volle Reihen à 4, Reihe 3
+  // 9 narrow (mehr Stück als wagon → bei „Stückzahl zuerst” vorn) → 2 volle Reihen à 4, Reihe 3
   // mit 1 bei y = 0 → Lücke y 60–248 in der letzten Reihe, in die der erste Wagen rutschen würde.
   const list = [...items(narrow, 9, 'n'), ...items(wagon, 8, 'w')];
   const { placements, unplaced } = autoPack(list, mkTruck(), { order: 'count' });
   assert.deepEqual(unplaced, []);
   assert.deepEqual(floorLanes(placements, 'wagon'), [0, 62, 124, 186]);
   assert.deepEqual(placementIssues(validatePlan(plan(placements), byId(narrow, wagon), mkTruck())), []);
+});
+
+// Pack-Regeln (Spec 2026-09-30): Blöcke = Case-Typ + Gruppe, Reihenfolge per Rangliste.
+test('orderSorts: gleicher Case-Typ mit und ohne Gruppe ergibt zwei Blöcke', () => {
+  const c = mkCase('mot', 60, 60, 60);
+  const list = [...items(c, 3, 'a'), ...items(c, 2, 'g').map(it => ({ ...it, group: 'Motoren' }))];
+  const blocks = orderSorts(list, [{ by: 'group', value: 'Motoren', pos: 'last' }]);
+  assert.deepEqual(blocks.map(b => [b[0].group ?? '', b.length]), [['', 3], ['Motoren', 2]]);
+});
+
+test('orderSorts: Regel-Array und alter String liefern bei Altdaten dieselbe Reihenfolge', () => {
+  const big = mkCase('big', 120, 80, 80), small = mkCase('small', 60, 60, 60);
+  const tr = mkCase('tr', 300, 62, 115, { kind: 'truss', truss: { length: 300, width: 62, count: 1, standing: true, height: 115 } });
+  const list = [...items(small, 5, 's'), ...items(tr, 2, 't'), ...items(big, 1, 'b')];
+  const ids = bl => bl.map(b => b[0].caseId);
+  assert.deepEqual(ids(orderSorts(list, 'volume')), ['big', 'small', 'tr']);
+  assert.deepEqual(ids(orderSorts(list, [{ by: 'truss', pos: 'last' }, { by: 'volume' }, { by: 'count' }])), ['big', 'small', 'tr']);
+  assert.deepEqual(ids(orderSorts(list, 'count')), ['small', 'tr', 'big']);
+});
+
+test('autoPack: Gruppe „Motoren” zuletzt steht an der Tür, Traversen zuerst an der Stirnwand', () => {
+  const mot = mkCase('mot', 80, 60, 60, { weight: 45 });
+  const pack = mkCase('pack', 120, 60, 60, { weight: 50 });
+  const tr = mkCase('tr', 240, 62, 115, { kind: 'truss', stackable: false, weight: 120, truss: { length: 240, width: 62, count: 1, standing: true, height: 115 } });
+  const list = [
+    ...items(mot, 8, 'm').map(it => ({ ...it, group: 'Motoren' })),
+    ...items(pack, 8, 'p'), ...items(tr, 4, 't'),
+  ];
+  const rules = [{ by: 'group', value: 'Motoren', pos: 'last' }, { by: 'truss', pos: 'first' }, { by: 'volume' }];
+  const { placements, unplaced } = autoPack(list, mkTruck(), { rules });
+  assert.equal(unplaced.length, 0);
+  const maxX = id => Math.max(...placements.filter(p => p.caseId === id).map(p => p.x));
+  const minX = id => Math.min(...placements.filter(p => p.caseId === id).map(p => p.x));
+  assert.equal(minX('tr'), 0, 'Traversen beginnen an der Stirnwand');
+  assert.ok(minX('mot') >= maxX('pack'), 'Motoren stehen hinter den Packcases');
+  assert.ok(placements.filter(p => p.caseId === 'mot').every(p => p.group === 'Motoren'), 'Gruppe wandert ins Placement');
+  assert.ok(placements.filter(p => p.caseId === 'pack').every(p => !('group' in p)), 'ohne Gruppe kein Feld');
+});
+
+test('autoPack: order-String bleibt gültig und entspricht legacyRules (Altdaten)', () => {
+  const a = mkCase('a', 120, 60, 60), b = mkCase('b', 60, 60, 60);
+  const list = [...items(a, 3, 'a'), ...items(b, 6, 'b')];
+  for (const order of ['volume', 'count']) {
+    const viaOrder = autoPack(list, mkTruck(), { order });
+    const viaRules = autoPack(list, mkTruck(), { rules: order === 'count'
+      ? [{ by: 'count' }, { by: 'volume' }]
+      : [{ by: 'truss', pos: 'last' }, { by: 'volume' }, { by: 'count' }] });
+    assert.deepEqual(viaRules, viaOrder, order);
+  }
 });

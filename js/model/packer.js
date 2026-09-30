@@ -1,6 +1,7 @@
 import { ROTATIONS, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations, outerDims } from './geometry.js';
 import { archBoxes } from './validate.js';
 import { isTruss } from './truss.js';
+import { legacyRules, blockComparator, volumeOf } from './packRules.js';
 
 export function chooseOrientation(c, truck, piece = {}) {
   const opts = [];
@@ -62,27 +63,22 @@ function canAddToStack(stack, c, dz, truck) {
   return true;
 }
 
-// Sortenrein packen (Nutzerwunsch 2026-09-28, Spec docs/superpowers/specs/2026-09-28-sortenrein-
-// packen-design.md): eine Sorte ist ein Case-Typ (caseId) und wird als Block geladen.
-// 'volume' = „Große zuerst“ (Einzelvolumen absteigend, Traversen immer zuletzt),
-// 'count' = „Stückzahl zuerst“ (Anzahl absteigend, dann Volumen, dann Name).
+// Sortenrein packen: ein Block ist ein Case-Typ (caseId) PLUS Gruppe (Stück-Feld `group`, Spec
+// 2026-09-30) – so lassen sich z. B. 20 von 30 gleichen Cases als „Motoren“ an die Tür schieben.
+// `rules` ist die Rangliste des Loads (js/model/packRules.js); ein String 'volume'/'count' (Altdaten,
+// alte Aufrufer) wird über legacyRules übersetzt und ergibt exakt die frühere Reihenfolge.
+// Seit V 0.8.5 nur noch für Altdaten; neue Loads tragen `packRules`.
 export const PACK_ORDERS = ['volume', 'count'];
-const volumeOf = c => { const { l, w, h } = outerDims(c); return l * w * h; };
 
-export function orderSorts(itemList, mode = 'volume') {
+export function orderSorts(itemList, rules = 'volume') {
+  const list = typeof rules === 'string' ? legacyRules(rules) : rules;
   const groups = new Map();
   for (const it of itemList) {
-    if (!groups.has(it.caseId)) groups.set(it.caseId, []);
-    groups.get(it.caseId).push(it);
+    const key = `${it.caseId}\u0000${it.group ?? ''}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(it);
   }
-  const nameOf = g => String(g[0].c.name ?? g[0].caseId);
-  const byVolume = (a, b) => volumeOf(b[0].c) - volumeOf(a[0].c);
-  const byCount = (a, b) => b.length - a.length;
-  const byName = (a, b) => nameOf(a).localeCompare(nameOf(b), 'de');
-  const trussLast = (a, b) => (isTruss(a[0].c) ? 1 : 0) - (isTruss(b[0].c) ? 1 : 0);
-  return [...groups.values()].sort(mode === 'count'
-    ? (a, b) => byCount(a, b) || byVolume(a, b) || byName(a, b)
-    : (a, b) => trussLast(a, b) || byVolume(a, b) || byCount(a, b) || byName(a, b));
+  return [...groups.values()].sort(blockComparator(list));
 }
 
 // itemList: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
@@ -91,7 +87,7 @@ export function orderSorts(itemList, mode = 'volume') {
 // auffüllen (Nutzerregel „Letzter Stapel darf aufgefüllt werden“) – mit denselben Grenzen wie
 // immer (gleiche Grundfläche, Lagen je Stück, höchstens 4 Lagen, nichts Schweres auf Leichtes,
 // maxTopLoad). Jeder Stapel trägt `sort` = Index der Sorte, die ihn begonnen hat.
-export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
+export function buildStacks(itemList, truck, { order = 'volume', rules } = {}) {
   const stacks = [], unplaced = [];
   const maxLayer = (it, c) => Math.max(...pieceLayers(it, c));
   const minLayer = (it, c) => Math.min(...pieceLayers(it, c));
@@ -110,7 +106,7 @@ export function buildStacks(itemList, truck, { order = 'volume' } = {}) {
   };
   let prevLast = null; // letzter Stapel, in dem die vorige Sorte zuletzt etwas abgelegt hat
 
-  orderSorts(itemList, order).forEach((group, sort) => {
+  orderSorts(itemList, rules ?? order).forEach((group, sort) => {
     const entries = group.map(it => ({ it, c: it.c, o: chooseOrientation(it.c, truck, it) }));
     for (const e of entries) if (!e.o) unplaced.push(e.it);
     const ready = entries.filter(e => e.o);
@@ -227,9 +223,9 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
 
 // items: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
 // Die erzeugten Placements übernehmen id/label/color/layers/tipped des Stücks statt eine neue ID zu vergeben.
-// order: 'volume' | 'count' (PACK_ORDERS), startX: frühestes x der ersten Sorte (Rest einpacken).
-export function autoPack(items, truck, { obstacles = [], order = 'volume', startX = 0 } = {}) {
-  const { stacks, unplaced } = buildStacks(items, truck, { order });
+// order: 'volume' | 'count' (Altdaten), rules: Rangliste (packRules.js, hat Vorrang), startX: frühestes x der ersten Sorte (Rest einpacken).
+export function autoPack(items, truck, { obstacles = [], order = 'volume', rules, startX = 0 } = {}) {
+  const { stacks, unplaced } = buildStacks(items, truck, { order, rules });
   const { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
   const placements = [];
   for (const { stack, box, swap } of placed) {
@@ -243,6 +239,7 @@ export function autoPack(items, truck, { obstacles = [], order = 'volume', start
         ...(it.color ? { color: it.color } : {}),
         ...(it.layers ? { layers: it.layers } : {}),
         ...(it.tipped != null ? { tipped: it.tipped } : {}),
+        ...(it.group ? { group: it.group } : {}),
       });
     }
   }
