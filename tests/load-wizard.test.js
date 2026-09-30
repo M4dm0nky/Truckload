@@ -50,6 +50,15 @@ test('tippbarer Case-Typ, tipped:false (Nutzer hat den Standardwert bewusst abge
   assert.equal(res.tipped, false);
 });
 
+test('reduceWizardItem: Gruppe getrimmt und gekürzt übernommen, leer entfällt', () => {
+  const c = mkCase('a', 60, 60, 60);
+  const base = { layers: [1, 2, 3, 4], tipped: false };
+  assert.equal(reduceWizardItem({ ...base, group: '  Motoren ' }, c).group, 'Motoren');
+  assert.equal(reduceWizardItem({ ...base, group: 'x'.repeat(50) }, c).group.length, 40);
+  assert.ok(!('group' in reduceWizardItem({ ...base, group: '  ' }, c)));
+  assert.ok(!('group' in reduceWizardItem(base, c)), 'altes Wizard-Stück ohne Feld');
+});
+
 // Globale Kopfzeile im Wizard-Schritt „Beschriftung“: Vorbelegung Lage 1+2 und getippt, dazu
 // Häkchen, die Lage n bzw. „getippt“ für alle Stücke auf einmal setzen.
 

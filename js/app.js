@@ -268,6 +268,7 @@ async function runLoadWizard(mode) {
     onNewCase: newCaseForWizard,
     trussDlg: $('#dlg-truss'),
     onNewTruss: saveCaseValue,
+    groups: s.plan ? ruleTargets([...s.plan.placements, ...s.plan.unplaced], ctx().caseById).groups : [],
   });
   if (!res) return;
   if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));
@@ -278,6 +279,7 @@ async function runLoadWizard(mode) {
         color: it.color ?? null,
         layers: it.layers,
         tipped: it.tipped,
+        group: it.group,
       }), p);
     if (res.autoPack) next = A.packRest(next, c);
     return next;
@@ -332,7 +334,13 @@ renderHooks.push((s, d) => {
     const c = u && d.caseById.get(u.caseId);
     if (u && c) selectedUnplaced = { id: u.id, item: u, c, label: u.label ?? c.name, color: u.color ?? c.color };
   }
-  renderInspector($('#inspector'), { selected, selectedUnplaced, result: d.result, truck: d.truck });
+  renderInspector($('#inspector'), {
+    selected,
+    selectedUnplaced,
+    result: d.result,
+    truck: d.truck,
+    groups: ruleTargets([...s.plan.placements, ...s.plan.unplaced], d.caseById).groups,
+  });
 });
 const withSel = fn => { const id = store.get().selectedId; if (id) fn(id); };
 // Case-Typ eines Stücks unabhängig davon finden, ob es gerade platziert oder in der Ablage
@@ -378,6 +386,7 @@ $('#inspector').addEventListener('change', e => {
   if (name === 'label') return edit((p, c) => A.setItemLabel(p, id, { label: e.target.value.trim() }));
   if (name === 'color') return edit((p, c) => A.setItemLabel(p, id, { color: e.target.value }));
   if (name === 'tipped') return edit((p, c) => A.setPieceTipped(p, id, e.target.checked, c));
+  if (name === 'group') return edit(p => A.setPieceGroup(p, id, e.target.value));
   if (e.target.dataset.layer) {
     // Wie im Wizard (js/ui/load-wizard.js): letzte angehakte Lage lässt sich nicht abwählen –
     // Häkchen wieder setzen, Hinweis zeigen, keine Aktion.

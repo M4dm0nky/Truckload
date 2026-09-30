@@ -17,13 +17,15 @@ const MAX_ITEMS = 500;
 // dann bei diesen Stücken nie an. Nachträglich lassen sich beide Felder je Stück im Inspector
 // ändern (`A.setPieceLayers`/`A.setPieceTipped`, js/ui/inspector.js), mit derselben
 // Reduktionsregel. Die Vorbelegung/Anzeige der Checkboxen hier im Wizard bleibt davon
-// unberührt (s. defaultWizardLayers), nur das gespeicherte ERGEBNIS wird reduziert.
+// unberührt (s. defaultWizardLayers), nur das gespeicherte ERGEBNIS wird reduziert. Die Gruppe
+// (`group`) kommt ohne Vorbelegung nur, wenn der Nutzer sie getrimmt nicht leer ausgefüllt hat.
 export function reduceWizardItem(it, c) {
   const allowed = layersOf(c);
   const sameLayers = it.layers.length === allowed.length && it.layers.every(n => allowed.includes(n));
   return {
     ...(sameLayers ? {} : { layers: it.layers }),
     ...(canTip(c) ? { tipped: it.tipped } : {}),
+    ...(it.group?.trim() ? { group: it.group.trim().slice(0, MAX_LABEL) } : {}),
   };
 }
 
@@ -79,9 +81,10 @@ function caseLine(c) {
 
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, onNewCase(draft),
 //   trussDlg (<dialog> für „Traverse hinzufügen“, optional – ohne wird der Knopf ausgeblendet),
-//   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js) }
-// Ergebnis: { name, truckId, items: [{ caseId, label, color, layers, tipped }], autoPack } oder
-// null bei Abbruch.
+//   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js),
+//   groups: string[] (vorhandene Gruppen des Loads, für die Vorschlagsliste im Gruppenfeld) }
+// Ergebnis: { name, truckId, items: [{ caseId, label, color, layers?, tipped?, group? }], autoPack }
+// oder null bei Abbruch.
 export function openLoadWizard(dlg, opts = {}) {
   const mode = opts.mode ?? 'new';
   const trucks = opts.trucks ?? [];
@@ -128,6 +131,7 @@ export function openLoadWizard(dlg, opts = {}) {
           <label class="check wiz-tipped"><input type="checkbox" data-all-tipped>getippt</label>
           <small class="hint wiz-all-hint" hidden></small>
         </div>
+        <datalist id="wiz-group-list"></datalist>
         <div class="wiz-groups"></div>
         <p class="hint wiz-nolayer-hint" hidden></p>
         <label class="check"><input type="checkbox" name="autoPack" checked> danach automatisch packen</label>
@@ -312,6 +316,7 @@ export function openLoadWizard(dlg, opts = {}) {
         color: colorFor(c.category),
         layers: defaultWizardLayers(c),
         tipped: canTip(c),
+        group: '',
       });
       itemsState.set(c.id, next);
     }
@@ -326,11 +331,12 @@ export function openLoadWizard(dlg, opts = {}) {
       const tippable = canTip(c);
       return `
         <fieldset class="wiz-group" data-case="${esc(id)}">
-          <legend>${esc(c.name)} <button type="button" data-act="color-all">Farbe auf alle übernehmen</button></legend>
+          <legend>${esc(c.name)} <button type="button" data-act="color-all">Farbe auf alle übernehmen</button> <button type="button" data-act="group-all">Gruppe auf alle übernehmen</button></legend>
           ${arr.map((it, i) => `
             <div class="row wiz-item" data-i="${i}">
               <input name="label" value="${esc(it.label)}" maxlength="${MAX_LABEL}">
               <input type="color" name="color" value="${esc(it.color)}">
+              <input name="group" list="wiz-group-list" maxlength="${MAX_LABEL}" placeholder="Gruppe" value="${esc(it.group ?? '')}">
               <span class="wiz-layers">
                 <span class="wiz-layers-label">Lage</span>
                 ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-layer="${n}" ${it.layers.includes(n) ? 'checked' : ''} ${allowed.includes(n) ? '' : 'disabled'}>${n}</label>`).join('')}
@@ -340,6 +346,9 @@ export function openLoadWizard(dlg, opts = {}) {
             </div>`).join('')}
         </fieldset>`;
     }).join('') || '<p class="hint">Keine Cases ausgewählt.</p>';
+    const known = [...new Set([...(opts.groups ?? []), ...allEntries().map(e => e.it.group?.trim()).filter(Boolean)])]
+      .sort((a, b) => a.localeCompare(b, 'de'));
+    dlg.querySelector('#wiz-group-list').innerHTML = known.map(g => `<option value="${esc(g)}">`).join('');
     syncAllHead();
   }
   // Alle Stücke mit ihrem Case-Typ, für die Kopfzeile „Alle Stücke“.
@@ -380,6 +389,7 @@ export function openLoadWizard(dlg, opts = {}) {
     if (!it) return;
     if (e.target.name === 'label') it.label = e.target.value;
     if (e.target.name === 'color') it.color = e.target.value;
+    if (e.target.name === 'group') it.group = e.target.value;
     if (e.target.name === 'tipped') it.tipped = e.target.checked;
     if (e.target.dataset.layer) {
       const n = Number(e.target.dataset.layer);
@@ -401,12 +411,18 @@ export function openLoadWizard(dlg, opts = {}) {
     if (e.target.dataset.layer && !countWithoutLayer(allEntries())) noLayerHint.hidden = true;
   });
   groupsEl.addEventListener('click', e => {
-    const btn = e.target.closest('[data-act="color-all"]');
-    if (!btn) return;
+    const colorBtn = e.target.closest('[data-act="color-all"]');
+    const groupBtn = e.target.closest('[data-act="group-all"]');
+    if (!colorBtn && !groupBtn) return;
     const groupEl = e.target.closest('.wiz-group');
     const arr = itemsState.get(groupEl.dataset.case);
-    const firstColor = groupEl.querySelector('.wiz-item input[type="color"]').value;
-    for (const it of arr) it.color = firstColor;
+    if (colorBtn) {
+      const firstColor = groupEl.querySelector('.wiz-item input[type="color"]').value;
+      for (const it of arr) it.color = firstColor;
+    } else {
+      const firstGroup = groupEl.querySelector('.wiz-item input[name="group"]').value;
+      for (const it of arr) it.group = firstGroup;
+    }
     renderGroups();
   });
 
@@ -466,7 +482,7 @@ export function openLoadWizard(dlg, opts = {}) {
         if (n <= 0) continue;
         const arr = itemsState.get(c.id) ?? [];
         for (let i = 0; i < n; i++) {
-          const it = arr[i] ?? { label: '', color: colorFor(c.category), layers: defaultWizardLayers(c), tipped: canTip(c) };
+          const it = arr[i] ?? { label: '', color: colorFor(c.category), layers: defaultWizardLayers(c), tipped: canTip(c), group: '' };
           items.push({ caseId: c.id, label: it.label.trim(), color: it.color, ...reduceWizardItem(it, c) });
         }
       }

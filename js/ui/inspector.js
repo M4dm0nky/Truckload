@@ -30,7 +30,7 @@ function loadBlock(piece, c, tippedOn) {
     </div>`;
 }
 
-export function renderInspector(el, { selected, selectedUnplaced, result, truck }) {
+export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [] }) {
   const t = result.totals;
   const pct = Math.min(100, Math.round(t.weight / t.payload * 100));
   const tipped = selected && selected.p.orientation !== 'standing';
@@ -52,6 +52,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck 
       <div class="insp-label">
         <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selected.label)}"></label>
         <label>Farbe<input type="color" name="color" value="${esc(selected.color)}"></label>
+        <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selected.p.group ?? '')}"></label>
       </div>
       <dl>
         <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
@@ -80,6 +81,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck 
       <div class="insp-label">
         <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selectedUnplaced.label)}"></label>
         <label>Farbe<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
+        <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
       </div>
       ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
       <div class="btns">
@@ -88,7 +90,8 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck 
       </div>
     </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>');
 
-  el.innerHTML = `${sel}
+  el.innerHTML = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+    ${sel}
     <section class="insp-totals">
       <h3>Ladung – ${esc(truck.name)}</h3>
       <div class="bar ${t.weight > t.payload ? 'over' : ''}"><span style="width:${pct}%"></span></div>
