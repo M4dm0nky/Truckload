@@ -1,3 +1,104 @@
+## Nachrecherche 2026-09-30 (61 offene Cases)
+
+Von den bis dahin bewusst bei 0 kg belassenen 61 Cases (siehe „Bewusst bei 0 belassen“ unten)
+sind wir mit dem Nutzer gemeinsam Case für Case durchgegangen: reale Konfigurationen (Verteiler-
+Ausgänge, Kabellängen, Gerätemodelle) klären, dann recherchieren. 24 Cases bekommen dadurch ein
+Gewicht, 4 werden auf Nutzerwunsch `legacy: true` (aus der Auswahl entfernt, alte Ladepläne laden
+sie unverändert weiter). Der Rest bleibt aus denselben Gründen wie zuvor bei 0 kg.
+
+### Vier entfernte Cases
+
+Auf ausdrücklichen Nutzerwunsch („schmeiß raus“) als überflüssig markiert, Maße/Namen bleiben
+für alte Ladepläne unverändert:
+
+- Lakabaum (flach) -BBM
+- Lakabaum (Transflex) -BBM
+- 63A VT Haube -BBM
+- Rigpack -CAB
+
+### Standardwert für leere Rack-/Dolly-Gehäuse: 75 kg/m³
+
+Für Cases ohne festen Geräteinhalt (Datarack, Rack 16HE Deckel, Rack Amp 12HE Schieber,
+Schubladencase 90, Dolly Rack 28HEx2, Markus Tools, Dimmerdolly klein/Rack) hat der Nutzer einem
+Standardwert nach Volumen zugestimmt, analog zu den Packcases oben. Hergeleitet aus einem realen
+leeren 19″-Rack-Case: KORN Case 19″ 7HE ohne Deckel, Birke, 10,6 kg bei ca. 0,60×0,60×0,40 m ≈
+0,14 m³ → rund 76 kg/m³, aufgerundet 75 kg/m³
+([reverb.com](https://reverb.com/item/55150624-korn-case-19-zoll-rack-ohne-deckel-7-he-60-cm-schwarz-casebau)).
+Kein recherchierter Einzelwert je Case, sondern ein Standard. Bei Schubladencases liegen reale
+Produkte eher bei 120–300 kg/m³ (mehr Material durch Schubfächer) – hier trotzdem der einfache
+Rack-Standard verwendet, das Gewicht von `Schubladencase 90 -CAB` ist also eher niedrig angesetzt.
+`Dimmerdolly (klein/Rack)` ist laut Nutzerangabe ein leeres Gestell, der Dimmer selbst zählt
+separat (z. B. über `Dimmer 24ch`/`Dimmer 48ch` unten).
+
+### Verteiler und Kabel
+
+- **Powerlock-VT groß -CAB**: Direkttreffer mit exakt der vom Nutzer genannten Bestückung
+  (4×125A + 4×63A + 2×32A + 3×16A) – INDU Powerlock 400A, 140 kg
+  ([jundc.com](https://jundc.com/produkt/powerlock-verteiler-4x125a-4x-63a-2x-32a-3x-16a-rcd-im-case/)).
+- **Powerlock-VT klein -CAB**: kein Direkttreffer für 4×63A + 2×32A + 3×16A. Interpoliert
+  zwischen einem kleineren 1×63A-Verteiler (33 kg,
+  [lichtundton.at](https://lichtundton.at/technik-katalog/stromversorgung-kabel/starkstromverteiler-cee63-auf-2xcee16-und-2xcee32/))
+  und dem großen 4-stufigen Verteiler oben (140 kg): 50 kg, vom Nutzer als Schätzung akzeptiert.
+- **MLVT 24ch/48ch/63A/63A Hotpatch ROW -CAB** („Moving-Light-Verteiler mit Patchfeld“,
+  Nutzerangabe): kein Katalogprodukt auffindbar, wirkt wie ein firmeninterner Rack-Typ.
+  Nutzer-Standardgewicht 75 kg für alle vier Varianten gleich, unabhängig von Kanalzahl/Amperage.
+- **Powerlocksatz 10m -BBM/-CAB**: laut Nutzer 5 Kabel (3 Phasen + N + PE) à 10 m, je Kabel
+  95 mm² Powerlock. Kabelgewicht grob aus Kabelsatz-Angeboten hergeleitet (Powerlock-Kabelsätze
+  mit gemischten Querschnitten, [meevi-rent.de](https://www.meevi-rent.de/shop/powerlock-315a-kabelsatz-4x120mm2-1x95mm2-200-meter-23/)),
+  ca. 1,05 kg/m je Ader – **keine reine Einzelader-Quelle**, nur eine grobe Herleitung. 5×10m×1,05 kg/m
+  = 52,5 kg + Case-Anteil.
+- **Laka Loom 20-30/28-40/45m -CAB**: laut Nutzer je Case 5× Harting-HAN16-Lastkabel plus
+  2× Netzwerk, 1× LK24, 1× Erdung, alle in der angegebenen Länge. „20-30“ und „28-40“ meinen die
+  5 Han16-Kabel gestaffelt vom kürzesten zum längsten (hier mit der Durchschnittslänge
+  gerechnet), „45m“ heißt alle 5 Kabel gleich 45 m lang. Kabelgewichte geschätzt über
+  H07RN-F-5G2,5-Richtwert für die Han16-Lastkabel (0,33 kg/m,
+  [elektrikshop.de](https://www.elektrikshop.de/h07rn-f-5g2-5-gummischlauchleitung.html)) und
+  grobe eigene Schätzwerte für die dünneren Netzwerk- (0,15 kg/m), LK24- (0,20 kg/m) und
+  Erdungs-Kabel (0,10 kg/m) – diese drei sind **nicht einzeln recherchiert**.
+- **„Laka Loom 5fach“ bleibt bei 0 kg**: Die Bedeutung der „5“ ließ sich auch nach zwei
+  Rückfragen nicht in eine Länge übersetzen (Nutzerantwort „5 Stück Kabel in der angegebenen
+  Menge“) – lieber unbekannt als geraten.
+- **MoCo 12ch/32ch -CAB bleiben bei 0 kg**: Chainmaster-Steuerung (BGV-D8/CM-820) bestätigt,
+  aber für das 12-Kanal-Modell (CM-820018) ist online keine Gewichtsangabe zu finden, und für
+  32ch existiert kein passendes Chainmaster-Produkt.
+
+### Geräte mit Direkttreffer
+
+| Gerät | Gewicht (kg) | Quelle |
+|---|---|---|
+| ChamSys MagicQ Compact Wing | 4,0 | https://chamsyslighting.com/product/magicq-compact-wing/ |
+| Ayrton IntelliPix-R (für „Intellipix -BBM“, Marke vom Nutzer bestätigt) | 15,9 | https://www.ambersphere.com/product/intellipix-xt/ |
+| MA Digital Dimmer 12×2,3kVA (für „Dimmer 24ch“ = 2×, „Dimmer 48ch“ = 4×, Nutzerangabe) | 23,0 | https://www.malighting.com/product-archive/product/ma-digital-dimmer-12-x-2-3kva-140501/ |
+
+### Ergebnistabelle
+
+| Case | Neues Gewicht |
+|---|---|
+| ChamSys Wing Compact -CAB | 20 kg |
+| Intellipix -BBM | 40 kg |
+| Powerlock-VT groß -CAB | 140 kg |
+| Powerlock-VT klein -CAB | 50 kg |
+| MLVT 24ch -CAB | 75 kg |
+| MLVT 48ch -CAB | 75 kg |
+| MLVT 63A 19″ -CAB | 75 kg |
+| MLVT 63A Hotpatch ROW -CAB | 75 kg |
+| Laka Loom 20-30 -CAB | 75 kg |
+| Laka Loom 28-40 -CAB | 95 kg |
+| Laka Loom 45m -CAB | 120 kg |
+| Powerlocksatz 10m -BBM | 80 kg |
+| Powerlocksatz 10m -CAB | 70 kg |
+| Dimmer 24ch -CAB | 70 kg |
+| Dimmer 48ch -CAB | 120 kg |
+| Datarack braun -CAB | 30 kg |
+| Datarack schwarz -CAB | 20 kg |
+| Rack 16HE Deckel -CAB | 30 kg |
+| Rack Amp 12 HE Schieber -CAB | 30 kg |
+| Schubladencase 90 -CAB | 25 kg |
+| Dolly Rack 28 HEx2 -CAB | 115 kg |
+| Markus Tools -ROW only -CAB | 30 kg |
+| Dimmerdolly (klein/Rack) -BBM | 150 kg |
+| Dimmerdolly (klein/Rack) -CAB | 200 kg |
+
 ## Packcases (Standardgewicht, Nutzerangabe 2026-09-30)
 
 Anders als die recherchierten Gewichte unten ist das hier kein recherchierter Wert,
@@ -188,27 +289,33 @@ Q-7 eindeutig identifiziert), keine Ausnahme.
 
 ## Bewusst bei 0 belassen
 
-- **ChamSys Wing Compact -CAB**: eigenständiges kleines Zusatzpult, nicht im
-  Rechercheauftrag; Gewicht nicht recherchiert, um keine Zahl zu raten.
 - **Generic-Fixtures ohne Herstellerbezug** (`4lite x6`, `Asym Flood x1/x6`,
   `2-light x12`, `8-light x6`, `4-light HORZ x8`, alle `Dolly …`-Einträge mit
   Hersteller „Generic“ im Feld „Inhalt“; Firmenfeld ist bei diesen Einträgen
   „CAB“): kein recherchierbares Gerätemodell hinter „Generic“.
 - **„Das K – Annahme“ -Kraftklub**: Bandspezifisches Sonderequipment ohne
   identifizierbares Katalogprodukt.
-- **Intellipix -BBM**, **Sunstrips Sandwich -CAB**: kein Herstellerfeld, Gerät
-  nicht sicher identifizierbar.
+- **Sunstrips Sandwich -CAB**, **Case klein Adapter -Jäger**, **V-Mat
+  (Schubladen tipbar) -BBM**: kein Herstellerfeld, Gerät nicht sicher
+  identifizierbar.
 - **Base Station -Motion**, **motion Cam**: keine eindeutige Zuordnung zu einem
   bekannten Robe-Produkt dieses Namens gefunden.
 - **Gunnar Arkaos Server / Gunnar Monitor / Gunnar Tools -CAB**: „Gunnar“ liest
   sich wie ein Crew-/Systemname, kein recherchierbares Gerätemodell.
-- **MoCo 12ch / MoCo 32ch -CAB**: Motor-Steuerracks ohne öffentlich gelistetes
-  Referenzprodukt mit Gewichtsangabe.
-- **Dimmer 24ch / Dimmer 48ch -CAB**, alle **19″-Racks**, **Rack-/Dolly-/
-  Rigging-Cases ohne Gerätebezug** (Truss, Trussdolly, FD34, MLT, Rigpack,
-  Slick, Datarack, Multicore, Powerlock-VT, MLVT, Laka Loom, Schubladencase,
-  63A VT Haube, Dolly Rack 28HE, Rack 16HE Deckel, Rack Amp 12HE Schieber):
-  laut Aufgabenstellung ausdrücklich bei 0 kg zu belassen (kein Gerätebezug).
+- **MoCo 12ch / MoCo 32ch -CAB**: Chainmaster-Steuerung bestätigt (Nachrecherche
+  2026-09-30), aber für 12ch keine Gewichtsangabe auffindbar und für 32ch kein
+  passendes Produkt – siehe oben.
+- **„Laka Loom 5fach“ -CAB**: Bedeutung nach zwei Rückfragen nicht in eine
+  Länge übersetzbar – siehe „Nachrecherche 2026-09-30“ oben.
+- **FD34 2m CUSTOMIZE -CAB**, **Slick -CAB**: Traversen-Reste-Cases; der
+  Nutzer wägt die enthaltene Traverse beim Aufbau selbst, deshalb bewusst ohne
+  Trussgewicht (Nachrecherche 2026-09-30).
+- **Multicore -CAB / Multicore LK24 -CAB / Multicore LK37 -CAB**: Kabellänge/
+  Kanalzahl je Einsatz unterschiedlich, kein fester Inhalt.
+- alle **19″-Racks** (1–6, 16 HE), **Truss lose 40er -BBM**, **Trussdolly
+  40er -BBM**, **MLT 120/160/240 x2 -CAB**: laut Aufgabenstellung ausdrücklich
+  bei 0 kg zu belassen (kein Gerätebezug); die vier zuletzt genannten sind
+  zusätzlich `legacy`.
 
 ## Formel-Abweichungen und Variantenunsicherheit (dokumentiert)
 

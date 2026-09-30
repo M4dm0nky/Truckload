@@ -204,3 +204,66 @@ test('Regression Altdaten: eigenes Case ohne wheelH, Maß ohne Rollen → weiter
   const own = { id: 'o', l: 100, w: 60, h: 70, dimsInclWheels: false };
   assert.equal(outerDims(own).h, 82);
 });
+
+// Nachrecherche 2026-09-30 (docs/casemasse-gewichte.md, „Nachrecherche 2026-09-30“): 24 der bis
+// dahin bewusst bei 0 kg belassenen Cases bekommen ein Gewicht, gemeinsam mit dem Nutzer geklärt
+// (reale Konfiguration bei Verteilern/Kabeln, Standardwert nach Volumen bei leeren Rack-/
+// Dolly-Gehäusen). Vier weitere werden auf Nutzerwunsch „legacy“ (aus der Auswahl entfernt,
+// bestehende Ladepläne laden sie unverändert weiter).
+test('Nachrecherche 2026-09-30: neue Gewichte', () => {
+  const expect = {
+    'ChamSys Wing Compact -CAB': 20,
+    'Intellipix -BBM': 40,
+    'Powerlock-VT groß -CAB': 140,
+    'Powerlock-VT klein -CAB': 50,
+    'MLVT 24ch -CAB': 75,
+    'MLVT 48ch -CAB': 75,
+    'MLVT 63A 19" -CAB': 75,
+    'MLVT 63A Hotpatch ROW -CAB': 75,
+    'Laka Loom 20-30 -CAB': 75,
+    'Laka Loom 28-40 -CAB': 95,
+    'Laka Loom 45m -CAB': 120,
+    'Powerlocksatz 10m -BBM': 80,
+    'Powerlocksatz 10m -CAB': 70,
+    'Dimmer 24ch -CAB': 70,
+    'Dimmer 48ch -CAB': 120,
+    'Datarack braun -CAB': 30,
+    'Datarack schwarz -CAB': 20,
+    'Rack 16HE Deckel -CAB': 30,
+    'Rack Amp 12 HE Schieber -CAB': 30,
+    'Schubladencase 90 -CAB': 25,
+    'Dolly Rack 28 HEx2 -CAB': 115,
+    'Markus Tools -ROW only -CAB': 30,
+    'Dimmerdolly (klein/Rack) -BBM': 150,
+    'Dimmerdolly (klein/Rack) -CAB': 200,
+  };
+  for (const [name, weight] of Object.entries(expect)) {
+    const c = byName(name);
+    assert.ok(c, name);
+    assert.equal(c.weight, weight, name);
+    assert.ok(typeof c.note === 'string' && c.note.length > 0, `${name} braucht eine Quellenangabe`);
+  }
+});
+
+test('Nachrecherche 2026-09-30: vier Cases sind jetzt legacy (auf Nutzerwunsch aus der Auswahl entfernt)', () => {
+  for (const name of ['63A VT Haube -BBM', 'Rigpack -CAB', 'Lakabaum (flach) -BBM', 'Lakabaum (Transflex) -BBM']) {
+    const c = byName(name);
+    assert.ok(c, name);
+    assert.equal(c.legacy, true, name);
+  }
+});
+
+test('Nachrecherche 2026-09-30: bewusst weiter bei 0 kg belassene Cases sind unverändert', () => {
+  for (const name of [
+    '4lite x6 -CAB', 'Asym Flood x1 -CAB', 'Asym Flood x6 -CAB', '2-light x12 -CAB', '8-light x6 -CAB',
+    '4-light HORZ x8 -CAB', 'Dolly 6-Bar -CAB', 'Dolly 2kW -CAB', 'Dolly 6-Bar silber -CAB',
+    'Das K - Annahme -Kraftklub', 'Base Station -Motion', 'motion Cam', 'Gunnar Arkaos Server -CAB',
+    'Gunnar Monitor -CAB', 'Gunnar Tools -CAB', 'Sunstrips Sandwich -CAB', 'Case klein Adapter -Jäger',
+    'V-Mat (Schubladen tipbar) -BBM', 'FD34 2m CUSTOMIZE -CAB', 'Slick -CAB', 'Laka Loom 5fach -CAB',
+    'MoCo 12ch -CAB', 'MoCo 32ch -CAB',
+  ]) {
+    const c = byName(name);
+    assert.ok(c, name);
+    assert.equal(c.weight, 0, name);
+  }
+});

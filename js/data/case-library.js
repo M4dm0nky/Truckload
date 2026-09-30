@@ -51,41 +51,70 @@ const slug = name => name.toLowerCase()
 // leeren Pack-/Transflex-Cases (ersetzt durch „Packcase L×B×H“ in preset-cases.js) und die
 // Traversen aus der Liste (Traversenwagen baut man über „+ Traverse hinzufügen“).
 export const CASE_LIBRARY = [
-  C('Lakabaum (flach) -BBM', 'Strom', 112, 60, 53, 'BBM'),
-  C('Lakabaum (Transflex) -BBM', 'Strom', 120, 60, 75, 'BBM'),
-  C('Powerlocksatz 10m -BBM', 'Strom', 112, 120, 53, 'BBM'),
-  C('Laka Loom 20-30 -CAB', 'Strom', 100, 60, 73, 'CAB'),
-  C('Laka Loom 28-40 -CAB', 'Strom', 124, 55, 68, 'CAB'),
+  // Lakabaum (flach/Transflex) -BBM: auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt
+  // (überflüssig, siehe docs/casemasse-gewichte.md „Nachrecherche 2026-09-30“). Maße/Namen
+  // unverändert, damit alte Ladepläne sie weiter finden.
+  C('Lakabaum (flach) -BBM', 'Strom', 112, 60, 53, 'BBM', '', { legacy: true }),
+  C('Lakabaum (Transflex) -BBM', 'Strom', 120, 60, 75, 'BBM', '', { legacy: true }),
+  // Powerlocksatz 10m: 5 Kabel (3 Phasen + N + PE) à 10 m, je Kabel 95 mm² Powerlock (Nutzerangabe
+  // 2026-09-30). Kabelgewicht grob aus Kabelsatz-Angeboten hergeleitet (~1,05 kg/m je Ader, keine
+  // reine Einzelader-Quelle) + Case-Anteil – Herleitung in docs/casemasse-gewichte.md.
+  C('Powerlocksatz 10m -BBM', 'Strom', 112, 120, 53, 'BBM', '', { weight: 80, note: 'Gewicht geschätzt: 5 × 95 mm² Powerlock-Kabel à 10 m + Case' }),
+  // Laka Loom: je Case 5× Harting-HAN16-Lastkabel plus 2× Netzwerk, 1× LK24, 1× Erdung, alle in
+  // der angegebenen Länge (Nutzerangabe 2026-09-30). „20-30“/„28-40“ = die 5 Han16-Kabel gestaffelt
+  // vom kürzesten zum längsten, hier mit der Durchschnittslänge gerechnet. Kabelgewichte über
+  // H07RN-F-Richtwerte geschätzt, Herleitung in docs/casemasse-gewichte.md.
+  C('Laka Loom 20-30 -CAB', 'Strom', 100, 60, 73, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: 5 × Han16 + 2 × Netzwerk + LK24 + Erdung, gestaffelt Ø 25 m + Case' }),
+  C('Laka Loom 28-40 -CAB', 'Strom', 124, 55, 68, 'CAB', '', { weight: 95, note: 'Gewicht geschätzt: 5 × Han16 + 2 × Netzwerk + LK24 + Erdung, gestaffelt Ø 34 m + Case' }),
+  // „5fach“ bleibt bei 0 kg: Bedeutung der Zahl (Nutzerangabe „5 Stück Kabel in der angegebenen
+  // Menge“) lässt sich nicht in eine Länge übersetzen – lieber unbekannt als geraten.
   C('Laka Loom 5fach -CAB', 'Strom', 100, 60, 73, 'CAB'),
-  C('Laka Loom 45m -CAB', 'Strom', 120, 60, 73, 'CAB'),
-  C('Powerlocksatz 10m -CAB', 'Strom', 120, 60, 55, 'CAB'),
+  C('Laka Loom 45m -CAB', 'Strom', 120, 60, 73, 'CAB', '', { weight: 120, note: 'Gewicht geschätzt: 5 × Han16 + 2 × Netzwerk + LK24 + Erdung, je 45 m (nicht gestaffelt) + Case' }),
+  C('Powerlocksatz 10m -CAB', 'Strom', 120, 60, 55, 'CAB', '', { weight: 70, note: 'Gewicht geschätzt: 5 × 95 mm² Powerlock-Kabel à 10 m + Case' }),
   C('Packcase (Transflex) -BBM', 'Sonstiges', 120, 60, 73, 'BBM', '', { legacy: true }),
   C('Packwürfel -BBM', 'Sonstiges', 60, 60, 73, 'BBM', '', { legacy: true }),
   C('V-Mat (Schubladen tipbar) -BBM', 'Sonstiges', 114, 48, 72, 'BBM'),
   C('Transflex gross -CAB', 'Sonstiges', 120, 60, 73, 'CAB', '', { legacy: true }),
   C('Transflex klein (Würfel) -CAB', 'Sonstiges', 60, 60, 73, 'CAB', '', { legacy: true }),
   C('Case klein Adapter -Jäger', 'Sonstiges', 60, 49, 56, 'Jäger'),
-  C('Dimmer 24ch -CAB', 'Strom', 82, 60, 120, 'CAB', 'MA'),
-  C('Dimmer 48ch -CAB', 'Strom', 82, 60, 154, 'CAB', 'MA'),
-  C('Dimmerdolly (klein/Rack) -BBM', 'Strom', 207, 60, 160, 'BBM'),
-  C('Datarack braun -CAB', 'Strom', 75, 60, 95, 'CAB'),
-  C('Datarack schwarz -CAB', 'Strom', 57, 55, 90, 'CAB'),
-  C('Dimmerdolly (klein/Rack) -CAB', 'Strom', 206, 80, 162, 'CAB'),
-  C('Markus Tools -ROW only -CAB', 'Strom', 60, 60, 118, 'CAB'),
-  C('MLVT 24ch -CAB', 'Strom', 75, 60, 95, 'CAB'),
-  C('MLVT 48ch -CAB', 'Strom', 120, 60, 95, 'CAB'),
+  // MA Digital Dimmer 12×2,3kVA, 23 kg netto (malighting.com/product-archive/product/
+  // ma-digital-dimmer-12-x-2-3kva-140501) – Dimmer 24ch/48ch sind 2 bzw. 4 solcher Einheiten
+  // (Nutzerangabe 2026-09-30).
+  C('Dimmer 24ch -CAB', 'Strom', 82, 60, 120, 'CAB', 'MA', { weight: 70, note: 'Gewicht geschätzt: 2 × MA Digital Dimmer 12×2,3kVA à 23 kg + Case' }),
+  C('Dimmer 48ch -CAB', 'Strom', 82, 60, 154, 'CAB', 'MA', { weight: 120, note: 'Gewicht geschätzt: 4 × MA Digital Dimmer 12×2,3kVA à 23 kg + Case' }),
+  // Leeres Gestell, der Dimmer selbst zählt woanders (Nutzerangabe 2026-09-30) – Standardgewicht
+  // 75 kg/m³ wie bei den übrigen leeren Rack-/Dolly-Gehäusen unten, Herleitung in
+  // docs/casemasse-gewichte.md.
+  C('Dimmerdolly (klein/Rack) -BBM', 'Strom', 207, 60, 160, 'BBM', '', { weight: 150, note: 'Gewicht geschätzt: leeres Gestell, Standard 75 kg/m³' }),
+  // Leere Rack-/Dolly-Gehäuse ohne festen Geräteinhalt (Nutzerangabe 2026-09-30): Standardgewicht
+  // 75 kg/m³, hergeleitet aus einem realen leeren 19″-Rack (KORN Case 7HE ohne Deckel, 10,6 kg bei
+  // ca. 0,14 m³) – kein Einzelgerät, Herleitung in docs/casemasse-gewichte.md.
+  C('Datarack braun -CAB', 'Strom', 75, 60, 95, 'CAB', '', { weight: 30, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
+  C('Datarack schwarz -CAB', 'Strom', 57, 55, 90, 'CAB', '', { weight: 20, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
+  C('Dimmerdolly (klein/Rack) -CAB', 'Strom', 206, 80, 162, 'CAB', '', { weight: 200, note: 'Gewicht geschätzt: leeres Gestell, Standard 75 kg/m³' }),
+  C('Markus Tools -ROW only -CAB', 'Strom', 60, 60, 118, 'CAB', '', { weight: 30, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
+  // MLVT (Moving-Light-Verteiler mit Patchfeld, Nutzerangabe 2026-09-30): kein Katalogprodukt
+  // auffindbar, Nutzer-Standardgewicht 75 kg für alle vier Varianten gleich.
+  C('MLVT 24ch -CAB', 'Strom', 75, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
+  C('MLVT 48ch -CAB', 'Strom', 120, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
   // Kleine Cases unter ca. 45 cm Höhe haben keine Rollen (Nutzerangabe 2026-09-28): MLVT 63A 19″,
   // ChamSys-Pulte, ZR44, Look Viper NT, SF Data II, SF TourHazer II – Maß unverändert.
-  C('MLVT 63A 19" -CAB', 'Strom', 65, 55, 33, 'CAB', '', { wheels: false, wheelH: 0 }),
+  C('MLVT 63A 19" -CAB', 'Strom', 65, 55, 33, 'CAB', '', { wheels: false, wheelH: 0, weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
   C('Multicore -CAB', 'Strom', 80, 61, 60, 'CAB'),
   C('Multicore LK24 -CAB', 'Strom', 80, 61, 60, 'CAB'),
   C('Multicore LK37 -CAB', 'Strom', 80, 60, 73, 'CAB'),
-  C('Powerlock-VT groß -CAB', 'Strom', 147, 80, 94, 'CAB'),
-  C('Powerlock-VT klein -CAB', 'Strom', 85, 60, 83, 'CAB'),
-  C('MLVT 63A Hotpatch ROW -CAB', 'Strom', 80, 55, 99, 'CAB'),
+  // Direkttreffer: INDU Powerlock 400A mit exakt 4×125A+4×63A+2×32A+3×16A (jundc.com/produkt/
+  // powerlock-verteiler-4x125a-4x-63a-2x-32a-3x-16a-rcd-im-case), Bauart vom Nutzer bestätigt
+  // 2026-09-30.
+  C('Powerlock-VT groß -CAB', 'Strom', 147, 80, 94, 'CAB', '', { weight: 140, note: 'Gewicht geschätzt: INDU Powerlock 400A, 4×125A+4×63A+2×32A+3×16A' }),
+  // Kein Direkttreffer für 4×63A+2×32A+3×16A; Schätzung zwischen einem kleineren 1×63A-Verteiler
+  // (33 kg) und dem großen 4-stufigen oben (140 kg), vom Nutzer als Schätzung akzeptiert.
+  C('Powerlock-VT klein -CAB', 'Strom', 85, 60, 83, 'CAB', '', { weight: 50, note: 'Gewicht geschätzt: Verteiler 4×63A+2×32A+3×16A, zwischen Vergleichswerten interpoliert' }),
+  C('MLVT 63A Hotpatch ROW -CAB', 'Strom', 80, 55, 99, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
   C('ChamSys MQ100 -CAB', 'Licht', 71, 67, 29, 'CAB', 'ChamSys', { wheels: false, wheelH: 0, weight: 30, note: 'Gewicht geschätzt: 1 × ChamSys MQ100 à 14.2 kg + Case' }),
   C('ChamSys MQ500 -CAB', 'Licht', 93, 66, 30, 'CAB', 'ChamSys', { wheels: false, wheelH: 0, weight: 45, note: 'Gewicht geschätzt: 1 × ChamSys MQ500 à 32 kg + Case' }),
-  C('ChamSys Wing Compact -CAB', 'Licht', 60, 35, 20, 'CAB', 'ChamSys', { wheels: false, wheelH: 0 }),
+  // ChamSys MagicQ Compact Wing, 4,0 kg (chamsyslighting.com/product/magicq-compact-wing).
+  C('ChamSys Wing Compact -CAB', 'Licht', 60, 35, 20, 'CAB', 'ChamSys', { wheels: false, wheelH: 0, weight: 20, note: 'Gewicht geschätzt: 1 × ChamSys MagicQ Compact Wing à 4 kg + Case' }),
   C('gMA2 FS -CAB', 'Licht', 138, 32, 93, 'CAB', '', { weight: 60, note: 'Gewicht geschätzt: 1 × grandMA2 full-size à 46 kg + Case' }),
   C('gMA2 Light -CAB', 'Licht', 100, 32, 93, 'CAB', '', { weight: 50, note: 'Gewicht geschätzt: 1 × grandMA2 light à 37 kg + Case' }),
   C('Astera AX5 -BBM', 'Licht', 75, 62, 59, 'BBM', 'Astera', { weight: 20, note: 'Gewicht geschätzt: 1 × Astera AX5 à 3.4 kg + Case' }),
@@ -143,7 +172,9 @@ export const CASE_LIBRARY = [
   C('SF Fan Fogger -CAB', 'Licht', 86, 40, 86, 'CAB', 'Smoke Factory', { weight: 40, note: 'Gewicht geschätzt: 1 × SF Fan Fogger à 24 kg + Case' }),
   C('SF Data II -CAB', 'Licht', 64, 35, 35, 'CAB', 'Smoke Factory', { wheels: false, wheelH: 0, weight: 30, note: 'Gewicht geschätzt: 1 × SF Data II à 12.8 kg + Case' }),
   C('SF TourHazer II -CAB', 'Licht', 53, 25, 41, 'CAB', 'Smoke Factory', { wheels: false, wheelH: 0, weight: 30, note: 'Gewicht geschätzt: 1 × SF TourHazer II à 16.5 kg + Case' }),
-  C('Intellipix -BBM', 'Licht', 120, 67, 73, 'BBM'),
+  // Ayrton IntelliPix-R, 15,9 kg (ambersphere.com/product/intellipix-xt) – Marke vom Nutzer
+  // 2026-09-30 bestätigt, nicht aus dem Firmenfeld „BBM“ ableitbar.
+  C('Intellipix -BBM', 'Licht', 120, 67, 73, 'BBM', '', { weight: 40, note: 'Gewicht geschätzt: 1 × Ayrton IntelliPix-R à 15.9 kg + Case' }),
   C('Sunstrips Sandwich -CAB', 'Licht', 220, 60, 125, 'CAB'),
   C('ETC S4 x8 -CAB', 'Licht', 119, 60, 83, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: 8 × ETC Source Four (19°/26°/36°/50°) à 6.3 kg + Case' }),
   C('Q7 x4 -CAB', 'Licht', 60, 60, 75, 'CAB', '', { weight: 45, note: 'Gewicht geschätzt: 4 × SGM Q-7 à 8.1 kg + Case' }),
@@ -159,7 +190,8 @@ export const CASE_LIBRARY = [
   C('D8+ 0,5t CAB x4', 'Rigging', 50, 240, 56, 'CAB', 'Motor', { weight: 95, note: 'Gewicht geschätzt: 4 × D8+ 0,5t à 17 kg + Case' }),
   C('D8+ 0,5t CAB x8', 'Rigging', 100, 240, 56, 'CAB', 'Motor', { weight: 190, note: 'Gewicht geschätzt: 8 × D8+ 0,5t à 17 kg + Case' }),
   C('D8+ 1t PlusLite -cab', 'Rigging', 69, 60, 71, 'CAB', 'Motor', { weight: 45, note: 'Gewicht geschätzt: 1 × D8+ 1t à 31 kg + Case' }),
-  C('63A VT Haube -BBM', 'Ton', 60, 60, 73, 'BBM'),
+  // Auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt (überflüssig).
+  C('63A VT Haube -BBM', 'Ton', 60, 60, 73, 'BBM', '', { legacy: true }),
   // Aufschlag für Deckel + Boden aus den drei gemessenen Racks abgeleitet
   // (h_gemessen − HE × 4,45 cm): 2 HE → 15 − 8,9 = 6,1 cm; 3 HE → 19 − 13,35 =
   // 5,65 cm; 6 HE → 32 − 26,7 = 5,3 cm. Mittelwert ≈ 5,68 cm — damit für die
@@ -180,10 +212,12 @@ export const CASE_LIBRARY = [
   C('19" 4HE -CAB', 'Ton', 60, 60, 23.5, 'CAB', '', { wheels: false, wheelH: 0 }),  // 4 HE: h = 4 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
   C('19" 5HE -CAB', 'Ton', 60, 60, 27.9, 'CAB', '', { wheels: false, wheelH: 0 }),  // 5 HE: h = 5 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
   C('19" 6HE -CAB', 'Ton', 60, 60, 32, 'CAB', '', { wheels: false, wheelH: 0 }),  // 6 HE: h = 32 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen
-  C('Rack 16HE Deckel -CAB', 'Ton', 75, 60, 95, 'CAB'),
-  C('Rack Amp 12 HE Schieber -CAB', 'Ton', 80, 60, 85, 'CAB'),
-  C('Schubladencase 90 -CAB', 'Ton', 60, 61, 90, 'CAB'),
-  C('Dolly Rack 28 HEx2 -CAB', 'Ton', 120, 80, 160, 'CAB'),
+  // Leere Rack-/Dolly-Gehäuse ohne festen Geräteinhalt (Nutzerangabe 2026-09-30): Standardgewicht
+  // 75 kg/m³, Herleitung siehe docs/casemasse-gewichte.md „Nachrecherche 2026-09-30“.
+  C('Rack 16HE Deckel -CAB', 'Ton', 75, 60, 95, 'CAB', '', { weight: 30, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
+  C('Rack Amp 12 HE Schieber -CAB', 'Ton', 80, 60, 85, 'CAB', '', { weight: 30, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
+  C('Schubladencase 90 -CAB', 'Ton', 60, 61, 90, 'CAB', '', { weight: 25, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
+  C('Dolly Rack 28 HEx2 -CAB', 'Ton', 120, 80, 160, 'CAB', '', { weight: 115, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
   C('MoCo 12ch -CAB', 'Rigging', 70, 60, 90, 'CAB', 'MoCo'),
   C('MoCo 32ch -CAB', 'Rigging', 80, 60, 113, 'CAB', 'MoCo'),
   C('Truss lose 40er -BBM', 'Rigging', 200, 40, 40, 'BBM', '', { legacy: true }),
@@ -192,7 +226,8 @@ export const CASE_LIBRARY = [
   C('MLT 120 x2 -CAB', 'Rigging', 125, 60.5, 210, 'CAB', '', { legacy: true }),
   C('MLT 160 x2 -CAB', 'Rigging', 165, 60.5, 210, 'CAB', '', { legacy: true }),
   C('MLT 240 x2 -CAB', 'Rigging', 245, 60.5, 210, 'CAB', '', { legacy: true }),
-  C('Rigpack -CAB', 'Rigging', 90, 60, 65, 'CAB'),
+  // Auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt (überflüssig).
+  C('Rigpack -CAB', 'Rigging', 90, 60, 65, 'CAB', '', { legacy: true }),
   C('Slick -CAB', 'Rigging', 252, 40, 189, 'CAB'),
   C('SkyPanel 120 x2-AED', 'Licht', 155, 60, 80, 'AED', 'ARRI', { weight: 65, note: 'Gewicht geschätzt: 2 × SkyPanel S120 à 16.5 kg + Case' }),
   C('Strike Array4 x4 - CAB', 'Licht', 100, 60, 80, 'CAB', 'Chauvet', { weight: 70, note: 'Gewicht geschätzt: 4 × Strike Array 4 à 13 kg + Case' }),
