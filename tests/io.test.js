@@ -559,3 +559,35 @@ test('Import: packOrder volume/count erlaubt, anderer Wert wird abgewiesen', () 
     assert.match(err.message, /^Ladeplan „.*“ hat eine unbekannte Pack-Reihenfolge\.$/);
   }
 });
+
+// Pack-Regeln (Spec 2026-09-30)
+test('Import: Plan mit gültigen packRules und Stücken mit group', () => {
+  const p = { ...plan([P('a', 'x', 0, 0, 0, { group: 'Motoren' })], [{ id: 'u', caseId: 'x', group: 'FOH' }]),
+    packRules: [{ by: 'group', value: 'Motoren', pos: 'last' }, { by: 'volume' }] };
+  const b = parseBundle(exportBundle({ cases: [], trucks: [], plans: [p] }));
+  assert.deepEqual(b.plans[0].packRules, p.packRules);
+  assert.equal(b.plans[0].placements[0].group, 'Motoren');
+  assert.equal(b.plans[0].unplaced[0].group, 'FOH');
+});
+
+test('Import: kaputte packRules oder group werden mit Meldung abgelehnt', () => {
+  const bad = [
+    { ...plan([]), packRules: [{ by: 'foo' }] },
+    { ...plan([]), packRules: 'volume' },
+    { ...plan([]), packRules: Array.from({ length: 21 }, (_, i) => ({ by: 'group', value: `g${i}`, pos: 'last' })) },
+  ];
+  for (const p of bad) assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [p] })), /Pack-Regeln/);
+  const badGroup = plan([P('a', 'x', 0, 0, 0, { group: 'x'.repeat(41) })]);
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [badGroup] })), /ungültige Platzierungen/);
+});
+
+test('Import: Regelsets kommen mit, kaputte werden abgelehnt, Datei ohne ruleSets (altes Schema) geht', () => {
+  const rs = { id: 'rs1', name: 'Tour-Standard', rules: [{ by: 'truss', pos: 'first' }], updatedAt: '2026-09-30T10:00:00Z' };
+  const b = parseBundle(exportBundle({ cases: [], trucks: [], plans: [], ruleSets: [rs] }));
+  assert.deepEqual(b.ruleSets, [rs], 'eine Datei nur mit Regelsets ist nicht „leer“');
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [], ruleSets: [{ ...rs, rules: [{ by: 'x' }] }] })), /Regelset/);
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [], ruleSets: [{ ...rs, name: '' }] })), /Regelset/);
+  const old = JSON.parse(exportBundle({ cases: [], trucks: [], plans: [plan([])] }));
+  delete old.ruleSets;
+  assert.deepEqual(parseBundle(JSON.stringify(old)).ruleSets, []);
+});

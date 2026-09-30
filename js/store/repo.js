@@ -66,13 +66,16 @@ export function pickLatestPlan(plans) {
 
 export async function loadAll() {
   await db.persist();
-  const [cases, trucks, plans] = await Promise.all([db.getAll('cases'), db.getAll('trucks'), db.getAll('plans')]);
+  const [cases, trucks, plans, ruleSets] = await Promise.all([
+    db.getAll('cases'), db.getAll('trucks'), db.getAll('plans'), db.getAll('ruleSets'),
+  ]);
   const ownCases = normalizeOwnCases(sanitizeUpdatedAt(cases));
   const mergedCases = mergeOwnWithBuiltins(ownCases, [...PRESET_CASES, ...CASE_LIBRARY]);
   return {
     cases: mergedCases,
     trucks: [...PRESET_TRUCKS, ...sanitizeUpdatedAt(trucks)],
     plans: sanitizeUpdatedAt(plans),
+    ruleSets: sanitizeUpdatedAt(ruleSets),
   };
 }
 
@@ -82,7 +85,7 @@ export async function loadAll() {
 // benutzbar, und über „Importieren“ kann der Nutzer eine Sicherung laden, statt vor einer
 // weißen Seite zu stehen.
 export function loadAllFallback() {
-  return { cases: mergeOwnWithBuiltins([], [...PRESET_CASES, ...CASE_LIBRARY]), trucks: [...PRESET_TRUCKS], plans: [] };
+  return { cases: mergeOwnWithBuiltins([], [...PRESET_CASES, ...CASE_LIBRARY]), trucks: [...PRESET_TRUCKS], plans: [], ruleSets: [] };
 }
 
 // Rechnet das Ergebnis eines Datei-Imports rein aus dem übergebenen Zustand aus, ohne
@@ -97,10 +100,11 @@ export function loadAllFallback() {
 // pickLatestPlan() unter allen (eigenen + importierten) Plänen, welcher geöffnet wird –
 // dieselbe Regel, nach der auch loadAll() sonst den zuletzt geänderten Plan wählt. Bringt
 // die Sicherung gar keinen Plan mit, bleibt plan null und der Startbildschirm bestehen.
-export function mergeImportedBundle({ cases, trucks, plans, plan }, bundle) {
+export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [] }, bundle) {
   const mergedCases = mergeById(cases, bundle.cases);
   const mergedTrucks = mergeById(trucks, bundle.trucks);
   const mergedPlans = mergeById(plan ? [plan, ...plans] : plans, bundle.plans);
+  const mergedRuleSets = mergeById(ruleSets, bundle.ruleSets ?? []);
   const nextPlan = plan
     ? (mergedPlans.find(p => p.id === plan.id) ?? plan)
     : (pickLatestPlan(mergedPlans) ?? null);
@@ -110,6 +114,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan }, bundle) {
     plans: nextPlan ? mergedPlans.filter(p => p.id !== nextPlan.id) : mergedPlans,
     plan: nextPlan,
     planChanged: nextPlan !== plan,
+    ruleSets: mergedRuleSets,
     // Nur die Datensätze, die aus der Datei kommen UND gewonnen haben, müssen nach
     // IndexedDB geschrieben werden – alles andere steht dort schon (oder stand nie drin,
     // weil der lokale Stand gewonnen hat).
@@ -117,6 +122,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan }, bundle) {
       cases: bundle.cases.filter(x => mergedCases.find(m => m.id === x.id) === x),
       trucks: bundle.trucks.filter(x => mergedTrucks.find(m => m.id === x.id) === x),
       plans: bundle.plans.filter(x => mergedPlans.find(m => m.id === x.id) === x),
+      ruleSets: (bundle.ruleSets ?? []).filter(x => mergedRuleSets.find(m => m.id === x.id) === x),
     },
   };
 }
@@ -127,6 +133,8 @@ export const saveTruck = t => db.put('trucks', t);
 export const deleteTruck = id => db.del('trucks', id);
 export const savePlan = p => db.put('plans', p);
 export const deletePlan = id => db.del('plans', id);
+export const saveRuleSet = rs => db.put('ruleSets', rs);
+export const deleteRuleSet = id => db.del('ruleSets', id);
 
 // Die reine Zuordnung „welcher Gewinner gehört in welchen Object Store“ – ohne IndexedDB,
 // deshalb mit node --test prüfbar (anders als der eigentliche Schreibvorgang, der echtes
@@ -136,6 +144,7 @@ export function buildImportWinnerItems(winners) {
     ...winners.cases.map(value => ({ store: 'cases', value })),
     ...winners.trucks.map(value => ({ store: 'trucks', value })),
     ...winners.plans.map(value => ({ store: 'plans', value })),
+    ...(winners.ruleSets ?? []).map(value => ({ store: 'ruleSets', value })),
   ];
 }
 

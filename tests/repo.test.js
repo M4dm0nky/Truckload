@@ -302,3 +302,27 @@ test('buildImportWinnerItems: nur die tatsächlichen Gewinner landen in der List
   const items = buildImportWinnerItems(merge.winners);
   assert.deepEqual(items.map(i => i.value.id), ['new-from-file'], 'nur das neue Case aus der Datei, nicht das lokale');
 });
+
+test('mergeImportedBundle: Regelsets per ID, neuerer Stand gewinnt, Gewinner werden gemeldet', () => {
+  const local = { id: 'r1', name: 'Alt', rules: [], updatedAt: '2026-09-01T00:00:00Z' };
+  const file = { id: 'r1', name: 'Neu', rules: [{ by: 'volume' }], updatedAt: '2026-09-30T00:00:00Z' };
+  const r = mergeImportedBundle({ cases: [], trucks: [], plans: [], plan: null, ruleSets: [local] },
+    { cases: [], trucks: [], plans: [], ruleSets: [file] });
+  assert.deepEqual(r.ruleSets, [file]);
+  assert.deepEqual(r.winners.ruleSets, [file]);
+});
+
+test('mergeImportedBundle: Zustand und Bundle ohne ruleSets (altes Schema) ergeben leere Listen', () => {
+  const r = mergeImportedBundle({ cases: [], trucks: [], plans: [], plan: null }, { cases: [], trucks: [], plans: [] });
+  assert.deepEqual(r.ruleSets, []);
+  assert.deepEqual(r.winners.ruleSets, []);
+});
+
+test('buildImportWinnerItems: Regelsets landen im Store ruleSets', () => {
+  const rs = { id: 'r1', name: 'X', rules: [] };
+  assert.deepEqual(buildImportWinnerItems({ cases: [], trucks: [], plans: [], ruleSets: [rs] }), [{ store: 'ruleSets', value: rs }]);
+});
+
+test('loadAllFallback: liefert leere Regelsets', () => {
+  assert.deepEqual(loadAllFallback().ruleSets, []);
+});

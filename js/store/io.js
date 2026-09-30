@@ -5,6 +5,7 @@ import { ARCH_SIDES, CASE_LIMITS } from '../model/validate.js';
 import { PACK_ORDERS } from '../model/packer.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
+import { ruleOk, MAX_RULES } from '../model/packRules.js';
 
 export { MAX_LABEL, CASE_LIMITS };
 // FORMAT/VERSION nur hier benutzt (Import- und Export-Prüfung derselben Datei) — nicht mehr
@@ -92,6 +93,8 @@ const pieceLayersOk = x => x.layers === undefined || (Array.isArray(x.layers) &&
   && new Set(x.layers).size === x.layers.length
   && x.layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4));
 const tippedOk = x => x.tipped === undefined || typeof x.tipped === 'boolean';
+const groupOk = x => x.group === undefined || (typeof x.group === 'string' && x.group.trim().length > 0 && x.group.length <= MAX_LABEL);
+const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk);
 function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
     throw new Error('Ungültiger Ladeplan in der Datei.');
@@ -100,12 +103,14 @@ function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ hat ungültige Notizen.`);
   if (p.packOrder !== undefined && !PACK_ORDERS.includes(p.packOrder))
     throw new Error(`Ladeplan „${p.name}“ hat eine unbekannte Pack-Reihenfolge.`);
+  if (p.packRules !== undefined && !rulesOk(p.packRules))
+    throw new Error(`Ladeplan „${p.name}“ hat ungültige Pack-Regeln.`);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
     && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl)
-    && pieceLayersOk(pl) && tippedOk(pl);
+    && pieceLayersOk(pl) && tippedOk(pl) && groupOk(pl);
   const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u)
-    && pieceLayersOk(u) && tippedOk(u);
+    && pieceLayersOk(u) && tippedOk(u) && groupOk(u);
   if (!p.placements.every(placementOk) || !arr(p.unplaced).every(unplacedOk))
     throw new Error(`Ladeplan „${p.name}“ enthält ungültige Platzierungen.`);
   const pieceIds = [...p.placements, ...arr(p.unplaced)].map(x => x.id);
@@ -113,14 +118,20 @@ function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ enthält doppelte Stück-IDs.`);
 }
 
-export function exportBundle({ cases, trucks, plans }, now = new Date()) {
+export function checkRuleSet(rs) {
+  const name = typeof rs?.name === 'string' ? rs.name : '';
+  if (!rs || typeof rs.id !== 'string' || !name.trim() || name.length > 80 || !rulesOk(rs.rules) || !updatedAtOk(rs))
+    throw new Error(`Regelset „${name || '?'}“ ist ungültig.`);
+}
+
+export function exportBundle({ cases, trucks, plans, ruleSets = [] }, now = new Date()) {
   return JSON.stringify({
     format: FORMAT, version: VERSION, appVersion: APP_VERSION, exportedAt: now.toISOString(),
-    cases: cases.filter(c => !c.builtin), trucks: trucks.filter(t => !t.builtin), plans,
+    cases: cases.filter(c => !c.builtin), trucks: trucks.filter(t => !t.builtin), plans, ruleSets,
   }, null, 2);
 }
 
-const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne' };
+const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets' };
 
 // Zwei Werte aus Wizard-/Editor-Vorgaben, die bis V 0.6 galten, reißen die sonst harte
 // Alles-oder-nichts-Grenze beim Import, obwohl sie reparierbar sind statt unlesbar: eine zu
@@ -150,14 +161,15 @@ export function parseBundle(text) {
   if (data?.format !== FORMAT) throw new Error('Keine Truckload-Datei.');
   if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
   if (data.version > VERSION) throw new Error('Die Datei stammt aus einer neueren Version.');
-  for (const field of ['cases', 'trucks', 'plans']) {
+  for (const field of ['cases', 'trucks', 'plans', 'ruleSets']) {
     if (data[field] !== undefined && !Array.isArray(data[field]))
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
   const rawCases = arr(data.cases).filter(c => !isPreset(c));
   const trucks = arr(data.trucks).filter(t => !isPreset(t));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
-  if (rawCases.length === 0 && trucks.length === 0 && rawPlans.length === 0)
+  const ruleSets = arr(data.ruleSets);
+  if (rawCases.length === 0 && trucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
 
   let wheelHRepairs = 0;
@@ -178,7 +190,7 @@ export function parseBundle(text) {
     unplaced: p.unplaced.map(repairPiece),
   }));
 
-  cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan);
+  cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet);
 
   const knownCaseIds = new Set([...cases.map(c => c.id), ...CASE_LIBRARY.map(c => c.id)]);
   const knownTruckIds = new Set([...trucks.map(t => t.id), ...PRESET_TRUCKS.map(t => t.id)]);
@@ -198,7 +210,7 @@ export function parseBundle(text) {
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
-  return { cases: cases.map(normalizeCase), trucks, plans, warnings, repairs };
+  return { cases: cases.map(normalizeCase), trucks, plans, ruleSets, warnings, repairs };
 }
 
 export function mergeById(existing, incoming) {

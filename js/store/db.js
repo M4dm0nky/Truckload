@@ -1,6 +1,8 @@
 const DB_NAME = 'truckload';
-const DB_VERSION = 1;
-const STORES = ['cases', 'trucks', 'plans'];
+// V 2 (0.8.5): Store ruleSets. onupgradeneeded legt nur fehlende Stores an, vorhandene Daten
+// bleiben.
+const DB_VERSION = 2;
+const STORES = ['cases', 'trucks', 'plans', 'ruleSets'];
 let dbPromise;
 
 function open() {
