@@ -105,6 +105,14 @@ test('ruleTargets: Gruppen, Case-Typen und Gewerke des Loads, sortiert; Traverse
   assert.equal(t.hasTruss, true);
 });
 
+test('ruleTargets: trimmt Gruppennamen, leere nach dem Trimmen fallen weg (Befund F4)', () => {
+  const pieces = [
+    { caseId: 'big', group: ' Motoren ' }, { caseId: 'small', group: '   ' }, { caseId: 'small', group: 'Motoren' },
+  ];
+  const t = ruleTargets(pieces, byId(big, small));
+  assert.deepEqual(t.groups, ['Motoren']);
+});
+
 test('ruleActive: Auswahlregel nur aktiv, wenn ihr Ziel im Load vorkommt', () => {
   const t = { groups: ['Motoren'], cases: [{ id: 'big', name: 'big' }], categories: ['Ton'], hasTruss: false };
   assert.equal(ruleActive({ by: 'group', value: 'Motoren', pos: 'last' }, t), true);

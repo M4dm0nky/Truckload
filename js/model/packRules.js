@@ -111,7 +111,7 @@ export function ruleTargets(pieces, caseById) {
   for (const x of pieces) {
     const c = caseById.get(x.caseId);
     if (!c) continue;
-    if (x.group) groups.add(x.group);
+    if (x.group?.trim()) groups.add(x.group.trim());
     cases.set(c.id, String(c.name ?? c.id));
     if (c.category) categories.add(c.category);
     if (isTruss(c)) hasTruss = true;
