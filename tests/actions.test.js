@@ -701,6 +701,27 @@ test('setPackRules: normalisiert, schreibt packRules, unverändert = gleiche Ref
   assert.deepEqual(rulesFor(p1), p1.packRules, 'packRules gewinnt gegen packOrder');
 });
 
+test('setMixTop: an setzt true, aus entfernt das Feld, unverändert = gleiche Referenz', () => {
+  const p0 = plan([]);
+  const p1 = A.setMixTop(p0, true);
+  assert.equal(p1.mixTop, true);
+  assert.equal(A.setMixTop(p1, true), p1);
+  assert.ok(!('mixTop' in A.setMixTop(p1, false)));
+  assert.equal(A.setMixTop(p0, false), p0);
+});
+
+test('packAll: mixTop legt kleine Cases als Deckschicht auf die großen', () => {
+  const big = mkCase('big', 120, 60, 80, { weight: 75, layers: [1] });
+  const small = mkCase('small', 60, 60, 60, { weight: 28 });
+  const ctx = { caseById: byId(big, small), truck: mkTruck(), newId: counter('n') };
+  let p = A.addUnplaced(plan([]), 'big', 4, counter('b'));
+  p = A.addUnplaced(p, 'small', 4, counter('s'), { layers: [1, 2] });
+  const onBig = r => r.placements.filter(q => q.caseId === 'small'
+    && r.placements.some(b => b.caseId === 'big' && b.x === q.x && b.y === q.y)).length;
+  assert.equal(onBig(A.packAll(p, ctx)), 0, 'aus: eigener Block');
+  assert.equal(onBig(A.packAll(A.setMixTop(p, true), ctx)), 4, 'an: alle vier auf den großen');
+});
+
 test('packAll: Gruppe bleibt erhalten und Regel „Gruppe zuletzt“ wirkt', () => {
   const big = mkCase('big', 120, 60, 60);
   const ctx = { caseById: byId(gCase, big), truck: mkTruck(), newId: counter('n') };

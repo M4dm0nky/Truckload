@@ -105,6 +105,8 @@ function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ hat eine unbekannte Pack-Reihenfolge.`);
   if (p.packRules !== undefined && !rulesOk(p.packRules))
     throw new Error(`Ladeplan „${p.name}“ hat ungültige Pack-Regeln.`);
+  if (p.mixTop !== undefined && typeof p.mixTop !== 'boolean')
+    throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Deckschicht-Schalter.`);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
     && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl)
@@ -120,7 +122,8 @@ function checkPlan(p) {
 
 export function checkRuleSet(rs) {
   const name = typeof rs?.name === 'string' ? rs.name : '';
-  if (!rs || typeof rs.id !== 'string' || !name.trim() || name.length > 80 || !rulesOk(rs.rules) || !updatedAtOk(rs))
+  if (!rs || typeof rs.id !== 'string' || !name.trim() || name.length > 80 || !rulesOk(rs.rules) || !updatedAtOk(rs)
+    || (rs.mixTop !== undefined && typeof rs.mixTop !== 'boolean'))
     throw new Error(`Regelset „${name || '?'}“ ist ungültig.`);
 }
 

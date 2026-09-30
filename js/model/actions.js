@@ -1,7 +1,7 @@
 import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, MAX_LABEL, nextTip, layersOf } from './geometry.js';
 import { archBoxes, buildItems } from './validate.js';
 import { autoPack, PACK_ORDERS } from './packer.js';
-import { rulesFor, normalizeRules } from './packRules.js';
+import { rulesFor, normalizeRules, mixTopFor } from './packRules.js';
 import { canTip } from './truss.js';
 
 const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
@@ -305,6 +305,15 @@ export function setPackRules(plan, rules) {
   return touch({ ...plan, packRules: next });
 }
 
+// Schalter „Deckschicht mischen“ je Load (Spec 2026-09-30-deckschicht-design.md). Aus = Feld fehlt,
+// wie bei Altdaten; unverändert = gleiche Referenz (kein leerer Undo-Schritt).
+export function setMixTop(plan, on) {
+  if (mixTopFor(plan) === (on === true)) return plan;
+  if (on === true) return touch({ ...plan, mixTop: true });
+  const { mixTop: _drop, ...rest } = plan;
+  return touch(rest);
+}
+
 export const removePlacement = (plan, id) =>
   touch({ ...plan, placements: plan.placements.filter(p => p.id !== id) });
 
@@ -361,7 +370,7 @@ export function setPackOrder(plan, order) {
 
 export function packAll(plan, ctx) {
   const list = [...plan.placements, ...plan.unplaced].map(x => toPiece(x, ctx)).filter(Boolean);
-  const { placements, unplaced } = autoPack(list, ctx.truck, { rules: rulesFor(plan) });
+  const { placements, unplaced } = autoPack(list, ctx.truck, { rules: rulesFor(plan), mixTop: mixTopFor(plan) });
   return touch({
     ...plan,
     placements,
@@ -383,7 +392,7 @@ export function packRest(plan, ctx) {
   const floorItems = items.filter(it => Math.abs(it.box.z0) < 1e-6);
   const startX = floorItems.length ? Math.max(...floorItems.map(it => it.box.x0)) : 0;
   const { placements, unplaced } = list.length
-    ? autoPack(list, ctx.truck, { obstacles: items.map(it => it.box), rules: rulesFor(plan), startX })
+    ? autoPack(list, ctx.truck, { obstacles: items.map(it => it.box), rules: rulesFor(plan), mixTop: mixTopFor(plan), startX })
     : { placements: [], unplaced: [] };
   return touch({
     ...plan,

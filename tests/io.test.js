@@ -591,3 +591,14 @@ test('Import: Regelsets kommen mit, kaputte werden abgelehnt, Datei ohne ruleSet
   delete old.ruleSets;
   assert.deepEqual(parseBundle(JSON.stringify(old)).ruleSets, []);
 });
+
+test('Import: mixTop optional boolean in Plan und Regelset, anderes wird abgelehnt', () => {
+  const b = parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), mixTop: true }],
+    ruleSets: [{ id: 'r', name: 'X', rules: [], mixTop: true }] }));
+  assert.equal(b.plans[0].mixTop, true);
+  assert.equal(b.ruleSets[0].mixTop, true);
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), mixTop: 'ja' }] })), /Deckschicht/);
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [], ruleSets: [{ id: 'r', name: 'X', rules: [], mixTop: 1 }] })), /Regelset/);
+  const old = parseBundle(exportBundle({ cases: [], trucks: [], plans: [plan([])] }));
+  assert.equal(old.plans[0].mixTop, undefined, 'altes Schema ohne Feld');
+});
