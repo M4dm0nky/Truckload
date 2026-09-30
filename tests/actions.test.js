@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as A from '../js/model/actions.js';
 import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE, MAX_LABEL } from '../js/model/geometry.js';
+import { rulesFor } from '../js/model/packRules.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);
@@ -667,4 +668,75 @@ test('F3: passt ein Stück hinter/neben einer bis zur Tür reichenden Ladung nic
   assert.equal(pl.unplaced.length, 1);
   assert.equal(pl.unplaced[0].id, 's0');
   assert.ok(!pl.placements.some(p => p.id === 's0'), 's0 darf nicht irgendwo vorn in einer Lücke landen');
+});
+
+// Pack-Regeln und Gruppen (Spec 2026-09-30).
+const gCase = mkCase('g', 60, 60, 60);
+const gCtx = () => ({ caseById: byId(gCase), truck: mkTruck(), newId: counter('n') });
+
+test('addUnplaced: group getrimmt und gekürzt, leer = kein Feld', () => {
+  const p = A.addUnplaced(plan([]), 'g', 2, counter(), { group: '  Motoren  ' });
+  assert.deepEqual(p.unplaced.map(u => u.group), ['Motoren', 'Motoren']);
+  const long = A.addUnplaced(plan([]), 'g', 1, counter(), { group: 'x'.repeat(60) });
+  assert.equal(long.unplaced[0].group.length, 40);
+  const none = A.addUnplaced(plan([]), 'g', 1, counter(), { group: '   ' });
+  assert.ok(!('group' in none.unplaced[0]));
+});
+
+test('setPieceGroup: setzt, ändert und entfernt; unverändert = gleiche Referenz', () => {
+  const p0 = plan([P('a', 'g', 0, 0, 0)], [{ id: 'u', caseId: 'g' }]);
+  const p1 = A.setPieceGroup(p0, 'a', ' FOH ');
+  assert.equal(p1.placements[0].group, 'FOH');
+  assert.equal(A.setPieceGroup(p1, 'a', 'FOH'), p1);
+  assert.ok(!('group' in A.setPieceGroup(p1, 'a', '').placements[0]));
+  assert.equal(A.setPieceGroup(p0, 'u', 'Motoren').unplaced[0].group, 'Motoren');
+  assert.equal(A.setPieceGroup(p0, 'fehlt', 'x'), p0);
+});
+
+test('setPackRules: normalisiert, schreibt packRules, unverändert = gleiche Referenz', () => {
+  const p0 = { ...plan([]), packOrder: 'count' };
+  const p1 = A.setPackRules(p0, [{ by: 'group', value: ' Motoren ', pos: 'last' }, { by: 'foo' }]);
+  assert.deepEqual(p1.packRules, [{ by: 'group', value: 'Motoren', pos: 'last' }]);
+  assert.equal(A.setPackRules(p1, [{ by: 'group', value: 'Motoren', pos: 'last' }]), p1);
+  assert.deepEqual(rulesFor(p1), p1.packRules, 'packRules gewinnt gegen packOrder');
+});
+
+test('packAll: Gruppe bleibt erhalten und Regel „Gruppe zuletzt" wirkt', () => {
+  const big = mkCase('big', 120, 60, 60);
+  const ctx = { caseById: byId(gCase, big), truck: mkTruck(), newId: counter('n') };
+  let p = A.addUnplaced(plan([]), 'g', 4, counter('g'), { group: 'Motoren' });
+  p = A.addUnplaced(p, 'big', 4, counter('b'));
+  p = A.setPackRules(p, [{ by: 'group', value: 'Motoren', pos: 'last' }, { by: 'volume' }]);
+  const packed = A.packAll(p, ctx);
+  const mot = packed.placements.filter(q => q.caseId === 'g');
+  assert.equal(mot.length, 4);
+  assert.ok(mot.every(q => q.group === 'Motoren'));
+  const maxBig = Math.max(...packed.placements.filter(q => q.caseId === 'big').map(q => q.x));
+  assert.ok(Math.min(...mot.map(q => q.x)) >= maxBig);
+});
+
+test('group überlebt In Ablage, Truck entladen, Duplizieren (Ablage-Zweig) und Ziehen aus der Ablage', () => {
+  const ctx = gCtx();
+  const p0 = plan([P('a', 'g', 0, 0, 0, { group: 'FOH' })]);
+  assert.equal(A.toTray(p0, 'a').unplaced[0].group, 'FOH');
+  assert.equal(A.unloadAll(p0).unplaced[0].group, 'FOH');
+  const tiny = { ...ctx, truck: mkTruck({ l: 60, w: 60 }) };
+  assert.equal(A.duplicate(p0, 'a', tiny).unplaced[0].group, 'FOH', 'Kopie ohne Platz landet mit Gruppe in der Ablage');
+  const back = A.placeCase(A.toTray(p0, 'a'), 'g', { x: 0, y: 0 }, ctx, { fromUnplacedId: 'a' });
+  assert.equal(back.placements[0].group, 'FOH');
+});
+
+test('packRest: Regeln ordnen nur die neuen Blöcke, sie schließen hinter der vorhandenen Ladung an', () => {
+  const big = mkCase('big', 120, 60, 60);
+  const ctx = { caseById: byId(gCase, big), truck: mkTruck(), newId: counter('n') };
+  let p = plan([P('x', 'big', 0, 0, 0)]);
+  p = A.addUnplaced(p, 'g', 2, counter('g'), { group: 'Motoren' });
+  p = A.addUnplaced(p, 'big', 2, counter('b'));
+  p = A.setPackRules(p, [{ by: 'group', value: 'Motoren', pos: 'first' }]);
+  const r = A.packRest(p, ctx);
+  assert.equal(r.unplaced.length, 0);
+  assert.equal(r.placements.find(q => q.id === 'x').x, 0, 'vorhandene Ladung bleibt stehen');
+  const mot = r.placements.filter(q => q.caseId === 'g');
+  const newBig = r.placements.filter(q => q.caseId === 'big' && q.id !== 'x');
+  assert.ok(Math.min(...mot.map(q => q.x)) <= Math.min(...newBig.map(q => q.x)), 'Motoren zuerst unter den neuen');
 });
