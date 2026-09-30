@@ -656,3 +656,124 @@ test('autoPack: order-String bleibt gültig und entspricht legacyRules (Altdaten
     assert.deepEqual(viaRules, viaOrder, order);
   }
 });
+
+// Deckschicht (Spec 2026-09-30-deckschicht-design.md)
+const bigC = mkCase('bigC', 120, 60, 80, { weight: 75, layers: [1] });
+const smallC = mkCase('smallC', 60, 60, 60, { weight: 28 });
+const withLayers = (list, layers) => list.map(it => ({ ...it, layers }));
+const withGroup = (list, group) => list.map(it => ({ ...it, ...(group ? { group } : {}) }));
+// Anzahl Stücke `capId`, die in einer Säule über einem Stück `baseId` stehen (gleiches x/y, Deckschicht bündig an x0/y0).
+const onBase = (r, capId, baseId) => r.placements.filter(p => p.caseId === capId
+  && r.placements.some(b => b.caseId === baseId && b.x === p.x && b.y === p.y && b.z < p.z)).length;
+
+test('Deckschicht: kleine, leichte Cases gleichen Gewerks liegen auf den großen, Lademeter sinken', () => {
+  const list = [...items(bigC, 12, 'b'), ...withLayers(items(smallC, 12, 's'), [1, 2])];
+  const off = autoPack(list, mkTruck());
+  const on = autoPack(list, mkTruck(), { mixTop: true });
+  assert.equal(on.unplaced.length, 0);
+  assert.equal(onBase(off, 'smallC', 'bigC'), 0, 'ohne Deckschicht: eigener Block');
+  assert.equal(onBase(on, 'smallC', 'bigC'), 12, 'mit Deckschicht: alle 12 in Lage 2 auf den großen');
+  const meters = r => validatePlan(plan(r.placements), byId(bigC, smallC), mkTruck()).totals.loadMeters;
+  assert.ok(meters(on) < meters(off), `${meters(on)} < ${meters(off)}`);
+  assert.deepEqual(placementIssues(validatePlan(plan(on.placements), byId(bigC, smallC), mkTruck())), []);
+});
+
+test('Deckschicht: ohne mixTop exakt wie bisher (Altdaten)', () => {
+  const list = [...items(bigC, 5, 'b'), ...items(smallC, 7, 's')];
+  assert.deepEqual(autoPack(list, mkTruck()), autoPack(list, mkTruck(), { mixTop: false }));
+});
+
+test('Deckschicht: nur gleiches Gewerk bzw. gleiche Gruppe', () => {
+  const tonSmall = mkCase('tonSmall', 60, 60, 60, { weight: 28, category: 'Ton' });
+  const r1 = autoPack([...items(bigC, 2, 'b'), ...items(tonSmall, 2, 't')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r1, 'tonSmall', 'bigC'), 0, 'anderes Gewerk');
+  const r2 = autoPack([...withGroup(items(bigC, 2, 'b'), 'A'), ...withGroup(items(smallC, 2, 's'), 'B')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r2, 'smallC', 'bigC'), 0, 'andere Gruppe');
+  const r3 = autoPack([...withGroup(items(bigC, 2, 'b'), 'A'), ...items(smallC, 2, 's')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r3, 'smallC', 'bigC'), 0, 'eins mit, eins ohne Gruppe');
+  const r4 = autoPack([...withGroup(items(bigC, 2, 'b'), 'A'), ...withGroup(items(smallC, 2, 's'), 'A')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r4, 'smallC', 'bigC'), 2, 'gleiche Gruppe');
+});
+
+test('Deckschicht: 0 kg mischt weder oben noch unten', () => {
+  const zeroSmall = mkCase('zeroSmall', 60, 60, 60, { weight: 0 });
+  const zeroBig = mkCase('zeroBig', 120, 60, 80, { weight: 0, layers: [1] });
+  const r1 = autoPack([...items(bigC, 2, 'b'), ...items(zeroSmall, 2, 'z')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r1, 'zeroSmall', 'bigC'), 0, '0-kg-Stück nicht als Deckschicht');
+  const r2 = autoPack([...items(zeroBig, 2, 'b'), ...items(smallC, 2, 's')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r2, 'smallC', 'zeroBig'), 0, 'nicht auf 0-kg-Unterlage');
+});
+
+test('Deckschicht: nichts Schwereres, nichts Größeres obendrauf; 90° gedreht passt', () => {
+  const heavySmall = mkCase('heavySmall', 60, 60, 60, { weight: 90 });
+  const r1 = autoPack([...items(bigC, 2, 'b'), ...items(heavySmall, 2, 'h')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r1, 'heavySmall', 'bigC'), 0, 'schwerer');
+  const wide = mkCase('wide', 80, 80, 40, { weight: 10 });
+  const r2 = autoPack([...items(bigC, 2, 'b'), ...items(wide, 2, 'w')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r2, 'wide', 'bigC'), 0, '80 breit passt nicht auf 60');
+  const long = mkCase('long', 60, 110, 30, { weight: 10 }); // passt nur so gedreht, dass 110 längs auf 120 liegt
+  const r3 = autoPack([...items(bigC, 1, 'b'), ...items(long, 1, 'l')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r3, 'long', 'bigC'), 1, 'gedreht als Deckschicht');
+  assert.deepEqual(placementIssues(validatePlan(plan(r3.placements), byId(bigC, long), mkTruck())), []);
+});
+
+test('Deckschicht: Lagen je Stück gelten (Lage 3 nur, wenn das Stück sie erlaubt)', () => {
+  const two = mkCase('two', 120, 60, 60, { weight: 56 });
+  const list = [...withLayers(items(two, 2, 't'), [1, 2]), ...withLayers(items(smallC, 1, 's'), [1, 2])];
+  const r = autoPack(list, mkTruck(), { mixTop: true });
+  assert.equal(onBase(r, 'smallC', 'two'), 0, 'Stapel two ist mit 2 Lagen voll, smallC darf nicht in Lage 3');
+  const list3 = [...withLayers(items(two, 2, 't'), [1, 2]), ...withLayers(items(smallC, 1, 's'), [1, 2, 3])];
+  const r3 = autoPack(list3, mkTruck(), { mixTop: true });
+  assert.equal(r3.placements.find(p => p.caseId === 'smallC').z, 120, 'mit Lage 3 erlaubt');
+});
+
+test('Deckschicht: Pack-Regel „Gruppe zuletzt“ wird nicht unterlaufen', () => {
+  const rules = [{ by: 'group', value: 'Motoren', pos: 'last' }, { by: 'volume' }];
+  const fohBig = mkCase('fohBig', 120, 60, 80, { weight: 75, layers: [1] });
+  const list = [...withGroup(items(bigC, 2, 'b'), 'Motoren'), ...withGroup(items(fohBig, 2, 'f'), 'FOH'),
+    ...withGroup(items(smallC, 2, 's'), 'Motoren')];
+  const r = autoPack(list, mkTruck(), { rules, mixTop: true });
+  assert.equal(onBase(r, 'smallC', 'fohBig'), 0, 'Motoren-Deckschicht nie auf FOH');
+  assert.equal(onBase(r, 'smallC', 'bigC'), 2, 'aber auf Motoren');
+});
+
+test('Deckschicht: Traversen tragen nichts und liegen nie obendrauf', () => {
+  const tr = mkCase('tr', 240, 62, 115, { kind: 'truss', category: 'Rigging', weight: 120, stackable: true, truss: { length: 240, width: 62, count: 1, standing: true, height: 115 } });
+  const rigSmall = mkCase('rigSmall', 60, 60, 40, { weight: 20, category: 'Rigging' });
+  const r = autoPack([...items(tr, 1, 't'), ...items(rigSmall, 1, 'r')], mkTruck(), { mixTop: true });
+  assert.equal(r.placements.find(p => p.caseId === 'rigSmall').z, 0);
+});
+
+test('Deckschicht auf Deckschicht: kleinere Stücke dürfen weiter oben aufeinander, solange alle Grenzen halten', () => {
+  const r = autoPack([...items(bigC, 1, 'b'), ...items(smallC, 2, 's')], mkTruck(), { mixTop: true });
+  assert.equal(onBase(r, 'smallC', 'bigC'), 2, 'zweites smallC auf dem ersten (Lage 3, alle Lagen erlaubt)');
+  assert.deepEqual(placementIssues(validatePlan(plan(r.placements), byId(bigC, smallC), mkTruck())), []);
+});
+
+test('Deckschicht, Eigenschaft: keine neuen Placement-Fehler, nichts geht verloren, nichts Schweres auf Leichtem', () => {
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pool = [...PRESET_CASES, ...CASE_LIBRARY].filter(c => !c.legacy && c.weight > 0);
+  const byAll = new Map([...PRESET_CASES, ...CASE_LIBRARY].map(c => [c.id, c]));
+  for (let run = 0; run < 40; run++) {
+    const truck = PRESET_TRUCKS[run % PRESET_TRUCKS.length];
+    const list = [];
+    const kinds = 2 + Math.floor(rnd() * 4);
+    for (let k = 0; k < kinds; k++) {
+      const c = pool[Math.floor(rnd() * pool.length)];
+      const n = 1 + Math.floor(rnd() * 8);
+      for (let i = 0; i < n; i++) list.push(mkItem(c, `r${run}k${k}i${i}`));
+    }
+    const off = autoPack(list, truck);
+    const on = autoPack(list, truck, { mixTop: true });
+    assert.equal(on.placements.length + on.unplaced.length, list.length, `run ${run}: Stückzahl`);
+    const codes = r => new Set(placementIssues(validatePlan(plan(r.placements, r.unplaced), byAll, truck)).map(i => i.code));
+    const before = codes(off);
+    for (const code of codes(on)) assert.ok(before.has(code), `run ${run}: neuer Fehler ${code}`);
+    for (const p of on.placements) {
+      if (p.z === 0) continue;
+      const below = on.placements.filter(q => q.x === p.x && q.y === p.y && q.z < p.z).sort((a, b) => b.z - a.z)[0];
+      if (below) assert.ok(byAll.get(below.caseId).weight >= byAll.get(p.caseId).weight, `run ${run}: schwer auf leicht`);
+    }
+  }
+});

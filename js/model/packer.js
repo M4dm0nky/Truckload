@@ -1,7 +1,7 @@
 import { ROTATIONS, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations, outerDims } from './geometry.js';
 import { archBoxes } from './validate.js';
 import { isTruss } from './truss.js';
-import { legacyRules, blockComparator, volumeOf } from './packRules.js';
+import { legacyRules, blockComparator, volumeOf, sameSelectorRank } from './packRules.js';
 
 export function chooseOrientation(c, truck, piece = {}) {
   const opts = [];
@@ -63,6 +63,30 @@ function canAddToStack(stack, c, dz, truck) {
   return true;
 }
 
+// Deckschicht (Spec 2026-09-30-deckschicht-design.md): gehören zwei Stücke zusammen? Beide mit
+// Gruppe → gleiche Gruppe; beide ohne → gleiches Gewerk; eins mit, eins ohne → nein.
+const belongsTogether = (a, ca, b, cb) =>
+  (a.group || b.group) ? a.group === b.group : ca.category === cb.category;
+
+// Passt das Stück als Deckschicht auf den Stapel `s` eines früheren Blocks? Liefert die (evtl. im
+// Grundriss um 90° gedrehte) Orientierung oder null. Grundfläche ganz auf dem obersten Stück
+// (100 % Auflage), Gewichte bekannt (> 0, 0 kg = unbekannt, eigene Entscheidung) und nicht schwerer
+// als oben, keine Traversen, sonst dieselben Grenzen wie beim Stapeln (canAddToStack, 4 Lagen,
+// Lagen je Stück).
+function capFits(s, it, c, o, truck) {
+  const base = s.items[0], top = s.items.at(-1);
+  if (isTruss(c) || isTruss(base.c)) return null;
+  if (!(c.weight > 0) || !s.items.every(x => x.c.weight > 0)) return null;
+  if (!belongsTogether(it, c, base.it, base.c)) return null;
+  if (s.items.length >= 4 || !pieceLayers(it, c).includes(s.items.length + 1)) return null;
+  const swapped = { ...o, rot: (o.rot + 90) % 360, d: { dx: o.d.dy, dy: o.d.dx, dz: o.d.dz } };
+  for (const cand of [o, swapped]) {
+    if (cand.d.dx > top.o.d.dx + 1e-6 || cand.d.dy > top.o.d.dy + 1e-6) continue;
+    if (canAddToStack(s, c, cand.d.dz, truck)) return cand;
+  }
+  return null;
+}
+
 // Sortenrein packen: ein Block ist ein Case-Typ (caseId) PLUS Gruppe (Stück-Feld `group`, Spec
 // 2026-09-30) – so lassen sich z. B. 20 von 30 gleichen Cases als „Motoren“ an die Tür schieben.
 // `rules` ist die Rangliste des Loads (js/model/packRules.js); ein String 'volume'/'count' (Altdaten,
@@ -87,11 +111,12 @@ export function orderSorts(itemList, rules = 'volume') {
 // auffüllen (Nutzerregel „Letzter Stapel darf aufgefüllt werden“) – mit denselben Grenzen wie
 // immer (gleiche Grundfläche, Lagen je Stück, höchstens 4 Lagen, nichts Schweres auf Leichtes,
 // maxTopLoad). Jeder Stapel trägt `sort` = Index der Sorte, die ihn begonnen hat.
-export function buildStacks(itemList, truck, { order = 'volume', rules } = {}) {
+export function buildStacks(itemList, truck, { order = 'volume', rules, mixTop = false } = {}) {
   const stacks = [], unplaced = [];
+  const ruleList = typeof (rules ?? order) === 'string' ? legacyRules(rules ?? order) : (rules ?? order);
   const maxLayer = (it, c) => Math.max(...pieceLayers(it, c));
   const minLayer = (it, c) => Math.min(...pieceLayers(it, c));
-  const fits = (s, it, c, o) => s.key === `${o.d.dx}x${o.d.dy}` && s.items.length < 4
+  const fits = (s, it, c, o) => !s.capped && s.key === `${o.d.dx}x${o.d.dy}` && s.items.length < 4
     && pieceLayers(it, c).includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck);
   // `weight` bleibt das Gesamtgewicht des Stapels (für canAddToStack/maxTopLoad), `ownWeight`
   // zählt NUR das Gewicht der Stücke der Sorte, die den Stapel begonnen hat (Ruling F1) – so
@@ -106,7 +131,7 @@ export function buildStacks(itemList, truck, { order = 'volume', rules } = {}) {
   };
   let prevLast = null; // letzter Stapel, in dem die vorige Sorte zuletzt etwas abgelegt hat
 
-  orderSorts(itemList, rules ?? order).forEach((group, sort) => {
+  orderSorts(itemList, ruleList).forEach((group, sort) => {
     const entries = group.map(it => ({ it, c: it.c, o: chooseOrientation(it.c, truck, it) }));
     for (const e of entries) if (!e.o) unplaced.push(e.it);
     const ready = entries.filter(e => e.o);
@@ -121,11 +146,24 @@ export function buildStacks(itemList, truck, { order = 'volume', rules } = {}) {
       for (const { it, c, o } of list) {
         const usePrev = prevLast && fits(prevLast, it, c, o);
         const target = usePrev ? prevLast : own.find(s => fits(s, it, c, o));
-        if (target) { push(target, it, c, o, !usePrev); last = target; } else onMiss({ it, c, o });
+        if (target) { push(target, it, c, o, !usePrev); last = target; continue; }
+        // Deckschicht: erst wenn weder Auffüllen noch ein eigener Stapel geht, auf den ersten
+        // passenden Stapel eines FRÜHEREN Blocks (näher an der Stirnwand). `last` bleibt dabei
+        // unverändert – prevLast gehört weiter dem Stapel, den diese Sorte selbst zuletzt belegt hat.
+        if (mixTop) {
+          let cap = null, capO = null;
+          for (const s of stacks) {
+            if (s.sort >= sort || !sameSelectorRank(ruleList, s.block, group)) continue;
+            capO = capFits(s, it, c, o, truck);
+            if (capO) { cap = s; break; }
+          }
+          if (cap) { push(cap, it, c, capO, false); cap.capped = true; continue; }
+        }
+        onMiss({ it, c, o });
       }
     };
     addTo(withFloor, ({ it, c, o }) => {
-      const s = { key: `${o.d.dx}x${o.d.dy}`, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, ownWeight: c.weight, sort, items: [{ it, c, o, z: 0 }] };
+      const s = { key: `${o.d.dx}x${o.d.dy}`, dx: o.d.dx, dy: o.d.dy, height: o.d.dz, weight: c.weight, ownWeight: c.weight, sort, block: group, items: [{ it, c, o, z: 0 }] };
       own.push(s);
       stacks.push(s);
       last = s;
@@ -224,8 +262,8 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
 // items: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
 // Die erzeugten Placements übernehmen id/label/color/layers/tipped des Stücks statt eine neue ID zu vergeben.
 // order: 'volume' | 'count' (Altdaten), rules: Rangliste (packRules.js, hat Vorrang), startX: frühestes x der ersten Sorte (Rest einpacken).
-export function autoPack(items, truck, { obstacles = [], order = 'volume', rules, startX = 0 } = {}) {
-  const { stacks, unplaced } = buildStacks(items, truck, { order, rules });
+export function autoPack(items, truck, { obstacles = [], order = 'volume', rules, mixTop = false, startX = 0 } = {}) {
+  const { stacks, unplaced } = buildStacks(items, truck, { order, rules, mixTop });
   const { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
   const placements = [];
   for (const { stack, box, swap } of placed) {
