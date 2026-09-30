@@ -22,6 +22,7 @@ const ASSETS = [
   'js/model/caseShape.js',
   'js/model/geometry.js',
   'js/model/packer.js',
+  'js/model/packRules.js',
   'js/model/truss.js',
   'js/model/validate.js',
   'js/store/autosave.js',
