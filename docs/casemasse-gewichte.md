@@ -307,15 +307,22 @@ Q-7 eindeutig identifiziert), keine Ausnahme.
   passendes Produkt – siehe oben.
 - **„Laka Loom 5fach“ -CAB**: Bedeutung nach zwei Rückfragen nicht in eine
   Länge übersetzbar – siehe „Nachrecherche 2026-09-30“ oben.
-- **FD34 2m CUSTOMIZE -CAB**, **Slick -CAB**: Traversen-Reste-Cases; der
-  Nutzer wägt die enthaltene Traverse beim Aufbau selbst, deshalb bewusst ohne
-  Trussgewicht (Nachrecherche 2026-09-30).
 - **Multicore -CAB / Multicore LK24 -CAB / Multicore LK37 -CAB**: Kabellänge/
   Kanalzahl je Einsatz unterschiedlich, kein fester Inhalt.
 - alle **19″-Racks** (1–6, 16 HE), **Truss lose 40er -BBM**, **Trussdolly
   40er -BBM**, **MLT 120/160/240 x2 -CAB**: laut Aufgabenstellung ausdrücklich
   bei 0 kg zu belassen (kein Gerätebezug); die vier zuletzt genannten sind
   zusätzlich `legacy`.
+
+**Korrektur (2026-09-30, zweite Runde):** Die erste Fassung dieser Recherche hat
+`FD34 2m CUSTOMIZE -CAB` und `Slick -CAB` mit der Begründung „der Nutzer wägt die
+enthaltene Traverse beim Aufbau selbst“ bewusst bei 0 kg belassen. Das war falsch –
+der Nutzer wägt gar nicht beim Aufbau. Richtig ist: Traversen werden nicht über
+diese beiden Case-Einträge geführt, sondern über „+ Traverse hinzufügen“
+(`js/ui/truss-wizard.js`) neu gebaut, und dort hat jedes Profil (F34/F40) bereits
+ein echtes Gewicht (`wagonWeight()` in `js/model/truss.js`, nie 0). Die beiden
+Einträge sind damit überflüssig und jetzt `legacy: true`, gleiches Muster wie
+`Truss lose 40er -BBM`/`Trussdolly 40er -BBM`/`MLT 120/160/240 x2 -CAB` oben.
 
 ## Formel-Abweichungen und Variantenunsicherheit (dokumentiert)
 

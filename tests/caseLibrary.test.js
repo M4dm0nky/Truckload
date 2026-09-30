@@ -4,6 +4,9 @@ import { CATEGORIES } from '../js/data/categories.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { checkCase } from '../js/store/io.js';
+import { groupCases } from '../js/ui/caseGroups.js';
+import { validatePlan } from '../js/model/validate.js';
+import { mkTruck } from './fixtures.js';
 
 const unique = xs => new Set(xs).size === xs.length;
 const byName = name => CASE_LIBRARY.find(c => c.name === name);
@@ -259,11 +262,40 @@ test('Nachrecherche 2026-09-30: bewusst weiter bei 0 kg belassene Cases sind unv
     '4-light HORZ x8 -CAB', 'Dolly 6-Bar -CAB', 'Dolly 2kW -CAB', 'Dolly 6-Bar silber -CAB',
     'Das K - Annahme -Kraftklub', 'Base Station -Motion', 'motion Cam', 'Gunnar Arkaos Server -CAB',
     'Gunnar Monitor -CAB', 'Gunnar Tools -CAB', 'Sunstrips Sandwich -CAB', 'Case klein Adapter -Jäger',
-    'V-Mat (Schubladen tipbar) -BBM', 'FD34 2m CUSTOMIZE -CAB', 'Slick -CAB', 'Laka Loom 5fach -CAB',
-    'MoCo 12ch -CAB', 'MoCo 32ch -CAB',
+    'V-Mat (Schubladen tipbar) -BBM', 'Laka Loom 5fach -CAB', 'MoCo 12ch -CAB', 'MoCo 32ch -CAB',
   ]) {
     const c = byName(name);
     assert.ok(c, name);
     assert.equal(c.weight, 0, name);
   }
+});
+
+// Nachrecherche 2026-09-30, zweite Runde: FD34 2m CUSTOMIZE und Slick sind keine eigenständigen
+// Traversen-Cases, sondern überflüssig – Traversen werden über „+ Traverse hinzufügen“ neu gebaut
+// (js/ui/truss-wizard.js), dort hat jedes Profil (F34/F40) bereits ein echtes Gewicht
+// (wagonWeight() in js/model/truss.js, nie 0). Auf Nutzerwunsch legacy, wie die schon vorher
+// entfernten Traversen aus der Liste.
+test('Nachrecherche 2026-09-30 (2. Runde): FD34 2m CUSTOMIZE und Slick sind legacy', () => {
+  for (const name of ['FD34 2m CUSTOMIZE -CAB', 'Slick -CAB']) {
+    const c = byName(name);
+    assert.ok(c, name);
+    assert.equal(c.legacy, true, name);
+  }
+});
+
+test('Nachrecherche 2026-09-30 (2. Runde): FD34/Slick verschwinden aus jeder Auswahl, alte Ladepläne finden sie weiter', () => {
+  const { presets, list } = groupCases(CASE_LIBRARY);
+  const shown = new Set([...presets, ...list].map(c => c.id));
+  for (const id of ['lib-fd34-2m-customize-cab', 'lib-slick-cab']) assert.ok(!shown.has(id), id);
+
+  const plan = {
+    id: 'alt', name: 'Alt', truckId: 't', notes: '', unplaced: [],
+    placements: [
+      { id: 'a', caseId: 'lib-fd34-2m-customize-cab', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 },
+      { id: 'b', caseId: 'lib-slick-cab', x: 200, y: 0, z: 0, orientation: 'standing', rot: 0 },
+    ],
+  };
+  const r = validatePlan(plan, new Map(CASE_LIBRARY.map(c => [c.id, c])), mkTruck());
+  assert.equal(r.items.length, 2);
+  assert.ok(!r.issues.some(i => i.code === 'missingCase'), JSON.stringify(r.issues));
 });

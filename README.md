@@ -141,7 +141,7 @@ Wänden ein. Der Ausdruck zeigt immer den ganzen Truck.
 ## Mitgelieferte Cases
 
 In der Bibliothek und im Wizard gibt es neben „Eigene Cases“ und den Vorlagen einen
-eigenen Abschnitt „Cases aus deiner Liste“ mit 124 Cases – übernommen aus der privaten
+eigenen Abschnitt „Cases aus deiner Liste“ mit 122 Cases – übernommen aus der privaten
 Excel-Tabelle „Casemaße Complete.xlsx“ (Blatt „Data Cases“), in der die Maße über Jahre
 gepflegt wurden. Jeder Eintrag zeigt den Hersteller im Feld „Inhalt“ sowie die Firma, und
 beide Listen lassen sich zusätzlich nach Firma filtern.
@@ -154,15 +154,16 @@ Kabel oder etwas anderes hineinkommt, spielt fürs Laden keine Rolle.
 Cases mit konkretem Inhalt (z. B. Powerlocksatz, Multicore, Laka Loom) bleiben eigene
 Einträge. Traversenwagen stehen nicht mehr in der Liste; die baut man über
 „+ Traverse hinzufügen“. Die früheren Einträge (9 leere Pack-/Kabelcases, 5 Traversen)
-sind nur ausgeblendet: Alte Ladepläne zeigen sie weiter unverändert. Vier weitere Einträge
-(Lakabaum flach/Transflex, 63A VT Haube, Rigpack) sind seit 2026-09-30 auf Nutzerwunsch
-ebenso ausgeblendet.
+sind nur ausgeblendet: Alte Ladepläne zeigen sie weiter unverändert. Sechs weitere Einträge
+(Lakabaum flach/Transflex, 63A VT Haube, Rigpack, FD34 2m CUSTOMIZE, Slick) sind seit
+2026-09-30 auf Nutzerwunsch ebenso ausgeblendet – die beiden Traversen-Reste-Cases baut man
+stattdessen über „+ Traverse hinzufügen“.
 
 Für 89 dieser Cases gibt es ein recherchiertes oder mit dem Nutzer abgestimmtes Schätzgewicht
 (Netto-Gerätegewicht plus Case-Anteil, bei leeren Rack-/Dolly-Gehäusen ein Standardwert nach
 Volumen, nachvollziehbar mit Quellen in [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)).
 Zwei weitere Cases (die beiden FR10-Zeilen) tragen ihr unverändertes Originalgewicht aus
-der Tabelle und zählen ausdrücklich nicht als Schätzung. Die restlichen 37 stehen bewusst
+der Tabelle und zählen ausdrücklich nicht als Schätzung. Die restlichen 31 stehen bewusst
 bei 0 kg – lieber ehrlich 0 kg als eine erfundene Zahl – und lassen sich im Inspector
 jederzeit nachtragen.
 

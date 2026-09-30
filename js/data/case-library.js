@@ -49,7 +49,11 @@ const slug = name => name.toLowerCase()
 // `legacy: true` (Aufräumen V0.8.1, Nutzerwunsch 2026-09-28): in keiner Auswahl mehr gelistet,
 // aber weiter vorhanden, damit alte Ladepläne ihre Stücke unverändert behalten. Betrifft die
 // leeren Pack-/Transflex-Cases (ersetzt durch „Packcase L×B×H“ in preset-cases.js) und die
-// Traversen aus der Liste (Traversenwagen baut man über „+ Traverse hinzufügen“).
+// Traversen aus der Liste (Traversenwagen baut man über „+ Traverse hinzufügen“) – seit
+// 2026-09-30 auch FD34 2m CUSTOMIZE und Slick: beides Traversen-Reste-Cases, aber Traversen
+// werden nicht über einen Case-Eintrag geführt, sondern über „+ Traverse hinzufügen“ neu
+// gebaut; dort hat jedes Profil (F34/F40) bereits ein echtes Gewicht (`wagonWeight()` in
+// js/model/truss.js, nie 0) – die beiden Einträge waren überflüssig.
 export const CASE_LIBRARY = [
   // Lakabaum (flach/Transflex) -BBM: auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt
   // (überflüssig, siehe docs/casemasse-gewichte.md „Nachrecherche 2026-09-30“). Maße/Namen
@@ -222,13 +226,13 @@ export const CASE_LIBRARY = [
   C('MoCo 32ch -CAB', 'Rigging', 80, 60, 113, 'CAB', 'MoCo'),
   C('Truss lose 40er -BBM', 'Rigging', 200, 40, 40, 'BBM', '', { legacy: true }),
   C('Trussdolly 40er -BBM', 'Rigging', 300, 80, 210, 'BBM', '', { legacy: true }),
-  C('FD34 2m CUSTOMIZE -CAB', 'Rigging', 200, 60, 135, 'CAB'),
+  C('FD34 2m CUSTOMIZE -CAB', 'Rigging', 200, 60, 135, 'CAB', '', { legacy: true }),
   C('MLT 120 x2 -CAB', 'Rigging', 125, 60.5, 210, 'CAB', '', { legacy: true }),
   C('MLT 160 x2 -CAB', 'Rigging', 165, 60.5, 210, 'CAB', '', { legacy: true }),
   C('MLT 240 x2 -CAB', 'Rigging', 245, 60.5, 210, 'CAB', '', { legacy: true }),
   // Auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt (überflüssig).
   C('Rigpack -CAB', 'Rigging', 90, 60, 65, 'CAB', '', { legacy: true }),
-  C('Slick -CAB', 'Rigging', 252, 40, 189, 'CAB'),
+  C('Slick -CAB', 'Rigging', 252, 40, 189, 'CAB', '', { legacy: true }),
   C('SkyPanel 120 x2-AED', 'Licht', 155, 60, 80, 'AED', 'ARRI', { weight: 65, note: 'Gewicht geschätzt: 2 × SkyPanel S120 à 16.5 kg + Case' }),
   C('Strike Array4 x4 - CAB', 'Licht', 100, 60, 80, 'CAB', 'Chauvet', { weight: 70, note: 'Gewicht geschätzt: 4 × Strike Array 4 à 13 kg + Case' }),
   C('FR10 x2 -RentAll', 'Licht', 100, 60, 66, 'RentAll', 'GLP', { weight: 73.52 }),
