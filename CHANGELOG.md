@@ -2,6 +2,18 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.7 – 2026-09-30
+
+- 24 Cases aus deiner Liste, die bisher 0 kg trugen (u. a. Powerlock-Verteiler, Dimmerracks,
+  MLVT-Verteiler, Laka-Loom-Kabelsätze, ChamSys Wing Compact, Intellipix), haben jetzt ein
+  recherchiertes oder mit dir abgestimmtes Gewicht. Quellen und Herleitung stehen in
+  „docs/casemasse-gewichte.md“.
+- Vier Einträge („Lakabaum (flach)“, „Lakabaum (Transflex)“, „63A VT Haube“,
+  „Rigpack“) sind auf deinen Wunsch aus der Auswahl entfernt. Alte Ladepläne zeigen sie
+  unverändert weiter.
+- Bestehende Loads mit diesen Cases zeigen das neue Gewicht sofort in Nutzlast und Schwerpunkt.
+  Die Platzierung ändert sich erst beim nächsten „Alles neu packen“.
+
 ## V 0.8.6 – 2026-09-30
 
 - Neuer Schalter „Deckschicht mischen“ im Dialog „Pack-Regeln …“: Leichtere, kleinere Cases derselben Gruppe (oder, wenn beide keine Gruppe haben, desselben Gewerks) steigen auf die freie Höhe eines Stapels weiter vorn, statt eigene Bodenfläche zu belegen. Der Boden bleibt sortenrein, die Pack-Regeln bleiben gewahrt, die Lagen je Stück gelten weiter. Cases ohne Gewicht (0 kg) und Traversen mischen nicht. Der Schalter gilt je Load und wird im Regelset mitgespeichert.
