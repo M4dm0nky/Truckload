@@ -2,6 +2,12 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.6 – 2026-09-30
+
+- Neuer Schalter „Deckschicht mischen“ im Dialog „Pack-Regeln …“: Leichtere, kleinere Cases derselben Gruppe (oder, wenn beide keine Gruppe haben, desselben Gewerks) steigen auf die freie Höhe eines Stapels weiter vorn, statt eigene Bodenfläche zu belegen. Der Boden bleibt sortenrein, die Pack-Regeln bleiben gewahrt, die Lagen je Stück gelten weiter. Cases ohne Gewicht (0 kg) und Traversen mischen nicht. Der Schalter gilt je Load und wird im Regelset mitgespeichert.
+- Die leeren Packcases haben jetzt ein Standardgewicht statt 0 kg: Das Standard-Packcase 120×60×60 ohne bzw. 120×60×80 mit Rollen wiegt 100 kg, die übrigen Maße nach Volumen (60×60×60 = 38 kg bis 120×80×80 = 133 kg).
+- Bestehende Loads mit Packcases zeigen das neue Gewicht sofort, Nutzlast und Schwerpunkt ändern sich entsprechend. Die Platzierung ändert sich erst beim nächsten „Alles neu packen“. Dabei kann ein Load anders gepackt werden als vorher, weil nie Schweres auf Leichtes kommt, und in seltenen Fällen bleibt ein Stück mehr in „Noch nicht geladen“.
+
 ## V 0.8.5 – 2026-09-30
 
 - Neben „Alles neu packen“ gibt es jetzt „Pack-Regeln …“: eine Rangliste, mit der man selbst festlegt, in welcher Reihenfolge die sortenreinen Blöcke von der Stirnwand zur Tür stehen. Oben steht die wichtigste Regel, bei Gleichstand entscheidet die nächste.
