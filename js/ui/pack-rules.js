@@ -16,7 +16,7 @@ export function openPackRules(dlg, { rules, mixTop = false, targets, caseById, r
       <p class="hint">Oben steht die wichtigste Regel, bei Gleichstand entscheidet die nächste. Jeder Case-Typ bleibt
         ein eigener Block, Stücke mit Gruppe bilden einen eigenen Block. „zuerst“ heißt an der Stirnwand, „zuletzt“ an der Tür.</p>
       <ol class="rule-list"></ol>
-      <label class="check rule-mix"><input type="checkbox" name="mixTop"> Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf</label>
+      <label class="check"><input type="checkbox" name="mixTop"> Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf</label>
       <small class="hint">Cases ohne Gewicht (0 kg) werden nicht gemischt. Die Lagen je Stück gelten weiter.</small>
       <fieldset class="rule-add">
         <legend>Regel hinzufügen</legend>

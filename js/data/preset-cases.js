@@ -36,12 +36,14 @@ const MLT = (id, name, length, pieceWeight, standH, frame) => {
 // Leere Standard-Pack-/Kabelcases: je Maß genau eines, neutral benannt (Nutzerwunsch 2026-09-28).
 // Gewicht seit V 0.8.6 als Standardwert des Nutzers (2026-09-30): das Standard-Packcase 120×60×60
 // ohne bzw. 120×60×80 mit Rollen wiegt 100 kg, alle anderen nach Volumen ab- bzw. aufgestuft
-// (docs/casemasse-gewichte.md). Ein anderer Standard ist eine Änderung an PACK_REF_VOLUME/100. Ersetzt die früheren „Kabelcase/Packcase
+// (docs/casemasse-gewichte.md). Ein anderer Standard: PACK_REF_KG ändern (für eine andere
+// Referenzgröße zusätzlich PACK_REF_VOLUME). Ersetzt die früheren „Kabelcase/Packcase
 // Truckmaß“-Vorlagen und die leeren Pack-/Transflex-Cases aus der Liste – die bleiben unten bzw. in
 // case-library.js als `legacy` für alte Ladepläne erhalten.
 const PACK_REF_VOLUME = 120 * 60 * 80;
+const PACK_REF_KG = 100;
 const PACK = (l, w, h) => P(`packcase-${l}x${w}x${h}`, `Packcase ${l}×${w}×${h}`, 'Sonstiges', l, w, h,
-  Math.round(100 * l * w * h / PACK_REF_VOLUME));
+  Math.round(PACK_REF_KG * l * w * h / PACK_REF_VOLUME));
 
 export const PRESET_CASES = [
   PACK(60, 60, 60),

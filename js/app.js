@@ -493,7 +493,7 @@ $('#pack-rules').onclick = async () => {
   });
   if (!res) return;
   // Ein einziger Undo-Schritt für „Regeln setzen und neu packen“.
-  edit((p, cx) => { let next = A.setMixTop(A.setPackRules(p, res.rules), res.mixTop); return res.repack ? A.packAll(next, cx) : next; });
+  edit((p, cx) => { const next = A.setMixTop(A.setPackRules(p, res.rules), res.mixTop); return res.repack ? A.packAll(next, cx) : next; });
   if (res.repack) await warnIfUnplaced();
 };
 $('#unload-all').onclick = async () => {
