@@ -87,7 +87,19 @@ export function openPackRules(dlg, { rules, targets, caseById, ruleSets = [], on
   }
   const showSetHint = text => { setHint.textContent = text; setHint.hidden = !text; };
 
+  const saveSetBtn = dlg.querySelector('[data-act="save-set"]');
+
   f.by.addEventListener('change', syncAddRow);
+  // Enter im Namensfeld sendet sonst das <form method="dialog"> mit dem ERSTEN Button im
+  // Dokument als Submitter – das ist „Abbrechen“ (menu-Leiste), nicht „Als Regelset
+  // speichern“: der Dialog schließt kommentarlos, alle ungespeicherten Regeländerungen sind
+  // weg (Befund F2). Deshalb hier abfangen und stattdessen denselben Klick auslösen wie der
+  // Speichern-Button.
+  f.setName.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    saveSetBtn.click();
+  });
   dlg.querySelector('form').addEventListener('click', async e => {
     const act = e.target.closest('button[data-act]')?.dataset.act;
     if (!act) return;
