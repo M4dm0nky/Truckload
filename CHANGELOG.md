@@ -2,6 +2,15 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.5 – 2026-09-30
+
+- Neben „Alles neu packen“ gibt es jetzt „Pack-Regeln …“: eine Rangliste, mit der man selbst festlegt, in welcher Reihenfolge die sortenreinen Blöcke von der Stirnwand zur Tür stehen. Oben steht die wichtigste Regel, bei Gleichstand entscheidet die nächste.
+- Eine Regel spricht Traversen, eine Gruppe, einen Case-Typ oder ein Gewerk an und schiebt den passenden Block „zuerst“ (Stirnwand) oder „zuletzt“ (Tür), zum Beispiel „Gruppe Motoren: zuletzt“. Dazu kommen „Große zuerst“ und „Stückzahl zuerst“, jetzt als Regeln in derselben Liste.
+- Jedes Stück kann eine eigene Gruppe bekommen (z. B. „Motoren“): im Wizard-Schritt „Beschriften“, mit „Gruppe auf alle übernehmen“ für alle Stücke eines Case-Typs auf einmal, oder nachträglich im Inspector. Stücke mit unterschiedlicher Gruppe bilden beim Packen eigene Blöcke, auch wenn sie vom selben Case-Typ sind.
+- Eine Rangliste lässt sich als Regelset unter einem Namen sichern und in jedem anderen Load im Abschnitt „Regelsets“ mit „Übernehmen“ wieder einsetzen. Regelsets kommen mit in „Sichern“ und „Importieren“. Speichern unter einem vorhandenen Namen überschreibt das Regelset ohne Rückfrage.
+- Alte Loads ohne eigene Rangliste packen unverändert weiter: Es gilt automatisch die bisherige Reihenfolge aus „Große zuerst“ bzw. „Stückzahl zuerst“.
+- Ist Truckload beim Update noch in einem anderen Fenster in der alten Version offen, sagt die App jetzt, dass man es dort schließen soll, statt still hängenzubleiben.
+
 ## V 0.8.4 – 2026-09-28
 
 - Beim sortenreinen Packen steht jede Sorte jetzt in eigenen Spuren ab der Wand. Vorher setzte der Packer den ersten MLT-Wagen neben die letzte Reihe der vorigen Sorte (z. B. neben Packcases mit 60 cm Breite). Dadurch passten nur 3 statt 4 MLTs nebeneinander. Jetzt stehen 4 × 62 cm nebeneinander im 248-cm-Auflieger. Der Beispiel-Load braucht damit bei „Große zuerst“ 8,6 m statt 10,6 m.
