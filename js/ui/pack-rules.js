@@ -2,11 +2,11 @@ import { esc } from './dom.js';
 import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, ruleActive } from '../model/packRules.js';
 
 // Dialog „Pack-Regeln“ (Spec 2026-09-30). Store-unwissend wie openCaseEditor/openLoadWizard: bekommt
-// Regeln, Ziele des Loads und Regelsets als Argumente, speichert Regelsets über die Rückrufe von
-// app.js und liefert { rules, repack } oder null (Abbrechen/Esc).
+// Regeln, Deckschicht-Schalter, Ziele des Loads und Regelsets als Argumente, speichert Regelsets
+// über die Rückrufe von app.js und liefert { rules, mixTop, repack } oder null (Abbrechen/Esc).
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
 // Drag-Sonderfälle im <dialog>.
-export function openPackRules(dlg, { rules, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
+export function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
   let cur = [...rules];
   let sets = [...ruleSets];
 
@@ -16,6 +16,8 @@ export function openPackRules(dlg, { rules, targets, caseById, ruleSets = [], on
       <p class="hint">Oben steht die wichtigste Regel, bei Gleichstand entscheidet die nächste. Jeder Case-Typ bleibt
         ein eigener Block, Stücke mit Gruppe bilden einen eigenen Block. „zuerst“ heißt an der Stirnwand, „zuletzt“ an der Tür.</p>
       <ol class="rule-list"></ol>
+      <label class="check rule-mix"><input type="checkbox" name="mixTop"> Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf</label>
+      <small class="hint">Cases ohne Gewicht (0 kg) werden nicht gemischt. Die Lagen je Stück gelten weiter.</small>
       <fieldset class="rule-add">
         <legend>Regel hinzufügen</legend>
         <div class="rule-add-row">
@@ -88,6 +90,7 @@ export function openPackRules(dlg, { rules, targets, caseById, ruleSets = [], on
   const showSetHint = text => { setHint.textContent = text; setHint.hidden = !text; };
 
   const saveSetBtn = dlg.querySelector('[data-act="save-set"]');
+  f.mixTop.checked = mixTop === true;
 
   f.by.addEventListener('change', syncAddRow);
   // Enter im Namensfeld sendet sonst das <form method="dialog"> mit dem ERSTEN Button im
@@ -116,7 +119,7 @@ export function openPackRules(dlg, { rules, targets, caseById, ruleSets = [], on
     }
     if (act === 'apply-set') {
       const s = sets.find(x => x.id === f.set.value);
-      if (s) { cur = [...s.rules]; showSetHint(`Regelset „${s.name}“ übernommen.`); }
+      if (s) { cur = [...s.rules]; f.mixTop.checked = s.mixTop === true; showSetHint(`Regelset „${s.name}“ übernommen.`); }
     }
     if (act === 'delete-set') {
       const s = sets.find(x => x.id === f.set.value);
@@ -126,7 +129,7 @@ export function openPackRules(dlg, { rules, targets, caseById, ruleSets = [], on
     if (act === 'save-set') {
       const name = f.setName.value.trim();
       if (!name) { f.setName.focus(); return; }
-      const saved = await onSaveRuleSet?.(name, cur);
+      const saved = await onSaveRuleSet?.(name, cur, f.mixTop.checked);
       if (saved) {
         sets = [...sets.filter(x => x.id !== saved.id), saved].sort((a, b) => a.name.localeCompare(b.name, 'de'));
         f.setName.value = '';
@@ -145,7 +148,7 @@ export function openPackRules(dlg, { rules, targets, caseById, ruleSets = [], on
   return new Promise(resolve => {
     dlg.addEventListener('close', () => {
       const v = dlg.returnValue;
-      resolve(v === 'save' || v === 'repack' ? { rules: cur, repack: v === 'repack' } : null);
+      resolve(v === 'save' || v === 'repack' ? { rules: cur, mixTop: f.mixTop.checked, repack: v === 'repack' } : null);
     }, { once: true });
     dlg.returnValue = '';
     dlg.showModal();

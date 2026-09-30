@@ -10,7 +10,7 @@ import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
 import { openLoadWizard } from './ui/load-wizard.js';
 import { openPackRules } from './ui/pack-rules.js';
-import { rulesFor, ruleTargets, describeRule } from './model/packRules.js';
+import { rulesFor, ruleTargets, describeRule, mixTopFor } from './model/packRules.js';
 import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
@@ -458,9 +458,9 @@ $('#pack-rest').onclick = async () => {
   await warnIfUnplaced();
 };
 // Pack-Regeln je Load (Spec 2026-09-30): Rangliste im eigenen Dialog, Regelsets als Vorlage.
-async function saveRuleSetValue(name, rules) {
+async function saveRuleSetValue(name, rules, mixTop) {
   const existing = store.get().ruleSets.find(r => r.name.toLowerCase() === name.toLowerCase());
-  const value = stamp({ id: existing?.id ?? uid(), name, rules });
+  const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
   try {
     await repo.saveRuleSet(value);
   } catch (err) {
@@ -484,6 +484,7 @@ $('#pack-rules').onclick = async () => {
   const s = store.get(), c = ctx(s);
   const res = await openPackRules($('#dlg-rules'), {
     rules: rulesFor(s.plan),
+    mixTop: mixTopFor(s.plan),
     targets: ruleTargets([...s.plan.placements, ...s.plan.unplaced], c.caseById),
     caseById: c.caseById,
     ruleSets: [...s.ruleSets].sort((a, b) => a.name.localeCompare(b.name, 'de')),
@@ -492,7 +493,7 @@ $('#pack-rules').onclick = async () => {
   });
   if (!res) return;
   // Ein einziger Undo-Schritt für „Regeln setzen und neu packen“.
-  edit((p, cx) => { const next = A.setPackRules(p, res.rules); return res.repack ? A.packAll(next, cx) : next; });
+  edit((p, cx) => { let next = A.setMixTop(A.setPackRules(p, res.rules), res.mixTop); return res.repack ? A.packAll(next, cx) : next; });
   if (res.repack) await warnIfUnplaced();
 };
 $('#unload-all').onclick = async () => {
@@ -551,7 +552,7 @@ renderHooks.push((s, d) => {
   $('#undo').disabled = !store.canUndo();
   $('#redo').disabled = !store.canRedo();
   $('#unload-all').disabled = !s.plan.placements.length;
-  $('#pack-rules').title = `Reihenfolge beim automatischen Packen: ${rulesFor(s.plan).map(r => describeRule(r, d.caseById)).join(' · ') || 'nach Name'}`;
+  $('#pack-rules').title = `Reihenfolge beim automatischen Packen: ${rulesFor(s.plan).map(r => describeRule(r, d.caseById)).join(' · ') || 'nach Name'}${mixTopFor(s.plan) ? ' · Deckschicht an' : ''}`;
 });
 
 // Ladepläne
