@@ -75,10 +75,15 @@ const belongsTogether = (a, ca, b, cb) =>
 // Lagen je Stück).
 function capFits(s, it, c, o, truck) {
   const base = s.items[0], top = s.items.at(-1);
-  if (isTruss(c) || isTruss(base.c)) return null;
+  // F1 (Review 2026-09-30): nicht nur das Fundament prüfen – ein Traversenwagen kann per prevLast-
+  // Auffüllen mittig in einen fremden Stapel geraten (gleiche Grundfläche); dann trägt keiner der
+  // Blöcke im Stapel etwas Fremdes, auch nicht der, der oben liegt.
+  if (isTruss(c) || s.items.some(x => isTruss(x.c))) return null;
   if (!(c.weight > 0) || !s.items.every(x => x.c.weight > 0)) return null;
   if (!belongsTogether(it, c, base.it, base.c)) return null;
   if (s.items.length >= 4 || !pieceLayers(it, c).includes(s.items.length + 1)) return null;
+  // F5 (Review 2026-09-30): wie beim Stapel-Swap in placeStacks – ein um 90° gedrehter Deckel
+  // kann die Rollenrichtung zur Tür verlieren; hier geht Grundfläche vor Rollenrichtung.
   const swapped = { ...o, rot: (o.rot + 90) % 360, d: { dx: o.d.dy, dy: o.d.dx, dz: o.d.dz } };
   for (const cand of [o, swapped]) {
     if (cand.d.dx > top.o.d.dx + 1e-6 || cand.d.dy > top.o.d.dy + 1e-6) continue;

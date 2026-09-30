@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts, PACK_ORDERS } from '../js/model/packer.js';
 import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
+import { isTruss } from '../js/model/truss.js';
 import { mkCase, mkTruck, SPRINTER, plan, byId } from './fixtures.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
@@ -742,6 +743,47 @@ test('Deckschicht: Traversen tragen nichts und liegen nie obendrauf', () => {
   const rigSmall = mkCase('rigSmall', 60, 60, 40, { weight: 20, category: 'Rigging' });
   const r = autoPack([...items(tr, 1, 't'), ...items(rigSmall, 1, 'r')], mkTruck(), { mixTop: true });
   assert.equal(r.placements.find(p => p.caseId === 'rigSmall').z, 0);
+});
+
+// F1 (Review 2026-09-30): capFits prüfte bisher nur isTruss(base.c) – ein Stück, das per prevLast-
+// Auffüllen MITTIG in einen Stapel auf einem nicht-Traversen-Fundament gerät (Traversenwagen,
+// stapelbar, gleiche Grundfläche), wurde dabei übersehen: Ein Stück landete oben auf der Traverse.
+// Repro wie im Review-Finding: Fundament (Rigging, 200 kg) trägt einen Traversenwagen (Rigging,
+// 120 kg, gleiche Grundfläche, stapelbar); ein kleines Rigging-Case (20 kg) darf NICHT als
+// Deckschicht auf den Traversenwagen.
+test('F1: kein Stück landet auf einem Traversenwagen, der einen fremden Stapel mittig auffüllt', () => {
+  const base = mkCase('base', 240, 62, 61, { weight: 200, category: 'Rigging', layers: [1, 2] });
+  const trussWagon = mkCase('trussWagon', 240, 62, 60, {
+    kind: 'truss', category: 'Rigging', weight: 120, stackable: true, layers: [1, 2],
+    truss: { length: 240, width: 62, count: 1, standing: true, height: 60 },
+  });
+  const small = mkCase('small', 60, 60, 40, { weight: 20, category: 'Rigging' });
+  const list = [...items(base, 1, 'b'), ...items(trussWagon, 1, 'w'), ...items(small, 1, 's')];
+  const { stacks, unplaced } = buildStacks(list, mkTruck(), { rules: [{ by: 'volume' }], mixTop: true });
+  const capStack = stacks.find(s => s.items.length > 1);
+  assert.ok(capStack, 'Vorbedingung des Repro: der Traversenwagen füllt den Fundament-Stapel auf');
+  assert.equal(capStack.items.length, 2, 'Vorbedingung des Repro: nur Fundament + Traversenwagen im Stapel');
+  assert.equal(capStack.items.at(-1).c.id, 'trussWagon', 'Vorbedingung des Repro: der Traversenwagen liegt oben');
+  assert.equal(unplaced.length, 0, 'das kleine Case bleibt nicht in der Ablage …');
+  assert.ok(!capStack.items.some(x => x.c.id === 'small'), '… sondern darf nicht auf den Traversenwagen');
+  assert.ok(stacks.some(s => s !== capStack && s.items.some(x => x.c.id === 'small')),
+    'small bekommt stattdessen einen eigenen Bodenstapel');
+});
+
+// F1 (b): der umgekehrte Fall – eine Traverse selbst als Deckschicht-Kandidat auf ein fremdes Case –
+// war schon vorher durch isTruss(c) abgedeckt. Test bleibt als Regression stehen.
+test('F1: eine Traverse wird selbst nie als Deckschicht auf ein fremdes Case gesetzt', () => {
+  const bigRig = mkCase('bigRig', 120, 60, 80, { weight: 75, category: 'Rigging', layers: [1] });
+  const trussSmall = mkCase('trussSmall', 60, 60, 40, {
+    kind: 'truss', category: 'Rigging', weight: 20, stackable: true, layers: [1],
+    truss: { length: 60, width: 60, count: 1, standing: true, height: 40 },
+  });
+  const list = [...items(bigRig, 2, 'b'), ...items(trussSmall, 2, 't')];
+  const { stacks } = buildStacks(list, mkTruck(), { mixTop: true });
+  for (const s of stacks) {
+    const trussFlags = new Set(s.items.map(x => isTruss(x.c)));
+    assert.equal(trussFlags.size, 1, 'ein Stapel enthält entweder nur Traversen oder gar keine, nie beides');
+  }
 });
 
 test('Deckschicht auf Deckschicht: kleinere Stücke dürfen weiter oben aufeinander, solange alle Grenzen halten', () => {
