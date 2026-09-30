@@ -5,14 +5,42 @@ const DB_VERSION = 2;
 const STORES = ['cases', 'trucks', 'plans', 'ruleSets'];
 let dbPromise;
 
-function open() {
+// Ein VERSION-Bump (wie 1→2 in V 0.8.5) blockiert, solange ein anderes Fenster/Tab noch eine
+// ältere Verbindung offen hält (Browser feuert dann `onblocked`, nicht `onerror`) — `open()`
+// bliebe sonst für immer PENDING, `await repo.loadAll()` in js/app.js löst nie auf, und die
+// Seite steht ohne jede Erklärung (Befund F1). Deshalb: bei `onblocked` NICHT ablehnen (ein
+// Fallback wie bei echten Fehlern sähe wie leere Daten aus, wäre aber nur „noch nicht offen“) —
+// weiter warten und über einen optionalen Rückruf informieren, den js/app.js/repo.js zum
+// Einblenden eines Hinweises benutzen kann; feuert danach doch noch `onsuccess`, wird über
+// einen zweiten optionalen Rückruf mitgeteilt, dass der Hinweis wieder verschwinden darf.
+// Für künftige Version-Bumps setzt eine erfolgreich geöffnete Verbindung außerdem
+// `onversionchange`, damit sie sich selbst schließt statt eine spätere Öffnung zu blockieren —
+// ebenfalls mit optionalem Rückruf, damit js/app.js „Neue Version in einem anderen Fenster –
+// bitte neu laden“ anzeigen kann.
+let blockedHandler = null;
+let unblockedHandler = null;
+let versionChangeHandler = null;
+export const setBlockedHandler = fn => { blockedHandler = fn; };
+export const setUnblockedHandler = fn => { unblockedHandler = fn; };
+export const setVersionChangeHandler = fn => { versionChangeHandler = fn; };
+
+// Exportiert als kleinste Testnaht (Befund F1): `dbPromise` ist Modulebene und einmalig
+// gespritzt (`??=`), ein Test kann open() aber direkt mit einem Fake-`indexedDB` aufrufen,
+// ohne den ganzen Umweg über getAll()/eine Fake-Transaktion zu bauen.
+export function open() {
   return (dbPromise ??= new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       for (const s of STORES) if (!req.result.objectStoreNames.contains(s))
         req.result.createObjectStore(s, { keyPath: 'id' });
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onblocked = () => blockedHandler?.();
+    req.onsuccess = () => {
+      unblockedHandler?.();
+      const database = req.result;
+      database.onversionchange = () => { versionChangeHandler?.(); database.close(); };
+      resolve(database);
+    };
     req.onerror = () => reject(req.error);
   }));
 }

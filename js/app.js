@@ -36,6 +36,28 @@ function loadCaseColors() {
 // bleibt die Seite weiß, ohne jede Bedienmöglichkeit (Befund Daten-11).
 let storageError = null;
 let data;
+
+// Blockierte/veraltete Verbindung sichtbar machen (Befund F1): ein DB_VERSION-Bump (wie
+// 1→2 in V 0.8.5) bleibt PENDING, solange ein anderes Fenster/Tab noch eine ältere Version
+// offen hält — ohne Hinweis stünde die Seite ohne Erklärung. Muss VOR repo.loadAll()
+// registriert sein, damit der erste indexedDB.open() die Rückrufe schon kennt.
+const blockedBannerText = 'Truckload ist in einem anderen Fenster noch in einer älteren Version geöffnet – bitte dort schließen, dann lädt diese Seite weiter.';
+const versionChangeBannerText = 'Neue Version in einem anderen Fenster – bitte neu laden.';
+repo.setBlockedHandler(() => {
+  const el = $('#storage-warning');
+  el.hidden = false;
+  el.textContent = blockedBannerText;
+});
+repo.setUnblockedHandler(() => {
+  const el = $('#storage-warning');
+  if (el.textContent === blockedBannerText) el.hidden = true;
+});
+repo.setVersionChangeHandler(() => {
+  const el = $('#storage-warning');
+  el.hidden = false;
+  el.textContent = versionChangeBannerText;
+});
+
 try {
   data = await repo.loadAll();
 } catch (err) {
@@ -268,7 +290,9 @@ async function runLoadWizard(mode) {
     onNewCase: newCaseForWizard,
     trussDlg: $('#dlg-truss'),
     onNewTruss: saveCaseValue,
-    groups: s.plan ? ruleTargets([...s.plan.placements, ...s.plan.unplaced], ctx().caseById).groups : [],
+    // Bei mode 'new' gehört noch kein Plan zum Startbildschirm — Gruppenvorschläge aus dem
+    // gerade geöffneten Load gehören nicht zu einem neuen Load (Befund F5).
+    groups: mode === 'add' && s.plan ? ruleTargets([...s.plan.placements, ...s.plan.unplaced], ctx().caseById).groups : [],
   });
   if (!res) return;
   if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));

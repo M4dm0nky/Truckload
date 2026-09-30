@@ -6,6 +6,12 @@ import { normalizeCase, mergeById } from './io.js';
 
 export const stamp = obj => ({ ...obj, updatedAt: new Date().toISOString() });
 
+// Weiterreichung der db.js-Rückrufe (Befund F1) — app.js ist der einzige Store-aware Ort,
+// darf db.js selbst aber nicht importieren; der Umweg über repo.js hält das ein.
+export const setBlockedHandler = db.setBlockedHandler;
+export const setUnblockedHandler = db.setUnblockedHandler;
+export const setVersionChangeHandler = db.setVersionChangeHandler;
+
 // Reihenfolge: eigene Cases, dann Vorlagen, dann Bibliothek. Bei einer ID-Kollision
 // gewinnt weiterhin das eigene Case – Presets/Bibliothekseinträge mit dieser ID
 // entfallen, statt Duplikate zu erzeugen oder das eigene Case zu verdecken (Verbraucher
