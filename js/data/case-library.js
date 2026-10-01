@@ -99,11 +99,11 @@ export const CASE_LIBRARY = [
   C('Markus Tools -ROW only -CAB', 'Strom', 60, 60, 118, 'CAB', '', { weight: 30, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
   // MLVT (Moving-Light-Verteiler mit Patchfeld, Nutzerangabe 2026-09-30): kein Katalogprodukt
   // auffindbar, Nutzer-Standardgewicht 75 kg für alle vier Varianten gleich.
-  C('MLVT 24ch -CAB', 'Strom', 75, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
-  C('MLVT 48ch -CAB', 'Strom', 120, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
+  C('MLVT 24ch -CAB', 'Strom', 75, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzerangabe, kein recherchiertes Produkt – Standardwert für MLVT-Verteiler' }),
+  C('MLVT 48ch -CAB', 'Strom', 120, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzerangabe, kein recherchiertes Produkt – Standardwert für MLVT-Verteiler' }),
   // Kleine Cases unter ca. 45 cm Höhe haben keine Rollen (Nutzerangabe 2026-09-28): MLVT 63A 19″,
   // ChamSys-Pulte, ZR44, Look Viper NT, SF Data II, SF TourHazer II – Maß unverändert.
-  C('MLVT 63A 19" -CAB', 'Strom', 65, 55, 33, 'CAB', '', { wheels: false, wheelH: 0, weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
+  C('MLVT 63A 19" -CAB', 'Strom', 65, 55, 33, 'CAB', '', { wheels: false, wheelH: 0, weight: 75, note: 'Gewicht geschätzt: Nutzerangabe, kein recherchiertes Produkt – Standardwert für MLVT-Verteiler' }),
   C('Multicore -CAB', 'Strom', 80, 61, 60, 'CAB'),
   C('Multicore LK24 -CAB', 'Strom', 80, 61, 60, 'CAB'),
   C('Multicore LK37 -CAB', 'Strom', 80, 60, 73, 'CAB'),
@@ -114,7 +114,7 @@ export const CASE_LIBRARY = [
   // Kein Direkttreffer für 4×63A+2×32A+3×16A; Schätzung zwischen einem kleineren 1×63A-Verteiler
   // (33 kg) und dem großen 4-stufigen oben (140 kg), vom Nutzer als Schätzung akzeptiert.
   C('Powerlock-VT klein -CAB', 'Strom', 85, 60, 83, 'CAB', '', { weight: 50, note: 'Gewicht geschätzt: Verteiler 4×63A+2×32A+3×16A, zwischen Vergleichswerten interpoliert' }),
-  C('MLVT 63A Hotpatch ROW -CAB', 'Strom', 80, 55, 99, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzer-Standardwert für MLVT-Verteiler' }),
+  C('MLVT 63A Hotpatch ROW -CAB', 'Strom', 80, 55, 99, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzerangabe, kein recherchiertes Produkt – Standardwert für MLVT-Verteiler' }),
   C('ChamSys MQ100 -CAB', 'Licht', 71, 67, 29, 'CAB', 'ChamSys', { wheels: false, wheelH: 0, weight: 30, note: 'Gewicht geschätzt: 1 × ChamSys MQ100 à 14.2 kg + Case' }),
   C('ChamSys MQ500 -CAB', 'Licht', 93, 66, 30, 'CAB', 'ChamSys', { wheels: false, wheelH: 0, weight: 45, note: 'Gewicht geschätzt: 1 × ChamSys MQ500 à 32 kg + Case' }),
   // ChamSys MagicQ Compact Wing, 4,0 kg (chamsyslighting.com/product/magicq-compact-wing).

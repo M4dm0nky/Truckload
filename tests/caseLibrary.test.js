@@ -249,11 +249,16 @@ test('Nachrecherche 2026-09-30: neue Gewichte', () => {
 });
 
 test('Nachrecherche 2026-09-30: vier Cases sind jetzt legacy (auf Nutzerwunsch aus der Auswahl entfernt)', () => {
-  for (const name of ['63A VT Haube -BBM', 'Rigpack -CAB', 'Lakabaum (flach) -BBM', 'Lakabaum (Transflex) -BBM']) {
+  const names = ['63A VT Haube -BBM', 'Rigpack -CAB', 'Lakabaum (flach) -BBM', 'Lakabaum (Transflex) -BBM'];
+  for (const name of names) {
     const c = byName(name);
     assert.ok(c, name);
     assert.equal(c.legacy, true, name);
   }
+  // Legacy heißt nicht nur ein gesetztes Feld, sondern auch: aus jeder Auswahl verschwunden.
+  const { presets, list } = groupCases(CASE_LIBRARY);
+  const shown = new Set([...presets, ...list].map(c => c.id));
+  for (const name of names) assert.ok(!shown.has(byName(name).id), name);
 });
 
 test('Nachrecherche 2026-09-30: bewusst weiter bei 0 kg belassene Cases sind unverändert', () => {
