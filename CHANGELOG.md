@@ -2,6 +2,11 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.9 – 2026-10-01
+
+- Kleine interne Aufräumarbeit nach einem Code-Review der letzten Case-Gewichte-Recherche:
+  keine sichtbare Änderung an Maßen, Gewichten oder Bedienung.
+
 ## V 0.8.8 – 2026-09-30
 
 - Korrektur: „FD34 2m CUSTOMIZE“ und „Slick“ sind aus deiner Liste entfernt. Beide
