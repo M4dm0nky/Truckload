@@ -170,6 +170,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .lib-group-head { display: flex; gap: 8px; align-items: center; padding: 6px; margin-top: 10px; }
 .lib-group-head:first-child { margin-top: 0; }
 .lib-group-head button { padding: 2px 8px; }
+.icon { display: block; }
 .lib-item { display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 16px; border: 1px solid transparent; border-radius: 6px; cursor: grab; }
 .lib-item[data-placed] { cursor: pointer; }
 .lib-item:hover { border-color: var(--line); background: var(--bg); }

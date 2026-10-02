@@ -1,4 +1,4 @@
-import { esc, swatch } from './dom.js';
+import { esc, swatch, icon } from './dom.js';
 import { layersOf, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
 
@@ -62,8 +62,8 @@ export function mountLibrary(el, h) {
       <div class="lib-group-head">
         ${swatch(c?.color)}
         <span class="lib-text"><b>${esc(name)}</b><small>${count}× ${esc(c ? caseDetail(c) : '')}</small></span>
-        <button data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">✎</button>
-        ${c?.builtin ? '' : `<button data-act="delete" data-case="${esc(caseId)}" title="Löschen">🗑</button>`}
+        <button data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">${icon('pencil-simple')}</button>
+        ${c?.builtin ? '' : `<button data-act="delete" data-case="${esc(caseId)}" class="danger" title="Löschen">${icon('trash')}</button>`}
       </div>`;
   }
 

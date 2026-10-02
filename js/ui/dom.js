@@ -23,6 +23,24 @@ export const fmtM = cm => `${(cm / 100).toFixed(2).replace('.', ',')} m`;
 const SWATCH_COLOR_RE = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
 export const swatch = color => `<span class="swatch" style="background:${SWATCH_COLOR_RE.test(color) ? esc(color) : '#888'}"></span>`;
 
+// Inline-SVG-Icons statt Emoji-Zeichen (✎/🗑 in js/ui/library.js) – ein Emoji bringt seine
+// eigene, betriebssystemabhängige Farbe mit und fällt damit aus dem sonst durchgehend
+// monochromen Dark-/Light-UI heraus. `fill="currentColor"` übernimmt stattdessen die
+// Button-Textfarbe und läuft mit dem Farbmodus mit (css/app.css, `button { color: inherit; }`).
+// Pfade: Phosphor Icons (MIT), „regular“-Stil, unverändert übernommen.
+// Anders als bei swatch() ist `name` hier keine Nutzer-/Importdaten, sondern eine feste
+// Zeichenkette im eigenen Code – ein unbekannter Name ist ein Tippfehler und soll laut werfen,
+// nicht still ein leeres Icon liefern.
+const ICON_PATHS = {
+  'pencil-simple': 'M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z',
+  trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z',
+};
+export function icon(name) {
+  const d = ICON_PATHS[name];
+  if (!d) throw new Error(`Unbekanntes Icon „${name}“.`);
+  return `<svg class="icon" viewBox="0 0 256 256" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
+}
+
 export const ORIENTATION_LABEL = {
   standing: 'stehend',
   tipLong: 'getippt (Längsseite)',
