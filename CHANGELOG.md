@@ -2,6 +2,13 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.10 – 2026-10-02
+
+- Die Bearbeiten-/Löschen-Symbole in der Materialliste sind jetzt echte Symbole statt Emoji
+  (✎/🗑) – die sahen je nach Betriebssystem unterschiedlich aus und passten nicht zum
+  sonst einheitlich dunklen bzw. hellen Design. Der Löschen-Knopf ist jetzt zusätzlich rot
+  markiert, wie der entsprechende Knopf im Inspector.
+
 ## V 0.8.9 – 2026-10-01
 
 - Kleine interne Aufräumarbeit nach einem Code-Review der letzten Case-Gewichte-Recherche:
