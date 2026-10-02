@@ -2,6 +2,12 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.8.11 – 2026-10-02
+
+- Neue Farbpalette: Dunkelmodus jetzt in „Amber + Indigo“ statt dem bisherigen Grauton
+  mit Bernstein-Akzent. Der Hellmodus ist entsprechend angepasst. Cases bleiben wie bisher
+  schwarz mit Alu-Kanten, unabhängig vom Modus.
+
 ## V 0.8.10 – 2026-10-02
 
 - Die Bearbeiten-/Löschen-Symbole in der Materialliste sind jetzt echte Symbole statt Emoji
