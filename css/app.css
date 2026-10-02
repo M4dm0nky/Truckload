@@ -1,11 +1,20 @@
 :root {
-  --bg: #15181d; --panel: #1d2128; --line: #2e343d; --text: #e6e9ee; --muted: #8b95a3;
-  --accent: #f0a500; --danger: #e5484d; --ok: #30a46c; --truck: #232830; --grid: #2a3039;
+  /* Palette „Amber + Indigo auf Dunkel“ (ui-ux-pro-max-Skill, Nutzerwunsch 2026-10-02):
+     --bg/--panel/--text/--muted/--accent/--danger direkt aus dem Treffer „Time amber + night
+     indigo on dark“. --line/--truck/--grid liefert der Skill nicht (nur Primary/Background/Card/
+     Muted/Accent/Destructive) – selbst in derselben Blauton-Familie abgeleitet. --line bewusst
+     nicht die vom Skill vorgeschlagene rgba(255,255,255,0.08): die wäre als SVG-Füllung des
+     Radkastens (`svg .arch`, unten) auf dem Truckboden kaum sichtbar. --ok liefert der Skill
+     ebenfalls nicht, bleibt unverändert. */
+  --bg: #0f172a; --panel: #192134; --line: #2a3444; --text: #ffffff; --muted: #94a3b8;
+  --accent: #d97706; --danger: #dc2626; --ok: #30a46c; --truck: #121a2c; --grid: #223049;
   --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   --case-body: #1c1d20; --alu: #b8bec6; --corner: #d6dbe1; --wheel: #2b2d31;
 }
 @media (prefers-color-scheme: light) {
-  :root { --bg: #eef0f3; --panel: #fff; --line: #d6dbe1; --text: #1b1f24; --muted: #66707c; --truck: #f7f8fa; --grid: #e3e7ec; }
+  /* Hellmodus komplett selbst abgeleitet (eigene Entscheidung, 2026-10-02) – der Skill-Treffer
+     deckt nur den Dunkelmodus ab. In derselben Indigo-Blauton-Familie wie oben. */
+  :root { --bg: #f1f4f9; --panel: #fff; --line: #dce3ec; --text: #16213a; --muted: #5b6b85; --truck: #f7f9fc; --grid: #e5eaf1; }
   /* Cases sind immer schwarz mit Alu-Kanten, unabhängig vom Theme */
 }
 * { box-sizing: border-box; }

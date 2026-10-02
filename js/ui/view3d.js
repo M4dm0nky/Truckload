@@ -28,7 +28,7 @@ export async function createView3d(container) {
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
-  const readBg = () => getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#15181d';
+  const readBg = () => getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0f172a';
   scene.background = new THREE.Color(readBg());
   // `--bg` wurde bisher nur einmal beim Erzeugen der Szene gelesen: wechselt das System
   // zwischen hell/dunkel (css/app.css, `@media (prefers-color-scheme: light)`), ziehen
