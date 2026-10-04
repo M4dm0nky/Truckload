@@ -264,35 +264,6 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
   return { placed, failed };
 }
 
-// Toleranz für „liegt auf“ (z-Versatz Oberkante Träger / Unterkante Stück), in cm.
-const LAYER_EPS = 1;
-
-// Lagen-Durchsicht (Task 2, 2026-10-04): die Lage eines Stücks steht nirgends im Packergebnis
-// (result.items hat nur Boxen) – sie wird hier aus den Boxen abgeleitet statt gespeichert, damit
-// kein neues Feld ins Datenmodell muss. `items`: result.items (jedes mit `id` und `box`
-// {x0,y0,z0,x1,y1,z1} in cm). Von unten nach oben (nach z0 sortiert): ein Stück auf dem Boden
-// (z0 < LAYER_EPS) ist Lage 1, sonst eins über der höchsten Lage seiner Träger (Oberkante des
-// Trägers liegt auf LAYER_EPS genau an der eigenen Unterkante UND die Grundrisse überlappen).
-// Ohne Träger (sollte nicht vorkommen, z. B. nach Verschieben von Hand) zählt es als Lage 1.
-export function layersOf(items) {
-  const layers = new Map();
-  const sorted = [...items].sort((a, b) => a.box.z0 - b.box.z0);
-  const overlapsXY = (a, b) => a.x0 < b.x1 - LAYER_EPS && b.x0 < a.x1 - LAYER_EPS
-    && a.y0 < b.y1 - LAYER_EPS && b.y0 < a.y1 - LAYER_EPS;
-  for (const it of sorted) {
-    if (it.box.z0 < LAYER_EPS) { layers.set(it.id, 1); continue; }
-    let supportLayer = 0;
-    for (const other of sorted) {
-      if (other === it) continue;
-      if (Math.abs(other.box.z1 - it.box.z0) > LAYER_EPS) continue;
-      if (!overlapsXY(other.box, it.box)) continue;
-      supportLayer = Math.max(supportLayer, layers.get(other.id) ?? 0);
-    }
-    layers.set(it.id, supportLayer > 0 ? supportLayer + 1 : 1);
-  }
-  return layers;
-}
-
 // items: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
 // Die erzeugten Placements übernehmen id/label/color/layers/tipped des Stücks statt eine neue ID zu vergeben.
 // order: 'volume' | 'count' (Altdaten), rules: Rangliste (packRules.js, hat Vorrang), startX: frühestes x der ersten Sorte (Rest einpacken).

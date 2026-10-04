@@ -5,7 +5,6 @@ import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters } from './caseStyle.js';
 import { archBoxes } from '../model/validate.js';
-import { layersOf } from '../model/packer.js';
 import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
 
@@ -342,9 +341,11 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
 
   // Einmal je Render über alle Stücke, nicht je Case (sonst O(n²)).
   const weightSpan = colorMode === 'weight' ? weightRange(result.items) : null;
-  // Lagen-Durchsicht (Task 2): layersOf() einmal je Render rechnen, nicht je Stück – bei
+  // Lagen-Durchsicht: die Lage je Stück steht schon im Packergebnis (validate.js, `layerMap`)
+  // und ist dieselbe Zahl, die der Inspektor und die Druck-Tabelle als „Lage“ zeigen – deshalb
+  // hier keine eigene Rechnung, sonst könnten beide Angaben auseinanderlaufen. Bei
   // layerLimit === null (Auswahl „alle“) ändert sich am Zeichnen nichts.
-  const layers = layerLimit != null ? layersOf(result.items) : null;
+  const layers = layerLimit != null ? result.layers : null;
 
   for (const a of archBoxes(truck)) {
     if (mode === 'side' && a.y0 > 0) continue; // Seitenansicht zeigt nur den linken Radkasten
