@@ -4,7 +4,7 @@ import { project, unproject, drawOrder, wheelView } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters } from './caseStyle.js';
-import { archBoxes } from '../model/validate.js';
+import { archBoxes, aboveLayer } from '../model/validate.js';
 import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
 
@@ -341,12 +341,6 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
 
   // Einmal je Render über alle Stücke, nicht je Case (sonst O(n²)).
   const weightSpan = colorMode === 'weight' ? weightRange(result.items) : null;
-  // Lagen-Durchsicht: die Lage je Stück steht schon im Packergebnis (validate.js, `layerMap`)
-  // und ist dieselbe Zahl, die der Inspektor und die Druck-Tabelle als „Lage“ zeigen – deshalb
-  // hier keine eigene Rechnung, sonst könnten beide Angaben auseinanderlaufen. Bei
-  // layerLimit === null (Auswahl „alle“) ändert sich am Zeichnen nichts.
-  const layers = layerLimit != null ? result.layers : null;
-
   for (const a of archBoxes(truck)) {
     if (mode === 'side' && a.y0 > 0) continue; // Seitenansicht zeigt nur den linken Radkasten
     const r = project(a, mode, truck);
@@ -355,7 +349,10 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
 
   for (const it of drawOrder(result.items, mode)) {
     const bad = result.byPlacement.has(it.id);
-    const faint = layers != null && (layers.get(it.id) ?? 1) > layerLimit;
+    // Lagen-Durchsicht: dieselbe Regel wie in 3D (dort wird ausgeblendet statt blass gezeichnet).
+    // Die Lage kommt aus dem Packergebnis (validate.js, `layerMap`) – dieselbe Zahl, die der
+    // Inspektor und die Druck-Tabelle als „Lage“ zeigen.
+    const faint = aboveLayer(result.layers, it.id, layerLimit, selectedId);
     const cls = ['case', bad && 'bad', it.id === selectedId && 'sel', faint && 'faint'].filter(Boolean).join(' ');
     const g = svgEl('g', { class: cls, 'data-id': it.id }, svg);
     drawCase(g, {

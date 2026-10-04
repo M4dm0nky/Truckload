@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePlan, archBoxes, buildItems } from '../js/model/validate.js';
+import { validatePlan, archBoxes, buildItems, aboveLayer } from '../js/model/validate.js';
 import { mkCase, mkTruck, SPRINTER, P, plan, byId } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);
@@ -357,4 +357,33 @@ test('tooManyLayers bei 5er-Stapel flacher Cases', () => {
   assert.equal(r.layers.get('e'), 5);
   assert.deepEqual(codes(r,'e'), ['tooManyLayers']);
   assert.match(r.byPlacement.get('e')[0].message, /„f“ steht in Lage 5 – mehr als 4 Lagen sind nicht vorgesehen\./);
+});
+
+// Gemeinsame Regel für die Lagen-Durchsicht: 2D zeichnet solche Stücke blass, 3D lässt sie
+// ganz weg. Eine Funktion für beide, damit die Ansichten nicht auseinanderlaufen können.
+test('aboveLayer: ohne Grenze („alle“) liegt nichts oberhalb', () => {
+  const layers = new Map([['a', 1], ['b', 3]]);
+  assert.equal(aboveLayer(layers, 'a', null, null), false);
+  assert.equal(aboveLayer(layers, 'b', null, null), false);
+});
+
+test('aboveLayer: oberhalb der Grenze ja, auf und unter der Grenze nein', () => {
+  const layers = new Map([['a', 1], ['b', 2], ['c', 3]]);
+  assert.equal(aboveLayer(layers, 'a', 2, null), false);
+  assert.equal(aboveLayer(layers, 'b', 2, null), false);
+  assert.equal(aboveLayer(layers, 'c', 2, null), true);
+});
+
+// Das ausgewählte Stück bleibt immer sichtbar: in 3D verschwände es sonst ganz, während der
+// Inspector es weiter als ausgewählt führt; in 2D verblasste sein Auswahlrahmen auf 18 %.
+test('aboveLayer: das ausgewählte Stück ist nie oberhalb', () => {
+  const layers = new Map([['c', 3]]);
+  assert.equal(aboveLayer(layers, 'c', 1, 'c'), false);
+  assert.equal(aboveLayer(layers, 'c', 1, 'anderes'), true);
+});
+
+// Ein Stück ohne Eintrag in der Lagenkarte (soll nicht vorkommen) gilt als Lage 1 und bleibt
+// damit sichtbar — lieber ein Stück zu viel zeigen als eines verschwinden lassen.
+test('aboveLayer: ein Stück ohne bekannte Lage gilt als Lage 1', () => {
+  assert.equal(aboveLayer(new Map(), 'unbekannt', 1, null), false);
 });
