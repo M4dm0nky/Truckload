@@ -2,6 +2,19 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.9.1 – 2026-10-04
+
+Zwei Entscheidungen aus V 0.9.0 nachgezogen, die ich dort eigenmächtig getroffen hatte.
+
+- **Lagen-Durchsicht jetzt auch in 3D:** höhere Lagen werden dort ausgeblendet statt blass
+  gezeichnet – ein sauberer Schnitt durch die Ladung. Das ausgewählte Case bleibt sichtbar.
+  Welche Stücke betroffen sind, entscheidet in 2D und 3D dieselbe Regel.
+- **Etiketten passen auf Haftpapier:** Avery Zweckform 3425 (105 × 57 mm, 10 je Bogen) und
+  3474 (70 × 37 mm, 24 je Bogen). Diese Druckart geht dafür auf A4 hoch und randlos, der
+  Schnittrahmen entfällt. Ladeplan und Abhakliste bleiben A4 quer. Der senkrechte Rand ist
+  nicht aus Herstellerangaben belegt und deshalb zentriert – vor dem ersten Bogen einen
+  Testdruck gegen einen Etikettenbogen halten.
+
 ## V 0.9.0 – 2026-10-04
 
 Vier Funktionen aus der Wettbewerbsrecherche (truckpacker.com). Übernommen wurden nur Ideen,

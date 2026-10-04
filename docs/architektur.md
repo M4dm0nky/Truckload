@@ -401,9 +401,14 @@ Die Lagen-Durchsicht (`layerLimit` in `renderView`) zeichnet Stücke oberhalb de
 mit `.faint` blass. Die Lage je Stück kommt aus `result.layers` — berechnet von `layerMap()` in
 `js/model/validate.js`, derselben Zahl, die der Inspector und die Druck-Tabelle als „Lage“
 zeigen. Sie wird nicht neu abgeleitet, damit beide Angaben nicht auseinanderlaufen können.
-**Bewusst nur in 2D:** in 3D teilen sich die Cases Materialien und InstancedMeshes
-(`userData.shared`), eine Pro-Stück-Transparenz wäre dort ein deutlich größerer Eingriff —
-siehe `docs/offene-punkte.md`.
+In 3D werden solche Stücke **ausgeblendet** statt blass gezeichnet (`js/ui/view3d.js`,
+`update()` überspringt sie): Materialien liegen dort nach Farbe im Zwischenspeicher und die
+Profilstäbe laufen als ein einziges `InstancedMesh` über alle Cases — eine Transparenz je
+Stück hieße, beides zu verdoppeln und zu trennen. Welche Stücke betroffen sind, entscheidet in
+beiden Ansichten dieselbe Funktion `aboveLayer()` in `js/model/validate.js`, damit sie nicht
+auseinanderlaufen; das ausgewählte Stück ist dort immer ausgenommen. Die Spanne des
+Gewichtsmodus läuft weiter über ALLE Stücke — sonst spränge die Farbskala beim Umschalten
+der Lagen um.
 
 `js/ui/print.js` erzeugt drei Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
 SVG-Ansichten), `buildChecklist` (Abhakliste) und `buildLabels` (Etiketten). Welches gilt,
@@ -411,8 +416,12 @@ steuert `js/app.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklis
 bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle drei schreiben
 nur `root.innerHTML`, brauchen dafür also kein echtes DOM, sondern nur eine Attrappe – deshalb
 sind sie ohne jsdom testbar (`tests/print.test.js`). Allein `buildPrint` greift danach über
-`root.querySelector` auf das DOM zu, um die SVGs einzuhängen. **`@page` bleibt A4 quer für alle drei** —
-benannte Seiten (`@page x { … }` + `page:`) werden von Browsern uneinheitlich unterstützt.
+`root.querySelector` auf das DOM zu, um die SVGs einzuhängen. Die Seitenvorschrift hängt an der Druckart:
+`pageRuleFor(doc)` liefert für Etiketten `@page { size: A4 portrait; margin: 0 }`, sonst `null`.
+`js/app.js` hängt die Regel vor `window.print()` als `<style id="print-page">` ein und entfernt
+sie im `afterprint` wieder — benannte Seiten (`@page x { … }` + `page:`) wären der direktere
+Weg, werden aber von Browsern uneinheitlich unterstützt. Die Grundregel in `css/print.css`
+bleibt A4 quer und gilt damit für Ladeplan und Abhakliste.
 
 Kugelecken ragen nie über das Außenmaß hinaus — das gemessene Maß enthält sie schon. Ihr
 Mittelpunkt liegt um den Radius nach innen versetzt (`cornerCenters`/`cornerCenters3d`,
