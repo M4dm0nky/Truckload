@@ -536,8 +536,8 @@ renderHooks.push(s => {
   $('#colors-black').classList.toggle('on', s.caseColors === 'black');
   $('#colors-trade').classList.toggle('on', s.caseColors === 'trade');
   $('#colors-weight').classList.toggle('on', s.caseColors === 'weight');
-  // Lagen-Durchsicht wirkt nur in 2D (Begründung Task-2-Brief); im 3D-Modus ausgeblendet.
-  $('#layer-group').hidden = s.mode !== '2d';
+  // Lagen-Durchsicht wirkt in beiden Ansichten: 2D zeichnet höhere Lagen blass, 3D blendet sie
+  // aus (js/ui/view3d.js). Die Auswahl bleibt deshalb immer sichtbar.
 });
 
 // Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons. Die beiden <select> wurden bisher bei
@@ -712,7 +712,7 @@ renderHooks.push(async (s, d) => {
     }
   }
   try {
-    view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors });
+    view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors, layerLimit: s.layerLimit });
   } catch (err) {
     console.error('3D-Ansicht: Aktualisierung fehlgeschlagen', err);
   }

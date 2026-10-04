@@ -1,4 +1,4 @@
-import { archBoxes } from '../model/validate.js';
+import { archBoxes, aboveLayer } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
 import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
@@ -504,7 +504,7 @@ export async function createView3d(container) {
   }
 
   let framedFor = null;
-  function update({ truck, result, selectedId, colorMode = 'black' }) {
+  function update({ truck, result, selectedId, colorMode = 'black', layerLimit = null }) {
     clear();
     usedLabelKeys = new Set();
     usedBodyMatKeys = new Set();
@@ -524,6 +524,14 @@ export async function createView3d(container) {
     const chordSegs = [], chordColors = [], diagSegs = [];
 
     for (const it of result.items) {
+      // Lagen-Durchsicht: in 3D werden höhere Lagen AUSGEBLENDET statt blass gezeichnet. Eine
+      // Transparenz je Stück wäre hier teuer – Materialien liegen nach Farbe im Zwischenspeicher
+      // (bodyMatCache/bandMatCache) und die Profilstäbe laufen als ein einziges InstancedMesh
+      // über alle Cases; man müsste beides verdoppeln und nach blass/kräftig trennen. In 3D kann
+      // man umherfahren, der blasse Zusammenhang wird also nicht gebraucht. Die Spanne für den
+      // Gewichtsmodus oben läuft bewusst über ALLE Stücke, sonst spränge die Farbskala beim
+      // Umschalten der Lagen um.
+      if (aboveLayer(result.layers, it.id, layerLimit, selectedId)) continue;
       const bad = result.byPlacement.has(it.id);
       const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
       const colors = caseColors(it.c, colorMode, itemColor);
