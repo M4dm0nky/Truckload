@@ -97,6 +97,8 @@ svg .case .label { fill: #fff; font-weight: 700; text-anchor: middle; dominant-b
 svg .case .label-seq { fill: #fff; font-weight: 600; text-anchor: start; dominant-baseline: text-before-edge; pointer-events: none; paint-order: stroke; stroke: #000; stroke-width: 2.5; stroke-linejoin: round; opacity: .85; }
 svg .case.bad rect.alert { fill: none; stroke: var(--danger); stroke-width: 4; stroke-dasharray: 10 5; pointer-events: none; }
 svg .case.sel rect.body, svg .case.sel rect.body.framed { stroke: var(--accent); stroke-width: 5; }
+/* Lagen-Durchsicht (Task 2): Stücke oberhalb der gewählten Lage bleiben blass sichtbar, nicht versteckt. */
+svg .case.faint { opacity: .18; }
 
 /* Traversenwagen: Rollbrett (Kunststoff, schwarz) mit Auflageleisten, Gewerk-Farbe nur als dünne
    Kennzeichnung auf der Platte. */

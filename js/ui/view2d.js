@@ -5,6 +5,7 @@ import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters } from './caseStyle.js';
 import { archBoxes } from '../model/validate.js';
+import { layersOf } from '../model/packer.js';
 import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
 
@@ -321,7 +322,7 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid, weightSpan }) {
   svgEl('title', {}, g).textContent = it.title;
 }
 
-export function renderView(svg, mode, { truck, result, selectedId, labels = true, colorMode = 'black' }) {
+export function renderView(svg, mode, { truck, result, selectedId, labels = true, colorMode = 'black', layerLimit = null }) {
   svg.replaceChildren();
   const uid = svgUid(svg);
   addDefs(svg, uid);
@@ -341,6 +342,9 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
 
   // Einmal je Render über alle Stücke, nicht je Case (sonst O(n²)).
   const weightSpan = colorMode === 'weight' ? weightRange(result.items) : null;
+  // Lagen-Durchsicht (Task 2): layersOf() einmal je Render rechnen, nicht je Stück – bei
+  // layerLimit === null (Auswahl „alle“) ändert sich am Zeichnen nichts.
+  const layers = layerLimit != null ? layersOf(result.items) : null;
 
   for (const a of archBoxes(truck)) {
     if (mode === 'side' && a.y0 > 0) continue; // Seitenansicht zeigt nur den linken Radkasten
@@ -350,7 +354,8 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
 
   for (const it of drawOrder(result.items, mode)) {
     const bad = result.byPlacement.has(it.id);
-    const cls = ['case', bad && 'bad', it.id === selectedId && 'sel'].filter(Boolean).join(' ');
+    const faint = layers != null && (layers.get(it.id) ?? 1) > layerLimit;
+    const cls = ['case', bad && 'bad', it.id === selectedId && 'sel', faint && 'faint'].filter(Boolean).join(' ');
     const g = svgEl('g', { class: cls, 'data-id': it.id }, svg);
     drawCase(g, {
       ...it,

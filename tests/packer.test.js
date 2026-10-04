@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts, PACK_ORDERS } from '../js/model/packer.js';
+import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts, PACK_ORDERS, layersOf } from '../js/model/packer.js';
 import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
 import { isTruss } from '../js/model/truss.js';
@@ -818,4 +818,53 @@ test('Deckschicht, Eigenschaft: keine neuen Placement-Fehler, nichts geht verlor
       if (below) assert.ok(byAll.get(below.caseId).weight >= byAll.get(p.caseId).weight, `run ${run}: schwer auf leicht`);
     }
   }
+});
+
+// Lagen-Durchsicht (Task 2, 2026-10-04): Lagen stehen nirgends im Packergebnis, layersOf()
+// leitet sie aus den Boxen der Stücke ab (result.items), damit die 2D-Ansicht höhere Lagen
+// blass zeichnen kann, ohne ein neues Feld im Datenmodell einzuführen.
+const box = (x0, y0, z0, x1, y1, z1) => ({ x0, y0, z0, x1, y1, z1 });
+
+test('layersOf: Stücke auf dem Boden sind Lage 1', () => {
+  const m = layersOf([
+    { id: 'a', box: box(0, 0, 0, 100, 60, 80) },
+    { id: 'b', box: box(100, 0, 0, 200, 60, 80) },
+  ]);
+  assert.equal(m.get('a'), 1);
+  assert.equal(m.get('b'), 1);
+});
+
+test('layersOf: ein Stück auf einem anderen ist Lage 2, darüber Lage 3', () => {
+  const m = layersOf([
+    { id: 'u', box: box(0, 0, 0, 100, 60, 80) },
+    { id: 'm', box: box(0, 0, 80, 100, 60, 140) },
+    { id: 'o', box: box(0, 0, 140, 100, 60, 180) },
+  ]);
+  assert.equal(m.get('u'), 1);
+  assert.equal(m.get('m'), 2);
+  assert.equal(m.get('o'), 3);
+});
+
+test('layersOf: ohne Grundrissüberlappung zählt ein Stück nicht als Träger', () => {
+  // „hoch“ schwebt über einem ganz anderen Stellplatz – kein Träger, also Lage 1.
+  const m = layersOf([
+    { id: 'unten', box: box(0, 0, 0, 100, 60, 80) },
+    { id: 'hoch', box: box(300, 0, 80, 400, 60, 140) },
+  ]);
+  assert.equal(m.get('unten'), 1);
+  assert.equal(m.get('hoch'), 1);
+});
+
+test('layersOf: liegt ein Stück auf zwei verschieden hohen Stapeln, zählt der höhere', () => {
+  const m = layersOf([
+    { id: 'a', box: box(0, 0, 0, 100, 60, 80) },
+    { id: 'b', box: box(0, 0, 80, 100, 60, 120) },
+    { id: 'c', box: box(100, 0, 0, 200, 60, 120) },
+    { id: 'd', box: box(50, 0, 120, 150, 60, 160) },
+  ]);
+  assert.equal(m.get('d'), 3); // steht auf b (Lage 2) und c (Lage 1)
+});
+
+test('layersOf: leere Liste liefert eine leere Map', () => {
+  assert.equal(layersOf([]).size, 0);
 });

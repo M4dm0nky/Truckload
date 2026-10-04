@@ -80,7 +80,9 @@ try {
 // Sonderbehandlung.
 export const store = createStore({
   cases: data.cases, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
-  plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(),
+  // layerLimit ist bewusst keine localStorage-Einstellung wie caseColors: die Lagen-Durchsicht
+  // ist eine Momentaufnahme, kein dauerhafter Zustand.
+  plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
 function ctx(s = store.get()) {
@@ -166,7 +168,7 @@ function render() {
   layoutEl.hidden = false;
 
   const d = derive(s);
-  const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors };
+  const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors, layerLimit: s.layerLimit };
   if (s.mode === '2d') {
     renderView($('#svg-top'), 'top', opts);
     renderView($('#svg-side'), 'side', opts);
@@ -522,6 +524,7 @@ function setCaseColors(mode) {
 $('#colors-black').onclick = () => setCaseColors('black');
 $('#colors-trade').onclick = () => setCaseColors('trade');
 $('#colors-weight').onclick = () => setCaseColors('weight');
+$('#layer-limit').onchange = e => store.update(s => ({ ...s, layerLimit: e.target.value ? Number(e.target.value) : null }));
 renderHooks.push(s => {
   $('#views2d').hidden = s.mode !== '2d';
   $('#view3d').hidden = s.mode !== '3d';
@@ -530,6 +533,8 @@ renderHooks.push(s => {
   $('#colors-black').classList.toggle('on', s.caseColors === 'black');
   $('#colors-trade').classList.toggle('on', s.caseColors === 'trade');
   $('#colors-weight').classList.toggle('on', s.caseColors === 'weight');
+  // Lagen-Durchsicht wirkt nur in 2D (Begründung Task-2-Brief); im 3D-Modus ausgeblendet.
+  $('#layer-group').hidden = s.mode !== '2d';
 });
 
 // Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons. Die beiden <select> wurden bisher bei
