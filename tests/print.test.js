@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildChecklist, buildLabels, printHTML } from '../js/ui/print.js';
+import { buildChecklist, buildLabels, printHTML, pageRuleFor } from '../js/ui/print.js';
 import { validatePlan } from '../js/model/validate.js';
 import { APP_VERSION } from '../js/version.js';
 import { mkCase, mkTruck, P, plan, byId } from './fixtures.js';
@@ -201,4 +201,15 @@ test('Etikett: „n von m“ steht in einem eigenen Element, nicht hinter dem Pl
   buildLabels(root, { plan: p, truck, result });
   assert.match(root.innerHTML, /class="count">1 von 2</);
   assert.match(root.innerHTML, /class="count">2 von 2</);
+});
+
+// Etiketten müssen auf A4 HOCH und randlos, damit sie auf Avery-Bögen passen; Ladeplan und
+// Abhakliste bleiben A4 quer. Benannte Seiten (@page x { … } + page:) werden von Browsern
+// uneinheitlich unterstützt, deshalb hängt js/app.js die Regel vor dem Druck ein und nimmt sie
+// danach wieder weg. Bleibt sie stehen, druckt der nächste Ladeplan im Hochformat.
+test('pageRuleFor: nur Etiketten brauchen eine eigene Seitenvorschrift', () => {
+  assert.equal(pageRuleFor('plan'), null);
+  assert.equal(pageRuleFor('checklist'), null);
+  assert.match(pageRuleFor('labels'), /@page\s*\{[^}]*A4 portrait/);
+  assert.match(pageRuleFor('labels'), /margin:\s*0/);
 });

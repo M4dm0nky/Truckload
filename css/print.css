@@ -34,23 +34,26 @@ body > *:not(#print-root) { display: none !important; }
 #print-root.doc-checklist .signoff { display: flex; gap: 12mm; margin-top: 8mm; break-inside: avoid; }
 #print-root.doc-checklist .signoff .line { display: inline-block; width: 40mm; border-bottom: 0.3mm solid #000; margin-left: 2mm; }
 
-/* Etiketten (Task 4): ein Bogen zum Ausdrucken und Zerschneiden – KEINE Haftpapier-Maße eines
-   bestimmten Herstellers (die US-Avery-Formate des Wettbewerbers, den diese Idee aufgegriffen
-   hat, passen hier nicht). Zwei metrische Rastergrößen, nutzbare Fläche 277×190mm (A4 quer,
-   10mm Rand ringsum, siehe @page oben):
-   - groß  105×57mm → 2 Spalten × 3 Zeilen = 6 je Bogen (210×171mm genutzt)
-   - klein  70×37mm → 3 Spalten × 5 Zeilen = 15 je Bogen (210×185mm genutzt)
-   Bewusst OHNE Seitenkopf (siehe buildLabels in js/ui/print.js) – eine Kopfzeile verschöbe
-   das Raster auf jeder Seite anders, sobald die letzte Zeile einer Seite nicht voll ist. */
-/* Die Spaltenbreiten stehen fest in mm, damit die Schnittmaße stimmen – mehr Spalten passen auf
-   277 mm nicht (3×105 = 315, 4×70 = 280). Der Rest bleibt Weißraum; `justify-content: center`
-   verteilt ihn auf beide Seiten, sonst sähe der Bogen aus, als wäre er verrutscht. */
-#print-root.doc-labels .labels { display: grid; gap: 0; justify-content: center; }
+/* Etiketten: Avery-Zweckform-Bögen, A4 HOCH und randlos (die @page-Regel dafür hängt
+   js/app.js nur für diese Druckart ein, siehe pageRuleFor in js/ui/print.js).
+   - groß  Avery Zweckform 3425, 105×57 mm → 2 Spalten × 5 Zeilen = 10 je Bogen
+   - klein Avery Zweckform 3474,  70×37 mm → 3 Spalten × 8 Zeilen = 24 je Bogen
+   Beide Raster sind 210 mm breit (2×105 und 3×70) = genau A4-Breite, der Seitenrand links und
+   rechts ist damit zwangsläufig 0. Senkrecht bleibt Spiel (297 − 5×57 = 12 mm bzw.
+   297 − 8×37 = 1 mm). WIE VIEL davon oben liegt, ist NICHT belegt – die öffentlich auffindbaren
+   Quellen nennen den oberen Rand nicht, und die eine mit Zahlen widerspricht sich selbst. Das
+   Raster wird deshalb zentriert (die neutrale Wahl), statt eine Herstellerangabe zu behaupten,
+   die wir nicht haben; ein Testbogen zeigt sofort, ob das stimmt, und zu ändern ist dann
+   align-content. Kein Schnittrahmen: auf Haftpapier würde er mitgedruckt. */
+#print-root.doc-labels .labels {
+  display: grid; gap: 0; justify-content: center; align-content: center;
+  min-height: 297mm;
+}
 #print-root.doc-labels.size-large .labels { grid-template-columns: repeat(2, 105mm); grid-auto-rows: 57mm; }
 #print-root.doc-labels.size-small .labels { grid-template-columns: repeat(3, 70mm); grid-auto-rows: 37mm; }
 #print-root.doc-labels .tl-label {
   box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;
-  padding: 3mm; border: 0.2mm dashed #999; overflow: hidden; break-inside: avoid;
+  padding: 3mm; overflow: hidden; break-inside: avoid;
 }
 #print-root.doc-labels .seq { font-size: 28pt; font-weight: 700; line-height: 1; }
 #print-root.doc-labels .name {

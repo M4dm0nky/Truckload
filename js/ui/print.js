@@ -106,6 +106,13 @@ export function buildChecklist(root, { plan, truck, result }) {
 // headInfo()-Kopfzeile auf der Seite selbst – ein Seitenkopf würde das Raster auf jeder Seite
 // anders verschieben, sobald die letzte Zeile einer Seite nicht voll ist (Task-4-Brief). Der
 // Planname kommt stattdessen klein auf jedes einzelne Etikett (`meta`).
+// Etiketten drucken auf A4 HOCH und randlos (Avery-Zweckform-Bögen); Ladeplan und Abhakliste
+// bleiben A4 quer. Benannte Seiten (`@page x { … }` + `page:`) wären der direktere Weg, werden
+// aber von Browsern uneinheitlich unterstützt — js/app.js hängt deshalb diese Regel nur für den
+// Etikettendruck ein und nimmt sie danach wieder weg.
+export const pageRuleFor = doc =>
+  doc === 'labels' ? '@page { size: A4 portrait; margin: 0; }' : null;
+
 // `truck` wird nicht gebraucht und deshalb auch nicht angefasst: ein Etikett nennt nur den
 // Ladenamen. headInfo() würde `truck.name` dereferenzieren und den Etikettendruck ohne Not an
 // ein auflösbares Fahrzeug binden.

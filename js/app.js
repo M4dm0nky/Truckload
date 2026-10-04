@@ -19,7 +19,7 @@ import { COLOR_MODES } from './ui/caseStyle.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
-import { buildPrint, buildChecklist, buildLabels } from './ui/print.js';
+import { buildPrint, buildChecklist, buildLabels, pageRuleFor } from './ui/print.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
 
@@ -724,6 +724,23 @@ renderHooks.push(async (s, d) => {
 $('#print-doc').onchange = () => {
   $('#print-label-size').hidden = $('#print-doc').value !== 'labels';
 };
+
+// Die Seitenvorschrift hängt an der Druckart (pageRuleFor in js/ui/print.js): Etiketten wollen
+// A4 hoch und randlos, Ladeplan und Abhakliste A4 quer. Die Regel wird NACH dem Druck wieder
+// entfernt – bliebe sie stehen, druckte der nächste Ladeplan im Hochformat.
+function setPrintPage(doc) {
+  clearPrintPage();
+  const rule = pageRuleFor(doc);
+  if (!rule) return;
+  const el = document.createElement('style');
+  el.id = 'print-page';
+  el.textContent = rule;
+  document.head.appendChild(el);
+}
+function clearPrintPage() {
+  document.getElementById('print-page')?.remove();
+}
+window.addEventListener('afterprint', clearPrintPage);
 $('#print').onclick = () => {
   const s = store.get(), d = derive(s);
   const root = $('#print-root');
@@ -739,6 +756,7 @@ $('#print').onclick = () => {
     root.className = 'print-root doc-plan';
     buildPrint(root, { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
   }
+  setPrintPage(doc);
   window.print();
 };
 
