@@ -14,3 +14,17 @@ body > *:not(#print-root) { display: none !important; }
 #print-root table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
 #print-root th, #print-root td { border-bottom: 1px solid #bbb; padding: 1mm 2mm; text-align: left; vertical-align: top; }
 #print-root tr { break-inside: avoid; }
+#print-root .swatch { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+/* Abhakliste (Task 3): zweispaltig, damit ein normaler Load auf ein Blatt passt. Eigene Klasse
+   am #print-root, damit der normale Plan-Ausdruck (ohne .doc-checklist) davon nichts abbekommt. */
+#print-root.doc-checklist { column-count: 2; column-gap: 8mm; }
+#print-root.doc-checklist .checklist { list-style: none; margin: 4mm 0 0; padding: 0; }
+#print-root.doc-checklist .checklist li { display: flex; align-items: center; gap: 2mm; padding: 1.5mm 0; break-inside: avoid; }
+#print-root.doc-checklist .checklist .num { flex: 0 0 auto; width: 7mm; font-weight: 600; }
+#print-root.doc-checklist .checklist .swatch { width: 5mm; height: 5mm; border-radius: 1mm; flex: 0 0 auto; }
+#print-root.doc-checklist .checklist .label { flex: 1 1 auto; overflow: hidden; }
+#print-root.doc-checklist .checklist .label small { color: #555; }
+#print-root.doc-checklist .checklist .tick { flex: 0 0 auto; width: 5mm; height: 5mm; border: 0.4mm solid #000; margin-left: 2mm; }
+#print-root.doc-checklist .signoff { display: flex; gap: 12mm; margin-top: 8mm; break-before: avoid; column-span: all; }
+#print-root.doc-checklist .signoff .line { display: inline-block; width: 40mm; border-bottom: 0.3mm solid #000; margin-left: 2mm; }

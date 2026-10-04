@@ -18,7 +18,7 @@ import { esc } from './ui/dom.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
-import { buildPrint } from './ui/print.js';
+import { buildPrint, buildChecklist } from './ui/print.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
 
@@ -718,7 +718,11 @@ renderHooks.push(async (s, d) => {
 // Drucken, Sichern, Importieren
 $('#print').onclick = () => {
   const s = store.get(), d = derive(s);
-  buildPrint($('#print-root'), { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
+  const root = $('#print-root');
+  const doc = $('#print-doc').value;
+  root.className = `print-root doc-${doc}`;
+  if (doc === 'checklist') buildChecklist(root, { plan: s.plan, truck: d.truck, result: d.result });
+  else buildPrint(root, { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
   window.print();
 };
 

@@ -1,16 +1,35 @@
 import { APP_VERSION } from '../version.js';
-import { esc, fmtM, ORIENTATION_LABEL } from './dom.js';
+import { esc, swatch, fmtM, ORIENTATION_LABEL } from './dom.js';
 import { renderView } from './view2d.js';
 
-export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
+// Angaben, die auf jeder Druckart im Kopf stehen – ein gemeinsamer Baustein statt doppelter
+// esc()/toLocaleString()-Aufrufe in buildPrint und buildChecklist (Task-3-Brief).
+function headInfo({ plan, truck, result }) {
   const t = result.totals;
-  const rows = [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
-  root.innerHTML = `
+  return {
+    plan: esc(plan.name),
+    truck: esc(truck.name),
+    date: new Date().toLocaleDateString('de-DE'),
+    count: t.count,
+    weight: Math.round(t.weight).toLocaleString('de-DE'),
+    version: APP_VERSION,
+  };
+}
+
+const sortedBySequence = result => [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
+
+// Reines HTML-Bauen, ohne DOM-Zugriff – testbar ohne jsdom. buildPrint hängt danach die SVGs
+// über root.querySelector ein (das braucht echtes DOM und bleibt deshalb dort).
+export function printHTML({ plan, truck, result }) {
+  const t = result.totals;
+  const h = headInfo({ plan, truck, result });
+  const rows = sortedBySequence(result);
+  return `
     <header>
-      <h1>${esc(plan.name)}</h1>
-      <p>${esc(truck.name)} · Innen ${truck.l}×${truck.w}×${truck.h} cm · ${new Date().toLocaleDateString('de-DE')}
-        · ${Math.round(t.weight).toLocaleString('de-DE')} / ${truck.payload.toLocaleString('de-DE')} kg
-        · ${fmtM(t.loadMeters * 100)} Lademeter · ${t.count} Cases · Truckload V ${APP_VERSION}</p>
+      <h1>${h.plan}</h1>
+      <p>${h.truck} · Innen ${truck.l}×${truck.w}×${truck.h} cm · ${h.date}
+        · ${h.weight} / ${truck.payload.toLocaleString('de-DE')} kg
+        · ${fmtM(t.loadMeters * 100)} Lademeter · ${h.count} Cases · Truckload V ${h.version}</p>
       ${t.withoutWeight ? `<p class="p-noweight">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig${t.cog && t.cog.source === 'volume' ? '; Schwerpunkt ersatzweise über das Volumen geschätzt (Cases ohne Gewicht zählen dabei wie voll beladen)' : ''}.</p>` : ''}
     </header>
     <figure><figcaption>Draufsicht (Stirnwand links)</figcaption><svg class="p-top"></svg></figure>
@@ -24,7 +43,36 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
         <td>${it.box.z0 > 0 ? `${Math.round(it.box.z0)} cm` : 'Boden'}</td><td>${result.layers.get(it.id)}</td><td>${it.c.weight}</td></tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
+  root.innerHTML = printHTML({ plan, truck, result });
   const opts = { truck, result, selectedId: null, colorMode };
   renderView(root.querySelector('.p-top'), 'top', opts);
   renderView(root.querySelector('.p-side'), 'side', opts);
+}
+
+// Zweite Druckart: eine Abhakliste für die Rampe – je Stück eine Zeile mit Ladenummer,
+// Farbpunkt, Beschriftung und einem leeren Kästchen statt der Draufsicht/Seitenansicht/Tabelle
+// aus buildPrint. Bewusst ohne <input type="checkbox">: gedruckte Formularelemente sehen je
+// nach Browser verschieden aus und drucken teils gar nicht (Task-3-Brief).
+export function buildChecklist(root, { plan, truck, result }) {
+  const h = headInfo({ plan, truck, result });
+  const rows = sortedBySequence(result);
+  root.innerHTML = `
+    <header>
+      <h1>${h.plan}</h1>
+      <p>${h.truck} · ${h.date} · ${h.count} Cases · ${h.weight} kg · Truckload V ${h.version}</p>
+    </header>
+    <ul class="checklist">${rows.map(it => `<li>
+        <span class="num">${result.sequence.get(it.id)}</span>
+        ${swatch(it.color)}
+        <span class="label">${esc(it.label)} <small>(${esc(it.c.name)})</small></span>
+        <span class="tick"></span>
+      </li>`).join('')}
+    </ul>
+    <footer class="signoff">
+      <span class="sign">Geladen von <span class="line"></span></span>
+      <span class="sign">Datum <span class="line"></span></span>
+    </footer>`;
 }
