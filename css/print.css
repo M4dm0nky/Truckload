@@ -11,6 +11,59 @@ body > *:not(#print-root) { display: none !important; }
 #print-root svg .tick { fill: #444; }
 #print-root .p-issues { border: 1px solid #c00; padding: 2mm; color: #c00; }
 #print-root .p-noweight { margin: 0; font-size: 9pt; color: #555; }
+#print-root .p-open { margin: 0; font-size: 9pt; }
 #print-root table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
 #print-root th, #print-root td { border-bottom: 1px solid #bbb; padding: 1mm 2mm; text-align: left; vertical-align: top; }
 #print-root tr { break-inside: avoid; }
+#print-root .swatch { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+/* Abhakliste (Task 3): zweispaltig, damit ein normaler Load auf ein Blatt passt. Eigene Klasse
+   am #print-root, damit der normale Plan-Ausdruck (ohne .doc-checklist) davon nichts abbekommt. */
+#print-root.doc-checklist { column-count: 2; column-gap: 8mm; }
+#print-root.doc-checklist .checklist { list-style: none; margin: 4mm 0 0; padding: 0; }
+#print-root.doc-checklist .checklist li { display: flex; align-items: center; gap: 2mm; padding: 1.5mm 0; break-inside: avoid; }
+#print-root.doc-checklist .checklist .num { flex: 0 0 auto; width: 7mm; font-weight: 600; }
+#print-root.doc-checklist .checklist .swatch { width: 5mm; height: 5mm; border-radius: 1mm; flex: 0 0 auto; }
+#print-root.doc-checklist .checklist .label { flex: 1 1 auto; overflow: hidden; }
+#print-root.doc-checklist .checklist .label small { color: #555; }
+#print-root.doc-checklist .checklist .tick { flex: 0 0 auto; width: 5mm; height: 5mm; border: 0.4mm solid #000; margin-left: 2mm; }
+/* Die Unterschriftszeile läuft bewusst IM Spaltenfluss mit (kein `column-span: all`): aufgespannt
+   über beide Spalten schob Chrome sie auf eine zweite, sonst leere Seite, sobald die Liste die
+   erste Seite füllte – 42 Cases passen nebeneinander auf ein Blatt, die Unterschrift landete
+   trotzdem auf Seite 2. So steht sie am Ende der letzten Spalte und das Blatt bleibt eines. */
+#print-root.doc-checklist .signoff { display: flex; gap: 12mm; margin-top: 8mm; break-inside: avoid; }
+#print-root.doc-checklist .signoff .line { display: inline-block; width: 40mm; border-bottom: 0.3mm solid #000; margin-left: 2mm; }
+
+/* Etiketten (Task 4): ein Bogen zum Ausdrucken und Zerschneiden – KEINE Haftpapier-Maße eines
+   bestimmten Herstellers (die US-Avery-Formate des Wettbewerbers, den diese Idee aufgegriffen
+   hat, passen hier nicht). Zwei metrische Rastergrößen, nutzbare Fläche 277×190mm (A4 quer,
+   10mm Rand ringsum, siehe @page oben):
+   - groß  105×57mm → 2 Spalten × 3 Zeilen = 6 je Bogen (210×171mm genutzt)
+   - klein  70×37mm → 3 Spalten × 5 Zeilen = 15 je Bogen (210×185mm genutzt)
+   Bewusst OHNE Seitenkopf (siehe buildLabels in js/ui/print.js) – eine Kopfzeile verschöbe
+   das Raster auf jeder Seite anders, sobald die letzte Zeile einer Seite nicht voll ist. */
+/* Die Spaltenbreiten stehen fest in mm, damit die Schnittmaße stimmen – mehr Spalten passen auf
+   277 mm nicht (3×105 = 315, 4×70 = 280). Der Rest bleibt Weißraum; `justify-content: center`
+   verteilt ihn auf beide Seiten, sonst sähe der Bogen aus, als wäre er verrutscht. */
+#print-root.doc-labels .labels { display: grid; gap: 0; justify-content: center; }
+#print-root.doc-labels.size-large .labels { grid-template-columns: repeat(2, 105mm); grid-auto-rows: 57mm; }
+#print-root.doc-labels.size-small .labels { grid-template-columns: repeat(3, 70mm); grid-auto-rows: 37mm; }
+#print-root.doc-labels .tl-label {
+  box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 3mm; border: 0.2mm dashed #999; overflow: hidden; break-inside: avoid;
+}
+#print-root.doc-labels .seq { font-size: 28pt; font-weight: 700; line-height: 1; }
+#print-root.doc-labels .name {
+  font-size: 11pt; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+#print-root.doc-labels .bar {
+  display: block; height: 4mm; margin: 2mm 0; print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+/* Gekürzt wird nur der Ladename. „n von m“ steht in einem eigenen Element, das nicht schrumpft –
+   sonst schnitt ein langer Ladename genau die Angabe weg, die das Etikett zeigen soll. */
+#print-root.doc-labels .meta { font-size: 8pt; color: #555; display: flex; gap: 2mm; overflow: hidden; }
+#print-root.doc-labels .meta .load { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#print-root.doc-labels .meta .count { flex: 0 0 auto; margin-left: auto; white-space: nowrap; }
+#print-root.doc-labels.size-small .seq { font-size: 20pt; }
+#print-root.doc-labels.size-small .name { font-size: 9pt; }
+#print-root.doc-labels.size-small .meta { font-size: 7pt; }

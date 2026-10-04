@@ -33,7 +33,7 @@
     </div>
   </section>
   <header class="topbar" hidden>
-    <strong class="brand">Truckload <span id="app-version" class="version">V 0.8.11</span></strong>
+    <strong class="brand">Truckload <span id="app-version" class="version">V 0.9.0</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
       <select id="plan-select" title="Ladeplan"></select>
@@ -57,10 +57,20 @@
       <button id="mode-2d" class="on">2D</button>
       <button id="mode-3d">3D</button>
     </div>
+    <div id="layer-group" class="group">
+      <span class="seg-label">Lagen</span>
+      <select id="layer-limit" title="Höhere Lagen blass zeichnen">
+        <option value="">alle</option>
+        <option value="1">bis 1</option>
+        <option value="2">bis 2</option>
+        <option value="3">bis 3</option>
+      </select>
+    </div>
     <div class="group seg">
       <span class="seg-label">Case-Farbe</span>
       <button id="colors-black" class="on">Schwarz</button>
       <button id="colors-trade">Gewerk</button>
+      <button id="colors-weight">Gewicht</button>
     </div>
     <span class="grow"></span>
     <div class="group">
@@ -68,6 +78,15 @@
       <button id="redo" title="Wiederholen (⇧⌘Z)">↷</button>
       <button id="export" title="Alles als JSON-Datei sichern">Sichern</button>
       <button id="import-btn" type="button" title="JSON-Sicherung einlesen">Importieren</button>
+      <select id="print-doc" title="Was gedruckt wird">
+        <option value="plan">Ladeplan</option>
+        <option value="checklist">Abhakliste</option>
+        <option value="labels">Etiketten</option>
+      </select>
+      <select id="print-label-size" title="Etikettengröße" hidden>
+        <option value="large">Etiketten groß (105 × 57 mm)</option>
+        <option value="small">Etiketten klein (70 × 37 mm)</option>
+      </select>
       <button id="print">Drucken</button>
     </div>
   </header>

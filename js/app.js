@@ -15,10 +15,11 @@ import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
+import { COLOR_MODES } from './ui/caseStyle.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
-import { buildPrint } from './ui/print.js';
+import { buildPrint, buildChecklist, buildLabels } from './ui/print.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
 
@@ -27,7 +28,12 @@ const uid = () => crypto.randomUUID();
 
 const CASE_COLORS_KEY = 'truckload.caseColors';
 function loadCaseColors() {
-  try { return localStorage.getItem(CASE_COLORS_KEY) === 'trade' ? 'trade' : 'black'; }
+  try {
+    const v = localStorage.getItem(CASE_COLORS_KEY);
+    // Gegen COLOR_MODES prüfen statt die Liste hier ein zweites Mal von Hand zu führen – sonst
+    // fällt ein künftiger vierter Modus aus localStorage still auf „Schwarz“ zurück.
+    return COLOR_MODES.includes(v) ? v : 'black';
+  }
   catch { return 'black'; }
 }
 
@@ -77,7 +83,9 @@ try {
 // Sonderbehandlung.
 export const store = createStore({
   cases: data.cases, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
-  plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(),
+  // layerLimit ist bewusst keine localStorage-Einstellung wie caseColors: die Lagen-Durchsicht
+  // ist eine Momentaufnahme, kein dauerhafter Zustand.
+  plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
 function ctx(s = store.get()) {
@@ -163,7 +171,7 @@ function render() {
   layoutEl.hidden = false;
 
   const d = derive(s);
-  const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors };
+  const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors, layerLimit: s.layerLimit };
   if (s.mode === '2d') {
     renderView($('#svg-top'), 'top', opts);
     renderView($('#svg-side'), 'side', opts);
@@ -518,6 +526,8 @@ function setCaseColors(mode) {
 }
 $('#colors-black').onclick = () => setCaseColors('black');
 $('#colors-trade').onclick = () => setCaseColors('trade');
+$('#colors-weight').onclick = () => setCaseColors('weight');
+$('#layer-limit').onchange = e => store.update(s => ({ ...s, layerLimit: e.target.value ? Number(e.target.value) : null }));
 renderHooks.push(s => {
   $('#views2d').hidden = s.mode !== '2d';
   $('#view3d').hidden = s.mode !== '3d';
@@ -525,6 +535,9 @@ renderHooks.push(s => {
   $('#mode-3d').classList.toggle('on', s.mode === '3d');
   $('#colors-black').classList.toggle('on', s.caseColors === 'black');
   $('#colors-trade').classList.toggle('on', s.caseColors === 'trade');
+  $('#colors-weight').classList.toggle('on', s.caseColors === 'weight');
+  // Lagen-Durchsicht wirkt nur in 2D (Begründung Task-2-Brief); im 3D-Modus ausgeblendet.
+  $('#layer-group').hidden = s.mode !== '2d';
 });
 
 // Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons. Die beiden <select> wurden bisher bei
@@ -706,9 +719,26 @@ renderHooks.push(async (s, d) => {
 });
 
 // Drucken, Sichern, Importieren
+// Die Etikettengröße steht nicht im Store (reine Druckoptik, kein Teil des Plans) – deshalb
+// hier über ein eigenes onchange ein-/ausgeblendet statt über einen Render-Hook (Task-4-Brief).
+$('#print-doc').onchange = () => {
+  $('#print-label-size').hidden = $('#print-doc').value !== 'labels';
+};
 $('#print').onclick = () => {
   const s = store.get(), d = derive(s);
-  buildPrint($('#print-root'), { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
+  const root = $('#print-root');
+  const doc = $('#print-doc').value;
+  if (doc === 'checklist') {
+    root.className = 'print-root doc-checklist';
+    buildChecklist(root, { plan: s.plan, truck: d.truck, result: d.result });
+  } else if (doc === 'labels') {
+    const size = $('#print-label-size').value;
+    root.className = `print-root doc-labels size-${size}`;
+    buildLabels(root, { plan: s.plan, truck: d.truck, result: d.result, size });
+  } else {
+    root.className = 'print-root doc-plan';
+    buildPrint(root, { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
+  }
   window.print();
 };
 

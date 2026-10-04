@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.8.11** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.9.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -137,6 +137,47 @@ genau zu prüfen, wie die Cases stehen:
 Cases lassen sich auch gezoomt verschieben und aus der Liste hineinziehen. Beim
 Hineinziehen rastet ein Case, wie beim Verschieben, an den Kanten der Nachbarn und an den
 Wänden ein. Der Ausdruck zeigt immer den ganzen Truck.
+
+## Case-Farbe: Schwarz, Gewerk, Gewicht
+
+Oben in der Werkzeugleiste steht, wonach die Cases eingefärbt werden:
+
+- **Schwarz** – wie im echten Leben: schwarzer Korpus, die Gewerk-Farbe nur als Streifen.
+- **Gewerk** – der ganze Korpus in der Farbe des Stücks. Gut, um auf einen Blick zu sehen,
+  wo Licht, Ton und Rigging stehen.
+- **Gewicht** – schwer rot, leicht blau, abgestuft über die Spanne der Stücke **mit**
+  bekanntem Gewicht in dieser Ladung. Damit sieht man sofort, ob die schweren Teile unten
+  und gleichmäßig verteilt stehen.
+
+Ein Case mit 0 kg heißt „unbekannt“, nicht „am leichtesten“. Es bleibt deshalb im
+Gewichtsmodus neutral grau, statt als das leichteste Teil dazustehen. Traversenwagen behalten
+ihre Markenfarbe, in jedem Modus.
+
+## Lagen-Durchsicht
+
+In der Draufsicht verdeckt die obere Lage die untere vollständig. Die Auswahl **Lagen** in der
+Werkzeugleiste zeichnet alles oberhalb der gewählten Lage blass — die darunterliegenden Cases
+werden lesbar, der Zusammenhang bleibt aber sichtbar, weil nichts verschwindet. Die Auswahl
+wirkt nur in den 2D-Ansichten; in 3D kann man ohnehin umherfahren. Der Ausdruck zeigt immer
+alle Lagen.
+
+## Drucken: Ladeplan, Abhakliste, Etiketten
+
+Neben dem Knopf „Drucken“ steht, was gedruckt wird:
+
+- **Ladeplan** – das Planungsdokument: Draufsicht, Seitenansicht und eine Tabelle mit allen
+  Stücken, Positionen und Gewichten.
+- **Abhakliste** – für die Rampe: je geladenem Stück eine Zeile in Ladereihenfolge mit Nummer,
+  Farbpunkt, Beschriftung und einem Kästchen zum Abhaken, unten eine Unterschriftszeile.
+  Zweispaltig; rund 40 Cases passen auf ein Blatt. Liegt noch etwas in „Noch nicht geladen“,
+  sagt der Kopf das ausdrücklich — eine abgehakte Liste heißt sonst, alles sei verladen,
+  obwohl Cases in der Halle stehen. Warnungen aus dem Packergebnis stehen ebenfalls darauf.
+- **Etiketten** – ein Bogen zum Ausdrucken und Zerschneiden, je Stück ein Etikett mit großer
+  Ladenummer, Beschriftung, Farbbalken und „3 von 17“. Zwei Größen zur Wahl: 105 × 57 mm
+  (6 je Bogen) und 70 × 37 mm (15 je Bogen). Die Maße sind metrisch gewählt und auf **kein**
+  bestimmtes Haftpapier abgestimmt.
+
+Alle drei drucken auf A4 quer.
 
 ## Mitgelieferte Cases
 

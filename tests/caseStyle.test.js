@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CASE_BLACK, COLOR_MODES, caseColors, DETAIL_MIN, CORNER_R, cornerCenters, cornerCenters3d } from '../js/ui/caseStyle.js';
+import { CASE_BLACK, COLOR_MODES, caseColors, DETAIL_MIN, CORNER_R, cornerCenters, cornerCenters3d, weightRange, weightColor } from '../js/ui/caseStyle.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80, { color: '#ff8800' });
@@ -14,8 +14,8 @@ test('trade: Korpus in Gewerk-Farbe, kein Streifen', () => {
 test('unbekannter Modus → schwarz', () => {
   assert.deepEqual(caseColors(C, 'was-auch-immer'), { body: CASE_BLACK, stripe: '#ff8800' });
 });
-test('COLOR_MODES enthält beide Modi', () => {
-  assert.deepEqual(COLOR_MODES, ['black', 'trade']);
+test('COLOR_MODES enthält alle drei Modi', () => {
+  assert.deepEqual(COLOR_MODES, ['black', 'trade', 'weight']);
 });
 
 test('schwarz mit Stück-Farbe: Korpus bleibt schwarz, Streifen in Stück-Farbe (schlägt Gewerkfarbe)', () => {
@@ -66,4 +66,68 @@ test('Eckenradius ist klein (kaum sichtbar über dem Profil, keine Bälle)', () 
 test('cornerCenters: bei sehr kleinem Rechteck nie über die Mitte hinaus', () => {
   const pts = cornerCenters({ u0: 0, v0: 0, u1: 3, v1: 3 }, CORNER_R);
   for (const [cx, cy] of pts) { assert.ok(cx >= 0 && cx <= 3); assert.ok(cy >= 0 && cy <= 3); }
+});
+
+test('weightRange: Spanne nur über Stücke mit Gewicht', () => {
+  const items = [{ c: { weight: 0 } }, { c: { weight: 20 } }, { c: { weight: 100 } }];
+  assert.deepEqual(weightRange(items), { min: 20, max: 100 });
+});
+
+test('weightRange: ohne Stück mit Gewicht gibt es keine Spanne', () => {
+  assert.equal(weightRange([{ c: { weight: 0 } }]), null);
+  assert.equal(weightRange([]), null);
+});
+
+test('weightColor: 0 kg ist unbekannt und wird neutral grau, nicht „am leichtesten“', () => {
+  const grau = weightColor(0, { min: 20, max: 100 });
+  assert.equal(grau, weightColor(0, { min: 1, max: 2 }), 'unabhängig von der Spanne derselbe Grauton');
+  assert.notEqual(grau, weightColor(20, { min: 20, max: 100 }));
+});
+
+test('weightColor: leicht und schwer sind unterschiedlich, Reihenfolge stimmt', () => {
+  const r = { min: 20, max: 100 };
+  const leicht = weightColor(20, r), mitte = weightColor(60, r), schwer = weightColor(100, r);
+  for (const v of [leicht, mitte, schwer]) assert.match(v, /^#[0-9a-f]{6}$/i);
+  assert.notEqual(leicht, schwer);
+  assert.notEqual(leicht, mitte);
+  assert.notEqual(mitte, schwer);
+});
+
+test('weightColor: alle gleich schwer (min = max) liefert eine gültige Farbe, keine Division durch null', () => {
+  const v = weightColor(50, { min: 50, max: 50 });
+  assert.match(v, /^#[0-9a-f]{6}$/i);
+});
+
+test('weightColor: ohne Spanne (null) ist alles neutral', () => {
+  assert.equal(weightColor(50, null), weightColor(0, null));
+});
+
+test('caseColors: Modus weight färbt den Körper wie trade, ohne Streifen', () => {
+  const c = { color: '#123456' };
+  assert.deepEqual(caseColors(c, 'weight', '#ff0000'), { body: '#ff0000', stripe: null });
+});
+
+test('caseColors: Modi schwarz und Gewerk unverändert (Regression)', () => {
+  const c = { color: '#123456' };
+  assert.deepEqual(caseColors(c, 'trade', '#abcdef'), { body: '#abcdef', stripe: null });
+  assert.equal(caseColors(c, 'black', '#abcdef').stripe, '#abcdef');
+});
+
+// Schlussprüfung des Branches, Befund 7: Traversenwagen behalten ihre Markenfarbe (drawTruss/
+// addTruss übergehen den Farbmodus bewusst). Sie spannten die Gewichtsskala aber trotzdem auf —
+// ein 100-kg-Traversenwagen neben Kabelcases von 10–30 kg drückte alle Cases in das untere
+// Drittel der Skala, so dass sie fast gleich blau aussahen, während das Stück, das das Maximum
+// setzte, selbst gar nicht eingefärbt wurde. Was nicht mitgefärbt wird, darf die Skala nicht
+// bestimmen.
+test('weightRange lässt Traversenwagen aus, weil sie ihre Markenfarbe behalten', () => {
+  const items = [
+    { c: { weight: 10 } },
+    { c: { weight: 30 } },
+    { c: { weight: 100, kind: 'truss' } },
+  ];
+  assert.deepEqual(weightRange(items), { min: 10, max: 30 });
+});
+
+test('weightRange: ein Load nur aus Traversenwagen hat keine Spanne', () => {
+  assert.equal(weightRange([{ c: { weight: 100, kind: 'truss' } }]), null);
 });

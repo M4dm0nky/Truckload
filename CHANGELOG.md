@@ -2,6 +2,29 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.9.0 – 2026-10-04
+
+Vier Funktionen aus der Wettbewerbsrecherche (truckpacker.com). Übernommen wurden nur Ideen,
+die in der Logistik Allgemeingut sind; Layout, Wortlaut und Code des Wettbewerbers nicht.
+
+- **Farbmodus „Gewicht“** neben „Schwarz“ und „Gewerk“: schwer rot, leicht blau, abgestuft
+  über die Spanne der Stücke MIT bekanntem Gewicht in dieser Ladung. Ein Case mit 0 kg heißt
+  „unbekannt“, nicht „am leichtesten“, und bleibt neutral grau. Traversenwagen behalten in
+  jedem Modus ihre Markenfarbe.
+- **Lagen-Durchsicht:** die Auswahl „Lagen“ zeichnet alles oberhalb der gewählten Lage blass,
+  so dass die darunterliegenden Cases lesbar werden, ohne dass der Zusammenhang verschwindet.
+  Bewusst nur in den 2D-Ansichten – in 3D kann man umherfahren. Der Ausdruck zeigt weiter
+  alle Lagen.
+- **Abhakliste** als zweite Druckart: je Stück eine Zeile in Ladereihenfolge mit Nummer,
+  Farbpunkt, Beschriftung und Kästchen, unten eine Unterschriftszeile. Zweispaltig; rund
+  40 Cases passen auf ein Blatt.
+- **Case-Etiketten** als dritte Druckart: ein Bogen zum Zerschneiden, je Stück ein Etikett mit
+  großer Ladenummer, Beschriftung, Farbbalken und „3 von 17“. Zwei Größen: 105 × 57 mm
+  (6 je Bogen) und 70 × 37 mm (15 je Bogen). Metrisch gewählt, auf kein bestimmtes Haftpapier
+  abgestimmt.
+
+Alle drei Druckarten drucken auf A4 quer.
+
 ## V 0.8.11 – 2026-10-02
 
 - Neue Farbpalette: Dunkelmodus jetzt in „Amber + Indigo“ statt dem bisherigen Grauton

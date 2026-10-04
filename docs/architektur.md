@@ -387,6 +387,33 @@ breit. Mausrad und Trackpad-Wischen unterscheidet `attachZoom` an der Schrittgr�
 (Zeilen-Modus oder `|deltaY| ≥ 50` ohne `deltaX` gilt als Mausrad), Pinch kommt als `wheel`
 mit `ctrlKey`. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
 
+Welche Farbe ein Case bekommt, entscheidet `caseColors(c, mode, itemColor)` in
+`js/ui/caseStyle.js` — gemeinsam für 2D, 3D und Druck. Die Dreier-Signatur ist ein eigens
+getesteter Vertrag; der Modus `'weight'` (V 0.9.0) hat ihn deshalb nicht erweitert, sondern
+verhält sich wie `'trade'` (Korpus in der übergebenen Farbe, kein Streifen). Die Gewichtsfarbe
+selbst rechnen `weightRange(items)` und `weightColor(kg, range)` aus, und der Aufrufer reicht
+sie als `itemColor` durch. `renderView`/`update` rechnen die Spanne **einmal je Render**, nicht
+je Stück. 0 kg heißt „unbekannt“ und wird neutral grau — dieselbe Regel wie bei der Deckschicht
+(siehe „Gewicht: 0 kg ist nicht ‚unbekannt‘“ weiter oben). `drawTruss` lässt den Farbmodus
+bewusst außen vor: Traversen behalten ihre Markenfarbe.
+
+Die Lagen-Durchsicht (`layerLimit` in `renderView`) zeichnet Stücke oberhalb der gewählten Lage
+mit `.faint` blass. Die Lage je Stück kommt aus `result.layers` — berechnet von `layerMap()` in
+`js/model/validate.js`, derselben Zahl, die der Inspector und die Druck-Tabelle als „Lage“
+zeigen. Sie wird nicht neu abgeleitet, damit beide Angaben nicht auseinanderlaufen können.
+**Bewusst nur in 2D:** in 3D teilen sich die Cases Materialien und InstancedMeshes
+(`userData.shared`), eine Pro-Stück-Transparenz wäre dort ein deutlich größerer Eingriff —
+siehe `docs/offene-punkte.md`.
+
+`js/ui/print.js` erzeugt drei Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
+SVG-Ansichten), `buildChecklist` (Abhakliste) und `buildLabels` (Etiketten). Welches gilt,
+steuert `js/app.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`,
+bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle drei schreiben
+nur `root.innerHTML`, brauchen dafür also kein echtes DOM, sondern nur eine Attrappe – deshalb
+sind sie ohne jsdom testbar (`tests/print.test.js`). Allein `buildPrint` greift danach über
+`root.querySelector` auf das DOM zu, um die SVGs einzuhängen. **`@page` bleibt A4 quer für alle drei** —
+benannte Seiten (`@page x { … }` + `page:`) werden von Browsern uneinheitlich unterstützt.
+
 Kugelecken ragen nie über das Außenmaß hinaus — das gemessene Maß enthält sie schon. Ihr
 Mittelpunkt liegt um den Radius nach innen versetzt (`cornerCenters`/`cornerCenters3d`,
 `CORNER_R` in `js/ui/caseStyle.js`, gemeinsam für 2D, 3D und Druck). Bis V 0.8.1 saßen sie

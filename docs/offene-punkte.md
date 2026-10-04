@@ -265,6 +265,18 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
 - Der 3D-Ansicht fehlt ein `disposed`-Flag; ein doppelter `dispose()`-Aufruf ist nicht
   gesondert abgesichert (heute nicht erreichbar, weil `app.js` `view3d` nach dem Abbau sofort
   auf `null` setzt).
+- Die Lagen-Durchsicht (V 0.9.0) gibt es nur in 2D. In 3D teilen sich die Cases Materialien
+  und InstancedMeshes (`userData.shared`), eine Pro-Stück-Transparenz wäre dort ein deutlich
+  größerer Eingriff; in 3D kann man stattdessen umherfahren. Eigene Entscheidung bei der
+  Umsetzung, nicht vom Nutzer so verlangt.
+- Die Etikettenmaße (105 × 57 mm, 70 × 37 mm) sind frei metrisch gewählt und passen auf kein
+  bestimmtes Haftpapier. Wer auf Etikettenbögen eines Herstellers drucken will, braucht
+  dessen Maße als weitere Rastergröße.
+- Die Abhakliste nennt keine Lage und keine Position. Auf der Rampe reicht die Ladereihenfolge;
+  ob jemand dort zusätzlich die Lage sehen will, ist nicht geklärt.
+- Die Lagen-Auswahl endet bei „bis 3“. Für den vorgesehenen Bereich reicht das (ab Lage 5 warnt
+  `validate.js`), aber in einem Load mit 5 Lagen – der gewarnt, nicht verhindert wird – lassen
+  sich die Lagen 1–4 nicht gemeinsam freistellen.
 
 ## Ideen, die noch niemand beauftragt hat
 
