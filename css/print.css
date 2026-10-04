@@ -44,7 +44,13 @@ body > *:not(#print-root) { display: none !important; }
    Quellen nennen den oberen Rand nicht, und die eine mit Zahlen widerspricht sich selbst. Das
    Raster wird deshalb zentriert (die neutrale Wahl), statt eine Herstellerangabe zu behaupten,
    die wir nicht haben; ein Testbogen zeigt sofort, ob das stimmt, und zu ändern ist dann
-   align-content. Kein Schnittrahmen: auf Haftpapier würde er mitgedruckt. */
+   align-content. Kein Schnittrahmen: auf Haftpapier würde er mitgedruckt.
+
+   Zur Reichweite der Zentrierung: `align-content` wirkt nur, solange das Raster in die
+   `min-height` passt — also auf einem einseitigen Bogen. Bei mehreren Seiten läuft es über,
+   und die letzte, nicht volle Seite beginnt oben statt mittig. Für Haftpapier ist das richtig
+   so: dort zählt, dass jede VOLLE Seite deckungsgleich sitzt, und die letzte wird ohnehin
+   angebrochen. */
 #print-root.doc-labels .labels {
   display: grid; gap: 0; justify-content: center; align-content: center;
   min-height: 297mm;
