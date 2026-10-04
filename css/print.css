@@ -41,7 +41,10 @@ body > *:not(#print-root) { display: none !important; }
    - klein  70×37mm → 3 Spalten × 5 Zeilen = 15 je Bogen (210×185mm genutzt)
    Bewusst OHNE Seitenkopf (siehe buildLabels in js/ui/print.js) – eine Kopfzeile verschöbe
    das Raster auf jeder Seite anders, sobald die letzte Zeile einer Seite nicht voll ist. */
-#print-root.doc-labels .labels { display: grid; gap: 0; }
+/* Die Spaltenbreiten stehen fest in mm, damit die Schnittmaße stimmen – mehr Spalten passen auf
+   277 mm nicht (3×105 = 315, 4×70 = 280). Der Rest bleibt Weißraum; `justify-content: center`
+   verteilt ihn auf beide Seiten, sonst sähe der Bogen aus, als wäre er verrutscht. */
+#print-root.doc-labels .labels { display: grid; gap: 0; justify-content: center; }
 #print-root.doc-labels.size-large .labels { grid-template-columns: repeat(2, 105mm); grid-auto-rows: 57mm; }
 #print-root.doc-labels.size-small .labels { grid-template-columns: repeat(3, 70mm); grid-auto-rows: 37mm; }
 #print-root.doc-labels .tl-label {
