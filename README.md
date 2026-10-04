@@ -167,9 +167,11 @@ Neben dem Knopf „Drucken“ steht, was gedruckt wird:
 
 - **Ladeplan** – das Planungsdokument: Draufsicht, Seitenansicht und eine Tabelle mit allen
   Stücken, Positionen und Gewichten.
-- **Abhakliste** – für die Rampe: je Stück eine Zeile in Ladereihenfolge mit Nummer,
+- **Abhakliste** – für die Rampe: je geladenem Stück eine Zeile in Ladereihenfolge mit Nummer,
   Farbpunkt, Beschriftung und einem Kästchen zum Abhaken, unten eine Unterschriftszeile.
-  Zweispaltig; rund 40 Cases passen auf ein Blatt.
+  Zweispaltig; rund 40 Cases passen auf ein Blatt. Liegt noch etwas in „Noch nicht geladen“,
+  sagt der Kopf das ausdrücklich — eine abgehakte Liste heißt sonst, alles sei verladen,
+  obwohl Cases in der Halle stehen. Warnungen aus dem Packergebnis stehen ebenfalls darauf.
 - **Etiketten** – ein Bogen zum Ausdrucken und Zerschneiden, je Stück ein Etikett mit großer
   Ladenummer, Beschriftung, Farbbalken und „3 von 17“. Zwei Größen zur Wahl: 105 × 57 mm
   (6 je Bogen) und 70 × 37 mm (15 je Bogen). Die Maße sind metrisch gewählt und auf **kein**

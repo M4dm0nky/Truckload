@@ -11,6 +11,7 @@ body > *:not(#print-root) { display: none !important; }
 #print-root svg .tick { fill: #444; }
 #print-root .p-issues { border: 1px solid #c00; padding: 2mm; color: #c00; }
 #print-root .p-noweight { margin: 0; font-size: 9pt; color: #555; }
+#print-root .p-open { margin: 0; font-size: 9pt; }
 #print-root table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
 #print-root th, #print-root td { border-bottom: 1px solid #bbb; padding: 1mm 2mm; text-align: left; vertical-align: top; }
 #print-root tr { break-inside: avoid; }
@@ -58,9 +59,11 @@ body > *:not(#print-root) { display: none !important; }
 #print-root.doc-labels .bar {
   display: block; height: 4mm; margin: 2mm 0; print-color-adjust: exact; -webkit-print-color-adjust: exact;
 }
-#print-root.doc-labels .meta {
-  font-size: 8pt; color: #555; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-}
+/* Gekürzt wird nur der Ladename. „n von m“ steht in einem eigenen Element, das nicht schrumpft –
+   sonst schnitt ein langer Ladename genau die Angabe weg, die das Etikett zeigen soll. */
+#print-root.doc-labels .meta { font-size: 8pt; color: #555; display: flex; gap: 2mm; overflow: hidden; }
+#print-root.doc-labels .meta .load { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#print-root.doc-labels .meta .count { flex: 0 0 auto; margin-left: auto; white-space: nowrap; }
 #print-root.doc-labels.size-small .seq { font-size: 20pt; }
 #print-root.doc-labels.size-small .name { font-size: 9pt; }
 #print-root.doc-labels.size-small .meta { font-size: 7pt; }

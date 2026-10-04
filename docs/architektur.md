@@ -389,7 +389,7 @@ mit `ctrlKey`. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
 
 Welche Farbe ein Case bekommt, entscheidet `caseColors(c, mode, itemColor)` in
 `js/ui/caseStyle.js` — gemeinsam für 2D, 3D und Druck. Die Dreier-Signatur ist ein eigens
-getesteter Vertrag; der Modus `'weight'` (V 0.8.12) hat ihn deshalb nicht erweitert, sondern
+getesteter Vertrag; der Modus `'weight'` (V 0.9.0) hat ihn deshalb nicht erweitert, sondern
 verhält sich wie `'trade'` (Korpus in der übergebenen Farbe, kein Streifen). Die Gewichtsfarbe
 selbst rechnen `weightRange(items)` und `weightColor(kg, range)` aus, und der Aufrufer reicht
 sie als `itemColor` durch. `renderView`/`update` rechnen die Spanne **einmal je Render**, nicht
@@ -408,9 +408,10 @@ siehe `docs/offene-punkte.md`.
 `js/ui/print.js` erzeugt drei Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
 SVG-Ansichten), `buildChecklist` (Abhakliste) und `buildLabels` (Etiketten). Welches gilt,
 steuert `js/app.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`,
-bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Das
-HTML-Bauen ist DOM-frei und damit ohne jsdom testbar (`tests/print.test.js`); nur `buildPrint`
-hängt danach über `root.querySelector` die SVGs ein. **`@page` bleibt A4 quer für alle drei** —
+bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle drei schreiben
+nur `root.innerHTML`, brauchen dafür also kein echtes DOM, sondern nur eine Attrappe – deshalb
+sind sie ohne jsdom testbar (`tests/print.test.js`). Allein `buildPrint` greift danach über
+`root.querySelector` auf das DOM zu, um die SVGs einzuhängen. **`@page` bleibt A4 quer für alle drei** —
 benannte Seiten (`@page x { … }` + `page:`) werden von Browsern uneinheitlich unterstützt.
 
 Kugelecken ragen nie über das Außenmaß hinaus — das gemessene Maß enthält sie schon. Ihr

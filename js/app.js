@@ -15,6 +15,7 @@ import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
+import { COLOR_MODES } from './ui/caseStyle.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
@@ -29,7 +30,9 @@ const CASE_COLORS_KEY = 'truckload.caseColors';
 function loadCaseColors() {
   try {
     const v = localStorage.getItem(CASE_COLORS_KEY);
-    return v === 'trade' || v === 'weight' ? v : 'black';
+    // Gegen COLOR_MODES prüfen statt die Liste hier ein zweites Mal von Hand zu führen – sonst
+    // fällt ein künftiger vierter Modus aus localStorage still auf „Schwarz“ zurück.
+    return COLOR_MODES.includes(v) ? v : 'black';
   }
   catch { return 'black'; }
 }

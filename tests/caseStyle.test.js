@@ -112,3 +112,22 @@ test('caseColors: Modi schwarz und Gewerk unverändert (Regression)', () => {
   assert.deepEqual(caseColors(c, 'trade', '#abcdef'), { body: '#abcdef', stripe: null });
   assert.equal(caseColors(c, 'black', '#abcdef').stripe, '#abcdef');
 });
+
+// Schlussprüfung des Branches, Befund 7: Traversenwagen behalten ihre Markenfarbe (drawTruss/
+// addTruss übergehen den Farbmodus bewusst). Sie spannten die Gewichtsskala aber trotzdem auf —
+// ein 100-kg-Traversenwagen neben Kabelcases von 10–30 kg drückte alle Cases in das untere
+// Drittel der Skala, so dass sie fast gleich blau aussahen, während das Stück, das das Maximum
+// setzte, selbst gar nicht eingefärbt wurde. Was nicht mitgefärbt wird, darf die Skala nicht
+// bestimmen.
+test('weightRange lässt Traversenwagen aus, weil sie ihre Markenfarbe behalten', () => {
+  const items = [
+    { c: { weight: 10 } },
+    { c: { weight: 30 } },
+    { c: { weight: 100, kind: 'truss' } },
+  ];
+  assert.deepEqual(weightRange(items), { min: 10, max: 30 });
+});
+
+test('weightRange: ein Load nur aus Traversenwagen hat keine Spanne', () => {
+  assert.equal(weightRange([{ c: { weight: 100, kind: 'truss' } }]), null);
+});

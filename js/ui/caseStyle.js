@@ -1,3 +1,5 @@
+import { isTruss } from '../model/truss.js';
+
 // Farben eines Cases je nach Anzeigemodus – einzige Quelle für 2D, 3D und Druck.
 export const CASE_BLACK = '#1c1d20';
 // cm, ab dieser kleinsten Korpus-Kantenlänge zeichnen 2D und 3D Flightcase-Details
@@ -27,9 +29,15 @@ const WEIGHT_HEAVY = [0xd8, 0x3b, 0x3b]; // Rot
 // Spanne der Gewichte EINMAL je Render berechnen, nicht je Stück (sonst O(n²) über die Items).
 // Nur Stücke MIT Gewicht (> 0) zählen – 0 kg heißt „unbekannt“, nicht „am leichtesten“, dieselbe
 // Regel wie bei der Deckschicht (V 0.8.6, docs/casemasse-gewichte.md).
+// Traversenwägen bleiben ebenfalls draußen: drawTruss/addTruss zeichnen sie bewusst in ihrer
+// Markenfarbe statt in der Gewichtsfarbe. Würden sie die Skala trotzdem aufspannen, drückte ein
+// 100-kg-Wagen neben Kabelcases von 10–30 kg alle Cases in das untere Drittel – sie sähen fast
+// gleich blau aus, während das Stück, das das Maximum setzt, gar nicht mitgefärbt wird. Was nicht
+// eingefärbt wird, darf die Skala nicht bestimmen.
 export function weightRange(items) {
   let min = Infinity, max = -Infinity;
   for (const it of items) {
+    if (isTruss(it.c)) continue;
     const w = it.c.weight;
     if (w > 0) { if (w < min) min = w; if (w > max) max = w; }
   }

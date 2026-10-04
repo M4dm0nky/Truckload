@@ -22,7 +22,16 @@ const sortedBySequence = result => [...result.items].sort((a, b) => result.seque
 // (SWATCH_COLOR_RE in dom.js) – statt sie zu duplizieren, wird sie über swatch() selbst
 // abgegriffen: swatch() liefert immer ein gültiges background:#RRGGBB oder den Grau-Fallback
 // #888, egal was `color` enthält (Task-4-Brief).
-const barColor = color => swatch(color).match(/background:(#[0-9a-fA-F]{3,6})/)[1];
+// Der Rückfall auf #888 ist heute nicht erreichbar (SWATCH_COLOR_RE lässt nur #RGB/#RRGGBB
+// durch, sonst liefert swatch() selbst schon #888). Er steht trotzdem da: änderte dom.js das
+// Ausgabeformat (etwa `background: #fff` mit Leerzeichen), wäre match() null und der ganze
+// Etikettenbogen bliebe mit einem TypeError leer, statt nur die Farbe zu verlieren.
+const barColor = color => swatch(color).match(/background:\s*(#[0-9a-fA-F]{3,6})/)?.[1] ?? '#888';
+
+// Warnungen aus dem Packergebnis, gemeinsam für Ladeplan und Abhakliste.
+const issuesHTML = result => result.issues.length
+  ? `<section class="p-issues"><b>Achtung:</b> ${result.issues.map(i => esc(i.message)).join(' · ')}</section>`
+  : '';
 
 // Reines HTML-Bauen, ohne DOM-Zugriff – testbar ohne jsdom. buildPrint hängt danach die SVGs
 // über root.querySelector ein (das braucht echtes DOM und bleibt deshalb dort).
@@ -40,7 +49,7 @@ export function printHTML({ plan, truck, result }) {
     </header>
     <figure><figcaption>Draufsicht (Stirnwand links)</figcaption><svg class="p-top"></svg></figure>
     <figure><figcaption>Seitenansicht (von links)</figcaption><svg class="p-side"></svg></figure>
-    ${result.issues.length ? `<section class="p-issues"><b>Achtung:</b> ${result.issues.map(i => esc(i.message)).join(' · ')}</section>` : ''}
+    ${issuesHTML(result)}
     <table>
       <thead><tr><th>Nr.</th><th>Beschriftung</th><th>Case</th><th>Inhalt</th><th>Ausrichtung</th><th>ab Stirnwand</th><th>Höhe</th><th>Lage</th><th>kg</th></tr></thead>
       <tbody>${rows.map(it => `<tr>
@@ -62,14 +71,24 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
 // Farbpunkt, Beschriftung und einem leeren Kästchen statt der Draufsicht/Seitenansicht/Tabelle
 // aus buildPrint. Bewusst ohne <input type="checkbox">: gedruckte Formularelemente sehen je
 // nach Browser verschieden aus und drucken teils gar nicht (Task-3-Brief).
+//
+// Die Liste zählt nur die GELADENEN Stücke – sie kommt aus `result.items`, also aus
+// `plan.placements`. Was in „Noch nicht geladen“ liegt, hat keine Ladenummer und kann nicht
+// abgehakt werden. Dass es das gibt, muss auf dem Blatt trotzdem stehen: sonst hakt der Lader
+// die Liste vollständig ab, während Cases in der Halle stehen bleiben – genau das Missgeschick,
+// das die Abhakliste verhindern soll. Dasselbe gilt für die Warnungen aus dem Packergebnis, die
+// der Ladeplan schon druckt.
 export function buildChecklist(root, { plan, truck, result }) {
   const h = headInfo({ plan, truck, result });
   const rows = sortedBySequence(result);
+  const offen = plan.unplaced?.length ?? 0;
   root.innerHTML = `
     <header>
       <h1>${h.plan}</h1>
       <p>${h.truck} · ${h.date} · ${h.count} Cases · ${h.weight} kg · Truckload V ${h.version}</p>
+      ${offen ? `<p class="p-open"><b>${offen} Stück nicht geladen</b> – ${offen === 1 ? 'es steht' : 'sie stehen'} nicht auf dieser Liste.</p>` : ''}
     </header>
+    ${issuesHTML(result)}
     <ul class="checklist">${rows.map(it => `<li>
         <span class="num">${result.sequence.get(it.id)}</span>
         ${swatch(it.color)}
@@ -87,8 +106,11 @@ export function buildChecklist(root, { plan, truck, result }) {
 // headInfo()-Kopfzeile auf der Seite selbst – ein Seitenkopf würde das Raster auf jeder Seite
 // anders verschieben, sobald die letzte Zeile einer Seite nicht voll ist (Task-4-Brief). Der
 // Planname kommt stattdessen klein auf jedes einzelne Etikett (`meta`).
-export function buildLabels(root, { plan, truck, result, size = 'large' }) {
-  const h = headInfo({ plan, truck, result });
+// `truck` wird nicht gebraucht und deshalb auch nicht angefasst: ein Etikett nennt nur den
+// Ladenamen. headInfo() würde `truck.name` dereferenzieren und den Etikettendruck ohne Not an
+// ein auflösbares Fahrzeug binden.
+export function buildLabels(root, { plan, result, size = 'large' }) {
+  const planName = esc(plan.name);
   const rows = sortedBySequence(result);
   const total = rows.length;
   root.innerHTML = `<div class="labels">${rows.map(it => {
@@ -98,7 +120,7 @@ export function buildLabels(root, { plan, truck, result, size = 'large' }) {
         <span class="seq">${n}</span>
         <span class="name">${esc(it.label)}</span>
         <span class="bar" style="background:${barColor(it.color)}"></span>
-        <span class="meta">${h.plan} · ${n} von ${total}</span>
+        <span class="meta"><span class="load">${planName}</span> <span class="count">${n} von ${total}</span></span>
       </div>`;
   }).join('')}</div>`;
 }
