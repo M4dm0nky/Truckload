@@ -32,3 +32,32 @@ body > *:not(#print-root) { display: none !important; }
    trotzdem auf Seite 2. So steht sie am Ende der letzten Spalte und das Blatt bleibt eines. */
 #print-root.doc-checklist .signoff { display: flex; gap: 12mm; margin-top: 8mm; break-inside: avoid; }
 #print-root.doc-checklist .signoff .line { display: inline-block; width: 40mm; border-bottom: 0.3mm solid #000; margin-left: 2mm; }
+
+/* Etiketten (Task 4): ein Bogen zum Ausdrucken und Zerschneiden – KEINE Haftpapier-Maße eines
+   bestimmten Herstellers (die US-Avery-Formate des Wettbewerbers, den diese Idee aufgegriffen
+   hat, passen hier nicht). Zwei metrische Rastergrößen, nutzbare Fläche 277×190mm (A4 quer,
+   10mm Rand ringsum, siehe @page oben):
+   - groß  105×57mm → 2 Spalten × 3 Zeilen = 6 je Bogen (210×171mm genutzt)
+   - klein  70×37mm → 3 Spalten × 5 Zeilen = 15 je Bogen (210×185mm genutzt)
+   Bewusst OHNE Seitenkopf (siehe buildLabels in js/ui/print.js) – eine Kopfzeile verschöbe
+   das Raster auf jeder Seite anders, sobald die letzte Zeile einer Seite nicht voll ist. */
+#print-root.doc-labels .labels { display: grid; gap: 0; }
+#print-root.doc-labels.size-large .labels { grid-template-columns: repeat(2, 105mm); grid-auto-rows: 57mm; }
+#print-root.doc-labels.size-small .labels { grid-template-columns: repeat(3, 70mm); grid-auto-rows: 37mm; }
+#print-root.doc-labels .tl-label {
+  box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 3mm; border: 0.2mm dashed #999; overflow: hidden; break-inside: avoid;
+}
+#print-root.doc-labels .seq { font-size: 28pt; font-weight: 700; line-height: 1; }
+#print-root.doc-labels .name {
+  font-size: 11pt; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+#print-root.doc-labels .bar {
+  display: block; height: 4mm; margin: 2mm 0; print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+#print-root.doc-labels .meta {
+  font-size: 8pt; color: #555; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+#print-root.doc-labels.size-small .seq { font-size: 20pt; }
+#print-root.doc-labels.size-small .name { font-size: 9pt; }
+#print-root.doc-labels.size-small .meta { font-size: 7pt; }

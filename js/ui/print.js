@@ -18,6 +18,12 @@ function headInfo({ plan, truck, result }) {
 
 const sortedBySequence = result => [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
 
+// Farbbalken der Etiketten nutzt dieselbe Farbprüfung wie der Farbpunkt der Abhakliste
+// (SWATCH_COLOR_RE in dom.js) – statt sie zu duplizieren, wird sie über swatch() selbst
+// abgegriffen: swatch() liefert immer ein gültiges background:#RRGGBB oder den Grau-Fallback
+// #888, egal was `color` enthält (Task-4-Brief).
+const barColor = color => swatch(color).match(/background:(#[0-9a-fA-F]{3,6})/)[1];
+
 // Reines HTML-Bauen, ohne DOM-Zugriff – testbar ohne jsdom. buildPrint hängt danach die SVGs
 // über root.querySelector ein (das braucht echtes DOM und bleibt deshalb dort).
 export function printHTML({ plan, truck, result }) {
@@ -75,4 +81,24 @@ export function buildChecklist(root, { plan, truck, result }) {
       <span class="sign">Geladen von <span class="line"></span></span>
       <span class="sign">Datum <span class="line"></span></span>
     </footer>`;
+}
+
+// Dritte Druckart: ein Bogen Etiketten, je Stück eines, zum Ausschneiden. Bewusst OHNE
+// headInfo()-Kopfzeile auf der Seite selbst – ein Seitenkopf würde das Raster auf jeder Seite
+// anders verschieben, sobald die letzte Zeile einer Seite nicht voll ist (Task-4-Brief). Der
+// Planname kommt stattdessen klein auf jedes einzelne Etikett (`meta`).
+export function buildLabels(root, { plan, truck, result, size = 'large' }) {
+  const h = headInfo({ plan, truck, result });
+  const rows = sortedBySequence(result);
+  const total = rows.length;
+  root.innerHTML = `<div class="labels">${rows.map(it => {
+    const n = result.sequence.get(it.id);
+    return `
+      <div class="tl-label">
+        <span class="seq">${n}</span>
+        <span class="name">${esc(it.label)}</span>
+        <span class="bar" style="background:${barColor(it.color)}"></span>
+        <span class="meta">${h.plan} · ${n} von ${total}</span>
+      </div>`;
+  }).join('')}</div>`;
 }

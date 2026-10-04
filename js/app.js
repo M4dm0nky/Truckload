@@ -18,7 +18,7 @@ import { esc } from './ui/dom.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
-import { buildPrint, buildChecklist } from './ui/print.js';
+import { buildPrint, buildChecklist, buildLabels } from './ui/print.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
 
@@ -716,13 +716,26 @@ renderHooks.push(async (s, d) => {
 });
 
 // Drucken, Sichern, Importieren
+// Die Etikettengröße steht nicht im Store (reine Druckoptik, kein Teil des Plans) – deshalb
+// hier über ein eigenes onchange ein-/ausgeblendet statt über einen Render-Hook (Task-4-Brief).
+$('#print-doc').onchange = () => {
+  $('#print-label-size').hidden = $('#print-doc').value !== 'labels';
+};
 $('#print').onclick = () => {
   const s = store.get(), d = derive(s);
   const root = $('#print-root');
   const doc = $('#print-doc').value;
-  root.className = `print-root doc-${doc}`;
-  if (doc === 'checklist') buildChecklist(root, { plan: s.plan, truck: d.truck, result: d.result });
-  else buildPrint(root, { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
+  if (doc === 'checklist') {
+    root.className = 'print-root doc-checklist';
+    buildChecklist(root, { plan: s.plan, truck: d.truck, result: d.result });
+  } else if (doc === 'labels') {
+    const size = $('#print-label-size').value;
+    root.className = `print-root doc-labels size-${size}`;
+    buildLabels(root, { plan: s.plan, truck: d.truck, result: d.result, size });
+  } else {
+    root.className = 'print-root doc-plan';
+    buildPrint(root, { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
+  }
   window.print();
 };
 
