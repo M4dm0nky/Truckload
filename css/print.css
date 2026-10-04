@@ -26,5 +26,9 @@ body > *:not(#print-root) { display: none !important; }
 #print-root.doc-checklist .checklist .label { flex: 1 1 auto; overflow: hidden; }
 #print-root.doc-checklist .checklist .label small { color: #555; }
 #print-root.doc-checklist .checklist .tick { flex: 0 0 auto; width: 5mm; height: 5mm; border: 0.4mm solid #000; margin-left: 2mm; }
-#print-root.doc-checklist .signoff { display: flex; gap: 12mm; margin-top: 8mm; break-before: avoid; column-span: all; }
+/* Die Unterschriftszeile läuft bewusst IM Spaltenfluss mit (kein `column-span: all`): aufgespannt
+   über beide Spalten schob Chrome sie auf eine zweite, sonst leere Seite, sobald die Liste die
+   erste Seite füllte – 42 Cases passen nebeneinander auf ein Blatt, die Unterschrift landete
+   trotzdem auf Seite 2. So steht sie am Ende der letzten Spalte und das Blatt bleibt eines. */
+#print-root.doc-checklist .signoff { display: flex; gap: 12mm; margin-top: 8mm; break-inside: avoid; }
 #print-root.doc-checklist .signoff .line { display: inline-block; width: 40mm; border-bottom: 0.3mm solid #000; margin-left: 2mm; }
