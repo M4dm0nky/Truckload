@@ -3,7 +3,7 @@ export const CASE_BLACK = '#1c1d20';
 // cm, ab dieser kleinsten Korpus-Kantenlänge zeichnen 2D und 3D Flightcase-Details
 // (Profile, Kugelecken, Deckelfuge, Griffe) statt eines einfachen Kastens.
 export const DETAIL_MIN = 40;
-export const COLOR_MODES = ['black', 'trade'];
+export const COLOR_MODES = ['black', 'trade', 'weight'];
 // `itemColor ?? c.color` sieht wie die dritte Kopie derselben toten Rückfallkette aus, die N5
 // (docs/code-review-2026-09-21.md, Nachtrag Controller) an view2d.js/view3d.js bemängelt hat –
 // beide heutigen Aufrufer übergeben bereits `it.color`, das den Rückfall auf die Gewerkfarbe
@@ -15,7 +15,35 @@ export const COLOR_MODES = ['black', 'trade'];
 // Code beseitigen. Bewusst NICHT zusammengeführt.
 export function caseColors(c, mode, itemColor) {
   const color = itemColor ?? c.color;
-  return mode === 'trade' ? { body: color, stripe: null } : { body: CASE_BLACK, stripe: color };
+  return mode === 'trade' || mode === 'weight' ? { body: color, stripe: null } : { body: CASE_BLACK, stripe: color };
+}
+
+// Grauton für „Gewicht unbekannt“ – fest, unabhängig von der Spanne des aktuellen Loads.
+const WEIGHT_UNKNOWN = '#8a8f96';
+// Leicht → Blau, schwer → Rot (sRGB-Interpolation, reicht für diese Einfärbung).
+const WEIGHT_LIGHT = [0x3b, 0x7d, 0xd8]; // Blau, vgl. Stück-Farbe '#3b7dd8' in den Tests
+const WEIGHT_HEAVY = [0xd8, 0x3b, 0x3b]; // Rot
+
+// Spanne der Gewichte EINMAL je Render berechnen, nicht je Stück (sonst O(n²) über die Items).
+// Nur Stücke MIT Gewicht (> 0) zählen – 0 kg heißt „unbekannt“, nicht „am leichtesten“, dieselbe
+// Regel wie bei der Deckschicht (V 0.8.6, docs/casemasse-gewichte.md).
+export function weightRange(items) {
+  let min = Infinity, max = -Infinity;
+  for (const it of items) {
+    const w = it.c.weight;
+    if (w > 0) { if (w < min) min = w; if (w > max) max = w; }
+  }
+  return min === Infinity ? null : { min, max };
+}
+
+// kg -> Hex-Farbe. 0 kg oder keine Spanne (kein Stück im Load hat ein Gewicht): neutrales Grau,
+// damit „unbekannt“ nicht wie „am leichtesten“ aussieht (V 0.8.6-Regel, s. o.).
+export function weightColor(kg, range) {
+  if (!(kg > 0) || range === null) return WEIGHT_UNKNOWN;
+  const t = range.max === range.min ? 0.5 : (kg - range.min) / (range.max - range.min);
+  const mix = (a, b) => Math.round(a + (b - a) * t);
+  const [r, g, b] = [0, 1, 2].map(i => mix(WEIGHT_LIGHT[i], WEIGHT_HEAVY[i]));
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
 // Kugelecken, gemeinsam für 2D, 3D und Druck. Das gemessene Außenmaß eines Cases enthält die

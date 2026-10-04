@@ -3,7 +3,7 @@ import { svgEl } from './dom.js';
 import { project, unproject, drawOrder, wheelView } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
-import { caseColors, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters } from './caseStyle.js';
+import { caseColors, weightRange, weightColor, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters } from './caseStyle.js';
 import { archBoxes } from '../model/validate.js';
 import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
@@ -278,7 +278,7 @@ function drawLabel(g, labelRect, it) {
   }, g).textContent = it.seq;
 }
 
-function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
+function drawCase(g, it, mode, truck, { colorMode, labels, uid, weightSpan }) {
   const r = project(it.box, mode, truck);
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
 
@@ -306,7 +306,8 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid }) {
       drawWheel(g, w, mode, truck, fork);
     }
 
-    const colors = caseColors(it.c, colorMode, it.color);
+    const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
+    const colors = caseColors(it.c, colorMode, itemColor);
     // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
     // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
     const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
@@ -338,6 +339,9 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
   }
   if (mode !== 'rear') svgEl('line', { x1: 0, y1: 0, x2: 0, y2: H, class: 'front-wall' }, svg);
 
+  // Einmal je Render über alle Stücke, nicht je Case (sonst O(n²)).
+  const weightSpan = colorMode === 'weight' ? weightRange(result.items) : null;
+
   for (const a of archBoxes(truck)) {
     if (mode === 'side' && a.y0 > 0) continue; // Seitenansicht zeigt nur den linken Radkasten
     const r = project(a, mode, truck);
@@ -352,7 +356,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
       ...it,
       seq: result.sequence.get(it.id),
       title: `${result.sequence.get(it.id)}. ${it.label}${it.c.content ? ` – ${it.c.content}` : ''}`,
-    }, mode, truck, { colorMode, labels, uid });
+    }, mode, truck, { colorMode, labels, uid, weightSpan });
     if (bad) {
       const r = project(it.box, mode, truck);
       svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'alert' }, g);

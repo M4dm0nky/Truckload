@@ -1,6 +1,6 @@
 import { archBoxes } from '../model/validate.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
-import { caseColors, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
+import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
 import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
@@ -515,6 +515,9 @@ export async function createView3d(container) {
     content.add(boxMesh({ ...room, x1: 3 }, MAT_FRONT));
     for (const a of archBoxes(truck)) content.add(boxMesh(a, MAT_ARCH));
 
+    // Einmal je Render über alle Stücke, nicht je Case (sonst O(n²)).
+    const weightSpan = colorMode === 'weight' ? weightRange(result.items) : null;
+
     // Für die instanzierten Sorten (Profilstäbe, Verschlüsse, Kugelecken, Traversen-Gurtrohre/
     // -Diagonalen) über alle Cases sammeln und am Ende je Sorte ein einziges InstancedMesh bauen.
     const profileBoxes = [], profileColors = [], latchBoxesAll = [], cornerPositions = [];
@@ -522,7 +525,8 @@ export async function createView3d(container) {
 
     for (const it of result.items) {
       const bad = result.byPlacement.has(it.id);
-      const colors = caseColors(it.c, colorMode, it.color);
+      const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
+      const colors = caseColors(it.c, colorMode, itemColor);
 
       if (isTruss(it.c)) {
         addTruss(it, bad, it.id === selectedId, chordSegs, chordColors, diagSegs, result.sequence.get(it.id));

@@ -27,7 +27,10 @@ const uid = () => crypto.randomUUID();
 
 const CASE_COLORS_KEY = 'truckload.caseColors';
 function loadCaseColors() {
-  try { return localStorage.getItem(CASE_COLORS_KEY) === 'trade' ? 'trade' : 'black'; }
+  try {
+    const v = localStorage.getItem(CASE_COLORS_KEY);
+    return v === 'trade' || v === 'weight' ? v : 'black';
+  }
   catch { return 'black'; }
 }
 
@@ -518,6 +521,7 @@ function setCaseColors(mode) {
 }
 $('#colors-black').onclick = () => setCaseColors('black');
 $('#colors-trade').onclick = () => setCaseColors('trade');
+$('#colors-weight').onclick = () => setCaseColors('weight');
 renderHooks.push(s => {
   $('#views2d').hidden = s.mode !== '2d';
   $('#view3d').hidden = s.mode !== '3d';
@@ -525,6 +529,7 @@ renderHooks.push(s => {
   $('#mode-3d').classList.toggle('on', s.mode === '3d');
   $('#colors-black').classList.toggle('on', s.caseColors === 'black');
   $('#colors-trade').classList.toggle('on', s.caseColors === 'trade');
+  $('#colors-weight').classList.toggle('on', s.caseColors === 'weight');
 });
 
 // Toolbar-Zustand: Planliste, Fahrzeugliste, Undo-Buttons. Die beiden <select> wurden bisher bei
