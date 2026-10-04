@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.9.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.9.1** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -157,9 +157,10 @@ ihre Markenfarbe, in jedem Modus.
 
 In der Draufsicht verdeckt die obere Lage die untere vollständig. Die Auswahl **Lagen** in der
 Werkzeugleiste zeichnet alles oberhalb der gewählten Lage blass — die darunterliegenden Cases
-werden lesbar, der Zusammenhang bleibt aber sichtbar, weil nichts verschwindet. Die Auswahl
-wirkt nur in den 2D-Ansichten; in 3D kann man ohnehin umherfahren. Der Ausdruck zeigt immer
-alle Lagen.
+werden lesbar, der Zusammenhang bleibt aber sichtbar, weil nichts verschwindet. In den
+2D-Ansichten werden höhere Lagen blass gezeichnet, in der 3D-Ansicht ganz ausgeblendet — dort
+ergibt das einen sauberen Schnitt durch die Ladung. Das ausgewählte Case bleibt in beiden
+Fällen sichtbar. Der Ausdruck zeigt immer alle Lagen.
 
 ## Drucken: Ladeplan, Abhakliste, Etiketten
 
@@ -173,11 +174,14 @@ Neben dem Knopf „Drucken“ steht, was gedruckt wird:
   sagt der Kopf das ausdrücklich — eine abgehakte Liste heißt sonst, alles sei verladen,
   obwohl Cases in der Halle stehen. Warnungen aus dem Packergebnis stehen ebenfalls darauf.
 - **Etiketten** – ein Bogen zum Ausdrucken und Zerschneiden, je Stück ein Etikett mit großer
-  Ladenummer, Beschriftung, Farbbalken und „3 von 17“. Zwei Größen zur Wahl: 105 × 57 mm
-  (6 je Bogen) und 70 × 37 mm (15 je Bogen). Die Maße sind metrisch gewählt und auf **kein**
-  bestimmtes Haftpapier abgestimmt.
+  Ladenummer, Beschriftung, Farbbalken und „3 von 17“. Zwei Größen zur Wahl, beide auf
+  gängiges Haftpapier abgestimmt: **Avery Zweckform 3425** (105 × 57 mm, 10 je Bogen) und
+  **Avery Zweckform 3474** (70 × 37 mm, 24 je Bogen).
 
-Alle drei drucken auf A4 quer.
+Etiketten drucken auf A4 hoch und randlos, Ladeplan und Abhakliste auf A4 quer. Vor dem ersten
+Etikettenbogen einen Testdruck auf normalem Papier machen und gegen einen Bogen halten — der
+senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (siehe
+[docs/offene-punkte.md](docs/offene-punkte.md)).
 
 ## Mitgelieferte Cases
 
