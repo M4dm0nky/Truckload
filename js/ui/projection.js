@@ -44,3 +44,15 @@ export function stripRect(r, side, t) {
     default: throw new Error(`Unbekannte Seite: ${side}`);
   }
 }
+
+// Rollenzone als Streifen in einer 2D-Ansicht. `outer` ist das projizierte Außenmaß inkl.
+// Rollen (die belegte Fläche), `body` der projizierte Korpus aus caseShape(). Sichtbar nur, wo
+// die Rollen von der Kante zu sehen sind (wheelStrip); die Tiefe ist der echte Abstand zwischen
+// Außenmaß und Korpus auf dieser Seite, keine Zeichengröße. Ohne Rollen fallen beide Rechtecke
+// zusammen – dann gibt es nichts zu markieren.
+export function wheelStripRect(outer, body, mode, face) {
+  const side = wheelStrip(mode, face);
+  if (side === null) return null;
+  const t = Math.abs(outer[side] - body[side]);
+  return t > 0.01 ? stripRect(outer, side, t) : null;
+}
