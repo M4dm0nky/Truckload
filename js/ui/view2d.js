@@ -1,15 +1,21 @@
 import { applyViewBox } from './zoom2d.js';
 import { svgEl } from './dom.js';
-import { project, unproject, drawOrder, wheelView } from './projection.js';
+import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
-import { caseColors, weightRange, weightColor, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters } from './caseStyle.js';
+import { caseColors, weightRange, weightColor } from './caseStyle.js';
 import { archBoxes, aboveLayer } from '../model/validate.js';
 import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
 
+// 2D ist die nüchterne Planungsansicht – „Tetris“: jedes Stück ist ein Rechteck im belegten
+// Außenmaß inkl. Rollen (`it.box`, siehe docs/architektur.md, „Rollen im Maß“). Die reale
+// Darstellung mit Alu-Profil, Kugelecken, Verschlüssen, Griffen und Rollen gibt es nur in 3D
+// (view3d.js). Bis V 0.9.1 zeichnete 2D dieselben Details und die Rollen als Kreise mit Gabel
+// AUSSERHALB des Korpus – hübsch, aber die sichtbare Form deckte sich nicht mit der Fläche, die
+// das Case wirklich belegt.
 const PAD = 30;
-const FRAME_W = 3.5;      // cm, Breite des Alu-Hybridprofils
+const TRADE_EDGE = 3; // cm, Innenrahmen in Gewerkfarbe im Modus „Schwarz“
 
 // Beschriftung: Schriftgröße aus der kleineren Korpus-Rechteckseite abgeleitet, auf 6–16 cm begrenzt.
 //
@@ -28,56 +34,9 @@ const LABEL_MAX = 16;
 const LABEL_RATIO = 0.32;
 const LABEL_PAD = 3;
 
-// Verlaufs-/Musterdefinitionen einmal pro <svg>-Element anlegen (IDs an das Element gebunden,
-// damit mehrere gleichzeitig sichtbare Ansichten – App + Druck – sich nicht überschreiben).
-let uidSeq = 0;
-function svgUid(svg) {
-  if (!svg.dataset.tlUid) svg.dataset.tlUid = `tl${uidSeq++}`;
-  return svg.dataset.tlUid;
-}
-function addDefs(svg, uid) {
-  const defs = svgEl('defs', {}, svg);
-  const alu = svgEl('linearGradient', { id: `${uid}-alu`, x1: '0%', y1: '0%', x2: '100%', y2: '100%' }, defs);
-  svgEl('stop', { offset: '0%', 'stop-color': '#eef1f4' }, alu);
-  svgEl('stop', { offset: '55%', 'stop-color': '#aeb6bf' }, alu);
-  svgEl('stop', { offset: '100%', 'stop-color': '#7b838f' }, alu);
-
-  const ball = svgEl('radialGradient', { id: `${uid}-corner`, cx: '35%', cy: '30%', r: '70%' }, defs);
-  svgEl('stop', { offset: '0%', 'stop-color': '#ffffff' }, ball);
-  svgEl('stop', { offset: '35%', 'stop-color': '#cfd4da' }, ball);
-  svgEl('stop', { offset: '100%', 'stop-color': '#787f88' }, ball);
-
-  const lam = svgEl('pattern', { id: `${uid}-lam`, width: 5, height: 5, patternUnits: 'userSpaceOnUse' }, defs);
-  svgEl('circle', { cx: 1.2, cy: 1.2, r: 0.5, fill: '#ffffff', 'fill-opacity': 0.06 }, lam);
-  svgEl('circle', { cx: 3.6, cy: 3.6, r: 0.5, fill: '#ffffff', 'fill-opacity': 0.06 }, lam);
-}
-
-function drawWheel(g, box, mode, truck, fork) {
-  const r = project(box, mode, truck);
-  const cx = (r.u0 + r.u1) / 2, cy = (r.v0 + r.v1) / 2;
-  const radius = Math.min(r.u1 - r.u0, r.v1 - r.v0) / 2;
-  if (fork) svgEl('line', { x1: cx, y1: cy, x2: fork.x, y2: fork.y, class: 'fork' }, g);
-  svgEl('circle', { cx, cy, r: radius, class: 'wheel' }, g);
-  svgEl('circle', { cx, cy, r: radius / 3, class: 'hub' }, g);
-}
-
-// Punkt am Rand des Korpus-Rechtecks, dem die Rolle am nächsten liegt (für die Gabel-Linie).
-function nearestEdgePoint(bodyRect, cx, cy) {
-  const { u0, u1, v0, v1 } = bodyRect;
-  const x = Math.min(Math.max(cx, u0), u1);
-  const y = Math.min(Math.max(cy, v0), v1);
-  const dLeft = Math.abs(x - u0), dRight = Math.abs(u1 - x), dTop = Math.abs(y - v0), dBot = Math.abs(v1 - y);
-  const m = Math.min(dLeft, dRight, dTop, dBot);
-  if (m === dLeft) return { x: u0, y };
-  if (m === dRight) return { x: u1, y };
-  if (m === dTop) return { x, y: v0 };
-  return { x, y: v1 };
-}
-
-// Traversenwagen: zwei Rollwagen an den Enden + gestapelte Traversenstücke. In jeder Ansicht wird
-// pro Stück anhand der projizierten Seitenlängen entschieden, ob es „längs“ (Ober-/Untergurt-Linien
-// mit Zickzack-Diagonalen) oder „stirnseitig“ (Quadrat mit 4 Gurtrohr-Kreisen) erscheint – dadurch
-// funktioniert dieselbe Logik in allen drei Ansichten und für beide Rotationen (Länge entlang x oder y).
+// Gitterstruktur eines Traversenwagens im 2D-Kasten: liegt die Traversenlänge in der Ansicht,
+// zwei Gurte mit Zickzack-Diagonalen („längs“); sieht man auf ihr Ende, ein Kasten mit vier
+// Gurtrohr-Kreisen („stirnseitig“).
 
 function drawChordBar(g, pr, horizontal, profileWidth) {
   const inset = Math.max(1.5, Math.min(profileWidth * TUBE_R_RATIO, (horizontal ? pr.v1 - pr.v0 : pr.u1 - pr.u0) / 2));
@@ -106,137 +65,36 @@ function drawChordBar(g, pr, horizontal, profileWidth) {
 
 function drawEndSquare(g, pr, profileWidth) {
   svgEl('rect', { x: pr.u0, y: pr.v0, width: pr.u1 - pr.u0, height: pr.v1 - pr.v0, class: 'truss-end' }, g);
+  // Diagonalkreuz: von der Stirn gesehen hätte der Kasten sonst nur vier Eckpunkte und läse sich
+  // nicht als Traverse.
+  svgEl('polyline', { points: `${pr.u0},${pr.v0} ${pr.u1},${pr.v1}`, class: 'truss-diag' }, g);
+  svgEl('polyline', { points: `${pr.u1},${pr.v0} ${pr.u0},${pr.v1}`, class: 'truss-diag' }, g);
   const cr = Math.max(1.5, profileWidth * TUBE_R_RATIO);
   for (const [cx, cy] of [[pr.u0, pr.v0], [pr.u1, pr.v0], [pr.u0, pr.v1], [pr.u1, pr.v1]])
     svgEl('circle', { cx, cy, r: cr, class: 'truss-tube' }, g);
 }
 
-// colorMode war bis Task 6 ein ungenutzter Parameter: drawTruss() rechnet die Markenfarbe immer
-// aus it.color/c.color statt aus caseColors(), der Umschalter „Schwarz/Gewerk“ wirkt auf
-// Traversenwagen deshalb nicht (docs/code-review-2026-09-21.md, „N4 — drawTruss bekommt
-// colorMode und benutzt es nicht“). Das selbst zu ändern wäre eine Verhaltensänderung (der
-// Umschalter würde dann auch Traversenwagen einfärben) und keine reine Dopplung — bewusst nicht
-// Teil dieses Aufräum-Tasks; nur der tote Parameter ist entfernt.
+// Traversenwagen als Kasten im Außenmaß (Rollbretter, Rollen und Traversenstück zusammen), mit
+// der Gitterstruktur über den ganzen Kasten. Keine Rollbretter, Leisten oder Rollen mehr – die
+// gibt es nur in 3D. Die Markenfarbe bleibt wie bisher unabhängig vom Farbmodus und färbt die
+// Kontur; sie läuft über eine CSS-Variable statt über `stroke`, damit die Auswahlfarbe
+// (`.case.sel rect.body` in css/app.css) weiter greift.
+// Welche Achse die Traversenlänge ist, entscheidet das Außenmaß (die längere Grundseite); ob
+// man sie in einer Ansicht längs oder von der Stirn sieht, folgt aus der Projektion.
+const LENGTH_IN_VIEW = { top: { x: 'u', y: 'v' }, side: { x: 'u' }, rear: { y: 'u' } };
 function drawTruss(g, it, mode, truck) {
   const { c, p, box } = it;
-  const shape = trussShape(c, p, box);
-  // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in validate.js:
-  // `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie mehr greifen
-  // (docs/code-review-2026-09-21.md, „N5 — it.color ?? c.color ist überflüssig“).
-  const markColor = it.color;
-
-  const outline = project(box, mode, truck);
+  const r = project(box, mode, truck);
   svgEl('rect', {
-    x: outline.u0, y: outline.v0, width: outline.u1 - outline.u0, height: outline.v1 - outline.v0,
-    class: 'body truss-frame', fill: 'none', rx: 2,
+    x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'body truss-box',
+    ...(it.color ? { style: `--mark:${it.color}` } : {}),
   }, g);
-
-  const boardRects = shape.boards.map(b => project(b, mode, truck));
-  boardRects.forEach(br => {
-    svgEl('rect', { x: br.u0, y: br.v0, width: br.u1 - br.u0, height: br.v1 - br.v0, class: 'truss-board' }, g);
-    if (markColor) svgEl('rect', {
-      x: br.u0 + 2, y: br.v0 + 2, width: Math.max(0, br.u1 - br.u0 - 4), height: 3,
-      class: 'truss-mark', style: `fill:${markColor}`,
-    }, g);
-  });
-  for (const r of shape.rails) {
-    const rr = project(r, mode, truck);
-    svgEl('rect', { x: rr.u0, y: rr.v0, width: rr.u1 - rr.u0, height: rr.v1 - rr.v0, class: 'truss-rail' }, g);
-  }
-
-  // Rollen je Wagen zur zugehörigen Platte zuordnen (4 Rollen je Wagen, gleiche Reihenfolge wie
-  // in trussShape()), damit die Gabel-Linie zur Platte statt ins Leere zeigt.
-  shape.dollies.forEach((d, i) => {
-    const boardRect = boardRects[i];
-    for (const w of shape.wheels.slice(i * 4, i * 4 + 4)) {
-      const wr = project(w, mode, truck);
-      const fork = nearestEdgePoint(boardRect, (wr.u0 + wr.u1) / 2, (wr.v0 + wr.v1) / 2);
-      drawWheel(g, w, mode, truck, fork);
-    }
-  });
-
-  const profileWidth = shape.profileWidth ?? c.truss.width;
-  for (const pc of shape.pieces) {
-    const pr = project(pc, mode, truck);
-    const uSpan = pr.u1 - pr.u0, vSpan = pr.v1 - pr.v0;
-    if (uSpan >= vSpan * 1.3) drawChordBar(g, pr, true, profileWidth);
-    else if (vSpan >= uSpan * 1.3) drawChordBar(g, pr, false, profileWidth);
-    else drawEndSquare(g, pr, profileWidth);
-  }
-  return shape;
-}
-
-// Fallback-Form für Cases, deren Korpusfläche für Details zu klein ist.
-function drawSimpleBody(g, bodyRect, colors) {
-  svgEl('rect', {
-    x: bodyRect.u0, y: bodyRect.v0, width: bodyRect.u1 - bodyRect.u0, height: bodyRect.v1 - bodyRect.v0,
-    fill: colors.body, class: 'body', rx: 2,
-  }, g);
-  if (colors.stripe) {
-    const w = bodyRect.u1 - bodyRect.u0;
-    svgEl('rect', {
-      x: bodyRect.u0 + 6, y: bodyRect.v0 + 6, width: Math.max(0, w - 12), height: 7,
-      fill: colors.stripe, class: 'stripe',
-    }, g);
-  }
-  for (const [cx, cy] of cornerCenters(bodyRect, CORNER_R_SIMPLE)) svgEl('circle', { cx, cy, r: CORNER_R_SIMPLE, class: 'corner' }, g);
-}
-
-// Flightcase-Look: Alu-Hybridprofil, Laminat-Korpus, Kugelecken, Deckelfuge mit Butterfly-
-// Verschlüssen und Schalengriffen. Details nur ab Korpusbreite ≥ DETAIL_MIN, sonst wie drawSimpleBody.
-function drawFlightcaseBody(g, bodyRect, colors, mode, face, uid, detailed) {
-  const bw = bodyRect.u1 - bodyRect.u0, bh = bodyRect.v1 - bodyRect.v0;
-  if (!detailed) return drawSimpleBody(g, bodyRect, colors);
-
-  svgEl('rect', {
-    x: bodyRect.u0, y: bodyRect.v0, width: bw, height: bh,
-    class: 'body framed', style: `fill:url(#${uid}-alu)`, rx: 2,
-  }, g);
-  const iw = Math.max(0, bw - 2 * FRAME_W), ih = Math.max(0, bh - 2 * FRAME_W);
-  svgEl('rect', {
-    x: bodyRect.u0 + FRAME_W, y: bodyRect.v0 + FRAME_W, width: iw, height: ih,
-    fill: colors.body, class: 'corpus', rx: 1,
-  }, g);
-  // Vorher nur im Modus „Schwarz“ gezeichnet: view3d.js hängt bumpMap: LAM_TEX dagegen an JEDES
-  // Korpusmaterial, unabhängig vom Modus – dieselbe Case-Oberfläche hatte in 3D im Modus „Gewerk“
-  // eine Laminat-Struktur, in 2D nicht (docs/code-review-2026-09-21.md, „N2 — Laminat-Struktur nur
-  // in einem Modus“). Die Struktur ist mit `fill-opacity: 0.06` dezent genug, um auf jeder
-  // Körperfarbe zu funktionieren, nicht nur auf Schwarz.
-  svgEl('rect', {
-    x: bodyRect.u0 + FRAME_W, y: bodyRect.v0 + FRAME_W, width: iw, height: ih,
-    class: 'lam', style: `fill:url(#${uid}-lam)`, rx: 1,
-  }, g);
-
-  if (colors.stripe) svgEl('rect', {
-    x: bodyRect.u0 + FRAME_W + 6, y: bodyRect.v0 + FRAME_W + 6, width: Math.max(0, iw - 12), height: 7,
-    fill: colors.stripe, class: 'stripe',
-  }, g);
-
-  // Kugelecken innerhalb des Außenmaßes (caseStyle.js, cornerCenters).
-  for (const [cx, cy] of cornerCenters(bodyRect, CORNER_R))
-    svgEl('circle', { cx, cy, r: CORNER_R, class: 'corner ball', style: `fill:url(#${uid}-corner)` }, g);
-
-  if (mode === 'top' || face !== 'bottom') return;
-
-  // Deckelfuge bei 25 % Höhe: doppelte Alu-Leiste + Butterfly-Verschlüsse (2 auf der Längsseite,
-  // 1 auf der Stirnseite – Ansicht 'side' zeigt die Längsseite, 'rear' die Stirnseite).
-  const y = bodyRect.v0 + bh * 0.25;
-  svgEl('line', { x1: bodyRect.u0, y1: y - 1.2, x2: bodyRect.u1, y2: y - 1.2, class: 'seam' }, g);
-  svgEl('line', { x1: bodyRect.u0, y1: y + 1.2, x2: bodyRect.u1, y2: y + 1.2, class: 'seam' }, g);
-  const latchXs = mode === 'side' ? [bodyRect.u0 + bw / 4, bodyRect.u0 + (bw * 3) / 4] : [bodyRect.u0 + bw / 2];
-  for (const lx of latchXs) {
-    svgEl('rect', { x: lx - 4.5, y: y - 3.5, width: 9, height: 7, rx: 1.5, class: 'latch' }, g);
-    svgEl('rect', { x: lx - 2.5, y: y - 1, width: 5, height: 2, rx: 1, class: 'latch-wing' }, g);
-  }
-
-  // Versenkte Schalengriffe: mittig auf der Stirnseite, ab 100 cm Länge zusätzlich 2 auf der Längsseite.
-  const hy = bodyRect.v0 + bh * 0.58;
-  const drawHandle = hx => {
-    svgEl('rect', { x: hx - 6, y: hy - 3.5, width: 12, height: 7, rx: 2, class: 'handle' }, g);
-    svgEl('rect', { x: hx - 3.5, y: hy - 1.5, width: 7, height: 3, rx: 1.5, class: 'handle-bracket' }, g);
-  };
-  if (mode === 'rear') drawHandle(bodyRect.u0 + bw / 2);
-  else if (bw >= 100) { drawHandle(bodyRect.u0 + bw / 4); drawHandle(bodyRect.u0 + (bw * 3) / 4); }
+  const profileWidth = trussShape(c, p, box).profileWidth ?? c.truss.width;
+  const along = box.x1 - box.x0 >= box.y1 - box.y0 ? 'x' : 'y';
+  const axis = LENGTH_IN_VIEW[mode][along];
+  if (axis === 'u') drawChordBar(g, r, true, profileWidth);
+  else if (axis === 'v') drawChordBar(g, r, false, profileWidth);
+  else drawEndSquare(g, r, profileWidth);
 }
 
 // Passt den Textinhalt an eine maximale Breite an (binäre Suche); verkürzt notwendigenfalls mit
@@ -278,42 +136,28 @@ function drawLabel(g, labelRect, it) {
   }, g).textContent = it.seq;
 }
 
-function drawCase(g, it, mode, truck, { colorMode, labels, uid, weightSpan }) {
+function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan }) {
   const r = project(it.box, mode, truck);
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
 
-  let labelRect;
+  let labelRect = r;
   if (isTruss(it.c)) {
-    // isTruss-Zweig vor die Rollen-/Korpusberechnung gezogen (Task 6): 2D rechnete für
-    // Traversenwagen bis dahin Rollen aus, die es hinterher gar nicht zeichnete — heute
-    // folgenlos, weil normalizeCase() (js/store/io.js) für Traversenwagen immer wheelH: 0
-    // erzwingt und caseShape() dann wheels: [] liefert, aber eine stille Abhängigkeit von
-    // dieser Invariante (docs/code-review-2026-09-21.md, „N6 — 2D rechnet für Traversenwagen
-    // Rollen aus, die es dann nicht zeichnet“). 3D (view3d.js) steigt für Traversenwagen
-    // schon vorher aus derselben Ecke aus.
-    const shape = drawTruss(g, it, mode, truck);
-    // Zahl auf dem Wagen (Wagenende), nicht mitten im Gurtrohr-/Diagonalen-Muster.
-    labelRect = project(shape.dollies[0], mode, truck);
+    drawTruss(g, it, mode, truck);
   } else {
-    const face = wheelFace(it.p);
-    const { body, wheels } = caseShape(it.c, it.p, it.box);
-    const bodyRect = project(body, mode, truck);
-    const view = wheels.length ? wheelView(mode, face) : 'hidden';
-
-    if (view === 'edge') for (const w of wheels) {
-      const wr = project(w, mode, truck);
-      const fork = nearestEdgePoint(bodyRect, (wr.u0 + wr.u1) / 2, (wr.v0 + wr.v1) / 2);
-      drawWheel(g, w, mode, truck, fork);
-    }
-
     const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
     const colors = caseColors(it.c, colorMode, itemColor);
-    // Detailgrad anhand der echten 3D-Korpusmaße (nicht der projizierten Ansicht), damit ein Case
-    // in allen Ansichten (oben/seitlich/hinten) gleich detailliert dargestellt wird.
-    const detailed = Math.min(body.x1 - body.x0, body.y1 - body.y0, body.z1 - body.z0) >= DETAIL_MIN;
-    drawFlightcaseBody(g, bodyRect, colors, mode, face, uid, detailed);
-
-    if (view === 'facing') for (const w of wheels) drawWheel(g, w, mode, truck, null);
+    svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, fill: colors.body, class: 'body' }, g);
+    // Modus „Schwarz“: dunkle Kiste, die Gewerkfarbe als dünner Innenrahmen – ein eigenes
+    // Rechteck, damit die Auswahlfarbe auf `rect.body` über CSS weiter greift.
+    if (colors.stripe) svgEl('rect', {
+      x: r.u0 + TRADE_EDGE, y: r.v0 + TRADE_EDGE,
+      width: Math.max(0, r.u1 - r.u0 - 2 * TRADE_EDGE), height: Math.max(0, r.v1 - r.v0 - 2 * TRADE_EDGE),
+      stroke: colors.stripe, class: 'trade-edge',
+    }, g);
+    // Rollenzone als Streifen in echter Tiefe – nur, wo man die Rollen von der Kante sieht.
+    const bodyRect = project(caseShape(it.c, it.p, it.box).body, mode, truck);
+    const strip = wheelStripRect(r, bodyRect, mode, wheelFace(it.p));
+    if (strip) svgEl('rect', { ...strip, class: 'wheel-strip' }, g);
     labelRect = bodyRect;
   }
 
@@ -323,8 +167,6 @@ function drawCase(g, it, mode, truck, { colorMode, labels, uid, weightSpan }) {
 
 export function renderView(svg, mode, { truck, result, selectedId, labels = true, colorMode = 'black', layerLimit = null }) {
   svg.replaceChildren();
-  const uid = svgUid(svg);
-  addDefs(svg, uid);
   const W = mode === 'rear' ? truck.w : truck.l;
   const H = mode === 'top' ? truck.w : truck.h;
   // Ganzer Truck samt Rand – oder der gezoomte Ausschnitt dieser Ansicht (zoom2d.js).
@@ -359,7 +201,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
       ...it,
       seq: result.sequence.get(it.id),
       title: `${result.sequence.get(it.id)}. ${it.label}${it.c.content ? ` – ${it.c.content}` : ''}`,
-    }, mode, truck, { colorMode, labels, uid, weightSpan });
+    }, mode, truck, { colorMode, labels, weightSpan });
     if (bad) {
       const r = project(it.box, mode, truck);
       svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'alert' }, g);

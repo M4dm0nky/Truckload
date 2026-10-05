@@ -77,26 +77,19 @@ svg .grid line { stroke: var(--grid); stroke-width: 1; }
 svg .tick { fill: var(--muted); font-size: 14px; text-anchor: middle; }
 svg .arch { fill: var(--line); stroke: var(--muted); stroke-dasharray: 6 4; }
 svg .case rect.hit { fill: transparent; cursor: grab; }
-svg .case rect.body { stroke: var(--alu); stroke-width: 3; pointer-events: none; }
-svg .case .stripe, svg .case .seam, svg .case .latch, svg .case .latch-wing, svg .case .corner,
-svg .case .corpus, svg .case .lam, svg .case .handle, svg .case .handle-bracket,
-svg .case .wheel, svg .case .hub, svg .case .fork { pointer-events: none; }
-svg .case rect.body.framed { stroke: none; }
-svg .case .corpus { stroke: var(--alu); stroke-width: 1; }
-svg .case .seam { stroke: var(--alu); stroke-width: 2; }
-svg .case .latch { fill: var(--wheel); }
-svg .case .latch-wing { fill: var(--alu); }
-svg .case .handle { fill: var(--wheel); }
-svg .case .handle-bracket { fill: var(--alu); }
-svg .case .corner { fill: var(--corner); }
-svg .case .corner.ball { stroke: var(--alu); stroke-width: .5; }
-svg .case .wheel { fill: var(--wheel); stroke: var(--alu); stroke-width: 1; }
-svg .case .hub { fill: var(--alu); }
-svg .case .fork { stroke: var(--alu); stroke-width: 2; }
+/* 2D ist die nüchterne „Tetris“-Ansicht: jedes Stück ein Rechteck im belegten Außenmaß inkl.
+   Rollen; die reale Darstellung mit Profil, Ecken und Rollen gibt es nur in 3D. Die dünne dunkle
+   Kontur trennt gleichfarbige Nachbarn. */
+svg .case rect.body { stroke: rgba(0, 0, 0, .55); stroke-width: 1.5; pointer-events: none; }
+svg .case .trade-edge, svg .case .wheel-strip { pointer-events: none; }
+svg .case .trade-edge { fill: none; stroke-width: 2.5; }
+/* Rollenzone in echter Tiefe, nur wo man die Rollen von der Kante sieht. Dunkel plus feine helle
+   Kante – ein reiner Schatten verschwände im Modus „Schwarz“ auf der schwarzen Kiste. */
+svg .case .wheel-strip { fill: rgba(0, 0, 0, .35); stroke: var(--alu); stroke-width: 1; stroke-opacity: .6; }
 svg .case .label { fill: #fff; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; paint-order: stroke; stroke: #000; stroke-width: 3; stroke-linejoin: round; }
 svg .case .label-seq { fill: #fff; font-weight: 600; text-anchor: start; dominant-baseline: text-before-edge; pointer-events: none; paint-order: stroke; stroke: #000; stroke-width: 2.5; stroke-linejoin: round; opacity: .85; }
 svg .case.bad rect.alert { fill: none; stroke: var(--danger); stroke-width: 4; stroke-dasharray: 10 5; pointer-events: none; }
-svg .case.sel rect.body, svg .case.sel rect.body.framed { stroke: var(--accent); stroke-width: 5; }
+svg .case.sel rect.body { stroke: var(--accent); stroke-width: 5; }
 /* Lagen-Durchsicht: Stücke oberhalb der gewählten Lage bleiben blass sichtbar, nicht versteckt.
    `pointer-events: none` gehört dazu: sonst liegt das blasse Stück weiter über dem, das man
    gerade lesbar gemacht hat, und fängt jeden Klick und jedes Ziehen ab – man sieht das untere
@@ -105,12 +98,11 @@ svg .case.sel rect.body, svg .case.sel rect.body.framed { stroke: var(--accent);
 svg .case.faint { opacity: .18; pointer-events: none; }
 svg .case.faint.sel { opacity: 1; pointer-events: auto; }
 
-/* Traversenwagen: Rollbrett (Kunststoff, schwarz) mit Auflageleisten, Gewerk-Farbe nur als dünne
-   Kennzeichnung auf der Platte. */
-svg .case .truss-board, svg .case .truss-rail, svg .case .truss-chord, svg .case .truss-diag,
-svg .case .truss-end, svg .case .truss-tube, svg .case .truss-mark { pointer-events: none; }
-svg .case rect.truss-board { fill: var(--case-body); stroke: var(--alu); stroke-width: 2; }
-svg .case rect.truss-rail { fill: var(--wheel); stroke: none; }
+/* Traversenwagen in 2D: Kasten im Außenmaß mit Gitterstruktur. Die Kontur trägt die Markenfarbe
+   (--mark, von view2d.js gesetzt); als Variable statt als `stroke`, damit die Auswahlfarbe oben
+   weiter greift. Steht nach `rect.body`, gleiche Spezifität – die spätere Regel gewinnt. */
+svg .case .truss-chord, svg .case .truss-diag, svg .case .truss-end, svg .case .truss-tube { pointer-events: none; }
+svg .case rect.truss-box { fill: var(--case-body); stroke: var(--mark, var(--alu)); stroke-width: 2.5; }
 svg .case .truss-chord { stroke: var(--corner); stroke-width: 2.5; stroke-linecap: round; }
 svg .case .truss-diag { fill: none; stroke: var(--alu); stroke-width: 1.5; }
 svg .case rect.truss-end { fill: none; stroke: var(--corner); stroke-width: 2; }
