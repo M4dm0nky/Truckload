@@ -2,6 +2,22 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.9.2 – 2026-10-05
+
+2D und 3D haben jetzt getrennte Aufgaben.
+
+- **2D ist die nüchterne Planungsansicht – „Tetris“.** Jedes Case ist ein Rechteck in
+  seinem echten Außenmaß **mit** Rollen, also genau die Fläche, die es im LKW belegt. Vorher
+  zeichnete 2D Alu-Profil, Kugelecken, Verschlüsse und Griffe und die Rollen als Kreise
+  außerhalb der Kiste – man sah Lücken, die in Wahrheit belegt waren.
+- Ein dunkler Streifen an einer Kante zeigt die Rollenzone in echter Tiefe, z. B. bei
+  getippten Cases zur Tür. Der Farbumschalter Schwarz / Gewerk / Gewicht wirkt weiter; im
+  Modus Schwarz trägt ein dünner Rahmen die Gewerkfarbe.
+- Traversenwagen sind in 2D Kästen mit Gitterstruktur: längs mit Gurten und Zickzack, von
+  der Stirn mit Diagonalkreuz.
+- **3D bleibt die reale Ansicht** – unverändert.
+- Der gedruckte Ladeplan zeigt dieselbe nüchterne Darstellung.
+
 ## V 0.9.1 – 2026-10-04
 
 Zwei Entscheidungen aus V 0.9.0 nachgezogen, die ich dort eigenmächtig getroffen hatte.
