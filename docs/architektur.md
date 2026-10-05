@@ -370,11 +370,23 @@ den Katalog.
 ## Darstellung
 
 `js/ui/projection.js` bildet eine 3D-Box auf die drei 2D-Ansichten ab (Draufsicht, Seite
-von links, Rückansicht von der Tür). `js/ui/view2d.js` zeichnet daraus SVG — Flightcase mit
-Alu-Profil, Kugelecken, Deckelfuge, Griffen und Rollen, Traversenwagen mit Rollbrett und
-Gurtrohren. `js/ui/view3d.js` macht dasselbe in Three.js, mit geteilten Geometrien und
-Materialien (`userData.shared` — diese werden beim Aufräumen **nicht** verworfen; alles
-selbst Erzeugte muss freigegeben werden).
+von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 getrennte Aufgaben:
+
+- **2D ist die nüchterne Planungsansicht – „Tetris“.** `js/ui/view2d.js` zeichnet jedes Stück
+  als Rechteck im belegten Außenmaß inkl. Rollen (`it.box`), also genau die Fläche, die es im
+  LKW einnimmt. Gefärbt über `caseColors()`; im Modus Schwarz die Gewerkfarbe als dünner
+  Innenrahmen. Wo man die Rollen in einer Ansicht von der Kante sieht, markiert ein Streifen
+  die Rollenzone in echter Tiefe (`wheelStripRect()` in `projection.js`: Seite aus
+  `wheelStrip()`, Tiefe = Abstand zwischen Außenmaß und Korpus aus `caseShape()`).
+  Traversenwagen sind Kästen im Außenmaß mit Gitterstruktur über die ganze Fläche: liegt die
+  Traversenlänge in der Ansicht, Gurte mit Zickzack, von der Stirn ein Kasten mit
+  Diagonalkreuz. Bis V 0.9.1 zeichnete 2D dieselben Details wie 3D und die Rollen als Kreise
+  außerhalb des Korpus – die sichtbare Form deckte sich nicht mit der belegten Fläche. Der
+  gedruckte Ladeplan nutzt dieselbe Zeichnung.
+- **3D ist die reale Ansicht.** `js/ui/view3d.js` zeigt Flightcases mit Alu-Profil,
+  Kugelecken, Deckelfuge, Griffen und Rollen, Traversenwagen mit Rollbrett und Gurtrohren, in
+  Three.js mit geteilten Geometrien und Materialien (`userData.shared` — diese werden beim
+  Aufräumen **nicht** verworfen; alles selbst Erzeugte muss freigegeben werden).
 
 Jede der drei 2D-Ansichten lässt sich seit V 0.8.0 für sich zoomen und verschieben
 (`js/ui/zoom2d.js`). Gezoomt wird allein über die `viewBox`: `renderView` setzt sie über
@@ -423,10 +435,10 @@ sie im `afterprint` wieder — benannte Seiten (`@page x { … }` + `page:`) wä
 Weg, werden aber von Browsern uneinheitlich unterstützt. Die Grundregel in `css/print.css`
 bleibt A4 quer und gilt damit für Ladeplan und Abhakliste.
 
-Kugelecken ragen nie über das Außenmaß hinaus — das gemessene Maß enthält sie schon. Ihr
-Mittelpunkt liegt um den Radius nach innen versetzt (`cornerCenters`/`cornerCenters3d`,
-`CORNER_R` in `js/ui/caseStyle.js`, gemeinsam für 2D, 3D und Druck). Bis V 0.8.1 saßen sie
-mittig auf der Ecke und standen bis zu 6 cm über.
+Kugelecken (nur noch in 3D) ragen nie über das Außenmaß hinaus — das gemessene Maß enthält
+sie schon. Ihr Mittelpunkt liegt um den Radius nach innen versetzt (`cornerCenters3d`,
+`CORNER_R` in `js/ui/caseStyle.js`). Bis V 0.8.1 saßen sie mittig auf der Ecke und standen bis
+zu 6 cm über.
 
 Beschriftungen stehen auf allen Seiten: in 2D auf jeder sichtbaren Fläche, in 3D als
 Canvas-Textur auf vier Seiten plus Deckel (`js/ui/labelTexture.js` liefert die Flächen und

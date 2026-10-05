@@ -123,6 +123,15 @@ Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
 Zeile in der Seitenleiste anklicken).
 
+## 2D und 3D: zwei Ansichten, zwei Aufgaben
+
+Die **2D-Ansichten** sind zum Planen da – nüchtern wie Tetris. Jedes Case ist ein Rechteck in
+seinem echten Außenmaß **mit** Rollen, also genau die Fläche, die es im LKW belegt. Ein
+dunkler Streifen an einer Kante zeigt, wo die Rollen sitzen (bei getippten Cases z. B. zur
+Tür). Traversenwagen sind Kästen mit Gitterstruktur. Die **3D-Ansicht** ist die reale
+Ansicht: Flightcases mit Alu-Profil, Ecken, Verschlüssen und Rollen, Traversen mit
+Rollbrettern.
+
 ## 2D-Ansicht: Zoomen und Verschieben
 
 Draufsicht, Seitenansicht und Rückansicht lassen sich jede für sich vergrößern, z. B. um
