@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.9.1** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.9.2** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -122,6 +122,15 @@ belegen und den letzten, nicht vollen Stapel auffüllen – weiter vorn wird nie
 Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im Inspector ändern
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
 Zeile in der Seitenleiste anklicken).
+
+## 2D und 3D: zwei Ansichten, zwei Aufgaben
+
+Die **2D-Ansichten** sind zum Planen da – nüchtern wie Tetris. Jedes Case ist ein Rechteck in
+seinem echten Außenmaß **mit** Rollen, also genau die Fläche, die es im LKW belegt. Ein
+dunkler Streifen an einer Kante zeigt, wo die Rollen sitzen (bei getippten Cases z. B. zur
+Tür). Traversenwagen sind Kästen mit Gitterstruktur. Die **3D-Ansicht** ist die reale
+Ansicht: Flightcases mit Alu-Profil, Ecken, Verschlüssen und Rollen, Traversen mit
+Rollbrettern.
 
 ## 2D-Ansicht: Zoomen und Verschieben
 

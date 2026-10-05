@@ -45,12 +45,6 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   zusammen mit der Kontur-Wechselwirkung ist das mehr als eine Zeile und bräuchte eine eigene
   Browser-Abnahme auf mehreren Case-Farben und im Ausdruck. Nutzen (Konsistenz zwischen
   Ansichten) gegen Risiko (Lesbarkeitsregression im Ausdruck) abgewogen: zurückgestellt.
-- **2D/3D: Griffe auf der Längsseite nur in 2D** (UI-N3). `view3d.js` (`handleMeshes`) setzt
-  Griffe unabhängig von der Case-Länge nur auf die Stirnseiten; 2D zeichnet ab 100 cm Länge
-  zusätzlich zwei auf der Längsseite. Der Fix ist eine echte 3D-Geometrieänderung (Position,
-  Kollisionsfreiheit mit dem Deckelfuge-Band, InstancedMesh-Aufbau), kein Ein-Zeilen-Fix, und
-  bräuchte ein Prüf-Fahrzeug samt Screenshot-Abnahme aus mehreren Blickwinkeln (`CLAUDE.md`,
-  „Fallstrick 3D“). Rein kosmetisch (kein Fehlverhalten), deshalb zurückgestellt.
 - **Eine Textmetrik für 2D und 3D** (UI-S3). 2D kürzt Beschriftungen einzeilig mit „…“, 3D
   bricht sie mehrzeilig um und verkleinert die Schrift — zwei sichtbar unterschiedliche
   Ergebnisse für denselben Text. Eine Zusammenführung des eigentlichen Verfahrens (Kürzung vs.

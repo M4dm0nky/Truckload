@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { project, unproject, drawOrder, wheelStrip, stripRect, wheelView } from '../js/ui/projection.js';
+import { project, unproject, drawOrder, wheelStrip, stripRect, wheelView, wheelStripRect } from '../js/ui/projection.js';
 import { esc, fmtM } from '../js/ui/dom.js';
 
 const truck = { l: 1000, w: 250, h: 270 };
@@ -39,3 +39,28 @@ test('esc/fmtM', () => {
   assert.equal(esc('<a href="x">&</a>'), '&lt;a href=&quot;x&quot;&gt;&amp;&lt;/a&gt;');
   assert.equal(fmtM(120), '1,20 m');
 });
+
+// 2D-Tetris: Die Kiste ist das belegte Außenmaß inkl. Rollen. Wo die Rollen in einer Ansicht
+// von der Kante zu sehen sind, markiert ein Streifen die Rollenzone – in echter Tiefe, nämlich
+// dem Abstand zwischen Außenmaß und Korpus auf dieser Seite.
+test('wheelStripRect: stehendes Case von der Seite – Streifen unten in Rollentiefe', () => {
+  const aussen = { u0: 0, u1: 100, v0: 0, v1: 80 }, korpus = { u0: 0, u1: 100, v0: 0, v1: 67 };
+  assert.deepEqual(wheelStripRect(aussen, korpus, 'side', 'bottom'), { x: 0, y: 67, width: 100, height: 13 });
+});
+
+test('wheelStripRect: getipptes Case von oben, Rollen zur Tür – Streifen rechts', () => {
+  const aussen = { u0: 0, u1: 105, v0: 0, v1: 60 }, korpus = { u0: 0, u1: 92, v0: 0, v1: 60 };
+  assert.deepEqual(wheelStripRect(aussen, korpus, 'top', '+x'), { x: 92, y: 0, width: 13, height: 60 });
+});
+
+test('wheelStripRect: Rollen verdeckt oder zum Betrachter – kein Streifen', () => {
+  const r = { u0: 0, u1: 100, v0: 0, v1: 60 };
+  assert.equal(wheelStripRect(r, r, 'top', 'bottom'), null);
+  assert.equal(wheelStripRect(r, r, 'rear', '+x'), null);
+});
+
+test('wheelStripRect: Case ohne Rollen (Korpus = Außenmaß) – kein Streifen', () => {
+  const r = { u0: 0, u1: 100, v0: 0, v1: 80 };
+  assert.equal(wheelStripRect(r, r, 'side', 'bottom'), null);
+});
+

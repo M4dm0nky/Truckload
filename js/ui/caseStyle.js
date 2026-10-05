@@ -63,15 +63,6 @@ export function weightColor(kg, range) {
 export const CORNER_R = 2;        // cm, Flightcase mit Details
 export const CORNER_R_SIMPLE = 1.5; // cm, einfacher Kasten (kleine Cases)
 
-// 2D: Rechteck { u0, v0, u1, v1 } -> [[cx, cy] × 4]; bei sehr kleinen Rechtecken höchstens bis zur Mitte.
-export function cornerCenters(rect, r) {
-  const du = Math.min(r, (rect.u1 - rect.u0) / 2), dv = Math.min(r, (rect.v1 - rect.v0) / 2);
-  return [
-    [rect.u0 + du, rect.v0 + dv], [rect.u1 - du, rect.v0 + dv],
-    [rect.u0 + du, rect.v1 - dv], [rect.u1 - du, rect.v1 - dv],
-  ];
-}
-
 // 3D: Box { x0…z1 } -> 8 Punkte { x, y, z }.
 export function cornerCenters3d(b, r) {
   const d = a => Math.min(r, (b[`${a}1`] - b[`${a}0`]) / 2);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CASE_BLACK, COLOR_MODES, caseColors, DETAIL_MIN, CORNER_R, cornerCenters, cornerCenters3d, weightRange, weightColor } from '../js/ui/caseStyle.js';
+import { CASE_BLACK, COLOR_MODES, caseColors, DETAIL_MIN, CORNER_R, cornerCenters3d, weightRange, weightColor } from '../js/ui/caseStyle.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80, { color: '#ff8800' });
@@ -29,9 +29,10 @@ test('ohne itemColor bleibt es beim bisherigen Verhalten (Gewerkfarbe)', () => {
   assert.deepEqual(caseColors(C, 'trade', undefined), caseColors(C, 'trade'));
 });
 
-// DETAIL_MIN ist die einzige Quelle für 2D und 3D (Befund I3/I4, js/ui/view2d.js und
-// js/ui/view3d.js importieren beide von hier). Ohne diesen Test lässt sich der Wert
-// unbemerkt verändern und die beiden Ansichten laufen wieder auseinander.
+// DETAIL_MIN legt fest, ab welcher Größe 3D ein Case mit Flightcase-Details zeichnet
+// (js/ui/view3d.js importiert ihn von hier; Befund I3/I4). 2D braucht ihn seit V 0.9.2 nicht
+// mehr – dort ist jedes Stück ein schlichtes Rechteck. Ohne diesen Test ließe sich der Wert
+// unbemerkt verändern.
 test('DETAIL_MIN hat den dokumentierten Wert (40 cm)', () => {
   assert.equal(DETAIL_MIN, 40);
 });
@@ -39,17 +40,6 @@ test('DETAIL_MIN hat den dokumentierten Wert (40 cm)', () => {
 // Kugelecken (Nutzer-Feedback 2026-09-28: „viel zu groß, richtige Bälle – in echt stehen die kaum
 // raus“): das gemessene Außenmaß enthält die Ecken schon, also darf keine Ecke darüber hinausragen.
 // Mittelpunkte liegen um r nach innen versetzt, die Kugel berührt die Außenkante nur.
-test('cornerCenters (2D): 4 Mittelpunkte je um r innerhalb der Kante, nichts ragt hinaus', () => {
-  const rect = { u0: 10, v0: 20, u1: 130, v1: 80 };
-  const pts = cornerCenters(rect, CORNER_R);
-  assert.equal(pts.length, 4);
-  for (const [cx, cy] of pts) {
-    assert.ok(cx - CORNER_R >= rect.u0 - 1e-9 && cx + CORNER_R <= rect.u1 + 1e-9);
-    assert.ok(cy - CORNER_R >= rect.v0 - 1e-9 && cy + CORNER_R <= rect.v1 + 1e-9);
-  }
-  assert.deepEqual(pts[0], [rect.u0 + CORNER_R, rect.v0 + CORNER_R]);
-});
-
 test('cornerCenters3d: 8 Mittelpunkte je um r innerhalb der Box', () => {
   const b = { x0: 0, y0: 0, z0: 12, x1: 120, y1: 60, z1: 80 };
   const pts = cornerCenters3d(b, CORNER_R);
@@ -61,11 +51,6 @@ test('cornerCenters3d: 8 Mittelpunkte je um r innerhalb der Box', () => {
 
 test('Eckenradius ist klein (kaum sichtbar über dem Profil, keine Bälle)', () => {
   assert.ok(CORNER_R > 0 && CORNER_R <= 2.5);
-});
-
-test('cornerCenters: bei sehr kleinem Rechteck nie über die Mitte hinaus', () => {
-  const pts = cornerCenters({ u0: 0, v0: 0, u1: 3, v1: 3 }, CORNER_R);
-  for (const [cx, cy] of pts) { assert.ok(cx >= 0 && cx <= 3); assert.ok(cy >= 0 && cy <= 3); }
 });
 
 test('weightRange: Spanne nur über Stücke mit Gewicht', () => {
