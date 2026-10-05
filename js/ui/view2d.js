@@ -79,8 +79,10 @@ function drawEndSquare(g, pr, profileWidth) {
 // gibt es nur in 3D. Die Markenfarbe bleibt wie bisher unabhängig vom Farbmodus und färbt die
 // Kontur; sie läuft über eine CSS-Variable statt über `stroke`, damit die Auswahlfarbe
 // (`.case.sel rect.body` in css/app.css) weiter greift.
-// Welche Achse die Traversenlänge ist, entscheidet das Außenmaß (die längere Grundseite); ob
-// man sie in einer Ansicht längs oder von der Stirn sieht, folgt aus der Projektion.
+// Welche Achse die Traversenlänge ist, sagt trussShape() (`lenAxis`, aus der Drehung `p.rot`) –
+// nicht das Außenmaß: bei quadratischer Grundfläche (z. B. 80 cm Stück auf 80er-Wagen, oder ein
+// Pre-Rig mit 62 cm Länge auf 62 cm Standfläche) wäre die „längere Seite“ unentschieden und das
+// Gitter liefe quer. Ob man die Länge in einer Ansicht sieht, folgt aus der Projektion.
 const LENGTH_IN_VIEW = { top: { x: 'u', y: 'v' }, side: { x: 'u' }, rear: { y: 'u' } };
 function drawTruss(g, it, mode, truck) {
   const { c, p, box } = it;
@@ -89,9 +91,9 @@ function drawTruss(g, it, mode, truck) {
     x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'body truss-box',
     ...(it.color ? { style: `--mark:${it.color}` } : {}),
   }, g);
-  const profileWidth = trussShape(c, p, box).profileWidth ?? c.truss.width;
-  const along = box.x1 - box.x0 >= box.y1 - box.y0 ? 'x' : 'y';
-  const axis = LENGTH_IN_VIEW[mode][along];
+  const shape = trussShape(c, p, box);
+  const profileWidth = shape.profileWidth ?? c.truss.width;
+  const axis = LENGTH_IN_VIEW[mode][shape.lenAxis];
   if (axis === 'u') drawChordBar(g, r, true, profileWidth);
   else if (axis === 'v') drawChordBar(g, r, false, profileWidth);
   else drawEndSquare(g, r, profileWidth);

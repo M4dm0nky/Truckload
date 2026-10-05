@@ -29,9 +29,10 @@ test('ohne itemColor bleibt es beim bisherigen Verhalten (Gewerkfarbe)', () => {
   assert.deepEqual(caseColors(C, 'trade', undefined), caseColors(C, 'trade'));
 });
 
-// DETAIL_MIN ist die einzige Quelle für 2D und 3D (Befund I3/I4, js/ui/view2d.js und
-// js/ui/view3d.js importieren beide von hier). Ohne diesen Test lässt sich der Wert
-// unbemerkt verändern und die beiden Ansichten laufen wieder auseinander.
+// DETAIL_MIN legt fest, ab welcher Größe 3D ein Case mit Flightcase-Details zeichnet
+// (js/ui/view3d.js importiert ihn von hier; Befund I3/I4). 2D braucht ihn seit V 0.9.2 nicht
+// mehr – dort ist jedes Stück ein schlichtes Rechteck. Ohne diesen Test ließe sich der Wert
+// unbemerkt verändern.
 test('DETAIL_MIN hat den dokumentierten Wert (40 cm)', () => {
   assert.equal(DETAIL_MIN, 40);
 });
