@@ -3,6 +3,13 @@
 // beide Listen gleich anfühlen und Such-/Gewerk-/Firmenfilter identisch wirken.
 import { isTruss } from '../model/truss.js';
 
+// Sentinel für den Firmen-Filter: „nur Cases OHNE company“ – der Vorgabewert im Lade-Wizard
+// (Nutzerwunsch 2026-10-06: firmen-gebrandete Cases wie „-CAB“ sollen nie von selbst
+// auftauchen, nur wenn der Nutzer selbst eine Firma wählt). Unterscheidet sich bewusst von der
+// leeren Zeichenkette, die weiterhin „alle Firmen zeigen“ bedeutet (Vorgabe von groupCases()
+// selbst bleibt deshalb unverändert `''` – nur der Wizard wählt NEUTRAL_COMPANY als Start).
+export const NEUTRAL_COMPANY = '__neutral__';
+
 // Liefert die im Datensatz vorkommenden Firmen, alphabetisch sortiert.
 export function companiesOf(cases) {
   return [...new Set(cases.filter(c => !c.legacy).map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
@@ -26,11 +33,13 @@ export function caseKind(c) {
 
 // Teilt Cases nach Suche/Gewerk/Firma gefiltert in „Eigene Cases“, „Vorlagen“
 // und „Cases aus deiner Liste“ (c.source === 'liste'). Cases ohne `company`
-// verschwinden, sobald eine Firma gewählt ist.
+// verschwinden, sobald eine Firma gewählt ist. Mit NEUTRAL_COMPANY ist es
+// umgekehrt: nur Cases OHNE `company` bleiben durch.
 export function groupCases(cases, { q = '', cat = '', company = '' } = {}) {
   const needle = q.trim().toLowerCase();
+  const matchCompany = c => company === NEUTRAL_COMPANY ? !c.company : (!company || c.company === company);
   const match = c => (!cat || c.category === cat)
-    && (!company || c.company === company)
+    && matchCompany(c)
     && (!needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
   return {
     // `.sort(...)`: eigene Cases kamen bis Task 8 in IndexedDB-Schlüsselreihenfolge an

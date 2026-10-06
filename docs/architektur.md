@@ -346,6 +346,14 @@ lautlos den einen oder anderen Stand verliert.
 `js/ui/caseGroups.js`), aber weiter vorhanden, damit bestehende Ladepläne ihre Stücke mit
 unverändertem Namen, Maß und Gewicht behalten. Ersetzte Einträge werden deshalb nie gelöscht,
 nur ausgeblendet.
+
+Der Firmen-Filter im Lade-Wizard (`js/ui/load-wizard.js`) steht standardmäßig auf
+„Neutral (Standard)“, nicht auf „Alle Firmen“ (Nutzerwunsch 2026-10-06: firmen-gebrandete
+Cases wie die „-CAB“-Geräte sollen nie von selbst auftauchen). `NEUTRAL_COMPANY` in
+`js/ui/caseGroups.js` ist der Sentinel-Wert dafür; `groupCases()` lässt damit nur Cases ohne
+`company` durch — „Eigene Cases“ und alle `preset-cases.js`-Vorlagen haben nie ein
+`company`-Feld und bleiben sichtbar, die ganze Gruppe „Cases aus deiner Liste“ (ausnahmslos
+mit `company`) verschwindet, bis der Nutzer gezielt eine Firma wählt.
 | `js/data/categories.js` | Gewerke und ihre Farben |
 | `js/data/preset-trucks.js` | Fahrzeugvorlagen |
 

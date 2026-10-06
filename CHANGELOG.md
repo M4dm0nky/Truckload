@@ -2,6 +2,15 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.9.3 – 2026-10-06
+
+Der Firmen-Filter im Lade-Wizard steht standardmäßig auf „Neutral (Standard)“, nicht mehr auf
+„Alle Firmen“.
+
+- Firmen-gebrandete Cases (z. B. die „-CAB“-Geräte aus deiner Liste) tauchen damit nie von
+  selbst in der Auswahl auf – nur noch „Eigene Cases“ und die neutralen Vorlagen. Die Gruppe
+  „Cases aus deiner Liste“ bleibt leer, bis du gezielt eine Firma wählst.
+
 ## V 0.9.2 – 2026-10-05
 
 2D und 3D haben jetzt getrennte Aufgaben.
