@@ -45,6 +45,62 @@ test('Legacy-Traversen-Presets aus V0.2 existieren weiter (für alte Ladepläne)
   assert.equal(legacy1.legacy, true);
   assert.equal(legacy2.legacy, true);
 });
+// Gewerk Audio (Nutzerwunsch 2026-10-06): PA-Lautsprecher-Vorlagen, recherchiert mit Quelle
+// (docs/casemasse-gewichte.md). Neutral wie alle Vorlagen – kein `company`-Feld, das steht für
+// die Verleihfirma des Nutzers (case-library.js), nicht den Geräte-Hersteller.
+const AUDIO_IDS = [
+  'preset-k2', 'preset-v8v12', 'preset-leopard', 'preset-wpc', 'preset-wps', 'preset-hdl20a',
+  'preset-geom620', 'preset-geom6b',
+  'preset-k2-4er-dolly', 'preset-v8v12-4er-dolly', 'preset-leopard-4er-dolly',
+  'preset-wpc-4er-dolly', 'preset-wps-4er-dolly', 'preset-hdl20a-4er-dolly',
+  'preset-geom620-6er-dolly', 'preset-geom6b-6er-dolly',
+  'preset-ks28', 'preset-v-sub', 'preset-900-lfc', 'preset-sub-8006-as', 'preset-ls18',
+];
+test('Audio-Vorlagen (Gewerk Ton) sind vollständig und neutral', () => {
+  const audio = PRESET_CASES.filter(c => AUDIO_IDS.includes(c.id));
+  assert.equal(audio.length, 21, 'erwartet: 13 Einzelboxen + 8 Array-Top-Stacks');
+  assert.ok(audio.every(c => c.category === 'Ton'), 'alle Audio-Vorlagen müssen im Gewerk Ton stehen');
+  for (const c of audio) {
+    assert.equal(c.company, undefined, c.id);
+    assert.equal(c.tippable, false, c.id);
+    assert.ok(c.stackable, c.id);
+    assert.ok(c.weight > 0, c.id);
+    assert.equal(c.wheelH, 0, c.id);
+  }
+});
+
+// Array-Top-Stacks: Grundfläche/Höhe aus der im Plan dokumentierten Formel (Boxenbreite + 10 cm,
+// Boxentiefe + 20 cm, Höhe 25 cm Sockel + Stückzahl × Boxenhöhe) – hier an der Gegenprobe gegen
+// den echten L-Acoustics K2-CHARIOT nachgerechnet (145×61×29 cm leer, Formel liefert 148×60 cm
+// Grundfläche für 4 K2 auf 2–3 cm genau).
+test('L-Acoustics K2 4er (auf Dolly): Maße und Gewicht stimmen mit der Dolly-Formel überein', () => {
+  const c = PRESET_CASES.find(x => x.id === 'preset-k2-4er-dolly');
+  assert.ok(c, 'preset-k2-4er-dolly fehlt');
+  assert.equal(c.l, 148);
+  assert.equal(c.w, 60);
+  assert.equal(c.h, 167);
+  assert.equal(c.weight, 224);
+  assert.deepEqual(c.layers, [1]);
+});
+
+test('Array-Top-Stacks sind nur in Lage 1 erlaubt (der Stack ist bereits der volle Turm)', () => {
+  const stacks = PRESET_CASES.filter(c => c.category === 'Ton' && /\(auf Dolly\)/.test(c.name));
+  assert.equal(stacks.length, 8);
+  for (const c of stacks) assert.deepEqual(c.layers, [1], c.id);
+});
+
+// Subs liegen flach (Nutzerangabe): die kleinste recherchierte Achse wird zur Höhe. Keine feste
+// Stapel-Vorlage – der Nutzer packt beim Laden so viele in einen Load, wie passen.
+test('Sub-Vorlagen sind liegend angelegt (kleinste Achse = Höhe) und ohne Stack-Vorlage', () => {
+  const subs = ['preset-ks28', 'preset-v-sub', 'preset-900-lfc', 'preset-sub-8006-as', 'preset-ls18'];
+  for (const id of subs) {
+    const c = PRESET_CASES.find(x => x.id === id);
+    assert.ok(c, `${id} fehlt`);
+    assert.ok(c.h <= c.l && c.h <= c.w, `${id}: Höhe ${c.h} ist nicht die kleinste Achse (${c.l}×${c.w})`);
+    assert.ok(!PRESET_CASES.some(x => x.id === `${id}-4er-dolly`), `${id} darf keine Stack-Vorlage haben`);
+  }
+});
+
 test('Fahrzeug-Vorlagen gültig', () => {
   assert.ok(unique(PRESET_TRUCKS.map(t => t.id)));
   assert.ok(PRESET_TRUCKS.some(t => t.id === DEFAULT_TRUCK_ID));
