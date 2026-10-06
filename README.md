@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.9.3** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.10.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -207,7 +207,17 @@ die übrigen nach Volumen, z. B. 60×60×60 = 38 kg, 120×80×80 = 133 kg) unter
 Kabel oder etwas anderes hineinkommt, spielt fürs Laden keine Rolle.
 Cases mit konkretem Inhalt (z. B. Powerlocksatz, Multicore, Laka Loom) bleiben eigene
 Einträge. Traversenwagen stehen nicht mehr in der Liste; die baut man über
-„+ Traverse hinzufügen“. Die früheren Einträge (9 leere Pack-/Kabelcases, 5 Traversen)
+„+ Traverse hinzufügen“.
+
+Im Gewerk „Ton“ gibt es seit V 0.10.0 Line-Array- und Sub-Vorlagen von sechs Herstellern
+(L-Acoustics, d&b, Meyer Sound, Martin Audio, RCF, Nexo), recherchiert mit Quelle
+(siehe [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)). Array-Elemente gibt es
+sowohl einzeln als auch als fertigen 4er- bzw. 6er-Stack „auf Dolly“ (die reale
+Transporteinheit, z. B. „L-Acoustics K2 4er (auf Dolly)“); Subwoofer liegen flach und werden
+beim Laden ganz normal gestapelt, ohne eigene Stack-Vorlage – wie viele in einen Load kommen,
+richtet sich nach Platz und Gewicht im Truck.
+
+Die früheren Einträge (9 leere Pack-/Kabelcases, 5 Traversen)
 sind nur ausgeblendet: Alte Ladepläne zeigen sie weiter unverändert. Sechs weitere Einträge
 (Lakabaum flach/Transflex, 63A VT Haube, Rigpack, FD34 2m CUSTOMIZE, Slick) sind seit
 2026-09-30 auf Nutzerwunsch ebenso ausgeblendet – die beiden Traversen-Reste-Cases baut man

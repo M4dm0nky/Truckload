@@ -2,6 +2,20 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.10.0 – 2026-10-06
+
+Neues Gewerk „Ton“: 21 neutrale Vorlagen für Line-Array- und Sub-Lautsprecher von sechs
+Herstellern (L-Acoustics, d&b, Meyer Sound, Martin Audio, RCF, Nexo), recherchiert mit Quelle
+(siehe [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)).
+
+- 13 Einzelbox-Vorlagen (Array-Tops stehend wie geflogen, Subs liegend) sowie 8 fertige
+  4er-/6er-Stacks „auf Dolly“ für die Array-Tops – die reale Transporteinheit, keine
+  Einzelboxen, die man selbst stapelt.
+- Subwoofer bekommen bewusst keine feste Stack-Vorlage: Sie liegen flach und werden beim
+  Laden ganz normal gestapelt, wie viele passen richtet sich nach Platz und Gewicht im Truck.
+- Alle Vorlagen sind neutral (kein `company`-Feld) und erscheinen im Lade-Wizard daher auch
+  im Standardfilter „Neutral“ aus V 0.9.3.
+
 ## V 0.9.3 – 2026-10-06
 
 Der Firmen-Filter im Lade-Wizard steht standardmäßig auf „Neutral (Standard)“, nicht mehr auf

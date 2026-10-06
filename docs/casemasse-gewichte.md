@@ -1,3 +1,109 @@
+## Gewerk Audio 2026-10-06: Line-Array- und Sub-Vorlagen, sechs Hersteller
+
+Nutzerwunsch: Truckload kannte im Gewerk „Ton“ bisher nur 19″-Racks (`js/data/case-library.js`).
+PA-Lautsprecher fehlten komplett. Recherchiert: L-Acoustics, d&b audiotechnik, Meyer Sound,
+Martin Audio, RCF, Nexo — Line-Array-Elemente und Subwoofer, Maße/Gewichte und übliche
+Transportvarianten. Alle 21 neuen Vorlagen in `js/data/preset-cases.js`, Kategorie `'Ton'`,
+neutral (kein `company`-Feld — das steht für die Verleihfirma des Nutzers, nicht den
+Gerätehersteller).
+
+### Einzelboxen, Array-Tops (stehend wie geflogen, 0°-Splay)
+
+| Vorlage | L×T×H (cm) | Gewicht | Quelle |
+|---|---|---|---|
+| L-Acoustics K2 | 138 × 40 × 35 | 56 kg | [K2 Rigging Manual](https://static.rt-events.fr/document/l-acoustics_k2_manuel_accroche.pdf), Appendix C (offizielles PDF, selbst gelesen) |
+| d&b V8/V12 | 70 × 46 × 31 | 34 kg | [V8/V12 Manual 1.8](https://www.dbaudio.com/assets/products/downloads/manuals-documentation/v-series/dbaudio-manual-v8-v12-1.8-en.pdf) (offizielles PDF, selbst gelesen) |
+| Meyer Sound LEOPARD | 68 × 55 × 28 | 34 kg | [LEOPARD Datasheet](https://docs.meyersound.com/pdf/leopard_ds_e2.pdf) (offiziell) |
+| Martin Audio WPC | 77 × 42 × 32 | 35 kg | [WPC Datasheet](https://martin-audio.com/downloads/datasheets/WPCdatasheet.pdf) (offiziell) |
+| Martin Audio WPS | 65 × 40 × 26 | 27 kg | [martin-audio.com/products/loudspeakers/wps](https://martin-audio.com/products/loudspeakers/wps) (offiziell) |
+| RCF HDL 20-A | 71 × 45 × 29 | 30 kg | Händlerangabe, konsistent über mehrere Quellen — **nicht** aus einem RCF-PDF selbst gelesen |
+| Nexo GEO M620 | 37 × 26 × 19 | 10 kg | Händler-/Manual-Angabe |
+| Nexo GEO M6B | 37 × 26 × 19 | 8 kg | dito |
+
+K2: Appendix C nennt zwei Höhenwerte (286/354 mm, die Vorder-/Rückseite des leicht keilförmigen
+Korpus) — hier die größere, konservative Zahl (354 mm → 35 cm) übernommen.
+
+Martin Audio hat in dieser Recherche keinen dedizierten Sub (WPS ist laut Hersteller ein
+kompaktes Line-Array-Top, kein Sub — ein echter Martin-Audio-Sub wie SXC118 wäre eine weitere
+Recherche).
+
+### Array-Top-Stacks: die reale Transporteinheit auf dem Dolly
+
+**Nutzerangabe (entscheidend):** Line-Array-Elemente werden mit parallel gestellten
+Curve-Stäben (0°-Splay) transportiert — dabei stapeln sie sich als sauberes Rechteck, kein
+Keilproblem. Die Dollys sind meist nur wenig größer als das Boxenmaß.
+
+Daraus eine Formel, kalibriert an den **einzigen zwei real dokumentierten leeren Dollys**
+(L-Acoustics K2-CHARIOT: „Transport dolly for four K2 enclosures“, 145 × 61 × 29 cm, 50 kg
+leer, [K2 Rigging Manual](https://static.rt-events.fr/document/l-acoustics_k2_manuel_accroche.pdf),
+Appendix C; RCF KRT-WH 4X HDL20: 52 × 74 × 20 cm, 13 kg leer, offiziell von
+[rcf-usa.com](https://www.rcf-usa.com/en/products/product-detail/krt-wh-4x-hdl-20)):
+
+```
+Stapel-Grundfläche = Boxenbreite + 10 cm  ×  Boxentiefe + 20 cm
+Stapelhöhe          = 25 cm Sockel + Stückzahl × Boxenhöhe
+```
+
+**Gegenprobe K2:** Die Formel liefert 148 × 60 cm — der echte K2-CHARIOT ist 145 × 61 cm.
+Trifft auf 2–3 cm genau.
+
+**Gewicht bewusst ohne Dolly-Eigengewicht** — nur Stückzahl × recherchiertes Boxengewicht. Für
+das Dolly-Eigengewicht selbst gibt es nur die zwei sehr unterschiedlichen Referenzen oben
+(K2: 50 kg leer bei 56-kg-Boxen, ≈ 22 % des Boxengewichts; RCF: 13 kg leer bei 30-kg-Boxen,
+≈ 11 %) — kein verlässliches Verhältnis, um daraus eine dritte Zahl zu bauen. Eine erfundene
+Zahl beim Gewicht ist nach der Haltung dieses Projekts schlimmer als eine fehlende (siehe
+CLAUDE.md) — das eingetragene Gewicht der Stack-Vorlagen ist damit eine **dokumentierte
+Untergrenze**, kein Fehler.
+
+| Vorlage | L×T×H (cm) | Gewicht |
+|---|---|---|
+| L-Acoustics K2 4er (auf Dolly) | 148 × 60 × 167 | 224 kg |
+| d&b V8/V12 4er (auf Dolly) | 80 × 66 × 149 | 136 kg |
+| Meyer Sound LEOPARD 4er (auf Dolly) | 78 × 75 × 137 | 136 kg |
+| Martin Audio WPC 4er (auf Dolly) | 87 × 62 × 153 | 140 kg |
+| Martin Audio WPS 4er (auf Dolly) | 75 × 60 × 129 | 108 kg |
+| RCF HDL 20-A 4er (auf Dolly) | 81 × 65 × 141 | 120 kg |
+| Nexo GEO M620 6er (auf Dolly) | 47 × 46 × 139 | 60 kg |
+| Nexo GEO M6B 6er (auf Dolly) | 47 × 46 × 139 | 48 kg |
+
+Nexo offiziell mit 6 Stück je Transport-Case bestätigt (GMT-6CASE), nicht 4 — deshalb 6er statt
+4er. Bei allen acht gilt `layers: [1]`: der Stack ist bereits der volle Turm, nichts kommt
+obendrauf.
+
+### Subwoofer: liegend, kein fester Stack
+
+**Nutzerangabe:** Subs werden **liegend (flach)** transportiert, als 2er-Stack oder mehr — wie
+viele, richtet sich danach, was noch in den Truck passt und nicht zu schwer wird, keine feste
+Herstellerangabe. Deshalb **keine** eigene Dolly-Stack-Vorlage für Subs: Truckload stapelt sie
+beim Laden wie jedes andere `stackable`-Case von selbst (bestätigt im Browser: zwei Nexo LS18
+in einem Load landen automatisch in Lage 1 und 2).
+
+Die Einzelbox-Vorlage ist direkt in der liegenden Orientierung angelegt — die kleinste
+recherchierte Achse wird zur Höhe, die beiden größeren zur Grundfläche. Das ist eine
+Umrechnung der recherchierten Maße, keine neue Zahl.
+
+| Vorlage | L×T×H (cm) | Gewicht | Quelle der Originalmaße (stehend) |
+|---|---|---|---|
+| L-Acoustics KS28 | 134 × 72 × 55 | 79 kg | [l-acoustics.com/products/ks28](https://www.l-acoustics.com/products/ks28/) (offiziell) |
+| d&b V-SUB | 73 × 70 × 61 | 64 kg | Sekundärquelle, **nicht** aus einem offiziellen d&b-PDF bestätigt |
+| Meyer Sound 900-LFC | 70 × 63 × 62 | 62 kg (netto, ohne Rigging) | [900-LFC Datasheet](https://docs.meyersound.com/products/en/datasheet---900-lfc.html) (offiziell) |
+| RCF SUB 8006-AS | 111 × 71 × 70 | 96 kg | Händlerangabe |
+| Nexo LS18 | 78 × 68 × 51 | 56 kg (gerundet) | [LS18 Datasheet](https://www.nexo-sa.com/wp-content/uploads/LS18_Data_Sheet.pdf) (offiziell) |
+
+### Was bewusst offenbleibt
+
+- Die **geladene** Dolly-Geometrie (Grundfläche + Stapelhöhe mit allen Boxen drauf) ist bei
+  keinem der sechs Hersteller offiziell dokumentiert — nachgeprüft an den zwei einzigen Dollys
+  mit kompletten Herstellerangaben: beide Datenblätter geben nur die Maße des **leeren**
+  Dollys/Rahmens an, nie die Stapelhöhe mit aufgeladenen Boxen. Die Array-Top-Formel oben ist
+  deshalb eine eigene Herleitung (an zwei realen Referenzen kalibriert), keine Herstellerangabe
+  je Modell.
+- Kein Martin-Audio-Sub recherchiert (s. o.).
+- d&b V-SUB-Maße stammen aus einer Sekundärquelle, nicht aus einem offiziellen d&b-PDF selbst
+  gelesen — bei Gelegenheit nachprüfen.
+- RCF- und Nexo-Gewichte (HDL 20-A, SUB 8006-AS, GEO M620/M6B) sind Händlerangaben, nicht aus
+  einem RCF-/Nexo-PDF selbst gelesen.
+
 ## Nachrecherche 2026-09-30 (61 offene Cases)
 
 Von den bis dahin bewusst bei 0 kg belassenen 61 Cases (siehe „Bewusst bei 0 belassen“ unten)
