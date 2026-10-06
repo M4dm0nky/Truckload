@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { companiesOf, groupCases, caseKind, CASE_TABS } from '../js/ui/caseGroups.js';
+import { companiesOf, groupCases, caseKind, CASE_TABS, NEUTRAL_COMPANY } from '../js/ui/caseGroups.js';
 
 const own = (id, extra = {}) => ({ id, builtin: false, name: `Own ${id}`, content: '', category: 'Licht', ...extra });
 const preset = (id, extra = {}) => ({ id, builtin: true, name: `Preset ${id}`, content: '', category: 'Licht', ...extra });
@@ -28,6 +28,19 @@ test('Firmenfilter blendet Cases ohne company aus', () => {
   assert.deepEqual(ownGroup, []);
   assert.deepEqual(presets, []);
   assert.deepEqual(list.map(c => c.id), ['l1']);
+});
+
+// NEUTRAL_COMPANY ist der Vorgabewert des Firmen-Filters im Lade-Wizard (Nutzerwunsch
+// 2026-10-06: firmen-gebrandete Cases wie „-CAB“ sollen nie von selbst auftauchen, nur wenn
+// der Nutzer selbst eine Firma wählt). Spiegelbildlich zum Test oben: statt nur Cases EINER
+// Firma durchzulassen, lässt NEUTRAL_COMPANY nur Cases OHNE company durch – „Eigene Cases“
+// und „Vorlagen“ haben nie ein company-Feld und bleiben deshalb sichtbar.
+test('NEUTRAL_COMPANY lässt nur Cases ohne company durch', () => {
+  const cases = [own('o1'), preset('p1'), listCase('l1', 'CAB'), listCase('l2', undefined)];
+  const { own: ownGroup, presets, list } = groupCases(cases, { company: NEUTRAL_COMPANY });
+  assert.deepEqual(ownGroup.map(c => c.id), ['o1']);
+  assert.deepEqual(presets.map(c => c.id), ['p1']);
+  assert.deepEqual(list.map(c => c.id), ['l2']);
 });
 
 test('Suche greift auf Name und Inhalt', () => {

@@ -2,7 +2,7 @@ import { esc, swatch } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { outerDims, layersOf } from '../model/geometry.js';
 import { isTruss, canTip } from '../model/truss.js';
-import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS } from './caseGroups.js';
+import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
 import { MAX_LABEL } from '../model/geometry.js';
 import { openTrussDialog } from './truss-wizard.js';
 
@@ -110,7 +110,7 @@ export function openLoadWizard(dlg, opts = {}) {
         <div class="wiz-cases-head">
           <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
-          <select class="wiz-filter-company"><option value="">Alle Firmen</option>${companiesOf(cases).map(name => `<option>${esc(name)}</option>`).join('')}</select>
+          <select class="wiz-filter-company" title="„Neutral“ zeigt nur Vorlagen und eigene Cases – firmen-gebrandete Cases erst nach gezielter Firmenwahl"><option value="${NEUTRAL_COMPANY}" selected>Neutral (Standard)</option><option value="">Alle Firmen</option>${companiesOf(cases).map(name => `<option>${esc(name)}</option>`).join('')}</select>
         </div>
         <p class="hint wiz-totals">0 Stück · 0 kg</p>
         <div class="wiz-case-list"></div>
@@ -227,8 +227,11 @@ export function openLoadWizard(dlg, opts = {}) {
   function renderCompanyOptions() {
     const prev = companyFilterSel.value;
     const companies = companiesOf(cases);
-    companyFilterSel.innerHTML = `<option value="">Alle Firmen</option>${companies.map(name => `<option${name === prev ? ' selected' : ''}>${esc(name)}</option>`).join('')}`;
-    if (!companies.includes(prev)) companyFilterSel.value = '';
+    companyFilterSel.innerHTML = `<option value="${NEUTRAL_COMPANY}"${prev === NEUTRAL_COMPANY ? ' selected' : ''}>Neutral (Standard)</option><option value=""${prev === '' ? ' selected' : ''}>Alle Firmen</option>${companies.map(name => `<option${name === prev ? ' selected' : ''}>${esc(name)}</option>`).join('')}`;
+    // Rückfall auf „Neutral“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
+    // Liste (letztes Case dieser Firma gelöscht), soll der Filter wieder scharf stehen statt
+    // auf einmal firmen-gebrandete Cases zu zeigen, die der Nutzer nie gewählt hat.
+    if (prev !== NEUTRAL_COMPANY && prev !== '' && !companies.includes(prev)) companyFilterSel.value = NEUTRAL_COMPANY;
   }
   list.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
