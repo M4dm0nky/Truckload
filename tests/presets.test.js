@@ -69,6 +69,21 @@ test('Audio-Vorlagen (Gewerk Ton) sind vollständig und neutral', () => {
   }
 });
 
+test('Die 13 Audio-Einzelboxen tragen dollyPrompt, die Dolly-Stacks/übrigen Presets nicht', () => {
+  const singleBoxIds = [
+    'preset-k2', 'preset-v8v12', 'preset-leopard', 'preset-wpc', 'preset-wps', 'preset-hdl20a',
+    'preset-geom620', 'preset-geom6b',
+    'preset-ks28', 'preset-v-sub', 'preset-900-lfc', 'preset-sub-8006-as', 'preset-ls18',
+  ];
+  for (const id of singleBoxIds) {
+    const c = PRESET_CASES.find(x => x.id === id);
+    assert.ok(c, `${id} fehlt`);
+    assert.equal(c.dollyPrompt, true, id);
+  }
+  const others = PRESET_CASES.filter(c => !singleBoxIds.includes(c.id));
+  for (const c of others) assert.ok(!c.dollyPrompt, c.id);
+});
+
 // Array-Top-Stacks: Grundfläche/Höhe aus der im Plan dokumentierten Formel (Boxenbreite + 10 cm,
 // Boxentiefe + 20 cm, Höhe 25 cm Sockel + Stückzahl × Boxenhöhe) – hier an der Gegenprobe gegen
 // den echten L-Acoustics K2-CHARIOT nachgerechnet (145×61×29 cm leer, Formel liefert 148×60 cm
