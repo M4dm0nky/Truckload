@@ -2,6 +2,18 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.11.0 – 2026-10-07
+
+Line-Array-Elemente und Subwoofer stehen in der Praxis immer auf einem Dolly mit
+Schwerlastrollen – nie lose auf dem Boden. Die 13 Audio-Einzelbox-Vorlagen (Gewerk „Ton“)
+bekommen beim Hinzufügen im Lade-Wizard jetzt immer einen Dolly-Dialog, der nur die Stückzahl
+übereinander abfragt (siehe [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)).
+
+- Jede Stückzahl ist möglich, statt nur fester 4er-/6er-Pakete – der Dialog baut daraus einen
+  eigenen Case-Typ, der danach wie gewohnt per „+“/„−“ weiter bearbeitet werden kann.
+- Die 8 bisherigen festen „…4er/6er (auf Dolly)“-Vorlagen sind dafür zu `legacy` geworden:
+  alte Ladepläne laden unverändert weiter, tauchen im Katalog aber nicht mehr auf.
+
 ## V 0.10.0 – 2026-10-06
 
 Neues Gewerk „Ton“: 21 neutrale Vorlagen für Line-Array- und Sub-Lautsprecher von sechs
