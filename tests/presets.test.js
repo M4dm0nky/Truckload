@@ -89,6 +89,7 @@ test('Audio-Vorlagen (Gewerk Ton) sind vollständig und neutral', () => {
     assert.ok(c.stackable, c.id);
     assert.ok(c.weight > 0, c.id);
     assert.equal(c.wheelH, 0, c.id);
+    assert.equal(c.kind, 'speaker', c.id);
   }
 });
 

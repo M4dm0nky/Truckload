@@ -44,6 +44,12 @@ export function maxDollyCount(baseCase) {
 // ein zweiter solcher Stack darf nicht automatisch oben auf diesen gestapelt werden, der Turm
 // selbst ist schon die volle Höhe. `stackable: true` bleibt trotzdem stehen (wie bei den alten
 // Presets) – andere, leichtere Cases dürfen weiterhin oben drauf, dafür gibt es `maxTopLoad`.
+// `kind: 'speaker'` gibt js/ui/view3d.js einen eigenen Render-Zweig (wie `kind: 'truss'` für
+// Traversenwagen) – Nutzer-Feedback 2026-10-08: ohne den Zweig sieht ein Dolly-Stack in 3D wie
+// ein normales Flightcase aus (Kugelecken, Deckelfuge, Griffe), nicht wie PA-Lautsprecher.
+// `unitH` ist die Höhe einer einzelnen Box im Stack, damit dieser Zweig die Trennlinien
+// zwischen den gestapelten Boxen zeichnen kann, ohne sie aus `h`/Stückzahl zurückrechnen zu
+// müssen. 2D (js/ui/view2d.js) liest `kind` nicht und bleibt unverändert.
 export function dollyStackCase(baseCase, n) {
   return {
     id: dollyStackId(baseCase, n),
@@ -62,5 +68,7 @@ export function dollyStackCase(baseCase, n) {
     wheelH: DOLLY_HEIGHT_CM,
     dimsInclWheels: false,
     layers: [1],
+    kind: 'speaker',
+    unitH: baseCase.h,
   };
 }

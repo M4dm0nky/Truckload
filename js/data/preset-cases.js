@@ -106,21 +106,21 @@ export const PRESET_CASES = [
 
   // Array-Tops, stehend wie geflogen (0°-Splay).
   P('k2', 'L-Acoustics K2', 'Ton', 138, 40, 35, 56,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'K2 Rigging Manual, Appendix C (l-acoustics.com)' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'K2 Rigging Manual, Appendix C (l-acoustics.com)' }),
   P('v8v12', 'd&b V8/V12', 'Ton', 70, 46, 31, 34,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'd&b V8/V12 Manual 1.8 (dbaudio.com)' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'd&b V8/V12 Manual 1.8 (dbaudio.com)' }),
   P('leopard', 'Meyer Sound LEOPARD', 'Ton', 68, 55, 28, 34,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'LEOPARD Datasheet (docs.meyersound.com)' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'LEOPARD Datasheet (docs.meyersound.com)' }),
   P('wpc', 'Martin Audio WPC', 'Ton', 77, 42, 32, 35,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'WPC Datasheet (martin-audio.com)' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'WPC Datasheet (martin-audio.com)' }),
   P('wps', 'Martin Audio WPS', 'Ton', 65, 40, 26, 27,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'martin-audio.com/products/loudspeakers/wps' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'martin-audio.com/products/loudspeakers/wps' }),
   P('hdl20a', 'RCF HDL 20-A', 'Ton', 71, 45, 29, 30,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'Gewicht geschätzt: Händlerangabe, nicht aus einem RCF-PDF selbst gelesen' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'Gewicht geschätzt: Händlerangabe, nicht aus einem RCF-PDF selbst gelesen' }),
   P('geom620', 'Nexo GEO M620', 'Ton', 37, 26, 19, 10,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'Gewicht geschätzt: Händler-/Manual-Angabe' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'Gewicht geschätzt: Händler-/Manual-Angabe' }),
   P('geom6b', 'Nexo GEO M6B', 'Ton', 37, 26, 19, 8,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'Gewicht geschätzt: Händler-/Manual-Angabe' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'Gewicht geschätzt: Händler-/Manual-Angabe' }),
 
   // Dieselben Array-Tops als 4er- bzw. 6er-Stack auf dem Dolly – die reale Transporteinheit auf
   // der Straße. Nutzerangabe: bei 0°-Splay (Curve-Stäbe parallel) stapeln sich die Elemente als
@@ -162,15 +162,15 @@ export const PRESET_CASES = [
   // dem Dolly; seit V 0.11.0 fragt der Dolly-Dialog (`dollyPrompt: true`) genau das beim
   // Einladen ab, statt eine feste Stückzahl vorzugeben.
   P('ks28', 'L-Acoustics KS28', 'Ton', 134, 72, 55, 79,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'l-acoustics.com/products/ks28, liegend umgerechnet' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'l-acoustics.com/products/ks28, liegend umgerechnet' }),
   P('v-sub', 'd&b V-SUB', 'Ton', 73, 70, 61, 64,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'Gewicht geschätzt: Sekundärquelle, nicht aus einem offiziellen d&b-PDF bestätigt, liegend umgerechnet' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'Gewicht geschätzt: Sekundärquelle, nicht aus einem offiziellen d&b-PDF bestätigt, liegend umgerechnet' }),
   P('900-lfc', 'Meyer Sound 900-LFC', 'Ton', 70, 63, 62, 62,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: '900-LFC Datasheet (docs.meyersound.com), Nettogewicht ohne Rigging, liegend umgerechnet' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: '900-LFC Datasheet (docs.meyersound.com), Nettogewicht ohne Rigging, liegend umgerechnet' }),
   P('sub-8006-as', 'RCF SUB 8006-AS', 'Ton', 111, 71, 70, 96,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'Gewicht geschätzt: Händlerangabe, liegend umgerechnet' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'Gewicht geschätzt: Händlerangabe, liegend umgerechnet' }),
   P('ls18', 'Nexo LS18', 'Ton', 78, 68, 51, 56,
-    { tippable: false, wheelH: 0, dollyPrompt: true, note: 'LS18 Datasheet (nexo-sa.com), liegend umgerechnet' }),
+    { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', note: 'LS18 Datasheet (nexo-sa.com), liegend umgerechnet' }),
 
   // Legacy – nicht mehr in der Bibliothek gelistet, bleiben aber für alte Ladepläne bestehen.
   // Seit V0.8.1 durch die Packcases oben ersetzt (Maße und Gewichte unverändert, damit bestehende

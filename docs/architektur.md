@@ -409,7 +409,17 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
 - **3D ist die reale Ansicht.** `js/ui/view3d.js` zeigt Flightcases mit Alu-Profil,
   Kugelecken, Deckelfuge, Griffen und Rollen, Traversenwagen mit Rollbrett und Gurtrohren, in
   Three.js mit geteilten Geometrien und Materialien (`userData.shared` — diese werden beim
-  Aufräumen **nicht** verworfen; alles selbst Erzeugte muss freigegeben werden).
+  Aufräumen **nicht** verworfen; alles selbst Erzeugte muss freigegeben werden). `kind:
+  'speaker'` (seit V 0.11.0, `addSpeaker()`) ist ein dritter eigener Zweig neben Flightcase und
+  Traversenwagen: Nutzer-Feedback, dass Audio-Dolly-Stacks mit der generischen Flightcase-Optik
+  wie ein normales Case aussahen, nicht wie PA-Lautsprecher. Kein Deckelfuge-Band, keine
+  Schließen/Griffe, keine Kugelecken; stattdessen dünne Trennbänder zwischen den gestapelten
+  Einzelboxen (`speakerUnits()`/`speakerDividers()`, Höhe je Box aus `c.unitH`,
+  `js/model/audioDolly.js`) und eine matte Grille-Andeutung je Einzelbox auf allen 4
+  Seitenflächen (`speakerGrilles()`, `MAT_SPEAKER_GRILLE`/`MAT_SPEAKER_DIVIDER` bewusst nicht
+  chromfarben wie `MAT_CORNER`/`MAT_CHROME`). Die Dolly-Rollen selbst kommen unverändert aus
+  `caseShape()`/`wheelMesh()`. 2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der
+  nüchternen Tetris-Darstellung.
 
 Jede der drei 2D-Ansichten lässt sich seit V 0.8.0 für sich zoomen und verschieben
 (`js/ui/zoom2d.js`). Gezoomt wird allein über die `viewBox`: `renderView` setzt sie über

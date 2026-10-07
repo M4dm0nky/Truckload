@@ -12,7 +12,7 @@ export { MAX_LABEL, CASE_LIMITS };
 // exportiert (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
 const FORMAT = 'truckload';
 const VERSION = 1;
-const CASE_KINDS = ['case', 'truss'];
+const CASE_KINDS = ['case', 'truss', 'speaker'];
 
 const num = v => typeof v === 'number' && Number.isFinite(v);
 const arr = v => (Array.isArray(v) ? v : []);
