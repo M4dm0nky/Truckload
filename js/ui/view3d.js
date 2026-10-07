@@ -92,6 +92,14 @@ export async function createView3d(container) {
   // Traversen-Rollbrett: Kunststoff-Platte (schwarz) mit etwas helleren Auflageleisten obenauf.
   const MAT_DOLLY_BOARD = shared(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.85 }));
   const MAT_DOLLY_RAIL = shared(new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.8 }));
+  // Lautsprecher-Look (kind: 'speaker', Nutzer-Feedback 2026-10-08): gegen den dunklen Korpus
+  // (CASE_BLACK #1c1d20) kontrastierende Materialien für Grille-Andeutung und Trennlinien –
+  // deutlich matter/weniger reflektiv als MAT_CORNER/MAT_CHROME (das ist die Flightcase-Optik,
+  // die hier bewusst vermieden wird), aber hell/dunkel genug, um im Render sichtbar zu sein
+  // (ein erster Versuch mit einem einzigen, fast korpusfarbenen Grauton war im Screenshot
+  // praktisch unsichtbar).
+  const MAT_SPEAKER_GRILLE = shared(new THREE.MeshStandardMaterial({ color: 0x6b7078, metalness: 0.3, roughness: 0.6 }));
+  const MAT_SPEAKER_DIVIDER = shared(new THREE.MeshStandardMaterial({ color: 0x08090b, roughness: 0.9 }));
   const COL_PROFILE_N = new THREE.Color(0xc9ced4);
   const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
   const COL_PROFILE_BAD = new THREE.Color(0xe5484d);
@@ -234,6 +242,41 @@ export async function createView3d(container) {
     s.scale.setScalar(CORNER_R_SIMPLE / 2.5);
     return s;
   });
+
+  // Zerlegt den Korpus eines Lautsprecher-Stacks (kind: 'speaker') in `unitH`-hohe Einzelboxen
+  // (z-Bereiche) – Grundlage für die Trennlinien und die Grille-Andeutung je Einzelbox. Ohne
+  // `unitH` (z. B. eine einzelne Box ohne Dolly, falls ein alter Ladeplan sie noch lose
+  // referenziert) bleibt es bei einer einzigen Einheit über die volle Höhe.
+  function speakerUnits(body, unitH) {
+    const total = body.z1 - body.z0;
+    const n = unitH > 0 ? Math.max(1, Math.round(total / unitH)) : 1;
+    const h = total / n;
+    return Array.from({ length: n }, (_, i) => ({ z0: body.z0 + i * h, z1: body.z0 + (i + 1) * h }));
+  }
+  // Dünne, umlaufende Trennbänder an jeder inneren Lagengrenze eines Stacks – zeigt, dass der
+  // Turm aus mehreren einzelnen Boxen besteht, statt wie ein einziger großer Klotz zu wirken.
+  function speakerDividers(body, units) {
+    const t = 0.3;
+    return units.slice(1).map(u => ({
+      x0: body.x0 - 0.2, x1: body.x1 + 0.2, y0: body.y0 - 0.2, y1: body.y1 + 0.2, z0: u.z0 - t, z1: u.z0 + t,
+    }));
+  }
+  // Eingelassene Grille-Andeutung je Einzelbox, auf allen 4 Seitenflächen (nicht nur einer
+  // „Vorderseite“ – die Box hat keine zuverlässig bekannte Blickrichtung, s. Brainstorming-
+  // Entscheidung) statt der Flightcase-Kugelecken/Deckelfuge/Griffe.
+  function speakerGrilles(body, unit) {
+    const mXY = Math.min(6, (body.x1 - body.x0) * 0.12, (body.y1 - body.y0) * 0.12);
+    const mZ = Math.min(4, (unit.z1 - unit.z0) * 0.12);
+    const z0 = unit.z0 + mZ, z1 = unit.z1 - mZ;
+    if (z1 <= z0 || mXY <= 0) return [];
+    const t = 0.4;
+    return [
+      { x0: body.x0 - t, x1: body.x0, y0: body.y0 + mXY, y1: body.y1 - mXY, z0, z1 },
+      { x0: body.x1, x1: body.x1 + t, y0: body.y0 + mXY, y1: body.y1 - mXY, z0, z1 },
+      { x0: body.x0 + mXY, x1: body.x1 - mXY, y0: body.y0 - t, y1: body.y0, z0, z1 },
+      { x0: body.x0 + mXY, x1: body.x1 - mXY, y0: body.y1, y1: body.y1 + t, z0, z1 },
+    ];
+  }
 
   // Rolle im Rollenschacht w (Höhe wh entlang der Normalen n, Fußabdruck d×d in a1/a2):
   // Schwenkplatte an der Karosserieseite, Gabel (2 Bleche) hinunter zur Achse, Rad + Nabe.
@@ -466,6 +509,38 @@ export async function createView3d(container) {
     }
   }
 
+  // Eigener Render-Zweig für `kind: 'speaker'` (Nutzer-Feedback 2026-10-08): PA-Boxen auf Dolly
+  // sahen mit der generischen Flightcase-Optik (Kugelecken/Deckelfuge/Griffe aus dem Zweig
+  // unten) wie ein normales Case aus, nicht wie Lautsprecher. Kein Deckelfuge-Band, keine
+  // Schließen/Griffe, keine Kugelecken – stattdessen Trennbänder zwischen den gestapelten
+  // Einzelboxen (speakerDividers) und eine matte Grille-Andeutung je Einzelbox
+  // (speakerGrilles). Die Dolly-Rollen (wheels/face aus caseShape()) sind bereits korrekt und
+  // bleiben unverändert.
+  function addSpeaker(it, bad, selected, colors, seq) {
+    const { c, p, box } = it;
+    const { body, wheels, face } = caseShape(c, p, box);
+    content.add(boxMesh(body, bodyMaterial(colors.body, bad)));
+    const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
+    content.add(edges(body, edgeMat));
+
+    const units = speakerUnits(body, c.unitH);
+    for (const u of units) for (const g of speakerGrilles(body, u)) content.add(boxMesh(g, MAT_SPEAKER_GRILLE));
+    for (const d of speakerDividers(body, units)) content.add(boxMesh(d, MAT_SPEAKER_DIVIDER));
+
+    if (colors.stripe) {
+      const band = {
+        x0: body.x0 - 0.2, x1: body.x1 + 0.2, y0: body.y0 - 0.2, y1: body.y1 + 0.2,
+        z0: body.z1 - 12, z1: body.z1 - 6,
+      };
+      content.add(boxMesh(band, bandMaterial(colors.stripe)));
+    }
+
+    for (const w of wheels) content.add(...wheelMesh(w, face));
+
+    const labelText = it.label ? `${seq}. ${it.label}` : `${seq}.`;
+    for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, labelText, colors.body));
+  }
+
   function clear() {
     content.traverse(o => {
       if (o.isInstancedMesh) o.dispose();
@@ -491,7 +566,7 @@ export async function createView3d(container) {
     for (const m of [
       MAT_FLOOR, MAT_ROOM_EDGE, MAT_FRONT, MAT_ARCH, MAT_ALU, MAT_CORNER, MAT_WHEEL, MAT_HUB,
       MAT_EDGE_ALU, MAT_EDGE_SEL, MAT_EDGE_ERR, MAT_PROFILE, MAT_CHROME, MAT_SEAM_BAND,
-      MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL,
+      MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL, MAT_SPEAKER_GRILLE, MAT_SPEAKER_DIVIDER,
     ]) m.dispose();
     for (const { material, texture } of labelTexCache.values()) { material.dispose(); texture.dispose(); }
     labelTexCache.clear();
@@ -538,6 +613,10 @@ export async function createView3d(container) {
 
       if (isTruss(it.c)) {
         addTruss(it, bad, it.id === selectedId, chordSegs, chordColors, diagSegs, result.sequence.get(it.id));
+        continue;
+      }
+      if (it.c.kind === 'speaker') {
+        addSpeaker(it, bad, it.id === selectedId, colors, result.sequence.get(it.id));
         continue;
       }
 

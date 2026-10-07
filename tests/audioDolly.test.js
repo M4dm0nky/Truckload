@@ -95,6 +95,19 @@ test('maxDollyCount: größte Stückzahl, bei der Höhe UND Gewicht innerhalb CA
   assert.throws(() => checkCase(overMax));
 });
 
+// Nutzer-Feedback 2026-10-08: die Dolly-Stacks sahen in 3D wie ein normales Flightcase aus
+// (Kugelecken, Deckelfuge, Griffe aus js/ui/view3d.js), nicht wie PA-Lautsprecher. `kind:
+// 'speaker'` gibt view3d.js einen eigenen Render-Zweig (wie `kind: 'truss'` für
+// Traversenwagen), `unitH` die Höhe einer einzelnen Box im Stack, damit der Zweig die
+// Trennlinien zwischen den gestapelten Boxen zeichnen kann, ohne raten zu müssen.
+test('dollyStackCase: kind "speaker" und unitH für die eigene 3D-Darstellung (keine Flightcase-Optik)', () => {
+  const base = mkCase('preset-ls18', 78, 68, 51, { weight: 56, name: 'Nexo LS18', category: 'Ton' });
+  const c = dollyStackCase(base, 3);
+  assert.equal(c.kind, 'speaker');
+  assert.equal(c.unitH, 51);
+  assert.doesNotThrow(() => checkCase(c));
+});
+
 test('dollyStackCase: Stückzahl 1 ist gültig (ein Dolly, eine Box)', () => {
   const base = mkCase('preset-geom6b', 37, 26, 19, { weight: 8, name: 'Nexo GEO M6B', category: 'Ton' });
   const c = dollyStackCase(base, 1);
