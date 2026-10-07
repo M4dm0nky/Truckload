@@ -36,21 +36,31 @@ test('Traversenwagen-Vorlagen sind vom Typ truss mit passenden Maßen', () => {
     assert.equal(c.wheelH, 0, c.id);
   }
 });
+// Alle 8 mit vollen Maßen statt nur K2 (Befund Final-Review Minor #1: vorher waren die
+// anderen 7 nur auf `legacy === true` geprüft, nicht auf ihre tatsächlichen Werte) – ein Import
+// alter Ladepläne verlässt sich auf GENAU diese Zahlen, nicht nur auf die Existenz der ID.
 test('Legacy-Dolly-Stacks aus V0.10.0 existieren mit unveränderten Maßen weiter (für alte Ladepläne)', () => {
   const byId = id => PRESET_CASES.find(c => c.id === id);
-  const k2 = byId('preset-k2-4er-dolly');
-  assert.ok(k2, 'preset-k2-4er-dolly fehlt');
-  assert.equal(k2.legacy, true);
-  assert.equal(k2.l, 148);
-  assert.equal(k2.w, 60);
-  assert.equal(k2.h, 167);
-  assert.equal(k2.weight, 224);
-  const ids = [
-    'preset-k2-4er-dolly', 'preset-v8v12-4er-dolly', 'preset-leopard-4er-dolly',
-    'preset-wpc-4er-dolly', 'preset-wps-4er-dolly', 'preset-hdl20a-4er-dolly',
-    'preset-geom620-6er-dolly', 'preset-geom6b-6er-dolly',
+  const expected = [
+    ['preset-k2-4er-dolly', 148, 60, 167, 224],
+    ['preset-v8v12-4er-dolly', 80, 66, 149, 136],
+    ['preset-leopard-4er-dolly', 78, 75, 137, 136],
+    ['preset-wpc-4er-dolly', 87, 62, 153, 140],
+    ['preset-wps-4er-dolly', 75, 60, 129, 108],
+    ['preset-hdl20a-4er-dolly', 81, 65, 141, 120],
+    ['preset-geom620-6er-dolly', 47, 46, 139, 60],
+    ['preset-geom6b-6er-dolly', 47, 46, 139, 48],
   ];
-  for (const id of ids) assert.equal(byId(id)?.legacy, true, id);
+  for (const [id, l, w, h, weight] of expected) {
+    const c = byId(id);
+    assert.ok(c, `${id} fehlt`);
+    assert.equal(c.legacy, true, id);
+    assert.equal(c.l, l, id);
+    assert.equal(c.w, w, id);
+    assert.equal(c.h, h, id);
+    assert.equal(c.weight, weight, id);
+    assert.deepEqual(c.layers, [1], id);
+  }
 });
 test('Legacy-Traversen-Presets aus V0.2 existieren weiter (für alte Ladepläne)', () => {
   const byId = id => PRESET_CASES.find(c => c.id === id);

@@ -1,12 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer } from '../js/ui/load-wizard.js';
+import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom } from '../js/ui/load-wizard.js';
 import { caseKind } from '../js/ui/caseGroups.js';
 import { mkCase } from './fixtures.js';
 
 test('dollyPrompt-Cases bleiben im normalen "cases"-Tab (kein eigener Reiter nötig)', () => {
   const c = mkCase('preset-k2', 138, 40, 35, { category: 'Ton', dollyPrompt: true });
   assert.equal(caseKind(c), 'cases');
+});
+
+// capToRoom() ist die aus addDollyStack() herausgezogene 500er-Grenzen-Kappung (Befund
+// Final-Review Minor #8, „Review Focus #5 ohne eigenen Unit-Test“) – dieselbe Regel, die
+// addTruss() schon inline anwendet, hier für die Dolly-Dialog-Addition als eigene, testbare
+// Funktion.
+test('capToRoom: passt n auf den verbleibenden Platz, wenn n größer als der Rest ist', () => {
+  assert.equal(capToRoom(5, 498, 500), 2);
+});
+test('capToRoom: n unverändert, wenn genug Platz ist', () => {
+  assert.equal(capToRoom(5, 100, 500), 5);
+});
+test('capToRoom: 0, wenn das Limit bereits erreicht ist', () => {
+  assert.equal(capToRoom(5, 500, 500), 0);
 });
 
 // Lage/Tippen je Stück, Fix-Runde 2 (Befund „Wizard speichert Vorgaben als Stück-Einschränkung“):

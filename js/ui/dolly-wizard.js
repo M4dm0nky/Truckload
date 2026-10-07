@@ -12,6 +12,15 @@ import { dollyStackCase, dollyStackId, maxDollyCount } from '../model/audioDolly
 // unverändert wiederverwendet statt neu gespeichert – sonst würde eine vom Nutzer im
 // Case-Editor bearbeitete Zeile beim nächsten Mal stillschweigend wieder auf die Formel-Werte
 // zurückgesetzt (Befund Final-Review Important #2).
+// Prüft eine rohe Formular-Eingabe gegen 1..maxN – ausgelagert aus openDollyDialog() (Befund
+// Final-Review Minor #8), damit eine ungültige Stückzahl (0, negativ, leer, nicht-numerisch,
+// über maxN) ohne DOM unabhängig getestet werden kann, statt nur implizit über eine einzelne
+// Browser-Probe mit einer gültigen Zahl.
+export function parseDollyCount(raw, maxN) {
+  const n = Number(raw);
+  return (n > 0 && Number.isInteger(n) && n <= maxN) ? n : null;
+}
+
 export function openDollyDialog(dlg, opts = {}) {
   if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
   const base = opts.baseCase;
@@ -33,10 +42,7 @@ export function openDollyDialog(dlg, opts = {}) {
   const form = dlg.querySelector('form');
   const f = form.elements;
 
-  const validN = () => {
-    const n = Number(f.n.value);
-    return (n > 0 && Number.isInteger(n) && n <= maxN) ? n : null;
-  };
+  const validN = () => parseDollyCount(f.n.value, maxN);
 
   form.addEventListener('submit', e => {
     const act = e.submitter?.value;

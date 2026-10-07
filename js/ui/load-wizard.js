@@ -9,6 +9,14 @@ import { openDollyDialog } from './dolly-wizard.js';
 
 const MAX_ITEMS = 500;
 
+// Kappt eine Addition auf den im Wizard verbleibenden Platz unter MAX_ITEMS – ausgelagert aus
+// addDollyStack() (Befund Final-Review Minor #8), damit die 500er-Grenze unabhängig vom DOM
+// getestet werden kann. Gleiche Regel wie addTruss() sie inline anwendet, hier nur als eigene,
+// benannte Funktion für den Dolly-Dialog-Pfad.
+export function capToRoom(n, total, max) {
+  return Math.max(0, Math.min(n, max - total));
+}
+
 // Reduziert ein im Wizard bearbeitetes Stück auf die Felder, die tatsächlich eine bewusste
 // Einschränkung sind: `layers` nur, wenn das Stück eine ECHTE Teilmenge der vom Case-Typ
 // erlaubten Lagen trägt (nicht einfach alle angehakt lässt), `tipped` nur, wenn der Case-Typ
@@ -325,8 +333,8 @@ export function openLoadWizard(dlg, opts = {}) {
     const res = await openDollyDialog(opts.dollyDlg, { baseCase, cases, onNewDollyStack: opts.onNewDollyStack });
     if (!res) return;
     cases = [...cases.filter(c => c.id !== res.newCase.id), res.newCase];
-    const room = MAX_ITEMS - total();
-    if (room > 0) counts.set(res.addition.caseId, (counts.get(res.addition.caseId) ?? 0) + Math.min(res.addition.n, room));
+    const add = capToRoom(res.addition.n, total(), MAX_ITEMS);
+    if (add > 0) counts.set(res.addition.caseId, (counts.get(res.addition.caseId) ?? 0) + add);
     renderCompanyOptions();
     renderCaseList();
   }
