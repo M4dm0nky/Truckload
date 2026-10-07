@@ -1,6 +1,6 @@
 // Service-Worker: hält die App offline vor. Strategie: sofort aus dem Cache antworten,
 // im Hintergrund die neue Version holen (Updates wirken beim nächsten Öffnen).
-const CACHE = 'truckload-v0.10.0';
+const CACHE = 'truckload-v0.11.0';
 const ASSETS = [
   './',
   'index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
   'js/data/preset-cases.js',
   'js/data/preset-trucks.js',
   'js/model/actions.js',
+  'js/model/audioDolly.js',
   'js/model/caseShape.js',
   'js/model/geometry.js',
   'js/model/packer.js',
@@ -33,6 +34,7 @@ const ASSETS = [
   'js/ui/caseGroups.js',
   'js/ui/caseStyle.js',
   'js/ui/confirmDialog.js',
+  'js/ui/dolly-wizard.js',
   'js/ui/dom.js',
   'js/ui/inspector.js',
   'js/ui/instanceMatrix.js',

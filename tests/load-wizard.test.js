@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer } from '../js/ui/load-wizard.js';
+import { caseKind } from '../js/ui/caseGroups.js';
 import { mkCase } from './fixtures.js';
+
+test('dollyPrompt-Cases bleiben im normalen "cases"-Tab (kein eigener Reiter nötig)', () => {
+  const c = mkCase('preset-k2', 138, 40, 35, { category: 'Ton', dollyPrompt: true });
+  assert.equal(caseKind(c), 'cases');
+});
 
 // Lage/Tippen je Stück, Fix-Runde 2 (Befund „Wizard speichert Vorgaben als Stück-Einschränkung“):
 // reduceWizardItem() entscheidet, was vom Wizard-Ergebnis tatsächlich als bewusste Ausnahme eines

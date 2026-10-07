@@ -1,3 +1,56 @@
+## Gewerk Audio 2026-10-07: Dolly-Pflicht für Line-Array-Tops und Subs
+
+Nutzer-Korrektur (Praxiswissen): die 13 Einzelbox-Vorlagen aus der Recherche vom 2026-10-06
+(siehe unten) standen mit `wheelH: 0` direkt auf dem Boden. Das ist falsch – Line-Array-
+Elemente und Subwoofer stehen in der Praxis immer auf einem Dolly mit Schwerlastrollen. Jede
+der 13 Vorlagen bekommt seit V0.11.0 im Lade-Wizard beim Klick auf „+“ einen Dialog
+(`js/ui/dolly-wizard.js`), der die Stückzahl übereinander abfragt und daraus einen neuen
+Case-Typ baut (`dollyStackCase()`, `js/model/audioDolly.js`). Die 8 vorher festen „…4er/6er
+(auf Dolly)“-Presets sind dafür zu `legacy: true` geworden (alte Ladepläne laden unverändert
+weiter, CLAUDE.md), der Dialog deckt jede Stückzahl ab statt nur fester Pakete.
+
+### Recherche: reale Sub-Dollys als Kalibrierpunkte
+
+Keine der vom Nutzer genannten Verleihfirmen (Motion, Go Audio, TSE AG, Complete Audio,
+Niclen) veröffentlicht Dolly-Maße online. Gefunden wurden drei echte, offiziell dokumentierte
+Sub-Dollys:
+
+| Dolly | Maße (B×T×H) | Rollen | Gewicht |
+|---|---|---|---|
+| Carvin DB521018 | 81×75×20 cm | 4× 127 mm Lenkrollen (2 Bremse) | 18,3 kg |
+| SYNQ SQ-218 Dolly | – | 4× 100 mm Schwerlast-Gummirollen (2 Bremse) | 11 kg |
+| DAS PL-EV118S | ~81×71×18 cm (Versandmaß) | – | ~11 kg |
+
+Daraus gerundet gewählt (nicht der exakte Mittelwert – der läge bei 19 cm/13,4 kg; die
+DAS-Höhe ist zudem ein Versandmaß, keine Arbeitshöhe – dokumentiert statt erfunden, CLAUDE.md
+„Haltung“): **Dolly-Eigenhöhe 18 cm** (Rollen + Platte), **Dolly-Eigengewicht pauschal 15 kg**.
+Beide Konstanten liegen in `js/model/audioDolly.js` (`DOLLY_HEIGHT_CM`, `DOLLY_WEIGHT_KG`).
+
+### Geometrie der Dolly-Stack-Vorlage
+
+Der Fußabdruck bleibt exakt der der Basisbox (`l × w`) – ändert nichts an der Pack-Logik. Die
+Dolly-Höhe steckt in `wheelH: 18, dimsInclWheels: false`, nicht in `h`: dadurch zeichnet die
+bereits vorhandene 4-Rollen-Zeichnung aus `js/model/caseShape.js` den Dolly automatisch mit,
+ohne neuen Zeichencode – bei 18 cm Rollenhöhe sichtbar größer/wuchtiger als die case-üblichen
+12–16-cm-Blue-Wheels. `h = Stückzahl × Boxhöhe` (Boxen stehen direkt aufeinander),
+`weight = 15 kg + Stückzahl × Boxgewicht`, `layers: [1]` (der Stack ist bereits der volle
+Turm).
+
+### Dolly-Normbreite (nur Dokumentation, nicht Teil der Pack-Logik)
+
+Dollys sind so gebaut, dass 2, 3 oder 4 nebeneinander in den Standard-Sattelauflieger/
+Megatrailer passen (248 cm Innenbreite, `js/data/preset-trucks.js`). Zwei vom Nutzer
+durchgerechnete Beispiele: L-Acoustics K2 (Box-`w`-Feld = 40 cm) → Dolly-Normbreite 60 cm
+(4 nebeneinander, 240/248 cm); RCF SUB 8006-AS (Box-`w`-Feld = 71 cm, passt nicht auf 60) →
+Dolly-Normbreite 80 cm (3 nebeneinander, 240/248 cm). Regel daraus: die Dolly-Normbreite ist
+das kleinere der beiden Box-Fußmaße (`w`-Feld), aufgerundet auf die kleinste passende Stufe
+aus 60 / 80 / 124 cm (= 248 ÷ 4 / ÷ 3 / ÷ 2) – wie `DOLLY_WIDTHS` in `js/model/truss.js` für
+Traversenwagen, hier um die 124-cm-Stufe erweitert. Diese Regel fließt bewusst nur in diese
+Dokumentation ein, nicht in eine eigene Zeichnung: der reale Dolly sitzt in der Praxis
+außerdem nicht mittig unter der Box (vorne unter dem schwereren Teil, hinten überstehend),
+auch das bleibt für diese Runde eine Vereinfachung – der Dolly wird als Rollensatz unter der
+ganzen Box dargestellt.
+
 ## Gewerk Audio 2026-10-06: Line-Array- und Sub-Vorlagen, sechs Hersteller
 
 Nutzerwunsch: Truckload kannte im Gewerk „Ton“ bisher nur 19″-Racks (`js/data/case-library.js`).

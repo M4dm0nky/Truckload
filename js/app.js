@@ -298,6 +298,8 @@ async function runLoadWizard(mode) {
     onNewCase: newCaseForWizard,
     trussDlg: $('#dlg-truss'),
     onNewTruss: saveCaseValue,
+    dollyDlg: $('#dlg-dolly'),
+    onNewDollyStack: saveCaseValue,
     // Bei mode 'new' gehört noch kein Plan zum Startbildschirm — Gruppenvorschläge aus dem
     // gerade geöffneten Load gehören nicht zu einem neuen Load (Befund F5).
     groups: mode === 'add' && s.plan ? ruleTargets([...s.plan.placements, ...s.plan.unplaced], ctx().caseById).groups : [],
