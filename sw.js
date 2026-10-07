@@ -34,6 +34,7 @@ const ASSETS = [
   'js/ui/caseGroups.js',
   'js/ui/caseStyle.js',
   'js/ui/confirmDialog.js',
+  'js/ui/dolly-wizard.js',
   'js/ui/dom.js',
   'js/ui/inspector.js',
   'js/ui/instanceMatrix.js',
