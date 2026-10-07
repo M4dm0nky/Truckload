@@ -134,23 +134,26 @@ export const PRESET_CASES = [
   // erfundene Zahl beim Gewicht ist schlimmer als eine fehlende (CLAUDE.md „Haltung“). Das
   // eingetragene Gewicht ist damit eine dokumentierte Untergrenze.
   // `layers: [1]` bei allen acht: der Stack ist bereits der volle Turm, nichts kommt obendrauf.
+  // Seit V0.11.0 durch den Dolly-Dialog (dollyPrompt, js/model/audioDolly.js) ersetzt, der jede
+  // Stückzahl abdeckt statt nur fester 4er/6er-Pakete – diese 8 Presets bleiben nur noch für
+  // alte Ladepläne erhalten (`legacy: true`, wie preset-truss-29-3m/preset-truss-dolly unten).
   P('k2-4er-dolly', 'L-Acoustics K2 4er (auf Dolly)', 'Ton', 148, 60, 167, 224,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
   P('v8v12-4er-dolly', 'd&b V8/V12 4er (auf Dolly)', 'Ton', 80, 66, 149, 136,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
   P('leopard-4er-dolly', 'Meyer Sound LEOPARD 4er (auf Dolly)', 'Ton', 78, 75, 137, 136,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
   P('wpc-4er-dolly', 'Martin Audio WPC 4er (auf Dolly)', 'Ton', 87, 62, 153, 140,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
   P('wps-4er-dolly', 'Martin Audio WPS 4er (auf Dolly)', 'Ton', 75, 60, 129, 108,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
   P('hdl20a-4er-dolly', 'RCF HDL 20-A 4er (auf Dolly)', 'Ton', 81, 65, 141, 120,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
   // Nexo: offiziell 6 Stück je Transport-Case (GMT-6CASE), nicht 4 – deshalb 6er statt 4er.
   P('geom620-6er-dolly', 'Nexo GEO M620 6er (auf Dolly)', 'Ton', 47, 46, 139, 60,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
   P('geom6b-6er-dolly', 'Nexo GEO M6B 6er (auf Dolly)', 'Ton', 47, 46, 139, 48,
-    { tippable: false, wheelH: 0, layers: [1], note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
+    { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
 
   // Subwoofer: liegend (flach) transportiert (Nutzerangabe), als 2er-Stack oder mehr – wie
   // viele, richtet sich nach Platz/Gewicht im Truck, keine feste Herstellerangabe. Deshalb KEINE

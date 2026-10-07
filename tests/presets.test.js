@@ -36,6 +36,22 @@ test('Traversenwagen-Vorlagen sind vom Typ truss mit passenden Maßen', () => {
     assert.equal(c.wheelH, 0, c.id);
   }
 });
+test('Legacy-Dolly-Stacks aus V0.10.0 existieren mit unveränderten Maßen weiter (für alte Ladepläne)', () => {
+  const byId = id => PRESET_CASES.find(c => c.id === id);
+  const k2 = byId('preset-k2-4er-dolly');
+  assert.ok(k2, 'preset-k2-4er-dolly fehlt');
+  assert.equal(k2.legacy, true);
+  assert.equal(k2.l, 148);
+  assert.equal(k2.w, 60);
+  assert.equal(k2.h, 167);
+  assert.equal(k2.weight, 224);
+  const ids = [
+    'preset-k2-4er-dolly', 'preset-v8v12-4er-dolly', 'preset-leopard-4er-dolly',
+    'preset-wpc-4er-dolly', 'preset-wps-4er-dolly', 'preset-hdl20a-4er-dolly',
+    'preset-geom620-6er-dolly', 'preset-geom6b-6er-dolly',
+  ];
+  for (const id of ids) assert.equal(byId(id)?.legacy, true, id);
+});
 test('Legacy-Traversen-Presets aus V0.2 existieren weiter (für alte Ladepläne)', () => {
   const byId = id => PRESET_CASES.find(c => c.id === id);
   const legacy1 = byId('preset-truss-29-3m');
@@ -51,14 +67,11 @@ test('Legacy-Traversen-Presets aus V0.2 existieren weiter (für alte Ladepläne)
 const AUDIO_IDS = [
   'preset-k2', 'preset-v8v12', 'preset-leopard', 'preset-wpc', 'preset-wps', 'preset-hdl20a',
   'preset-geom620', 'preset-geom6b',
-  'preset-k2-4er-dolly', 'preset-v8v12-4er-dolly', 'preset-leopard-4er-dolly',
-  'preset-wpc-4er-dolly', 'preset-wps-4er-dolly', 'preset-hdl20a-4er-dolly',
-  'preset-geom620-6er-dolly', 'preset-geom6b-6er-dolly',
   'preset-ks28', 'preset-v-sub', 'preset-900-lfc', 'preset-sub-8006-as', 'preset-ls18',
 ];
 test('Audio-Vorlagen (Gewerk Ton) sind vollständig und neutral', () => {
   const audio = PRESET_CASES.filter(c => AUDIO_IDS.includes(c.id));
-  assert.equal(audio.length, 21, 'erwartet: 13 Einzelboxen + 8 Array-Top-Stacks');
+  assert.equal(audio.length, 13, 'erwartet: 13 Einzelboxen (Array-Tops + Subs)');
   assert.ok(audio.every(c => c.category === 'Ton'), 'alle Audio-Vorlagen müssen im Gewerk Ton stehen');
   for (const c of audio) {
     assert.equal(c.company, undefined, c.id);
@@ -82,26 +95,6 @@ test('Die 13 Audio-Einzelboxen tragen dollyPrompt, die Dolly-Stacks/übrigen Pre
   }
   const others = PRESET_CASES.filter(c => !singleBoxIds.includes(c.id));
   for (const c of others) assert.ok(!c.dollyPrompt, c.id);
-});
-
-// Array-Top-Stacks: Grundfläche/Höhe aus der im Plan dokumentierten Formel (Boxenbreite + 10 cm,
-// Boxentiefe + 20 cm, Höhe 25 cm Sockel + Stückzahl × Boxenhöhe) – hier an der Gegenprobe gegen
-// den echten L-Acoustics K2-CHARIOT nachgerechnet (145×61×29 cm leer, Formel liefert 148×60 cm
-// Grundfläche für 4 K2 auf 2–3 cm genau).
-test('L-Acoustics K2 4er (auf Dolly): Maße und Gewicht stimmen mit der Dolly-Formel überein', () => {
-  const c = PRESET_CASES.find(x => x.id === 'preset-k2-4er-dolly');
-  assert.ok(c, 'preset-k2-4er-dolly fehlt');
-  assert.equal(c.l, 148);
-  assert.equal(c.w, 60);
-  assert.equal(c.h, 167);
-  assert.equal(c.weight, 224);
-  assert.deepEqual(c.layers, [1]);
-});
-
-test('Array-Top-Stacks sind nur in Lage 1 erlaubt (der Stack ist bereits der volle Turm)', () => {
-  const stacks = PRESET_CASES.filter(c => c.category === 'Ton' && /\(auf Dolly\)/.test(c.name));
-  assert.equal(stacks.length, 8);
-  for (const c of stacks) assert.deepEqual(c.layers, [1], c.id);
 });
 
 // Subs liegen flach (Nutzerangabe): die kleinste recherchierte Achse wird zur Höhe. Keine feste
