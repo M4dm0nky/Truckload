@@ -21,9 +21,10 @@ Sub-Dollys:
 | SYNQ SQ-218 Dolly | – | 4× 100 mm Schwerlast-Gummirollen (2 Bremse) | 11 kg |
 | DAS PL-EV118S | ~81×71×18 cm (Versandmaß) | – | ~11 kg |
 
-Daraus (Mittelwert, dokumentiert statt erfunden, CLAUDE.md „Haltung“): **Dolly-Eigenhöhe
-18 cm** (Rollen + Platte), **Dolly-Eigengewicht pauschal 15 kg**. Beide Konstanten liegen in
-`js/model/audioDolly.js` (`DOLLY_HEIGHT_CM`, `DOLLY_WEIGHT_KG`).
+Daraus gerundet gewählt (nicht der exakte Mittelwert – der läge bei 19 cm/13,4 kg; die
+DAS-Höhe ist zudem ein Versandmaß, keine Arbeitshöhe – dokumentiert statt erfunden, CLAUDE.md
+„Haltung“): **Dolly-Eigenhöhe 18 cm** (Rollen + Platte), **Dolly-Eigengewicht pauschal 15 kg**.
+Beide Konstanten liegen in `js/model/audioDolly.js` (`DOLLY_HEIGHT_CM`, `DOLLY_WEIGHT_KG`).
 
 ### Geometrie der Dolly-Stack-Vorlage
 

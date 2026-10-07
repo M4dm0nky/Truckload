@@ -83,8 +83,9 @@ function caseLine(c) {
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, onNewCase(draft),
 //   trussDlg (<dialog> für „Traverse hinzufügen“, optional – ohne wird der Knopf ausgeblendet),
 //   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js),
-//   dollyDlg (<dialog> für „… auf Dolly laden“, optional – ohne öffnet „+“ bei dollyPrompt-Cases
-//   nichts), onNewDollyStack(caseType) (speichert einen neuen Dolly-Stack-Case-Typ, s. dolly-wizard.js),
+//   dollyDlg (<dialog> für „… auf Dolly laden“, optional – ohne fügt „+“ bei dollyPrompt-Cases
+//   die Box direkt lose hinzu, wie vor V 0.11.0), onNewDollyStack(caseType) (speichert einen
+//   neuen Dolly-Stack-Case-Typ, s. dolly-wizard.js),
 //   groups: string[] (vorhandene Gruppen des Loads, für die Vorschlagsliste im Gruppenfeld) }
 // Ergebnis: { name, truckId, items: [{ caseId, label, color, layers?, tipped?, group? }], autoPack }
 // oder null bei Abbruch.
@@ -321,7 +322,7 @@ export function openLoadWizard(dlg, opts = {}) {
   // dollyPrompt auf dem Ergebnis von dollyStackCase()), weitere gleiche Stacks lassen sich also
   // ganz normal per „+“ ergänzen, ohne den Dialog erneut zu öffnen.
   async function addDollyStack(baseCase) {
-    const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack });
+    const res = await openDollyDialog(opts.dollyDlg, { baseCase, cases, onNewDollyStack: opts.onNewDollyStack });
     if (!res) return;
     cases = [...cases.filter(c => c.id !== res.newCase.id), res.newCase];
     const room = MAX_ITEMS - total();

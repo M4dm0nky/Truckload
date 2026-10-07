@@ -9,6 +9,6 @@ import { mkCase } from './fixtures.js';
 test('dollyStackCase liefert ein für den Dialog passendes Case (Smoke-Test der Schnittstelle)', () => {
   const base = mkCase('preset-k2', 138, 40, 35, { weight: 56, name: 'L-Acoustics K2', category: 'Ton' });
   const c = dollyStackCase(base, 2);
-  assert.equal(c.id, 'preset-k2-dolly-2');
+  assert.equal(c.id, 'dolly-k2-2');
   assert.equal(c.name, 'L-Acoustics K2 2er (auf Dolly)');
 });

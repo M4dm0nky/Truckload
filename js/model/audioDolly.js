@@ -1,11 +1,38 @@
 import { colorFor } from '../data/categories.js';
+import { CASE_LIMITS } from './validate.js';
 
 // Recherche: Carvin DB521018 (81×75×20 cm, 18,3 kg, 4× 127-mm-Lenkrollen), SYNQ SQ-218 Dolly
 // (11 kg, 4× 100-mm-Schwerlastrollen), DAS PL-EV118S (~81×71×18 cm Versandmaß, ~11 kg) –
-// docs/casemasse-gewichte.md hat die volle Herleitung. Mittelwert aus den drei Quellen,
-// dokumentiert statt erfunden (CLAUDE.md „Haltung“).
+// docs/casemasse-gewichte.md hat die volle Herleitung. Gerundet aus den drei Quellen gewählt
+// (nicht der exakte Mittelwert – der läge bei 13,4 kg/19 cm, DAS-Höhe ist zudem ein
+// Versandmaß, keine Arbeitshöhe), dokumentiert statt erfunden (CLAUDE.md „Haltung“).
 export const DOLLY_HEIGHT_CM = 18; // Rollen + Platte
-export const DOLLY_WEIGHT_KG = 15; // Dolly-Eigengewicht, pauschal
+export const DOLLY_WEIGHT_KG = 15; // Dolly-Eigengewicht, gerundet gewählt
+
+// Die ID darf NICHT mit „preset-“ oder „lib-“ beginnen: `js/store/io.js`s `isPreset()` filtert
+// jede ID mit diesem Präfix beim Datei-Import heraus, unabhängig vom `builtin`-Feld – ein
+// Dolly-Stack, dessen ID direkt aus `baseCase.id` (z. B. `preset-k2`) gebildet würde, wäre nach
+// jedem Backup-Export/-Import verschwunden (Befund Final-Review Critical #1). Deshalb das
+// Präfix der Basisbox-ID abschneiden und durch „dolly-“ ersetzen. Deterministische ID aus
+// Basisbox + Stückzahl – getrennt exportiert, damit der Dolly-Dialog
+// (js/ui/dolly-wizard.js) prüfen kann, ob dieselbe Kombination schon als Case existiert, OHNE
+// erst das volle Case-Objekt neu zu bauen (und damit eine vom Nutzer im Case-Editor bearbeitete
+// Zeile unbemerkt mit den Formel-Werten zu überschreiben, Befund Final-Review Important #2).
+export function dollyStackId(baseCase, n) {
+  const baseId = baseCase.id.replace(/^(preset-|lib-)/, '');
+  return `dolly-${baseId}-${n}`;
+}
+
+// Größte Stückzahl, bei der sowohl Höhe als auch Gewicht der Dolly-Stack-Vorlage innerhalb der
+// CASE_LIMITS bleiben (js/model/validate.js) – für das „max“-Attribut im Dolly-Dialog, nach
+// demselben Muster wie case-editor.js es für seine eigenen Zahlenfelder schon tut (Befund
+// Final-Review Important #3: ohne Grenze hätte ein Tippfehler ein Case erzeugt, das beim
+// nächsten Export/Import an checkCase() scheitert, ohne dass der Nutzer das beim Anlegen merkt).
+export function maxDollyCount(baseCase) {
+  const byHeight = Math.floor(CASE_LIMITS.h / baseCase.h);
+  const byWeight = Math.floor((CASE_LIMITS.weight - DOLLY_WEIGHT_KG) / baseCase.weight);
+  return Math.max(1, Math.min(byHeight, byWeight));
+}
 
 // Baut den Case-Typ für „<Basisbox> N er (auf Dolly)“ – der Fußabdruck bleibt exakt der der
 // Basisbox (Nutzer-Entscheidung: die reale, schmalere Dolly-Normbreite ändert nichts an der
@@ -13,11 +40,13 @@ export const DOLLY_WEIGHT_KG = 15; // Dolly-Eigengewicht, pauschal
 // in `wheelH`/`dimsInclWheels: false`, nicht in `h` – dadurch zeichnet die bereits vorhandene
 // 4-Rollen-Zeichnung in js/model/caseShape.js den Dolly automatisch mit, ohne neuen Zeichencode
 // (bei 18 cm Rollenhöhe sichtbar größer/wuchtiger als die case-üblichen 12–16-cm-Blue-Wheels).
-// `h` ist deshalb reine Stückzahl × Boxhöhe (Boxen stehen direkt aufeinander), `layers: [1]`,
-// weil der Stack bereits der volle Turm ist – nichts kommt obendrauf.
+// `h` ist reine Stückzahl × Boxhöhe (Boxen stehen direkt aufeinander). `layers: [1]` heißt nur:
+// ein zweiter solcher Stack darf nicht automatisch oben auf diesen gestapelt werden, der Turm
+// selbst ist schon die volle Höhe. `stackable: true` bleibt trotzdem stehen (wie bei den alten
+// Presets) – andere, leichtere Cases dürfen weiterhin oben drauf, dafür gibt es `maxTopLoad`.
 export function dollyStackCase(baseCase, n) {
   return {
-    id: `${baseCase.id}-dolly-${n}`,
+    id: dollyStackId(baseCase, n),
     builtin: false,
     name: `${baseCase.name} ${n}er (auf Dolly)`,
     content: '',

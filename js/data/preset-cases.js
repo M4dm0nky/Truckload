@@ -97,13 +97,14 @@ export const PRESET_CASES = [
   // Quelle – docs/casemasse-gewichte.md hat die volle Herleitung, hier nur die kurze Fassung.
   // Neutral wie alle Vorlagen hier: kein `company`-Feld (das steht in case-library.js für die
   // Verleihfirma des Nutzers, nicht für den Geräte-Hersteller). `tippable: false` und
-  // `wheelH: 0` bei allen 21 – Array-Tops werden geflogen/gestapelt, nie getippt, und tragen
-  // selbst keine Rollen; Subs sind schon in ihrer liegenden Transportlage angelegt (s. u.),
-  // kein weiteres Tippen nötig.
+  // `wheelH: 0` bei den 13 Einzelboxen unten – Array-Tops werden geflogen/gestapelt, nie
+  // getippt, und tragen als Einzelbox selbst keine Rollen; Subs sind schon in ihrer liegenden
+  // Transportlage angelegt (s. u.), kein weiteres Tippen nötig. Seit V 0.11.0 bekommt jede der
+  // 13 über `dollyPrompt: true` beim Einladen immer einen Dolly mit Schwerlastrollen
+  // untergelegt (js/ui/dolly-wizard.js, js/model/audioDolly.js) – die 8 vorher dafür festen
+  // „…4er/6er (auf Dolly)“-Presets sind weiter unten zu `legacy: true` geworden.
 
-  // Array-Tops, stehend wie geflogen (0°-Splay). Einzelbox UND die reale Transporteinheit
-  // (4er- bzw. 6er-Stack auf einem Dolly) als zwei eigene Vorlagen, wie zwei verschiedene
-  // Dinge, die man laden kann.
+  // Array-Tops, stehend wie geflogen (0°-Splay).
   P('k2', 'L-Acoustics K2', 'Ton', 138, 40, 35, 56,
     { tippable: false, wheelH: 0, dollyPrompt: true, note: 'K2 Rigging Manual, Appendix C (l-acoustics.com)' }),
   P('v8v12', 'd&b V8/V12', 'Ton', 70, 46, 31, 34,
@@ -155,11 +156,11 @@ export const PRESET_CASES = [
   P('geom6b-6er-dolly', 'Nexo GEO M6B 6er (auf Dolly)', 'Ton', 47, 46, 139, 48,
     { tippable: false, wheelH: 0, layers: [1], legacy: true, note: 'Gewicht geschätzt: Grundfläche/Höhe aus Boxenmaß hergeleitet, kein Dolly-Eigengewicht enthalten (docs/casemasse-gewichte.md)' }),
 
-  // Subwoofer: liegend (flach) transportiert (Nutzerangabe), als 2er-Stack oder mehr – wie
-  // viele, richtet sich nach Platz/Gewicht im Truck, keine feste Herstellerangabe. Deshalb KEINE
-  // eigene Stack-Vorlage; Truckload stapelt sie beim Laden wie jedes andere `stackable`-Case von
-  // selbst. Maße liegend: die kleinste recherchierte Achse wird zur Höhe, die beiden größeren
-  // zur Grundfläche – eine Umrechnung der recherchierten Maße, keine neue Zahl.
+  // Subwoofer: liegend (flach) transportiert (Nutzerangabe). Maße liegend: die kleinste
+  // recherchierte Achse wird zur Höhe, die beiden größeren zur Grundfläche – eine Umrechnung
+  // der recherchierten Maße, keine neue Zahl. Keine feste Herstellerangabe zur Stückzahl auf
+  // dem Dolly; seit V 0.11.0 fragt der Dolly-Dialog (`dollyPrompt: true`) genau das beim
+  // Einladen ab, statt eine feste Stückzahl vorzugeben.
   P('ks28', 'L-Acoustics KS28', 'Ton', 134, 72, 55, 79,
     { tippable: false, wheelH: 0, dollyPrompt: true, note: 'l-acoustics.com/products/ks28, liegend umgerechnet' }),
   P('v-sub', 'd&b V-SUB', 'Ton', 73, 70, 61, 64,
