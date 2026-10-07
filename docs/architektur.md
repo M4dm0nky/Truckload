@@ -282,6 +282,21 @@ die 4 Beine, der zweite Längsholm und gegebenenfalls die 2 Querholme, `pieces` 
 Traverse. Ein zusätzliches Feld `profileWidth` sagt view2d.js/view3d.js, mit welcher Breite die
 Gurtrohre gezeichnet werden — `c.truss.width` wäre hier die Standfläche statt des Querschnitts.
 
+### Dolly-Dialog für Line-Array-Tops und Subs (seit V 0.11.0)
+
+Ein zweiter, dem Traversenwagen-Mechanismus nachgebildeter Dialog: die 13 Audio-Einzelbox-
+Vorlagen im Gewerk „Ton“ (8 Array-Tops, 5 Subs, `docs/casemasse-gewichte.md`) tragen das Feld
+`dollyPrompt: true`. Klickt der Nutzer im Lade-Wizard bei einer solchen Vorlage auf „+“, öffnet
+sich `openDollyDialog()` (`js/ui/dolly-wizard.js`) statt den Stepper direkt zu erhöhen – wie
+`addTruss()`/`openTrussDialog()` für Traversenwagen, nur mit einer einzigen Abfrage (Stückzahl
+auf dem Dolly, keine „ohne Dolly“-Option: Line-Array-Elemente und Subwoofer stehen in der
+Praxis immer auf einem Dolly). Die reine Geometrie-Funktion `dollyStackCase(baseCase, n)`
+(`js/model/audioDolly.js`) baut daraus einen neuen, konkreten Case-Typ (Fußabdruck unverändert,
+Höhe = Stückzahl × Boxhöhe, Dolly-Höhe im `wheelH`-Feld statt in `h` – die vorhandene
+Rollen-Zeichnung aus `caseShape()` übernimmt die Darstellung ohne eigenen Code), der über
+`saveCaseValue()` gespeichert wird und danach wie ein Traversenwagen-Typ als eigene Zeile mit
+normalem +/−-Stepper erscheint.
+
 ## Gewicht: 0 kg ist nicht „unbekannt“
 
 Ein Case-Typ ohne Gewichtsangabe trägt `weight: 0` — das ist absichtlich (`CLAUDE.md`:
@@ -339,7 +354,7 @@ lautlos den einen oder anderen Stand verliert.
 
 | Datei | Inhalt |
 |---|---|
-| `js/data/preset-cases.js` | 61 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen, 24 Pre-Rig-Traversen (MLT/S36PR) und 21 Audio-Vorlagen im Gewerk „Ton“ (seit V 0.10.0, docs/casemasse-gewichte.md); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren |
+| `js/data/preset-cases.js` | 53 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen, 24 Pre-Rig-Traversen (MLT/S36PR) und 13 Audio-Einzelboxen im Gewerk „Ton“ (seit V 0.10.0, `dollyPrompt`-Dolly-Dialog seit V 0.11.0, docs/casemasse-gewichte.md); dazu 15 `legacy`-Einträge (darunter die 8 früheren festen Audio-Dolly-Stacks aus V 0.10.0), die nur noch für alte Ladepläne existieren |
 | `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, `source: 'liste'` plus `company`; davon 9 `legacy` (seit V 0.8.1 ausgeblendet: leere Pack-/Transflex-Cases und die Traversen der Liste), 128 sichtbar |
 
 `legacy: true` heißt: in keiner Auswahl mehr (`groupCases`, `companiesOf` in
