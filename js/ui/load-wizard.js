@@ -5,6 +5,7 @@ import { isTruss, canTip } from '../model/truss.js';
 import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
 import { MAX_LABEL } from '../model/geometry.js';
 import { openTrussDialog } from './truss-wizard.js';
+import { openDollyDialog } from './dolly-wizard.js';
 
 const MAX_ITEMS = 500;
 
@@ -82,6 +83,8 @@ function caseLine(c) {
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, onNewCase(draft),
 //   trussDlg (<dialog> für „Traverse hinzufügen“, optional – ohne wird der Knopf ausgeblendet),
 //   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js),
+//   dollyDlg (<dialog> für „… auf Dolly laden“, optional – ohne öffnet „+“ bei dollyPrompt-Cases
+//   nichts), onNewDollyStack(caseType) (speichert einen neuen Dolly-Stack-Case-Typ, s. dolly-wizard.js),
 //   groups: string[] (vorhandene Gruppen des Loads, für die Vorschlagsliste im Gruppenfeld) }
 // Ergebnis: { name, truckId, items: [{ caseId, label, color, layers?, tipped?, group? }], autoPack }
 // oder null bei Abbruch.
@@ -238,6 +241,10 @@ export function openLoadWizard(dlg, opts = {}) {
     if (!btn) return;
     const id = btn.closest('[data-case]')?.dataset.case;
     if (!id) return;
+    if (btn.dataset.act === 'inc') {
+      const c = cases.find(x => x.id === id);
+      if (c?.dollyPrompt && opts.dollyDlg) { addDollyStack(c); return; }
+    }
     const cur = counts.get(id) ?? 0;
     if (btn.dataset.act === 'inc' && total() < MAX_ITEMS) counts.set(id, cur + 1);
     if (btn.dataset.act === 'dec' && cur > 0) {
@@ -306,6 +313,22 @@ export function openLoadWizard(dlg, opts = {}) {
     renderCaseList();
   }
   if (opts.trussDlg) newTrussBtn.addEventListener('click', addTruss);
+
+  // „<Box> auf Dolly laden“ (Task 5): öffnet sich automatisch, wenn „+“ bei einer
+  // dollyPrompt-Vorlage geklickt wird (s. Listen-Click-Handler oben) – dieselbe Mechanik wie
+  // addTruss(), nur ausgelöst durch den Stepper statt einen eigenen Button. Der erzeugte
+  // Dolly-Stack-Case-Typ erscheint danach als eigene Zeile mit normalem +/−-Stepper (kein
+  // dollyPrompt auf dem Ergebnis von dollyStackCase()), weitere gleiche Stacks lassen sich also
+  // ganz normal per „+“ ergänzen, ohne den Dialog erneut zu öffnen.
+  async function addDollyStack(baseCase) {
+    const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack });
+    if (!res) return;
+    cases = [...cases.filter(c => c.id !== res.newCase.id), res.newCase];
+    const room = MAX_ITEMS - total();
+    if (room > 0) counts.set(res.addition.caseId, (counts.get(res.addition.caseId) ?? 0) + Math.min(res.addition.n, room));
+    renderCompanyOptions();
+    renderCaseList();
+  }
 
   function buildItemsState() {
     for (const c of cases) {
