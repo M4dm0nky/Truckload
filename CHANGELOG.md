@@ -2,6 +2,14 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.11.1 – 2026-10-08
+
+Die neuen Audio-Dolly-Stacks sahen in der 3D-Ansicht wie ein normales Flightcase aus (Kugel-
+ecken, Deckelfuge, Griffe), nicht wie PA-Lautsprecher. Eigener 3D-Look: keine Flightcase-
+Details mehr, stattdessen Trennbänder zwischen den gestapelten Einzelboxen und eine Grille-
+Andeutung auf allen Seitenflächen. Die Dolly-Rollen bleiben unverändert korrekt, die 2D-Ansicht
+ist nicht betroffen.
+
 ## V 0.11.0 – 2026-10-07
 
 Line-Array-Elemente und Subwoofer stehen in der Praxis immer auf einem Dolly mit
