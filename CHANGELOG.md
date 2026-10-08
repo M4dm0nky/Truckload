@@ -2,6 +2,12 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.12.1 – 2026-10-08
+
+Die 8 alten festen Vorlagen „…4er/6er (auf Dolly)“ aus V 0.10.0 sind entfernt. Dolly-Stacks
+entstehen nur noch über den Dolly-Dialog beim Einladen. Ladepläne, die genau diese alten
+Vorlagen enthalten, zeigen die Stücke als fehlendes Case.
+
 ## V 0.12.0 – 2026-10-08
 
 Line-Array-Boxen und Subs sehen in der 3D-Ansicht jetzt wie Lautsprecher aus, nicht mehr wie

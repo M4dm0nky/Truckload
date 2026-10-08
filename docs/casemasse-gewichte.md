@@ -6,8 +6,8 @@ Elemente und Subwoofer stehen in der Praxis immer auf einem Dolly mit Schwerlast
 der 13 Vorlagen bekommt seit V0.11.0 im Lade-Wizard beim Klick auf „+“ einen Dialog
 (`js/ui/dolly-wizard.js`), der die Stückzahl übereinander abfragt und daraus einen neuen
 Case-Typ baut (`dollyStackCase()`, `js/model/audioDolly.js`). Die 8 vorher festen „…4er/6er
-(auf Dolly)“-Presets sind dafür zu `legacy: true` geworden (alte Ladepläne laden unverändert
-weiter, CLAUDE.md), der Dialog deckt jede Stückzahl ab statt nur fester Pakete.
+(auf Dolly)“-Presets waren zunächst `legacy: true` und sind seit V 0.12.1 auf Nutzerwunsch ganz
+entfernt; der Dialog deckt jede Stückzahl ab statt nur fester Pakete.
 
 ### Recherche: reale Sub-Dollys als Kalibrierpunkte
 
@@ -81,6 +81,9 @@ kompaktes Line-Array-Top, kein Sub — ein echter Martin-Audio-Sub wie SXC118 w�
 Recherche).
 
 ### Array-Top-Stacks: die reale Transporteinheit auf dem Dolly
+
+> Historisch: Diese 8 festen Stack-Vorlagen sind seit V 0.12.1 entfernt (Nutzerwunsch).
+> Dolly-Stacks entstehen nur noch über den Dolly-Dialog, siehe Abschnitt oben.
 
 **Nutzerangabe (entscheidend):** Line-Array-Elemente werden mit parallel gestellten
 Curve-Stäben (0°-Splay) transportiert — dabei stapeln sie sich als sauberes Rechteck, kein

@@ -354,7 +354,7 @@ lautlos den einen oder anderen Stand verliert.
 
 | Datei | Inhalt |
 |---|---|
-| `js/data/preset-cases.js` | 53 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen, 24 Pre-Rig-Traversen (MLT/S36PR) und 13 Audio-Einzelboxen im Gewerk „Ton“ (seit V 0.10.0, `dollyPrompt`-Dolly-Dialog seit V 0.11.0, docs/casemasse-gewichte.md); dazu 15 `legacy`-Einträge (darunter die 8 früheren festen Audio-Dolly-Stacks aus V 0.10.0), die nur noch für alte Ladepläne existieren |
+| `js/data/preset-cases.js` | 53 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen, 24 Pre-Rig-Traversen (MLT/S36PR) und 13 Audio-Einzelboxen im Gewerk „Ton“ (seit V 0.10.0, `dollyPrompt`-Dolly-Dialog seit V 0.11.0, docs/casemasse-gewichte.md); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren (die 8 früheren festen Audio-Dolly-Stacks aus V 0.10.0 sind seit V 0.12.1 ganz entfernt) |
 | `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, `source: 'liste'` plus `company`; davon 9 `legacy` (seit V 0.8.1 ausgeblendet: leere Pack-/Transflex-Cases und die Traversen der Liste), 128 sichtbar |
 
 `legacy: true` heißt: in keiner Auswahl mehr (`groupCases`, `companiesOf` in

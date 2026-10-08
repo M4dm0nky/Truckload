@@ -36,31 +36,11 @@ test('Traversenwagen-Vorlagen sind vom Typ truss mit passenden Maßen', () => {
     assert.equal(c.wheelH, 0, c.id);
   }
 });
-// Alle 8 mit vollen Maßen statt nur K2 (Befund Final-Review Minor #1: vorher waren die
-// anderen 7 nur auf `legacy === true` geprüft, nicht auf ihre tatsächlichen Werte) – ein Import
-// alter Ladepläne verlässt sich auf GENAU diese Zahlen, nicht nur auf die Existenz der ID.
-test('Legacy-Dolly-Stacks aus V0.10.0 existieren mit unveränderten Maßen weiter (für alte Ladepläne)', () => {
-  const byId = id => PRESET_CASES.find(c => c.id === id);
-  const expected = [
-    ['preset-k2-4er-dolly', 148, 60, 167, 224],
-    ['preset-v8v12-4er-dolly', 80, 66, 149, 136],
-    ['preset-leopard-4er-dolly', 78, 75, 137, 136],
-    ['preset-wpc-4er-dolly', 87, 62, 153, 140],
-    ['preset-wps-4er-dolly', 75, 60, 129, 108],
-    ['preset-hdl20a-4er-dolly', 81, 65, 141, 120],
-    ['preset-geom620-6er-dolly', 47, 46, 139, 60],
-    ['preset-geom6b-6er-dolly', 47, 46, 139, 48],
-  ];
-  for (const [id, l, w, h, weight] of expected) {
-    const c = byId(id);
-    assert.ok(c, `${id} fehlt`);
-    assert.equal(c.legacy, true, id);
-    assert.equal(c.l, l, id);
-    assert.equal(c.w, w, id);
-    assert.equal(c.h, h, id);
-    assert.equal(c.weight, weight, id);
-    assert.deepEqual(c.layers, [1], id);
-  }
+// Nutzerwunsch 2026-10-08: die 8 festen „…4er/6er (auf Dolly)“-Vorlagen aus V 0.10.0 sind
+// komplett entfernt (nicht nur legacy) – Dolly-Stacks entstehen nur noch über den Dolly-Dialog.
+test('Die alten festen Audio-Dolly-Stack-Vorlagen sind entfernt', () => {
+  assert.ok(!PRESET_CASES.some(c => /-(4er|6er)-dolly$/.test(c.id)));
+  assert.ok(!PRESET_CASES.some(c => /\(auf Dolly\)/.test(c.name)));
 });
 test('Legacy-Traversen-Presets aus V0.2 existieren weiter (für alte Ladepläne)', () => {
   const byId = id => PRESET_CASES.find(c => c.id === id);
