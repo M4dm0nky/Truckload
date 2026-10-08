@@ -211,11 +211,10 @@ Einträge. Traversenwagen stehen nicht mehr in der Liste; die baut man über
 
 Im Gewerk „Ton“ gibt es seit V 0.10.0 Line-Array- und Sub-Vorlagen von sechs Herstellern
 (L-Acoustics, d&b, Meyer Sound, Martin Audio, RCF, Nexo), recherchiert mit Quelle
-(siehe [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)). Array-Elemente gibt es
-sowohl einzeln als auch als fertigen 4er- bzw. 6er-Stack „auf Dolly“ (die reale
-Transporteinheit, z. B. „L-Acoustics K2 4er (auf Dolly)“); Subwoofer liegen flach und werden
-beim Laden ganz normal gestapelt, ohne eigene Stack-Vorlage – wie viele in einen Load kommen,
-richtet sich nach Platz und Gewicht im Truck.
+(siehe [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)). Beim Einladen fragt ein
+Dialog, wie viele Boxen auf dem Dolly übereinanderstehen; daraus entsteht ein eigener
+Dolly-Stack (z. B. „L-Acoustics K2 4er (auf Dolly)“), der in 3D als gestapelte
+Lautsprecher-Gehäuse mit Grille-Front gezeigt wird.
 
 Die früheren Einträge (9 leere Pack-/Kabelcases, 5 Traversen)
 sind nur ausgeblendet: Alte Ladepläne zeigen sie weiter unverändert. Sechs weitere Einträge
