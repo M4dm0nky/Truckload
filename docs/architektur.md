@@ -412,14 +412,19 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
   Aufräumen **nicht** verworfen; alles selbst Erzeugte muss freigegeben werden). `kind:
   'speaker'` (seit V 0.11.0, `addSpeaker()`) ist ein dritter eigener Zweig neben Flightcase und
   Traversenwagen: Nutzer-Feedback, dass Audio-Dolly-Stacks mit der generischen Flightcase-Optik
-  wie ein normales Case aussahen, nicht wie PA-Lautsprecher. Kein Deckelfuge-Band, keine
-  Schließen/Griffe, keine Kugelecken; stattdessen dünne Trennbänder zwischen den gestapelten
-  Einzelboxen (`speakerUnits()`/`speakerDividers()`, Höhe je Box aus `c.unitH`,
-  `js/model/audioDolly.js`) und eine matte Grille-Andeutung je Einzelbox auf allen 4
-  Seitenflächen (`speakerGrilles()`, `MAT_SPEAKER_GRILLE`/`MAT_SPEAKER_DIVIDER` bewusst nicht
-  chromfarben wie `MAT_CORNER`/`MAT_CHROME`). Die Dolly-Rollen selbst kommen unverändert aus
-  `caseShape()`/`wheelMesh()`. 2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der
-  nüchternen Tetris-Darstellung.
+  wie ein normales Case aussahen, nicht wie PA-Lautsprecher — nachgebessert anhand realer
+  Produktfotos (L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig gelben Lenkrollen statt
+  einer geschlossenen Platte; K2-Flugbild: einzelne Boxen durch eine echte Fuge mit
+  Beschlag-Punkten getrennt, nicht nur eine dünne Farblinie). Jede Einzelbox im Stack ist eine
+  EIGENE Box mit sichtbarem Spalt zur nächsten (`speakerUnits()`, Höhe je Box aus `c.unitH`,
+  `js/model/audioDolly.js`), mit kleinen Beschlag-Punkten an den vier Fugen-Ecken, einer matten
+  Grille-Andeutung auf allen 4 Seitenflächen (`speakerGrilles()`, `MAT_SPEAKER_GRILLE` bewusst
+  nicht chromfarben wie `MAT_CORNER`/`MAT_CHROME`), einem offenen Dolly-Rahmen
+  (`speakerDollyFrame()`, `MAT_DOLLY_RAIL`) und gelben statt case-üblich dunklen Rollen
+  (`MAT_WHEEL_SPEAKER`, `wheelMesh()`s neuer `wheelMat`-Parameter). Die Beschriftung sitzt nur
+  auf der untersten Box, nicht über den ganzen Stack gespannt – sonst dominiert ein einzelner
+  Textblock das Bild. 2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen
+  Tetris-Darstellung.
 
 Jede der drei 2D-Ansichten lässt sich seit V 0.8.0 für sich zoomen und verschieben
 (`js/ui/zoom2d.js`). Gezoomt wird allein über die `viewBox`: `renderView` setzt sie über

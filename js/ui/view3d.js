@@ -92,14 +92,14 @@ export async function createView3d(container) {
   // Traversen-Rollbrett: Kunststoff-Platte (schwarz) mit etwas helleren Auflageleisten obenauf.
   const MAT_DOLLY_BOARD = shared(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.85 }));
   const MAT_DOLLY_RAIL = shared(new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.8 }));
-  // Lautsprecher-Look (kind: 'speaker', Nutzer-Feedback 2026-10-08): gegen den dunklen Korpus
-  // (CASE_BLACK #1c1d20) kontrastierende Materialien für Grille-Andeutung und Trennlinien –
-  // deutlich matter/weniger reflektiv als MAT_CORNER/MAT_CHROME (das ist die Flightcase-Optik,
-  // die hier bewusst vermieden wird), aber hell/dunkel genug, um im Render sichtbar zu sein
-  // (ein erster Versuch mit einem einzigen, fast korpusfarbenen Grauton war im Screenshot
-  // praktisch unsichtbar).
+  // Lautsprecher-Look (kind: 'speaker', Nutzer-Feedback 2026-10-08, nachgebessert anhand realer
+  // Produktfotos — L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig GELBEN Lenkrollen, kein
+  // schwarzer Kasten; K2-Flugbild: einzelne Boxen durch eine echte Fuge mit Beschlag-Punkten
+  // getrennt, nicht nur eine dünne Farblinie). MAT_SPEAKER_GRILLE: Grille-Andeutung, deutlich
+  // matter/weniger reflektiv als MAT_CORNER/MAT_CHROME (das ist die vermiedene Flightcase-
+  // Optik). MAT_WHEEL_SPEAKER: die gelbe Rollen-Lauffläche selbst.
   const MAT_SPEAKER_GRILLE = shared(new THREE.MeshStandardMaterial({ color: 0x6b7078, metalness: 0.3, roughness: 0.6 }));
-  const MAT_SPEAKER_DIVIDER = shared(new THREE.MeshStandardMaterial({ color: 0x08090b, roughness: 0.9 }));
+  const MAT_WHEEL_SPEAKER = shared(new THREE.MeshStandardMaterial({ color: 0xf2a900, roughness: 0.6 }));
   const COL_PROFILE_N = new THREE.Color(0xc9ced4);
   const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
   const COL_PROFILE_BAD = new THREE.Color(0xe5484d);
@@ -253,13 +253,20 @@ export async function createView3d(container) {
     const h = total / n;
     return Array.from({ length: n }, (_, i) => ({ z0: body.z0 + i * h, z1: body.z0 + (i + 1) * h }));
   }
-  // Dünne, umlaufende Trennbänder an jeder inneren Lagengrenze eines Stacks – zeigt, dass der
-  // Turm aus mehreren einzelnen Boxen besteht, statt wie ein einziger großer Klotz zu wirken.
-  function speakerDividers(body, units) {
-    const t = 0.3;
-    return units.slice(1).map(u => ({
-      x0: body.x0 - 0.2, x1: body.x1 + 0.2, y0: body.y0 - 0.2, y1: body.y1 + 0.2, z0: u.z0 - t, z1: u.z0 + t,
-    }));
+  // Offener Rahmen im Dolly-Bereich (zwischen Boden und Korpus-Unterkante `dollyZ1`) – echtes
+  // Vorbild: L-Acoustics K2-CHARIOT (offizielles Produktfoto), ein offener Rechteckrahmen aus
+  // Vierkantrohr, keine durchgehende Platte. Reicht über den vollen Fußabdruck `box` (nicht nur
+  // `body`), damit er unter dem Korpus sichtbar hervorsteht wie beim echten Dolly.
+  function speakerDollyFrame(box, dollyZ1) {
+    const t = 2.2;
+    const z1 = Math.max(box.z0 + 0.1, dollyZ1 - 1);
+    const z0 = Math.max(box.z0, z1 - t);
+    return [
+      { x0: box.x0, x1: box.x1, y0: box.y0, y1: box.y0 + t, z0, z1 },
+      { x0: box.x0, x1: box.x1, y0: box.y1 - t, y1: box.y1, z0, z1 },
+      { x0: box.x0, x1: box.x0 + t, y0: box.y0, y1: box.y1, z0, z1 },
+      { x0: box.x1 - t, x1: box.x1, y0: box.y0, y1: box.y1, z0, z1 },
+    ];
   }
   // Eingelassene Grille-Andeutung je Einzelbox, auf allen 4 Seitenflächen (nicht nur einer
   // „Vorderseite“ – die Box hat keine zuverlässig bekannte Blickrichtung, s. Brainstorming-
@@ -280,7 +287,10 @@ export async function createView3d(container) {
 
   // Rolle im Rollenschacht w (Höhe wh entlang der Normalen n, Fußabdruck d×d in a1/a2):
   // Schwenkplatte an der Karosserieseite, Gabel (2 Bleche) hinunter zur Achse, Rad + Nabe.
-  function wheelMesh(w, face) {
+  // `wheelMat` (Vorgabe: die case-übliche dunkle MAT_WHEEL) tauscht nur die Lauffläche selbst
+  // aus – für `kind: 'speaker'` die auffällig gelbe MAT_WHEEL_SPEAKER (echtes Vorbild:
+  // K2-CHARIOT-Produktfoto, gelbe Lenkrollen statt der sonst unauffälligen Case-Rollen).
+  function wheelMesh(w, face, wheelMat = MAT_WHEEL) {
     const [a1, a2, n] = wheelAxes(face);
     const n0 = w[`${n}0`], n1 = w[`${n}1`];
     const wh = n1 - n0;
@@ -308,7 +318,7 @@ export async function createView3d(container) {
     pos[a2] = (a2_0 + a2_1) / 2;
     pos[n] = centerN;
 
-    const wheelCyl = new THREE.Mesh(GEO_CYL, MAT_WHEEL);
+    const wheelCyl = new THREE.Mesh(GEO_CYL, wheelMat);
     wheelCyl.scale.set(r, t, r);
     const hubCyl = new THREE.Mesh(GEO_CYL, MAT_HUB);
     hubCyl.scale.set(r * 0.5, t * 1.15, r * 0.5);
@@ -509,23 +519,42 @@ export async function createView3d(container) {
     }
   }
 
-  // Eigener Render-Zweig für `kind: 'speaker'` (Nutzer-Feedback 2026-10-08): PA-Boxen auf Dolly
-  // sahen mit der generischen Flightcase-Optik (Kugelecken/Deckelfuge/Griffe aus dem Zweig
-  // unten) wie ein normales Case aus, nicht wie Lautsprecher. Kein Deckelfuge-Band, keine
-  // Schließen/Griffe, keine Kugelecken – stattdessen Trennbänder zwischen den gestapelten
-  // Einzelboxen (speakerDividers) und eine matte Grille-Andeutung je Einzelbox
-  // (speakerGrilles). Die Dolly-Rollen (wheels/face aus caseShape()) sind bereits korrekt und
-  // bleiben unverändert.
+  // Eigener Render-Zweig für `kind: 'speaker'` (Nutzer-Feedback 2026-10-08, nachgebessert
+  // anhand realer Produktfotos des L-Acoustics K2-CHARIOT und eines K2-Flugbilds): PA-Boxen auf
+  // Dolly sahen mit der generischen Flightcase-Optik wie ein normales Case aus. Statt Kugel-
+  // ecken/Deckelfuge/Griffen: jede Einzelbox im Stack wird als EIGENE Box mit sichtbarem Spalt
+  // zur nächsten gezeichnet (nicht eine durchgehende Box mit aufgemalter Linie), mit kleinen
+  // Beschlag-Punkten an den vier Fugen-Ecken – so lässt sich die Stückzahl auf einen Blick
+  // abzählen. Der Dolly selbst ist ein offener Rahmen (kein geschlossener Kasten) mit auffällig
+  // gelben Rollen statt der unauffälligen Case-Rollen. Die Beschriftung sitzt nur auf der
+  // untersten Box, nicht über den ganzen Stack gespannt – sonst dominiert ein einzelner riesiger
+  // Textblock das Bild und lässt den Stack wie eine einzige große Kiste wirken.
   function addSpeaker(it, bad, selected, colors, seq) {
     const { c, p, box } = it;
     const { body, wheels, face } = caseShape(c, p, box);
-    content.add(boxMesh(body, bodyMaterial(colors.body, bad)));
     const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
-    content.add(edges(body, edgeMat));
 
     const units = speakerUnits(body, c.unitH);
-    for (const u of units) for (const g of speakerGrilles(body, u)) content.add(boxMesh(g, MAT_SPEAKER_GRILLE));
-    for (const d of speakerDividers(body, units)) content.add(boxMesh(d, MAT_SPEAKER_DIVIDER));
+    const gap = Math.min(1.2, ((body.z1 - body.z0) / units.length) * 0.15);
+    units.forEach((u, i) => {
+      const seg = {
+        ...body,
+        z0: u.z0 + (i > 0 ? gap / 2 : 0),
+        z1: u.z1 - (i < units.length - 1 ? gap / 2 : 0),
+      };
+      content.add(boxMesh(seg, bodyMaterial(colors.body, bad)));
+      content.add(edges(seg, edgeMat));
+      for (const g of speakerGrilles(body, seg)) content.add(boxMesh(g, MAT_SPEAKER_GRILLE));
+    });
+    // Beschlag-Punkte an jeder inneren Fuge (nicht an den äußeren Stack-Kanten).
+    for (const u of units.slice(1)) {
+      for (const x of [body.x0, body.x1]) for (const y of [body.y0, body.y1]) {
+        const bolt = new THREE.Mesh(GEO_SPHERE, MAT_SPEAKER_GRILLE);
+        bolt.position.set(x, y, u.z0);
+        bolt.scale.setScalar(0.9 / 2.5);
+        content.add(bolt);
+      }
+    }
 
     if (colors.stripe) {
       const band = {
@@ -535,10 +564,12 @@ export async function createView3d(container) {
       content.add(boxMesh(band, bandMaterial(colors.stripe)));
     }
 
-    for (const w of wheels) content.add(...wheelMesh(w, face));
+    for (const bar of speakerDollyFrame(box, body.z0)) content.add(boxMesh(bar, MAT_DOLLY_RAIL));
+    for (const w of wheels) content.add(...wheelMesh(w, face, MAT_WHEEL_SPEAKER));
 
+    const labelBox = { ...body, z1: units[0].z1 };
     const labelText = it.label ? `${seq}. ${it.label}` : `${seq}.`;
-    for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, labelText, colors.body));
+    for (const pl of labelPlanes(labelBox, face)) content.add(labelMesh(pl, labelText, colors.body));
   }
 
   function clear() {
@@ -566,7 +597,7 @@ export async function createView3d(container) {
     for (const m of [
       MAT_FLOOR, MAT_ROOM_EDGE, MAT_FRONT, MAT_ARCH, MAT_ALU, MAT_CORNER, MAT_WHEEL, MAT_HUB,
       MAT_EDGE_ALU, MAT_EDGE_SEL, MAT_EDGE_ERR, MAT_PROFILE, MAT_CHROME, MAT_SEAM_BAND,
-      MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL, MAT_SPEAKER_GRILLE, MAT_SPEAKER_DIVIDER,
+      MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL, MAT_SPEAKER_GRILLE, MAT_WHEEL_SPEAKER,
     ]) m.dispose();
     for (const { material, texture } of labelTexCache.values()) { material.dispose(); texture.dispose(); }
     labelTexCache.clear();
