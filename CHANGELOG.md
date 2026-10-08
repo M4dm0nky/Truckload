@@ -2,6 +2,23 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.12.0 – 2026-10-08
+
+Line-Array-Boxen und Subs sehen in der 3D-Ansicht jetzt wie Lautsprecher aus, nicht mehr wie
+Cases:
+
+- Jede Box eines Dolly-Stacks ist ein eigenes Gehäuse: vorn ein helleres Grillefeld im Rahmen
+  (bei breiten Boxen wie K2/KS28 zwei Felder mit Mittelsteg) und ein Marken-Badge, an den Seiten
+  Rigging-Platte und Griffstange, hinten schlicht.
+- Array-Tops haben das typische Keilprofil – gestapelt vorn eine gerade Front, hinten die
+  Keil-Lücken zwischen den Elementen. Subs bleiben quaderförmig.
+- Gehäusefarbe je Hersteller (L-Acoustics dunkles Graubraun laut Herstellerangabe, sonst
+  schwarz). Die Gewerk-/Stückfarbe sitzt als dünne Marke am Dolly-Rahmen, die Beschriftung
+  hinten unten und klein oben – nicht mehr groß auf allen Seiten.
+- Mit „R“ gedreht zeigt die Front in die gewünschte Richtung.
+- Bereits gespeicherte Dolly-Stacks aus früheren Versionen werden beim Laden automatisch
+  umgestellt (auch solche mit der ganz alten ID) – Maße und Gewichte bleiben unverändert.
+
 ## V 0.11.4 – 2026-10-08
 
 Anhand eines Nutzer-Fotos nachgebessert: die Front einer Lautsprecher-Box ist jetzt eine
