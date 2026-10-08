@@ -412,18 +412,21 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
   Aufräumen **nicht** verworfen; alles selbst Erzeugte muss freigegeben werden). `kind:
   'speaker'` (seit V 0.11.0, `addSpeaker()`) ist ein dritter eigener Zweig neben Flightcase und
   Traversenwagen: Nutzer-Feedback, dass Audio-Dolly-Stacks mit der generischen Flightcase-Optik
-  wie ein normales Case aussahen, nicht wie PA-Lautsprecher — nachgebessert anhand realer
-  Produktfotos (L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig gelben Lenkrollen statt
-  einer geschlossenen Platte; K2-Flugbild: einzelne Boxen durch eine echte Fuge mit
-  Beschlag-Punkten getrennt, nicht nur eine dünne Farblinie). Jede Einzelbox im Stack ist eine
-  EIGENE Box mit sichtbarem Spalt zur nächsten (`speakerUnits()`, Höhe je Box aus `c.unitH`,
-  `js/model/audioDolly.js`), mit kleinen Beschlag-Punkten an den vier Fugen-Ecken, einer matten
-  Grille-Andeutung auf allen 4 Seitenflächen (`speakerGrilles()`, `MAT_SPEAKER_GRILLE` bewusst
-  nicht chromfarben wie `MAT_CORNER`/`MAT_CHROME`), einem offenen Dolly-Rahmen
-  (`speakerDollyFrame()`, `MAT_DOLLY_RAIL`) und gelben statt case-üblich dunklen Rollen
-  (`MAT_WHEEL_SPEAKER`, `wheelMesh()`s neuer `wheelMat`-Parameter). Die Beschriftung sitzt nur
-  auf der untersten Box, nicht über den ganzen Stack gespannt – sonst dominiert ein einzelner
-  Textblock das Bild. 2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen
+  wie ein normales Case aussahen, nicht wie PA-Lautsprecher — zweifach anhand realer Produkt-
+  fotos nachgebessert (L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig gelben Lenkrollen
+  statt einer geschlossenen Platte; K2-Flugbild: die Fuge zwischen Einzelboxen ist am Original
+  eine durchgehende HELLE Nahtlinie über die volle Breite, kein bloßer Tiefenschatten – ein
+  reiner 3D-Spalt zwischen den Segmenten, Fix-Runde 1, war bei normaler Kamera-Distanz im LKW
+  praktisch unsichtbar, s. u.). Die Einzelboxen eines Stacks werden als eine durchgehende Box
+  gezeichnet (`speakerUnits()`, Höhe je Box aus `c.unitH`, `js/model/audioDolly.js`), mit einem
+  hellen, umlaufenden Nahtband (`MAT_ALU`) an jeder inneren Fuge – die Sichtbarkeit trägt der
+  Farbkontrast gegen den dunklen Korpus, nicht die Tiefe, deshalb bei jeder Kamera-Distanz
+  erkennbar. Dazu eine matte Grille-Andeutung auf allen 4 Seitenflächen (`speakerGrilles()`,
+  `MAT_SPEAKER_GRILLE` bewusst nicht chromfarben wie `MAT_CORNER`/`MAT_CHROME`), ein offener
+  Dolly-Rahmen (`speakerDollyFrame()`, `MAT_DOLLY_RAIL`) und gelbe statt case-üblich dunkle
+  Rollen (`MAT_WHEEL_SPEAKER`, `wheelMesh()`s neuer `wheelMat`-Parameter). Die Beschriftung
+  sitzt nur auf der untersten Box, nicht über den ganzen Stack gespannt – sonst dominiert ein
+  einzelner Textblock das Bild. 2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen
   Tetris-Darstellung.
 
 Jede der drei 2D-Ansichten lässt sich seit V 0.8.0 für sich zoomen und verschieben

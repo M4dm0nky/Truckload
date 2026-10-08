@@ -519,41 +519,35 @@ export async function createView3d(container) {
     }
   }
 
-  // Eigener Render-Zweig für `kind: 'speaker'` (Nutzer-Feedback 2026-10-08, nachgebessert
-  // anhand realer Produktfotos des L-Acoustics K2-CHARIOT und eines K2-Flugbilds): PA-Boxen auf
-  // Dolly sahen mit der generischen Flightcase-Optik wie ein normales Case aus. Statt Kugel-
-  // ecken/Deckelfuge/Griffen: jede Einzelbox im Stack wird als EIGENE Box mit sichtbarem Spalt
-  // zur nächsten gezeichnet (nicht eine durchgehende Box mit aufgemalter Linie), mit kleinen
-  // Beschlag-Punkten an den vier Fugen-Ecken – so lässt sich die Stückzahl auf einen Blick
-  // abzählen. Der Dolly selbst ist ein offener Rahmen (kein geschlossener Kasten) mit auffällig
-  // gelben Rollen statt der unauffälligen Case-Rollen. Die Beschriftung sitzt nur auf der
-  // untersten Box, nicht über den ganzen Stack gespannt – sonst dominiert ein einzelner riesiger
-  // Textblock das Bild und lässt den Stack wie eine einzige große Kiste wirken.
+  // Eigener Render-Zweig für `kind: 'speaker'` (Nutzer-Feedback 2026-10-08, zweifach anhand
+  // realer Produktfotos nachgebessert — L-Acoustics K2-CHARIOT: offener Rahmen, gelbe Rollen;
+  // K2-Flugbild, Nahaufnahme: die Fuge zwischen Einzelboxen ist am Original eine durchgehende,
+  // HELLE Nahtlinie quer über die volle Breite, kein bloßer Tiefenschatten. Ein reiner 3D-Spalt
+  // zwischen den Segmenten (erste Fassung) war bei normaler Kamera-Distanz im LKW praktisch
+  // unsichtbar – wenige Zentimeter Spalt verschwinden aus ein paar Metern Entfernung. Die
+  // Naht-Bänder (`MAT_ALU`, hell gegen den dunklen Korpus) tragen die Sichtbarkeit jetzt über
+  // Farbkontrast statt über Tiefe, deshalb bei jeder Kamera-Distanz erkennbar – genau wie am
+  // echten Foto. Die Beschriftung sitzt nur auf der untersten Box, nicht über den ganzen Stack
+  // gespannt.
   function addSpeaker(it, bad, selected, colors, seq) {
     const { c, p, box } = it;
     const { body, wheels, face } = caseShape(c, p, box);
     const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
 
     const units = speakerUnits(body, c.unitH);
-    const gap = Math.min(1.2, ((body.z1 - body.z0) / units.length) * 0.15);
-    units.forEach((u, i) => {
-      const seg = {
-        ...body,
-        z0: u.z0 + (i > 0 ? gap / 2 : 0),
-        z1: u.z1 - (i < units.length - 1 ? gap / 2 : 0),
-      };
-      content.add(boxMesh(seg, bodyMaterial(colors.body, bad)));
-      content.add(edges(seg, edgeMat));
-      for (const g of speakerGrilles(body, seg)) content.add(boxMesh(g, MAT_SPEAKER_GRILLE));
-    });
-    // Beschlag-Punkte an jeder inneren Fuge (nicht an den äußeren Stack-Kanten).
+    content.add(boxMesh(body, bodyMaterial(colors.body, bad)));
+    content.add(edges(body, edgeMat));
+    for (const u of units) for (const g of speakerGrilles(body, u)) content.add(boxMesh(g, MAT_SPEAKER_GRILLE));
+    // Durchgehende helle Nahtbänder an jeder inneren Fuge – tragen die Sichtbarkeit über
+    // Farbkontrast (MAT_ALU gegen CASE_BLACK), nicht über einen Tiefenspalt, der aus normaler
+    // Kamera-Distanz verschwindet.
+    const seamT = 2;
     for (const u of units.slice(1)) {
-      for (const x of [body.x0, body.x1]) for (const y of [body.y0, body.y1]) {
-        const bolt = new THREE.Mesh(GEO_SPHERE, MAT_SPEAKER_GRILLE);
-        bolt.position.set(x, y, u.z0);
-        bolt.scale.setScalar(0.9 / 2.5);
-        content.add(bolt);
-      }
+      const band = {
+        x0: body.x0 - 0.3, x1: body.x1 + 0.3, y0: body.y0 - 0.3, y1: body.y1 + 0.3,
+        z0: u.z0 - seamT / 2, z1: u.z0 + seamT / 2,
+      };
+      content.add(boxMesh(band, MAT_ALU));
     }
 
     if (colors.stripe) {
