@@ -330,7 +330,7 @@ export function openLoadWizard(dlg, opts = {}) {
   // dollyPrompt auf dem Ergebnis von dollyStackCase()), weitere gleiche Stacks lassen sich also
   // ganz normal per „+“ ergänzen, ohne den Dialog erneut zu öffnen.
   async function addDollyStack(baseCase) {
-    const res = await openDollyDialog(opts.dollyDlg, { baseCase, cases, onNewDollyStack: opts.onNewDollyStack });
+    const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack });
     if (!res) return;
     cases = [...cases.filter(c => c.id !== res.newCase.id), res.newCase];
     const add = capToRoom(res.addition.n, total(), MAX_ITEMS);

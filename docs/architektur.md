@@ -412,22 +412,38 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
   Aufräumen **nicht** verworfen; alles selbst Erzeugte muss freigegeben werden). `kind:
   'speaker'` (seit V 0.11.0, `addSpeaker()`) ist ein dritter eigener Zweig neben Flightcase und
   Traversenwagen: Nutzer-Feedback, dass Audio-Dolly-Stacks mit der generischen Flightcase-Optik
-  wie ein normales Case aussahen, nicht wie PA-Lautsprecher — zweifach anhand realer Produkt-
-  fotos nachgebessert (L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig gelben Lenkrollen
-  statt einer geschlossenen Platte; K2-Flugbild: die Fuge zwischen Einzelboxen ist am Original
-  eine durchgehende HELLE Nahtlinie über die volle Breite, kein bloßer Tiefenschatten – ein
-  reiner 3D-Spalt zwischen den Segmenten, Fix-Runde 1, war bei normaler Kamera-Distanz im LKW
-  praktisch unsichtbar, s. u.). Die Einzelboxen eines Stacks werden als eine durchgehende Box
-  gezeichnet (`speakerUnits()`, Höhe je Box aus `c.unitH`, `js/model/audioDolly.js`), mit einem
-  hellen, umlaufenden Nahtband (`MAT_ALU`) an jeder inneren Fuge – die Sichtbarkeit trägt der
-  Farbkontrast gegen den dunklen Korpus, nicht die Tiefe, deshalb bei jeder Kamera-Distanz
-  erkennbar. Dazu eine matte Grille-Andeutung auf allen 4 Seitenflächen (`speakerGrilles()`,
-  `MAT_SPEAKER_GRILLE` bewusst nicht chromfarben wie `MAT_CORNER`/`MAT_CHROME`), ein offener
-  Dolly-Rahmen (`speakerDollyFrame()`, `MAT_DOLLY_RAIL`) und gelbe statt case-üblich dunkle
-  Rollen (`MAT_WHEEL_SPEAKER`, `wheelMesh()`s neuer `wheelMat`-Parameter). Die Beschriftung
-  sitzt nur auf der untersten Box, nicht über den ganzen Stack gespannt – sonst dominiert ein
-  einzelner Textblock das Bild. 2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen
-  Tetris-Darstellung.
+  wie ein normales Case aussahen, nicht wie PA-Lautsprecher — mehrfach anhand realer Fotos
+  nachgebessert:
+  - **Dolly:** offener Rahmen (`speakerDollyFrame()`, `MAT_DOLLY_RAIL`) statt einer
+    geschlossenen Platte, mit auffällig gelben statt case-üblich dunklen Rollen
+    (`MAT_WHEEL_SPEAKER`, `wheelMesh()`s `wheelMat`-Parameter) — Vorbild: L-Acoustics
+    K2-CHARIOT-Produktfoto.
+  - **Fuge zwischen gestapelten Einzelboxen:** ein helles, umlaufendes Nahtband (`MAT_ALU`) an
+    jeder inneren Lagengrenze (`speakerUnits()`, Höhe je Box aus `c.unitH`,
+    `js/model/audioDolly.js`). Ein reiner 3D-Tiefenspalt zwischen den Segmenten (erste Fassung)
+    war bei normaler Kamera-Distanz im LKW praktisch unsichtbar — das Band trägt die
+    Sichtbarkeit über Farbkontrast, nicht über Tiefe.
+  - **Korpusfläche:** fast vollständig eine texturierte Lochgrille (`GRILLE_TEX`,
+    `makeGrilleTexture()`, prozedurales Punktraster wie `makeLaminateTexture()`, nur als
+    Lochmuster statt zufälliger Körnung) in dunklem Anthrazit (`MAT_SPEAKER_BODY`/
+    `MAT_SPEAKER_BODY_BAD` für die Fehler-Einfärbung) statt der glatten Flightcase-
+    Laminatfläche, dazu ein kleines goldfarbenes Marken-Badge je Einzelbox
+    (`speakerBadges()`, `MAT_SPEAKER_BADGE`) — Vorbild: K2-Seitenfoto des Nutzers. Die
+    Boxen selbst bleiben rechteckig (keine echte Keilform/Konik des realen Gehäuses) — das
+    würde die Außen-Bounding-Box verändern, die für die Pack-Logik/Stellfläche
+    maßgeblich ist; eine rein optische Fase ist als Folgearbeit offen.
+  - Die Beschriftung sitzt nur auf der untersten Box, nicht über den ganzen Stack gespannt —
+    sonst dominiert ein einzelner Textblock das Bild.
+
+  `js/ui/dolly-wizard.js`s `openDollyDialog()` berechnet den Case-Typ bei JEDEM Dialog-Lauf neu
+  und überschreibt eine gleichnamige, bereits gespeicherte Zeile (Ruling 2026-10-08, ersetzt
+  eine frühere „nicht überschreiben“-Regel aus dem Final-Review): die hätte eine vom Nutzer im
+  Case-Editor bearbeitete Zeile schützen sollen, verhinderte in der Praxis aber, dass ein schon
+  vor einer Optik-Überarbeitung erzeugter Dolly-Stack jemals die neuen Felder/die neue
+  Darstellung bekam — genau wie die mitgelieferten Basis-Vorlagen (`preset-k2` & Co.) ohnehin
+  bei jedem Release aktualisiert werden, ohne eine solche Schutzregel.
+
+  2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen Tetris-Darstellung.
 
 Jede der drei 2D-Ansichten lässt sich seit V 0.8.0 für sich zoomen und verschieben
 (`js/ui/zoom2d.js`). Gezoomt wird allein über die `viewBox`: `renderView` setzt sie über
