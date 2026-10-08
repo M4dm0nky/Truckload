@@ -2,6 +2,14 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.11.2 – 2026-10-08
+
+Der erste 3D-Lautsprecher-Look (V 0.11.1) sah noch wie ein einzelnes großes Case aus. Anhand
+echter Produktfotos (L-Acoustics K2-CHARIOT) nachgebessert: jede Einzelbox im Stack ist jetzt
+eine eigene Box mit sichtbarem Spalt zur nächsten (statt einer Linie) – die Stückzahl lässt
+sich auf einen Blick abzählen. Der Dolly ist ein offener Rahmen mit auffällig gelben Rollen
+statt der unauffälligen Case-Rollen.
+
 ## V 0.11.1 – 2026-10-08
 
 Die neuen Audio-Dolly-Stacks sahen in der 3D-Ansicht wie ein normales Flightcase aus (Kugel-
