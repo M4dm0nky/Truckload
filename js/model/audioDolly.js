@@ -70,5 +70,31 @@ export function dollyStackCase(baseCase, n) {
     layers: [1],
     kind: 'speaker',
     unitH: baseCase.h,
+    speakerType: baseCase.speakerType,
+    cabinetColor: baseCase.cabinetColor,
+  };
+}
+
+// Ergänzt einen in einer früheren Version gespeicherten Dolly-Stack um die Darstellungsfelder,
+// die er damals noch nicht hatte (Nutzer-Screenshot 2026-10-08: K2-2er-Stacks aus der eigenen
+// Bibliothek liefen ohne `kind` weiter durch die Flightcase-Darstellung). Erkennt die aktuelle ID
+// `dolly-<basis>-<n>` und die alte Form `preset-<basis>-dolly-<n>` (vor dem ID-Fix – die trifft ein
+// erneuter Dialog-Lauf nie, weil der die neue ID erzeugt). Nur fehlende Felder werden ergänzt;
+// Maße, Gewicht, Rollenhöhe und ID bleiben, wie sie sind (CLAUDE.md: Cases dürfen ihre Maße nicht
+// unbemerkt ändern, Platzierungen verweisen auf die ID). `unitH` aus der gespeicherten Höhe statt
+// aus der Vorlage, damit die Einheiten zur tatsächlich gespeicherten Gesamthöhe passen.
+export function upgradeDollyStack(c, presets) {
+  if (c.kind === 'speaker' && c.unitH > 0 && c.speakerType && c.cabinetColor) return c;
+  const m = /^dolly-(.+)-(\d+)$/.exec(c.id) ?? /^preset-(.+)-dolly-(\d+)$/.exec(c.id);
+  if (!m) return c;
+  const base = presets.find(p => p.id === `preset-${m[1]}` && p.dollyPrompt);
+  const n = Number(m[2]);
+  if (!base || !(n > 0)) return c;
+  return {
+    ...c,
+    kind: 'speaker',
+    unitH: c.unitH > 0 ? c.unitH : c.h / n,
+    speakerType: c.speakerType ?? base.speakerType,
+    cabinetColor: c.cabinetColor ?? base.cabinetColor,
   };
 }

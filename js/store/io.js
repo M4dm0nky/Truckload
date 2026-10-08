@@ -5,6 +5,8 @@ import { ARCH_SIDES, CASE_LIMITS } from '../model/validate.js';
 import { PACK_ORDERS } from '../model/packer.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
+import { PRESET_CASES } from '../data/preset-cases.js';
+import { upgradeDollyStack } from '../model/audioDolly.js';
 import { ruleOk, MAX_RULES } from '../model/packRules.js';
 
 export { MAX_LABEL, CASE_LIMITS };
@@ -59,7 +61,9 @@ export function checkCase(c) {
   }
 }
 export function normalizeCase(c) {
-  if (!isTruss(c)) return c;
+  // Dolly-Stacks aus früheren Versionen bekommen ihre Darstellungsfelder nach (s.
+  // upgradeDollyStack() in js/model/audioDolly.js) – beim Laden UND beim Datei-Import.
+  if (!isTruss(c)) return upgradeDollyStack(c, PRESET_CASES);
   // trussDims() wirft, wenn c.truss.width die Grenze (MAX_TRUSS_WIDTH) überschreitet.
   // Beim Datei-Import ist das nicht erreichbar: checkCase() lehnt eine solche Breite schon
   // vorher ab, bevor normalizeCase() überhaupt läuft. Aber repo.normalizeOwnCases() ruft

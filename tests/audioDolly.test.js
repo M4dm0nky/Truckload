@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dollyStackCase, dollyStackId, maxDollyCount, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
+import { dollyStackCase, dollyStackId, maxDollyCount, upgradeDollyStack, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
 import { checkCase, exportBundle, parseBundle } from '../js/store/io.js';
 import { outerDims } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
@@ -114,4 +114,54 @@ test('dollyStackCase: Stückzahl 1 ist gültig (ein Dolly, eine Box)', () => {
   assert.equal(c.h, 19);
   assert.equal(c.weight, 23);
   assert.doesNotThrow(() => checkCase(c));
+});
+
+// Migration (Nutzer-Screenshot 2026-10-08): in der IndexedDB liegen Dolly-Stacks aus früheren
+// Versionen ohne `kind`/`unitH` – teils noch mit der ganz alten ID `preset-<basis>-dolly-<n>`
+// (vor dem ID-Fix), die ein erneuter Dialog-Lauf nie trifft. upgradeDollyStack() ergänzt nur die
+// fehlenden Darstellungsfelder; Maße, Gewicht und ID bleiben unverändert.
+const K2 = mkCase('preset-k2', 138, 40, 35, {
+  weight: 56, name: 'L-Acoustics K2', category: 'Ton', dollyPrompt: true, kind: 'speaker',
+  speakerType: 'top', cabinetColor: '#3a332e',
+});
+const oldStack = id => ({
+  id, builtin: false, name: 'L-Acoustics K2 2er (auf Dolly)', content: '', category: 'Ton',
+  color: '#888888', l: 138, w: 40, h: 70, weight: 127, tippable: false, stackable: true,
+  maxTopLoad: null, wheelH: 18, dimsInclWheels: false, layers: [1],
+});
+
+test('upgradeDollyStack: Alt-Stack mit aktueller ID bekommt kind/unitH/speakerType/cabinetColor', () => {
+  const c = upgradeDollyStack(oldStack('dolly-k2-2'), [K2]);
+  assert.equal(c.kind, 'speaker');
+  assert.equal(c.unitH, 35);
+  assert.equal(c.speakerType, 'top');
+  assert.equal(c.cabinetColor, '#3a332e');
+});
+
+test('upgradeDollyStack: alte ID-Form preset-<basis>-dolly-<n> wird ebenfalls erkannt', () => {
+  const c = upgradeDollyStack(oldStack('preset-k2-dolly-2'), [K2]);
+  assert.equal(c.kind, 'speaker');
+  assert.equal(c.unitH, 35);
+  assert.equal(c.id, 'preset-k2-dolly-2');
+});
+
+test('upgradeDollyStack: Maße, Gewicht, Rollenhöhe und ID bleiben unverändert', () => {
+  const before = oldStack('dolly-k2-2');
+  const c = upgradeDollyStack(before, [K2]);
+  for (const k of ['id', 'l', 'w', 'h', 'weight', 'wheelH', 'dimsInclWheels', 'name']) assert.equal(c[k], before[k], k);
+});
+
+test('upgradeDollyStack: aktuelles Case bleibt identisch, fremde/unbekannte IDs unverändert', () => {
+  const current = dollyStackCase(K2, 2);
+  assert.equal(upgradeDollyStack(current, [K2]), current);
+  const other = mkCase('mein-case', 60, 60, 60);
+  assert.equal(upgradeDollyStack(other, [K2]), other);
+  const unknownBase = oldStack('dolly-gibtsnicht-2');
+  assert.equal(upgradeDollyStack(unknownBase, [K2]), unknownBase);
+});
+
+test('dollyStackCase: übernimmt speakerType und cabinetColor der Basisbox', () => {
+  const c = dollyStackCase(K2, 3);
+  assert.equal(c.speakerType, 'top');
+  assert.equal(c.cabinetColor, '#3a332e');
 });
