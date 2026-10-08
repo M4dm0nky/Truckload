@@ -125,3 +125,11 @@ test('Fahrzeug-Vorlagen gültig', () => {
   assert.ok(PRESET_TRUCKS.some(t => t.id === DEFAULT_TRUCK_ID));
   for (const t of PRESET_TRUCKS) assert.ok(t.builtin && t.l > 0 && t.w > 0 && t.h > 0 && t.payload > 0, t.id);
 });
+
+test('Audio-Vorlagen: 8 Array-Tops speakerType "top", 5 Subs "sub", jede mit cabinetColor', () => {
+  const tops = ['preset-k2', 'preset-v8v12', 'preset-leopard', 'preset-wpc', 'preset-wps', 'preset-hdl20a', 'preset-geom620', 'preset-geom6b'];
+  const subs = ['preset-ks28', 'preset-v-sub', 'preset-900-lfc', 'preset-sub-8006-as', 'preset-ls18'];
+  for (const id of tops) assert.equal(PRESET_CASES.find(c => c.id === id)?.speakerType, 'top', id);
+  for (const id of subs) assert.equal(PRESET_CASES.find(c => c.id === id)?.speakerType, 'sub', id);
+  for (const id of [...tops, ...subs]) assert.match(PRESET_CASES.find(c => c.id === id).cabinetColor, /^#[0-9a-f]{6}$/, id);
+});

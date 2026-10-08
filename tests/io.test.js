@@ -602,3 +602,14 @@ test('Import: mixTop optional boolean in Plan und Regelset, anderes wird abgeleh
   const old = parseBundle(exportBundle({ cases: [], trucks: [], plans: [plan([])] }));
   assert.equal(old.plans[0].mixTop, undefined, 'altes Schema ohne Feld');
 });
+
+// Alt-Datensatz eines Dolly-Stacks (vor kind/unitH, ID noch in der Form vor dem ID-Fix): beim
+// Laden/Import ergänzt normalizeCase() die Darstellungsfelder, Maße bleiben unverändert.
+test('normalizeCase: alter Dolly-Stack ohne kind wird zum Lautsprecher, Maße unverändert', () => {
+  const old = mkCase('preset-k2-dolly-2', 138, 40, 70, { name: 'L-Acoustics K2 2er (auf Dolly)', category: 'Ton', weight: 127, wheelH: 18, dimsInclWheels: false, layers: [1] });
+  const c = normalizeCase(old);
+  assert.equal(c.kind, 'speaker');
+  assert.equal(c.unitH, 35);
+  assert.equal(c.speakerType, 'top');
+  assert.deepEqual([c.l, c.w, c.h, c.weight], [138, 40, 70, 127]);
+});
