@@ -2,6 +2,13 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.11.3 – 2026-10-08
+
+Die Fuge zwischen gestapelten Lautsprecher-Boxen (V 0.11.2) war bei normaler Kamera-Distanz im
+Truck praktisch unsichtbar – ein paar Zentimeter Tiefe verschwinden aus ein paar Metern
+Entfernung. Ersetzt durch ein helles, umlaufendes Nahtband, das über Farbkontrast statt Tiefe
+sichtbar bleibt, wie am echten Vorbild.
+
 ## V 0.11.2 – 2026-10-08
 
 Der erste 3D-Lautsprecher-Look (V 0.11.1) sah noch wie ein einzelnes großes Case aus. Anhand
