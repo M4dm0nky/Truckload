@@ -92,12 +92,8 @@ export async function createView3d(container) {
   // Traversen-Rollbrett: Kunststoff-Platte (schwarz) mit etwas helleren Auflageleisten obenauf.
   const MAT_DOLLY_BOARD = shared(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.85 }));
   const MAT_DOLLY_RAIL = shared(new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.8 }));
-  // Lautsprecher-Look (kind: 'speaker', Nutzer-Feedback 2026-10-08, mehrfach anhand realer
-  // Produktfotos nachgebessert — L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig GELBEN
-  // Lenkrollen, kein schwarzer Kasten; K2-Seitenfoto: die Front ist fast vollständig eine
-  // texturierte Stoff-/Lochgrille, kein schmaler Rand-Streifen. MAT_WHEEL_SPEAKER: die gelbe
-  // Rollen-Lauffläche selbst (MAT_SPEAKER_BODY/-BADGE stehen weiter unten bei der dafür
-  // erzeugten Textur, GRILLE_TEX).
+  // Gelbe Lenkrollen der Lautsprecher-Dollys (L-Acoustics K2-CHARIOT-Produktfoto) statt der
+  // unauffälligen Case-Rollen; übrige Lautsprecher-Materialien weiter unten bei GEO_WEDGE.
   const MAT_WHEEL_SPEAKER = shared(new THREE.MeshStandardMaterial({ color: 0xf2a900, roughness: 0.6 }));
   const COL_PROFILE_N = new THREE.Color(0xc9ced4);
   const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
@@ -124,47 +120,43 @@ export async function createView3d(container) {
   }
   const LAM_TEX = makeLaminateTexture();
 
-  // Lochmuster-Grille für `kind: 'speaker'` (Nutzer-Foto 2026-10-08, L-Acoustics K2 Seitenan-
-  // sicht): die Front ist fast vollständig eine texturierte Stoff-/Lochgrille, kein schmaler
-  // Rand-Streifen wie in der vorigen Fassung. Regelmäßiges Punktraster statt der zufälligen
-  // Laminat-Körnung oben – ein Wabenraster wäre näher am Foto, kostet aber deutlich mehr
-  // Canvas-Zeichenaufwand für denselben Effekt aus normaler Kamera-Distanz.
-  function makeGrilleTexture() {
-    const size = 64;
-    const cnv = document.createElement('canvas');
-    cnv.width = cnv.height = size;
-    const ctx = cnv.getContext('2d');
-    ctx.fillStyle = '#1c1c1e';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = '#323236';
-    const step = 6, r = 1.1;
-    for (let y = step / 2; y < size; y += step) {
-      for (let x = step / 2; x < size; x += step) {
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    const tex = new THREE.CanvasTexture(cnv);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(10, 4);
-    tex.userData.shared = true;
-    return tex;
-  }
-  const GRILLE_TEX = makeGrilleTexture();
-  // Dunkles Anthrazit statt reinem CASE_BLACK – zusammen mit der Textur der Stoff-/Lochgrille-
-  // Look aus dem Foto, deutlich von der glatten Flightcase-Laminatfläche unterscheidbar.
-  const MAT_SPEAKER_BODY = shared(new THREE.MeshStandardMaterial({
-    color: 0x242426, roughness: 0.95, map: GRILLE_TEX,
-  }));
-  // Fehler-Variante (rote Einfärbung) wie bodyMaterial() es für normale Cases über `bad` tut –
-  // eigenes, festes Material statt eines Caches, weil `kind: 'speaker'` nur diese zwei Zustände
-  // kennt (kein Farbmodus-Einfluss auf den Korpus, s. addSpeaker()).
-  const MAT_SPEAKER_BODY_BAD = shared(new THREE.MeshStandardMaterial({
-    color: 0x242426, roughness: 0.95, map: GRILLE_TEX, emissive: 0x661111,
-  }));
-  // Kleines Marken-Badge unten auf der Front (Foto: goldfarbene L-Acoustics-Plakette).
+  // Lautsprecher-Modell (kind: 'speaker', Nutzer-Foto L-Acoustics K2, 2026-10-08): jede Einzelbox
+  // hat eine FRONT (helleres Grillefeld im Gehäuserahmen, Marken-Badge), SEITEN (Rigging-Platte +
+  // Griffstange) und eine schlichte Rückseite – nicht sechs gleiche Flächen wie ein Case. Die
+  // Sichtbarkeit trägt der Helligkeitskontrast Grille ↔ Gehäuse (Lehre aus V 0.11.2: feine
+  // Texturen/Spalte verschwinden aus normaler Kamera-Distanz).
+  const MAT_SPEAKER_GRILLE = shared(new THREE.MeshStandardMaterial({ color: 0x4c4f55, roughness: 0.95 }));
+  const MAT_SPEAKER_MULLION = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.8 }));
+  const MAT_SPEAKER_RIG = shared(new THREE.MeshStandardMaterial({ color: 0x2b2d31, metalness: 0.4, roughness: 0.5 }));
   const MAT_SPEAKER_BADGE = shared(new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: 0.5, roughness: 0.4 }));
+
+  // Keilprofil der Array-Tops (Seitenansicht): Rückseite auf SPEAKER_BACK_RATIO der Fronthöhe
+  // verjüngt, mittig. Kalibriert an der K2-Zeichnung (Rigging Manual, Appendix C: 286 / 354 mm
+  // ≈ 0,81) und für alle Tops übernommen – eine eigene, rein optische Annahme; die Bounding-Box
+  // fürs Packen bleibt der volle Quader. Gestapelt bei 0°-Splay ergibt das vorn eine gerade
+  // Fläche und hinten die typischen Keil-Lücken (Nutzerangabe: „nach oben perfekt gerade“).
+  // Einheitskörper: Breite x, Tiefe y (Front bei y = −0,5), Höhe z, je −0,5…0,5.
+  const SPEAKER_BACK_RATIO = 0.8;
+  function makeWedgeGeometry(k) {
+    const F = [[-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [-0.5, -0.5, 0.5]];
+    const B = [[-0.5, 0.5, -k / 2], [0.5, 0.5, -k / 2], [0.5, 0.5, k / 2], [-0.5, 0.5, k / 2]];
+    const quads = [
+      [F[0], F[1], F[2], F[3]], // Front
+      [B[1], B[0], B[3], B[2]], // Rückseite
+      [F[0], B[0], B[1], F[1]], // Unterseite
+      [F[3], F[2], B[2], B[3]], // Oberseite
+      [F[0], F[3], B[3], B[0]], // Seite −x
+      [F[1], B[1], B[2], F[2]], // Seite +x
+    ];
+    const pos = [];
+    for (const [a, b, c, d] of quads) pos.push(...a, ...b, ...c, ...a, ...c, ...d);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    g.userData.shared = true;
+    return g;
+  }
+  const GEO_WEDGE = makeWedgeGeometry(SPEAKER_BACK_RATIO);
 
   // Beschriftungs-Texturen: pro einzigartiger Kombination aus Text, Farbe und Seitenverhältnis
   // eine Canvas-Textur (Text mittig über `fitFontSize()` umgebrochen/skaliert), gecacht über
@@ -242,15 +234,16 @@ export async function createView3d(container) {
   // `update()` tatsächlich benutzten Schlüssel sammeln, am Ende nicht mehr benutzte disposen.
   const bodyMatCache = new Map();
   let usedBodyMatKeys = new Set();
-  const bodyMaterial = (color, bad) => {
-    const key = `${color}|${bad}`;
+  // `plain`: ohne Laminat-Körnung und matter – für Lautsprecher-Gehäuse (addSpeaker()), die
+  // nicht nach Case-Laminat aussehen sollen; Fehler-Tönung und Aufräumen laufen gleich.
+  const bodyMaterial = (color, bad, plain = false) => {
+    const key = `${color}|${bad}|${plain}`;
     usedBodyMatKeys.add(key);
     let m = bodyMatCache.get(key);
     if (!m) {
-      m = shared(new THREE.MeshStandardMaterial({
-        color, roughness: 0.7, emissive: bad ? 0x661111 : 0x000000,
-        bumpMap: LAM_TEX, bumpScale: 0.12,
-      }));
+      m = shared(new THREE.MeshStandardMaterial(plain
+        ? { color, roughness: 0.85, emissive: bad ? 0x661111 : 0x000000 }
+        : { color, roughness: 0.7, emissive: bad ? 0x661111 : 0x000000, bumpMap: LAM_TEX, bumpScale: 0.12 }));
       bodyMatCache.set(key, m);
     }
     return m;
@@ -309,23 +302,33 @@ export async function createView3d(container) {
       { x0: box.x1 - t, x1: box.x1, y0: box.y0, y1: box.y1, z0, z1 },
     ];
   }
-  // Kleines Marken-Badge je Einzelbox, unten auf allen 4 Seitenflächen (Nutzer-Foto 2026-10-08:
-  // goldfarbene L-Acoustics-Plakette nahe der Unterkante) – die Box hat keine zuverlässig
-  // bekannte „Vorderseite“ (s. Brainstorming-Entscheidung), deshalb auf allen 4 Seiten statt nur
-  // einer.
-  function speakerBadges(body, unit) {
-    const bw = Math.min(3, (body.x1 - body.x0) * 0.3, (body.y1 - body.y0) * 0.3);
-    const bh = Math.min(2, (unit.z1 - unit.z0) * 0.2);
-    if (bw <= 0 || bh <= 0) return [];
-    const cz = unit.z0 + Math.min(6, (unit.z1 - unit.z0) * 0.18);
-    const cx = (body.x0 + body.x1) / 2, cy = (body.y0 + body.y1) / 2;
-    const t = 0.35;
-    return [
-      { x0: body.x0 - t, x1: body.x0, y0: cy - bw / 2, y1: cy + bw / 2, z0: cz - bh / 2, z1: cz + bh / 2 },
-      { x0: body.x1, x1: body.x1 + t, y0: cy - bw / 2, y1: cy + bw / 2, z0: cz - bh / 2, z1: cz + bh / 2 },
-      { x0: cx - bw / 2, x1: cx + bw / 2, y0: body.y0 - t, y1: body.y0, z0: cz - bh / 2, z1: cz + bh / 2 },
-      { x0: cx - bw / 2, x1: cx + bw / 2, y0: body.y1, y1: body.y1 + t, z0: cz - bh / 2, z1: cz + bh / 2 },
-    ];
+  // Anbauteile EINER Lautsprecher-Box in lokalen cm-Koordinaten (Breite W entlang x, Tiefe D
+  // entlang y mit der Front bei y = −D/2, Höhe H entlang z, alles um den Nullpunkt). Vorbild:
+  // Nutzer-Foto L-Acoustics K2. Alles bleibt (bis auf wenige mm) innerhalb der Bounding-Box.
+  // - Front: helleres Grillefeld, eingerückt im Gehäuserahmen; ab 100 cm Breite zwei Felder mit
+  //   dunklem Mittelsteg (K2/KS28) und je ein Marken-Badge auf dem unteren Rahmen.
+  // - Seiten: Rigging-Platte im vorderen Bereich + waagrechte Griffstange.
+  function speakerUnitParts(W, D, H) {
+    const out = [];
+    const mX = Math.min(4, W * 0.06), mZ = Math.min(3, H * 0.12);
+    const fy = -D / 2;
+    out.push({ b: { x0: -W / 2 + mX, x1: W / 2 - mX, y0: fy - 0.3, y1: fy + 0.3, z0: -H / 2 + mZ, z1: H / 2 - mZ }, mat: MAT_SPEAKER_GRILLE });
+    const wide = W >= 100;
+    if (wide) {
+      const mw = Math.min(8, W * 0.06);
+      out.push({ b: { x0: -mw / 2, x1: mw / 2, y0: fy - 0.6, y1: fy + 0.2, z0: -H / 2 + mZ, z1: H / 2 - mZ }, mat: MAT_SPEAKER_MULLION });
+    }
+    const bw = Math.min(3, W * 0.04), bh = Math.min(1.6, mZ * 0.7);
+    for (const bx of wide ? [-W / 4, W / 4] : [0]) {
+      out.push({ b: { x0: bx - bw / 2, x1: bx + bw / 2, y0: fy - 0.5, y1: fy + 0.1, z0: -H / 2 + mZ / 2 - bh / 2, z1: -H / 2 + mZ / 2 + bh / 2 }, mat: MAT_SPEAKER_BADGE });
+    }
+    const hz = Math.min(1.2, H * 0.06);
+    for (const sx of [-1, 1]) {
+      const edge = sx * W / 2;
+      out.push({ b: { x0: Math.min(edge - sx * 1.2, edge + sx * 0.2), x1: Math.max(edge - sx * 1.2, edge + sx * 0.2), y0: fy, y1: fy + D * 0.55, z0: -H * 0.42, z1: H * 0.42 }, mat: MAT_SPEAKER_RIG });
+      out.push({ b: { x0: Math.min(edge + sx * 0.2, edge + sx * 1.1), x1: Math.max(edge + sx * 0.2, edge + sx * 1.1), y0: -D * 0.05, y1: D * 0.3, z0: -hz, z1: hz }, mat: MAT_SPEAKER_MULLION });
+    }
+    return out;
   }
 
   // Rolle im Rollenschacht w (Höhe wh entlang der Normalen n, Fußabdruck d×d in a1/a2):
@@ -562,51 +565,63 @@ export async function createView3d(container) {
     }
   }
 
-  // Eigener Render-Zweig für `kind: 'speaker'` (Nutzer-Feedback 2026-10-08, zweifach anhand
-  // realer Produktfotos nachgebessert — L-Acoustics K2-CHARIOT: offener Rahmen, gelbe Rollen;
-  // K2-Flugbild, Nahaufnahme: die Fuge zwischen Einzelboxen ist am Original eine durchgehende,
-  // HELLE Nahtlinie quer über die volle Breite, kein bloßer Tiefenschatten. Ein reiner 3D-Spalt
-  // zwischen den Segmenten (erste Fassung) war bei normaler Kamera-Distanz im LKW praktisch
-  // unsichtbar – wenige Zentimeter Spalt verschwinden aus ein paar Metern Entfernung. Die
-  // Naht-Bänder (`MAT_ALU`, hell gegen den dunklen Korpus) tragen die Sichtbarkeit jetzt über
-  // Farbkontrast statt über Tiefe, deshalb bei jeder Kamera-Distanz erkennbar – genau wie am
-  // echten Foto. Die Beschriftung sitzt nur auf der untersten Box, nicht über den ganzen Stack
-  // gespannt.
+  // Eigener Render-Zweig für `kind: 'speaker'`. Nach mehreren Runden Nutzer-Feedback („es sind
+  // immer noch Cases“) jede Einzelbox als eigenes Lautsprecher-Gehäuse mit Front/Seiten/Rückseite
+  // (speakerUnitParts()) statt eines glatten Quaders mit umlaufenden Bändern; Array-Tops mit
+  // Keilprofil (GEO_WEDGE), Subs als Quader. Jede Box ist eine THREE.Group in lokalen Koordinaten,
+  // um p.rot gedreht – die Front zeigt also je nach Drehung in eine andere Richtung, der Nutzer
+  // dreht sie mit „R“ wie jedes Case. Gehäusefarbe aus `c.cabinetColor` (nicht aus dem
+  // Farbmodus); die Gewerk-/Stück-/Gewichtsfarbe sitzt als dünne Marke außen am Dolly-Rahmen
+  // (wie die Marke am Traversen-Rollbrett). Beschriftung auf der Rückseite der untersten und der
+  // Oberseite der obersten Box – nicht auf der Grille und nicht auf den Seiten, wo Rigging-Platte
+  // und Griff sie verdecken würden.
   function addSpeaker(it, bad, selected, colors, seq) {
     const { c, p, box } = it;
     const { body, wheels, face } = caseShape(c, p, box);
-    const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
+    const cabinet = bodyMaterial(c.cabinetColor ?? CASE_BLACK, bad, true);
+    const isTop = c.speakerType === 'top';
+    const deg = (((p.rot ?? 0) % 360) + 360) % 360;
+    const r90 = deg % 180 === 90;
+    const dx = body.x1 - body.x0, dy = body.y1 - body.y0;
+    const W = r90 ? dy : dx, D = r90 ? dx : dy;
+    const cx = (body.x0 + body.x1) / 2, cy = (body.y0 + body.y1) / 2;
 
     const units = speakerUnits(body, c.unitH);
-    content.add(boxMesh(body, bad ? MAT_SPEAKER_BODY_BAD : MAT_SPEAKER_BODY));
-    content.add(edges(body, edgeMat));
-    for (const u of units) for (const bdg of speakerBadges(body, u)) content.add(boxMesh(bdg, MAT_SPEAKER_BADGE));
-    // Durchgehende helle Nahtbänder an jeder inneren Fuge – tragen die Sichtbarkeit über
-    // Farbkontrast (MAT_ALU gegen CASE_BLACK), nicht über einen Tiefenspalt, der aus normaler
-    // Kamera-Distanz verschwindet.
-    const seamT = 2;
-    for (const u of units.slice(1)) {
-      const band = {
-        x0: body.x0 - 0.3, x1: body.x1 + 0.3, y0: body.y0 - 0.3, y1: body.y1 + 0.3,
-        z0: u.z0 - seamT / 2, z1: u.z0 + seamT / 2,
-      };
-      content.add(boxMesh(band, MAT_ALU));
+    for (const u of units) {
+      const H = u.z1 - u.z0;
+      const g = new THREE.Group();
+      const shell = new THREE.Mesh(isTop ? GEO_WEDGE : GEO_BOX, cabinet);
+      shell.scale.set(W, D, H);
+      g.add(shell);
+      for (const { b, mat } of speakerUnitParts(W, D, H)) g.add(boxMesh(b, mat));
+      g.rotation.z = deg * Math.PI / 180;
+      g.position.set(cx, cy, (u.z0 + u.z1) / 2);
+      content.add(g);
     }
+    if (selected || bad) content.add(edges(body, selected ? MAT_EDGE_SEL : MAT_EDGE_ERR));
 
-    if (colors.stripe) {
-      const band = {
-        x0: body.x0 - 0.2, x1: body.x1 + 0.2, y0: body.y0 - 0.2, y1: body.y1 + 0.2,
-        z0: body.z1 - 12, z1: body.z1 - 6,
-      };
-      content.add(boxMesh(band, bandMaterial(colors.stripe)));
-    }
-
-    for (const bar of speakerDollyFrame(box, body.z0)) content.add(boxMesh(bar, MAT_DOLLY_RAIL));
+    const mark = bandMaterial(colors.stripe ?? colors.body);
+    const [b0, b1, b2, b3] = speakerDollyFrame(box, body.z0);
+    for (const bar of [b0, b1, b2, b3]) content.add(boxMesh(bar, MAT_DOLLY_RAIL));
+    for (const skin of [
+      { ...b0, y0: b0.y0 - 0.3, y1: b0.y0 }, { ...b1, y0: b1.y1, y1: b1.y1 + 0.3 },
+      { ...b2, x0: b2.x0 - 0.3, x1: b2.x0 }, { ...b3, x0: b3.x1, x1: b3.x1 + 0.3 },
+    ]) content.add(boxMesh(skin, mark));
     for (const w of wheels) content.add(...wheelMesh(w, face, MAT_WHEEL_SPEAKER));
 
-    const labelBox = { ...body, z1: units[0].z1 };
+    const bg = c.cabinetColor ?? CASE_BLACK;
     const labelText = it.label ? `${seq}. ${it.label}` : `${seq}.`;
-    for (const pl of labelPlanes(labelBox, face)) content.add(labelMesh(pl, labelText, colors.body));
+    const backFace = { 0: 'y1', 90: 'x0', 180: 'y0', 270: 'x1' }[deg] ?? 'y1';
+    const first = units[0], last = units[units.length - 1];
+    const mid = (first.z0 + first.z1) / 2, half = ((first.z1 - first.z0) / 2) * (isTop ? SPEAKER_BACK_RATIO : 1);
+    for (const pl of labelPlanes({ ...body, z0: mid - half, z1: mid + half }, face)) {
+      if (pl.face === backFace) content.add(labelMesh(pl, labelText, bg));
+    }
+    // Oberseite: nur ein kleines Feld statt der ganzen Fläche – eine flächige Beschriftung oben
+    // drauf liest sich aus der erhöhten Standard-Kamera wie ein Case-Aufkleber.
+    for (const pl of labelPlanes({ ...body, z0: last.z0, z1: last.z1 }, face)) {
+      if (pl.face === 'z1') content.add(labelMesh({ ...pl, width: pl.width * 0.5, height: pl.height * 0.45 }, labelText, bg));
+    }
   }
 
   function clear() {
@@ -629,14 +644,13 @@ export async function createView3d(container) {
     resizeObserver.disconnect();
     controls.dispose();
     clear();
-    for (const g of [GEO_BOX, GEO_BOX_EDGES, GEO_SPHERE, GEO_CYL, GEO_PLANE]) g.dispose();
+    for (const g of [GEO_BOX, GEO_BOX_EDGES, GEO_SPHERE, GEO_CYL, GEO_PLANE, GEO_WEDGE]) g.dispose();
     LAM_TEX.dispose();
-    GRILLE_TEX.dispose();
     for (const m of [
       MAT_FLOOR, MAT_ROOM_EDGE, MAT_FRONT, MAT_ARCH, MAT_ALU, MAT_CORNER, MAT_WHEEL, MAT_HUB,
       MAT_EDGE_ALU, MAT_EDGE_SEL, MAT_EDGE_ERR, MAT_PROFILE, MAT_CHROME, MAT_SEAM_BAND,
       MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL, MAT_WHEEL_SPEAKER,
-      MAT_SPEAKER_BODY, MAT_SPEAKER_BODY_BAD, MAT_SPEAKER_BADGE,
+      MAT_SPEAKER_GRILLE, MAT_SPEAKER_MULLION, MAT_SPEAKER_RIG, MAT_SPEAKER_BADGE,
     ]) m.dispose();
     for (const { material, texture } of labelTexCache.values()) { material.dispose(); texture.dispose(); }
     labelTexCache.clear();

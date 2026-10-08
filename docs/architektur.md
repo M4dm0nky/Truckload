@@ -411,37 +411,33 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
   Three.js mit geteilten Geometrien und Materialien (`userData.shared` — diese werden beim
   Aufräumen **nicht** verworfen; alles selbst Erzeugte muss freigegeben werden). `kind:
   'speaker'` (seit V 0.11.0, `addSpeaker()`) ist ein dritter eigener Zweig neben Flightcase und
-  Traversenwagen: Nutzer-Feedback, dass Audio-Dolly-Stacks mit der generischen Flightcase-Optik
-  wie ein normales Case aussahen, nicht wie PA-Lautsprecher — mehrfach anhand realer Fotos
-  nachgebessert:
-  - **Dolly:** offener Rahmen (`speakerDollyFrame()`, `MAT_DOLLY_RAIL`) statt einer
-    geschlossenen Platte, mit auffällig gelben statt case-üblich dunklen Rollen
-    (`MAT_WHEEL_SPEAKER`, `wheelMesh()`s `wheelMat`-Parameter) — Vorbild: L-Acoustics
-    K2-CHARIOT-Produktfoto.
-  - **Fuge zwischen gestapelten Einzelboxen:** ein helles, umlaufendes Nahtband (`MAT_ALU`) an
-    jeder inneren Lagengrenze (`speakerUnits()`, Höhe je Box aus `c.unitH`,
-    `js/model/audioDolly.js`). Ein reiner 3D-Tiefenspalt zwischen den Segmenten (erste Fassung)
-    war bei normaler Kamera-Distanz im LKW praktisch unsichtbar — das Band trägt die
-    Sichtbarkeit über Farbkontrast, nicht über Tiefe.
-  - **Korpusfläche:** fast vollständig eine texturierte Lochgrille (`GRILLE_TEX`,
-    `makeGrilleTexture()`, prozedurales Punktraster wie `makeLaminateTexture()`, nur als
-    Lochmuster statt zufälliger Körnung) in dunklem Anthrazit (`MAT_SPEAKER_BODY`/
-    `MAT_SPEAKER_BODY_BAD` für die Fehler-Einfärbung) statt der glatten Flightcase-
-    Laminatfläche, dazu ein kleines goldfarbenes Marken-Badge je Einzelbox
-    (`speakerBadges()`, `MAT_SPEAKER_BADGE`) — Vorbild: K2-Seitenfoto des Nutzers. Die
-    Boxen selbst bleiben rechteckig (keine echte Keilform/Konik des realen Gehäuses) — das
-    würde die Außen-Bounding-Box verändern, die für die Pack-Logik/Stellfläche
-    maßgeblich ist; eine rein optische Fase ist als Folgearbeit offen.
-  - Die Beschriftung sitzt nur auf der untersten Box, nicht über den ganzen Stack gespannt —
-    sonst dominiert ein einzelner Textblock das Bild.
+  Traversenwagen. Nach mehreren Runden Nutzer-Feedback („es sind immer noch Cases“) wird jede
+  Einzelbox eines Dolly-Stacks als eigenes Lautsprecher-Gehäuse gezeichnet, nicht als Quader mit
+  aufgemalten Linien – Vorbild sind Nutzer-/Herstellerfotos des L-Acoustics K2 und K2-CHARIOT:
+  - Jede Box ist eine `THREE.Group` in lokalen cm-Koordinaten (Breite `c.l`, Tiefe `c.w` mit
+    der Front bei −y, Höhe `c.unitH`), um `p.rot` gedreht – die Front zeigt je nach Drehung in
+    eine andere Richtung, der Nutzer dreht sie mit „R“. Die Bounding-Box fürs Packen bleibt der
+    volle Quader.
+  - Array-Tops (`speakerType: 'top'`) haben ein Keilprofil (`GEO_WEDGE`, Rückseite auf
+    `SPEAKER_BACK_RATIO` = 0,8 verjüngt; kalibriert an der K2-Zeichnung, 286/354 mm, eigene
+    optische Annahme). Gestapelt ergibt das vorn eine gerade Fläche und hinten die typischen
+    Keil-Lücken. Subs (`'sub'`) sind Quader.
+  - `speakerUnitParts()`: Front mit hellerem Grillefeld im Gehäuserahmen (ab 100 cm Breite zwei
+    Felder mit Mittelsteg) und Marken-Badge; Seiten mit Rigging-Platte und Griffstange. Die
+    Sichtbarkeit trägt der Helligkeitskontrast Grille ↔ Gehäuse – feine Texturen oder Spalte
+    verschwinden aus normaler Kamera-Distanz (Lehre aus V 0.11.2/0.11.3).
+  - Gehäusefarbe aus `c.cabinetColor` (`bodyMaterial(…, plain)`, ohne Laminat-Körnung), nicht
+    aus dem Farbmodus; die Gewerk-/Stück-/Gewichtsfarbe sitzt als dünne Marke außen am offenen
+    Dolly-Rahmen (`speakerDollyFrame()`), die Rollen sind gelb (`MAT_WHEEL_SPEAKER`).
+  - Beschriftung auf der Rückseite der untersten Box und als kleines Feld auf der Oberseite der
+    obersten – nicht auf Grille oder Seiten.
 
-  `js/ui/dolly-wizard.js`s `openDollyDialog()` berechnet den Case-Typ bei JEDEM Dialog-Lauf neu
-  und überschreibt eine gleichnamige, bereits gespeicherte Zeile (Ruling 2026-10-08, ersetzt
-  eine frühere „nicht überschreiben“-Regel aus dem Final-Review): die hätte eine vom Nutzer im
-  Case-Editor bearbeitete Zeile schützen sollen, verhinderte in der Praxis aber, dass ein schon
-  vor einer Optik-Überarbeitung erzeugter Dolly-Stack jemals die neuen Felder/die neue
-  Darstellung bekam — genau wie die mitgelieferten Basis-Vorlagen (`preset-k2` & Co.) ohnehin
-  bei jedem Release aktualisiert werden, ohne eine solche Schutzregel.
+  Dolly-Stacks aus früheren Versionen (ohne `kind`, teils noch mit der alten ID
+  `preset-<basis>-dolly-<n>`) bekommen die fehlenden Felder über `upgradeDollyStack()`
+  (`js/model/audioDolly.js`), aufgerufen aus `normalizeCase()` beim Laden und beim Import;
+  Maße, Gewicht und ID bleiben unverändert. `openDollyDialog()` berechnet den Case-Typ bei jedem
+  Dialog-Lauf neu (Ruling 2026-10-08, ersetzt die frühere „nicht überschreiben“-Regel aus dem
+  Final-Review, die verhinderte, dass bestehende Stacks neue Darstellungsfelder bekamen).
 
   2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen Tetris-Darstellung.
 
