@@ -2,6 +2,14 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.11.4 – 2026-10-08
+
+Anhand eines Nutzer-Fotos nachgebessert: die Front einer Lautsprecher-Box ist jetzt eine
+texturierte Lochgrille in dunklem Anthrazit statt einer glatten Fläche, dazu ein kleines
+goldfarbenes Marken-Badge je Einzelbox. Außerdem behoben: ein bereits gespeicherter Dolly-Stack
+(z. B. aus einem früheren Test) bekam bei erneutem Dialog-Lauf nie die neuesten Felder/die
+neue Darstellung – der Case-Typ wird jetzt bei jedem Lauf frisch berechnet.
+
 ## V 0.11.3 – 2026-10-08
 
 Die Fuge zwischen gestapelten Lautsprecher-Boxen (V 0.11.2) war bei normaler Kamera-Distanz im
