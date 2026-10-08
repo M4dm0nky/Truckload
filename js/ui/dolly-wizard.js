@@ -1,17 +1,24 @@
 import { esc } from './dom.js';
-import { dollyStackCase, dollyStackId, maxDollyCount } from '../model/audioDolly.js';
+import { dollyStackCase, maxDollyCount } from '../model/audioDolly.js';
 
-// opts: { baseCase, cases, onNewDollyStack(caseType) }
+// opts: { baseCase, onNewDollyStack(caseType) }
 // Ergebnis: { newCase, addition: { caseId, n } } oder null bei Abbruch/ungültiger Eingabe.
 // Analog openTrussDialog() (js/ui/truss-wizard.js) – fragt NUR die Stückzahl ab, keine „ohne
 // Dolly“-Option (Nutzer-Entscheidung: Line-Array-Tops/Subs stehen in der Praxis immer auf
 // einem Dolly). Die Stückzahl ist auf maxDollyCount(base) begrenzt (CASE_LIMITS, Befund
 // Final-Review Important #3) – keine eigene, engere Grenze darüber hinaus (Nutzer-Entscheidung:
-// die bestehende Höhen-/Gewichtsprüfung reicht). Existiert für dieselbe Basisbox+Stückzahl
-// bereits ein Case in `opts.cases` (zweiter Dialog-Lauf mit gleicher Eingabe), wird dieser
-// unverändert wiederverwendet statt neu gespeichert – sonst würde eine vom Nutzer im
-// Case-Editor bearbeitete Zeile beim nächsten Mal stillschweigend wieder auf die Formel-Werte
-// zurückgesetzt (Befund Final-Review Important #2).
+// die bestehende Höhen-/Gewichtsprüfung reicht).
+//
+// Ruling 2026-10-08 (ersetzt Befund Final-Review Important #2): existiert für dieselbe Basis-
+// box+Stückzahl schon ein Case, wird er trotzdem NEU berechnet und überschrieben, nicht mehr
+// unverändert wiederverwendet. Die frühere „nicht überschreiben“-Regel sollte eine vom Nutzer
+// im Case-Editor bearbeitete Zeile schützen – hat in der Praxis aber verhindert, dass bereits
+// erzeugte Dolly-Stacks jemals neue Felder/Optik aus einer späteren Version bekommen (Nutzer
+// hatte dadurch nach der 3D-Lautsprecher-Überarbeitung weiter die alte Flightcase-Darstellung
+// auf einem schon vorher angelegten „K2 2er“). Das betrifft praktisch nur automatisch erzeugte,
+// nie von Hand bearbeitete Zeilen – genau wie die mitgelieferten Basis-Vorlagen (preset-k2 &
+// Co.) schon immer bei jedem Release aktualisiert werden, ohne eine Schutzregel dafür.
+
 // Prüft eine rohe Formular-Eingabe gegen 1..maxN – ausgelagert aus openDollyDialog() (Befund
 // Final-Review Minor #8), damit eine ungültige Stückzahl (0, negativ, leer, nicht-numerisch,
 // über maxN) ohne DOM unabhängig getestet werden kann, statt nur implizit über eine einzelne
@@ -56,9 +63,6 @@ export function openDollyDialog(dlg, opts = {}) {
       if (act !== 'save') return resolve(null);
       const n = validN();
       if (n === null) return resolve(null);
-      const id = dollyStackId(base, n);
-      const existing = (opts.cases ?? []).find(c => c.id === id);
-      if (existing) return resolve({ newCase: existing, addition: { caseId: existing.id, n: 1 } });
       const caseType = dollyStackCase(base, n);
       const saved = await opts.onNewDollyStack?.(caseType);
       if (!saved) return resolve(null);

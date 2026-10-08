@@ -92,13 +92,12 @@ export async function createView3d(container) {
   // Traversen-Rollbrett: Kunststoff-Platte (schwarz) mit etwas helleren Auflageleisten obenauf.
   const MAT_DOLLY_BOARD = shared(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.85 }));
   const MAT_DOLLY_RAIL = shared(new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.8 }));
-  // Lautsprecher-Look (kind: 'speaker', Nutzer-Feedback 2026-10-08, nachgebessert anhand realer
-  // Produktfotos — L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig GELBEN Lenkrollen, kein
-  // schwarzer Kasten; K2-Flugbild: einzelne Boxen durch eine echte Fuge mit Beschlag-Punkten
-  // getrennt, nicht nur eine dünne Farblinie). MAT_SPEAKER_GRILLE: Grille-Andeutung, deutlich
-  // matter/weniger reflektiv als MAT_CORNER/MAT_CHROME (das ist die vermiedene Flightcase-
-  // Optik). MAT_WHEEL_SPEAKER: die gelbe Rollen-Lauffläche selbst.
-  const MAT_SPEAKER_GRILLE = shared(new THREE.MeshStandardMaterial({ color: 0x6b7078, metalness: 0.3, roughness: 0.6 }));
+  // Lautsprecher-Look (kind: 'speaker', Nutzer-Feedback 2026-10-08, mehrfach anhand realer
+  // Produktfotos nachgebessert — L-Acoustics K2-CHARIOT: offener Rahmen mit auffällig GELBEN
+  // Lenkrollen, kein schwarzer Kasten; K2-Seitenfoto: die Front ist fast vollständig eine
+  // texturierte Stoff-/Lochgrille, kein schmaler Rand-Streifen. MAT_WHEEL_SPEAKER: die gelbe
+  // Rollen-Lauffläche selbst (MAT_SPEAKER_BODY/-BADGE stehen weiter unten bei der dafür
+  // erzeugten Textur, GRILLE_TEX).
   const MAT_WHEEL_SPEAKER = shared(new THREE.MeshStandardMaterial({ color: 0xf2a900, roughness: 0.6 }));
   const COL_PROFILE_N = new THREE.Color(0xc9ced4);
   const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
@@ -124,6 +123,48 @@ export async function createView3d(container) {
     return tex;
   }
   const LAM_TEX = makeLaminateTexture();
+
+  // Lochmuster-Grille für `kind: 'speaker'` (Nutzer-Foto 2026-10-08, L-Acoustics K2 Seitenan-
+  // sicht): die Front ist fast vollständig eine texturierte Stoff-/Lochgrille, kein schmaler
+  // Rand-Streifen wie in der vorigen Fassung. Regelmäßiges Punktraster statt der zufälligen
+  // Laminat-Körnung oben – ein Wabenraster wäre näher am Foto, kostet aber deutlich mehr
+  // Canvas-Zeichenaufwand für denselben Effekt aus normaler Kamera-Distanz.
+  function makeGrilleTexture() {
+    const size = 64;
+    const cnv = document.createElement('canvas');
+    cnv.width = cnv.height = size;
+    const ctx = cnv.getContext('2d');
+    ctx.fillStyle = '#1c1c1e';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#323236';
+    const step = 6, r = 1.1;
+    for (let y = step / 2; y < size; y += step) {
+      for (let x = step / 2; x < size; x += step) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const tex = new THREE.CanvasTexture(cnv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(10, 4);
+    tex.userData.shared = true;
+    return tex;
+  }
+  const GRILLE_TEX = makeGrilleTexture();
+  // Dunkles Anthrazit statt reinem CASE_BLACK – zusammen mit der Textur der Stoff-/Lochgrille-
+  // Look aus dem Foto, deutlich von der glatten Flightcase-Laminatfläche unterscheidbar.
+  const MAT_SPEAKER_BODY = shared(new THREE.MeshStandardMaterial({
+    color: 0x242426, roughness: 0.95, map: GRILLE_TEX,
+  }));
+  // Fehler-Variante (rote Einfärbung) wie bodyMaterial() es für normale Cases über `bad` tut –
+  // eigenes, festes Material statt eines Caches, weil `kind: 'speaker'` nur diese zwei Zustände
+  // kennt (kein Farbmodus-Einfluss auf den Korpus, s. addSpeaker()).
+  const MAT_SPEAKER_BODY_BAD = shared(new THREE.MeshStandardMaterial({
+    color: 0x242426, roughness: 0.95, map: GRILLE_TEX, emissive: 0x661111,
+  }));
+  // Kleines Marken-Badge unten auf der Front (Foto: goldfarbene L-Acoustics-Plakette).
+  const MAT_SPEAKER_BADGE = shared(new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: 0.5, roughness: 0.4 }));
 
   // Beschriftungs-Texturen: pro einzigartiger Kombination aus Text, Farbe und Seitenverhältnis
   // eine Canvas-Textur (Text mittig über `fitFontSize()` umgebrochen/skaliert), gecacht über
@@ -268,20 +309,22 @@ export async function createView3d(container) {
       { x0: box.x1 - t, x1: box.x1, y0: box.y0, y1: box.y1, z0, z1 },
     ];
   }
-  // Eingelassene Grille-Andeutung je Einzelbox, auf allen 4 Seitenflächen (nicht nur einer
-  // „Vorderseite“ – die Box hat keine zuverlässig bekannte Blickrichtung, s. Brainstorming-
-  // Entscheidung) statt der Flightcase-Kugelecken/Deckelfuge/Griffe.
-  function speakerGrilles(body, unit) {
-    const mXY = Math.min(6, (body.x1 - body.x0) * 0.12, (body.y1 - body.y0) * 0.12);
-    const mZ = Math.min(4, (unit.z1 - unit.z0) * 0.12);
-    const z0 = unit.z0 + mZ, z1 = unit.z1 - mZ;
-    if (z1 <= z0 || mXY <= 0) return [];
-    const t = 0.4;
+  // Kleines Marken-Badge je Einzelbox, unten auf allen 4 Seitenflächen (Nutzer-Foto 2026-10-08:
+  // goldfarbene L-Acoustics-Plakette nahe der Unterkante) – die Box hat keine zuverlässig
+  // bekannte „Vorderseite“ (s. Brainstorming-Entscheidung), deshalb auf allen 4 Seiten statt nur
+  // einer.
+  function speakerBadges(body, unit) {
+    const bw = Math.min(3, (body.x1 - body.x0) * 0.3, (body.y1 - body.y0) * 0.3);
+    const bh = Math.min(2, (unit.z1 - unit.z0) * 0.2);
+    if (bw <= 0 || bh <= 0) return [];
+    const cz = unit.z0 + Math.min(6, (unit.z1 - unit.z0) * 0.18);
+    const cx = (body.x0 + body.x1) / 2, cy = (body.y0 + body.y1) / 2;
+    const t = 0.35;
     return [
-      { x0: body.x0 - t, x1: body.x0, y0: body.y0 + mXY, y1: body.y1 - mXY, z0, z1 },
-      { x0: body.x1, x1: body.x1 + t, y0: body.y0 + mXY, y1: body.y1 - mXY, z0, z1 },
-      { x0: body.x0 + mXY, x1: body.x1 - mXY, y0: body.y0 - t, y1: body.y0, z0, z1 },
-      { x0: body.x0 + mXY, x1: body.x1 - mXY, y0: body.y1, y1: body.y1 + t, z0, z1 },
+      { x0: body.x0 - t, x1: body.x0, y0: cy - bw / 2, y1: cy + bw / 2, z0: cz - bh / 2, z1: cz + bh / 2 },
+      { x0: body.x1, x1: body.x1 + t, y0: cy - bw / 2, y1: cy + bw / 2, z0: cz - bh / 2, z1: cz + bh / 2 },
+      { x0: cx - bw / 2, x1: cx + bw / 2, y0: body.y0 - t, y1: body.y0, z0: cz - bh / 2, z1: cz + bh / 2 },
+      { x0: cx - bw / 2, x1: cx + bw / 2, y0: body.y1, y1: body.y1 + t, z0: cz - bh / 2, z1: cz + bh / 2 },
     ];
   }
 
@@ -535,9 +578,9 @@ export async function createView3d(container) {
     const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
 
     const units = speakerUnits(body, c.unitH);
-    content.add(boxMesh(body, bodyMaterial(colors.body, bad)));
+    content.add(boxMesh(body, bad ? MAT_SPEAKER_BODY_BAD : MAT_SPEAKER_BODY));
     content.add(edges(body, edgeMat));
-    for (const u of units) for (const g of speakerGrilles(body, u)) content.add(boxMesh(g, MAT_SPEAKER_GRILLE));
+    for (const u of units) for (const bdg of speakerBadges(body, u)) content.add(boxMesh(bdg, MAT_SPEAKER_BADGE));
     // Durchgehende helle Nahtbänder an jeder inneren Fuge – tragen die Sichtbarkeit über
     // Farbkontrast (MAT_ALU gegen CASE_BLACK), nicht über einen Tiefenspalt, der aus normaler
     // Kamera-Distanz verschwindet.
@@ -588,10 +631,12 @@ export async function createView3d(container) {
     clear();
     for (const g of [GEO_BOX, GEO_BOX_EDGES, GEO_SPHERE, GEO_CYL, GEO_PLANE]) g.dispose();
     LAM_TEX.dispose();
+    GRILLE_TEX.dispose();
     for (const m of [
       MAT_FLOOR, MAT_ROOM_EDGE, MAT_FRONT, MAT_ARCH, MAT_ALU, MAT_CORNER, MAT_WHEEL, MAT_HUB,
       MAT_EDGE_ALU, MAT_EDGE_SEL, MAT_EDGE_ERR, MAT_PROFILE, MAT_CHROME, MAT_SEAM_BAND,
-      MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL, MAT_SPEAKER_GRILLE, MAT_WHEEL_SPEAKER,
+      MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL, MAT_WHEEL_SPEAKER,
+      MAT_SPEAKER_BODY, MAT_SPEAKER_BODY_BAD, MAT_SPEAKER_BADGE,
     ]) m.dispose();
     for (const { material, texture } of labelTexCache.values()) { material.dispose(); texture.dispose(); }
     labelTexCache.clear();
