@@ -585,15 +585,27 @@ export async function createView3d(container) {
     const dx = body.x1 - body.x0, dy = body.y1 - body.y0;
     const W = r90 ? dy : dx, D = r90 ? dx : dy;
     const cx = (body.x0 + body.x1) / 2, cy = (body.y0 + body.y1) / 2;
+    // Stellfläche D = Dolly-Tiefe (60/80/120, js/model/audioDolly.js), die Box selbst ist nur Db
+    // tief und sitzt mit der Front bündig an der Dolly-Vorderkante, hinten bleibt der Dolly frei
+    // (Nutzerangabe: „die Frontseite sitzt fast vorne auf dem Dolly und hinten ist der Dolly frei“).
+    const Db = Math.min(c.unitD > 0 ? c.unitD : D, D);
+    // Bereich der Boxen in Truck-Koordinaten – für die Beschriftung auf der echten Box-Rückseite.
+    const boxArea = {
+      0: { ...body, y1: body.y0 + Db }, 180: { ...body, y0: body.y1 - Db },
+      90: { ...body, x0: body.x1 - Db }, 270: { ...body, x1: body.x0 + Db },
+    }[deg] ?? body;
 
     const units = speakerUnits(body, c.unitH);
     for (const u of units) {
       const H = u.z1 - u.z0;
       const g = new THREE.Group();
+      const inner = new THREE.Group();
+      inner.position.y = -(D - Db) / 2;
       const shell = new THREE.Mesh(isTop ? GEO_WEDGE : GEO_BOX, cabinet);
-      shell.scale.set(W, D, H);
-      g.add(shell);
-      for (const { b, mat } of speakerUnitParts(W, D, H)) g.add(boxMesh(b, mat));
+      shell.scale.set(W, Db, H);
+      inner.add(shell);
+      for (const { b, mat } of speakerUnitParts(W, Db, H)) inner.add(boxMesh(b, mat));
+      g.add(inner);
       g.rotation.z = deg * Math.PI / 180;
       g.position.set(cx, cy, (u.z0 + u.z1) / 2);
       content.add(g);
@@ -614,12 +626,12 @@ export async function createView3d(container) {
     const backFace = { 0: 'y1', 90: 'x0', 180: 'y0', 270: 'x1' }[deg] ?? 'y1';
     const first = units[0], last = units[units.length - 1];
     const mid = (first.z0 + first.z1) / 2, half = ((first.z1 - first.z0) / 2) * (isTop ? SPEAKER_BACK_RATIO : 1);
-    for (const pl of labelPlanes({ ...body, z0: mid - half, z1: mid + half }, face)) {
+    for (const pl of labelPlanes({ ...boxArea, z0: mid - half, z1: mid + half }, face)) {
       if (pl.face === backFace) content.add(labelMesh(pl, labelText, bg));
     }
     // Oberseite: nur ein kleines Feld statt der ganzen Fläche – eine flächige Beschriftung oben
     // drauf liest sich aus der erhöhten Standard-Kamera wie ein Case-Aufkleber.
-    for (const pl of labelPlanes({ ...body, z0: last.z0, z1: last.z1 }, face)) {
+    for (const pl of labelPlanes({ ...boxArea, z0: last.z0, z1: last.z1 }, face)) {
       if (pl.face === 'z1') content.add(labelMesh({ ...pl, width: pl.width * 0.5, height: pl.height * 0.45 }, labelText, bg));
     }
   }

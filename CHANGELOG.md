@@ -2,6 +2,16 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.12.2 – 2026-10-08
+
+Dolly-Stacks belegen im Truck jetzt die echte Dolly-Tiefe: 60, 80 oder 120 cm, je nachdem, was
+die Boxentiefe aufnimmt (so passen 4, 3 bzw. 2 Dollys nebeneinander in den Trailer). Vorher
+zählte nur die nackte Boxentiefe – sechs K2-Stacks nebeneinander, in echt unmöglich. In 3D sitzen
+die Boxen vorn bündig auf dem Dolly, hinten bleibt er frei.
+
+- Bereits gespeicherte Dolly-Stacks werden beim Laden auf die neue Tiefe umgestellt. Bestehende
+  Ladepläne danach einmal „Alles neu packen“ – sonst überlappen die breiteren Stacks.
+
 ## V 0.12.1 – 2026-10-08
 
 Die 8 alten festen Vorlagen „…4er/6er (auf Dolly)“ aus V 0.10.0 sind entfernt. Dolly-Stacks

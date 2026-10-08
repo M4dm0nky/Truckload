@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dollyStackCase, dollyStackId, maxDollyCount, upgradeDollyStack, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
+import { dollyStackCase, dollyStackId, maxDollyCount, upgradeDollyStack, dollyDepth, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
 import { checkCase, exportBundle, parseBundle } from '../js/store/io.js';
 import { outerDims } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
@@ -24,11 +24,12 @@ test('dollyStackCase: Konstanten aus der Recherche (Carvin/SYNQ/DAS, docs/casema
   assert.equal(DOLLY_WEIGHT_KG, 15);
 });
 
-test('dollyStackCase: Fußabdruck bleibt die Basisbox, Höhe/Gewicht nach Formel', () => {
+test('dollyStackCase: Länge = Boxbreite, Tiefe = Dolly-Stufe, Höhe/Gewicht nach Formel', () => {
   const base = mkCase('preset-ls18', 78, 68, 51, { weight: 56, name: 'Nexo LS18', category: 'Ton' });
   const c = dollyStackCase(base, 3);
   assert.equal(c.l, 78);
-  assert.equal(c.w, 68);
+  assert.equal(c.w, 80);
+  assert.equal(c.unitD, 68);
   assert.equal(c.h, 3 * 51);
   assert.equal(c.weight, 15 + 3 * 56);
 });
@@ -62,7 +63,8 @@ test('dollyStackCase: Gegenprobe L-Acoustics K2, Stückzahl 4 (reale Boxmaße)',
   const k2 = mkCase('preset-k2', 138, 40, 35, { weight: 56, name: 'L-Acoustics K2', category: 'Ton' });
   const c = dollyStackCase(k2, 4);
   assert.equal(c.l, 138);
-  assert.equal(c.w, 40);
+  assert.equal(c.w, 60);
+  assert.equal(c.unitD, 40);
   assert.equal(c.h, 4 * 35);
   assert.equal(c.weight, 15 + 4 * 56);
 });
@@ -145,10 +147,26 @@ test('upgradeDollyStack: alte ID-Form preset-<basis>-dolly-<n> wird ebenfalls er
   assert.equal(c.id, 'preset-k2-dolly-2');
 });
 
-test('upgradeDollyStack: Maße, Gewicht, Rollenhöhe und ID bleiben unverändert', () => {
+test('upgradeDollyStack: Länge, Höhe, Gewicht, Rollenhöhe und ID bleiben unverändert', () => {
   const before = oldStack('dolly-k2-2');
   const c = upgradeDollyStack(before, [K2]);
-  for (const k of ['id', 'l', 'w', 'h', 'weight', 'wheelH', 'dimsInclWheels', 'name']) assert.equal(c[k], before[k], k);
+  for (const k of ['id', 'l', 'h', 'weight', 'wheelH', 'dimsInclWheels', 'name']) assert.equal(c[k], before[k], k);
+});
+
+// Nutzerwunsch 2026-10-08: alte Stacks belegten nur die nackte Boxentiefe (K2: 40 cm) – sechs
+// passten nebeneinander in den Truck. Bewusste Maßänderung auf Nutzerwunsch: die Tiefe wird auf
+// die Dolly-Stufe aufgerundet, die echte Boxentiefe bleibt in unitD erhalten.
+test('upgradeDollyStack: alte Stack-Tiefe wird auf die Dolly-Stufe gezogen, Boxentiefe in unitD', () => {
+  const c = upgradeDollyStack(oldStack('dolly-k2-2'), [K2]);
+  assert.equal(c.w, 60);
+  assert.equal(c.unitD, 40);
+  assert.equal(upgradeDollyStack(c, [K2]), c);
+});
+
+// Dollys werden mit der kurzen Seite voran in den Truck geschoben: 4/3/2 nebeneinander in 248 cm
+// (Nutzerangabe) → Tiefen-Stufen 60/80/120 cm. Darüber: Boxentiefe selbst, kein erfundenes Maß.
+test('dollyDepth: kleinste Stufe 60/80/120, die die Boxentiefe aufnimmt', () => {
+  assert.deepEqual([40, 60, 61, 72, 80, 81, 120, 130].map(dollyDepth), [60, 60, 80, 80, 80, 120, 120, 130]);
 });
 
 test('upgradeDollyStack: aktuelles Case bleibt identisch, fremde/unbekannte IDs unverändert', () => {
