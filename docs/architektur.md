@@ -414,9 +414,11 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
   Traversenwagen. Nach mehreren Runden Nutzer-Feedback („es sind immer noch Cases“) wird jede
   Einzelbox eines Dolly-Stacks als eigenes Lautsprecher-Gehäuse gezeichnet, nicht als Quader mit
   aufgemalten Linien – Vorbild sind Nutzer-/Herstellerfotos des L-Acoustics K2 und K2-CHARIOT:
-  - Jede Box ist eine `THREE.Group` in lokalen cm-Koordinaten (Breite `c.l`, Tiefe `c.w` mit
-    der Front bei −y, Höhe `c.unitH`), um `p.rot` gedreht – die Front zeigt je nach Drehung in
-    eine andere Richtung, der Nutzer dreht sie mit „R“. Die Bounding-Box fürs Packen bleibt der
+  - Jede Box ist eine `THREE.Group` in lokalen cm-Koordinaten (Breite `c.l`, Tiefe `c.unitD`
+    mit der Front bei −y, Höhe `c.unitH`), um `p.rot` gedreht – die Front zeigt je nach Drehung
+    in eine andere Richtung, der Nutzer dreht sie mit „R“. Die Stellfläche ist so tief wie der
+    Dolly (`c.w`, 60/80/120 cm über `dollyDepth()`); die Box sitzt mit der Front bündig an der
+    Dolly-Vorderkante, hinten bleibt der Dolly frei. Die Bounding-Box fürs Packen bleibt der
     volle Quader.
   - Array-Tops (`speakerType: 'top'`) haben ein Keilprofil (`GEO_WEDGE`, Rückseite auf
     `SPEAKER_BACK_RATIO` = 0,8 verjüngt; kalibriert an der K2-Zeichnung, 286/354 mm, eigene

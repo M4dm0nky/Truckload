@@ -28,28 +28,28 @@ Beide Konstanten liegen in `js/model/audioDolly.js` (`DOLLY_HEIGHT_CM`, `DOLLY_W
 
 ### Geometrie der Dolly-Stack-Vorlage
 
-Der Fußabdruck bleibt exakt der der Basisbox (`l × w`) – ändert nichts an der Pack-Logik. Die
-Dolly-Höhe steckt in `wheelH: 18, dimsInclWheels: false`, nicht in `h`: dadurch zeichnet die
-bereits vorhandene 4-Rollen-Zeichnung aus `js/model/caseShape.js` den Dolly automatisch mit,
-ohne neuen Zeichencode – bei 18 cm Rollenhöhe sichtbar größer/wuchtiger als die case-üblichen
-12–16-cm-Blue-Wheels. `h = Stückzahl × Boxhöhe` (Boxen stehen direkt aufeinander),
-`weight = 15 kg + Stückzahl × Boxgewicht`, `layers: [1]` (der Stack ist bereits der volle
-Turm).
+Länge = Boxbreite (`l` der Basisbox), Tiefe = Dolly-Tiefe (s. u.), die echte Boxentiefe steht in
+`unitD`. Die Dolly-Höhe steckt in `wheelH: 18, dimsInclWheels: false`, nicht in `h`.
+`h = Stückzahl × Boxhöhe` (Boxen stehen direkt aufeinander), `weight = 15 kg + Stückzahl ×
+Boxgewicht`, `layers: [1]` (der Stack ist bereits der volle Turm).
 
-### Dolly-Normbreite (nur Dokumentation, nicht Teil der Pack-Logik)
+### Dolly-Tiefe 60 / 80 / 120 cm (Teil der Pack-Logik seit V 0.12.2)
 
-Dollys sind so gebaut, dass 2, 3 oder 4 nebeneinander in den Standard-Sattelauflieger/
-Megatrailer passen (248 cm Innenbreite, `js/data/preset-trucks.js`). Zwei vom Nutzer
-durchgerechnete Beispiele: L-Acoustics K2 (Box-`w`-Feld = 40 cm) → Dolly-Normbreite 60 cm
-(4 nebeneinander, 240/248 cm); RCF SUB 8006-AS (Box-`w`-Feld = 71 cm, passt nicht auf 60) →
-Dolly-Normbreite 80 cm (3 nebeneinander, 240/248 cm). Regel daraus: die Dolly-Normbreite ist
-das kleinere der beiden Box-Fußmaße (`w`-Feld), aufgerundet auf die kleinste passende Stufe
-aus 60 / 80 / 124 cm (= 248 ÷ 4 / ÷ 3 / ÷ 2) – wie `DOLLY_WIDTHS` in `js/model/truss.js` für
-Traversenwagen, hier um die 124-cm-Stufe erweitert. Diese Regel fließt bewusst nur in diese
-Dokumentation ein, nicht in eine eigene Zeichnung: der reale Dolly sitzt in der Praxis
-außerdem nicht mittig unter der Box (vorne unter dem schwereren Teil, hinten überstehend),
-auch das bleibt für diese Runde eine Vereinfachung – der Dolly wird als Rollensatz unter der
-ganzen Box dargestellt.
+Dollys werden mit der kurzen Seite voran in den Truck geschoben und sind so gebaut, dass 4, 3
+oder 2 nebeneinander in die 248 cm Innenbreite passen (Nutzerangabe). Es zählt nur die Tiefe; die
+lange Seite bleibt das Boxmaß. Vom Nutzer durchgerechnete Beispiele: L-Acoustics K2
+(Boxentiefe 40 cm) → Dolly 60 cm (4 nebeneinander); RCF SUB 8006-AS (71 cm, passt nicht auf 60)
+→ Dolly 80 cm (3 nebeneinander). Regel: kleinste Stufe aus 60 / 80 / 120 cm, die die Boxentiefe
+aufnimmt (`dollyDepth()`, `js/model/audioDolly.js`); tiefer als 120 cm kommt bei den Vorlagen
+nicht vor, dann gilt die Boxentiefe selbst. Ergebnis: alle 8 Array-Tops 60 cm, alle 5 Subs 80 cm.
+
+Bis V 0.12.1 stand diese Regel nur hier in der Doku, die Stacks belegten die nackte Boxentiefe –
+im Truck passten dadurch z. B. sechs K2-Stacks nebeneinander, in echt unmöglich (Nutzer-Feedback
+2026-10-08). Gespeicherte Stacks werden beim Laden auf die Dolly-Tiefe umgestellt
+(`upgradeDollyStack()`); bestehende Ladepläne einmal „Alles neu packen“.
+
+In 3D sitzen die Boxen mit der Front bündig an der Dolly-Vorderkante, hinten bleibt der Dolly frei
+(Nutzerangabe: „die Frontseite sitzt fast vorne auf dem Dolly und hinten ist der Dolly frei“).
 
 ## Gewerk Audio 2026-10-06: Line-Array- und Sub-Vorlagen, sechs Hersteller
 

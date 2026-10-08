@@ -9,6 +9,14 @@ import { CASE_LIMITS } from './validate.js';
 export const DOLLY_HEIGHT_CM = 18; // Rollen + Platte
 export const DOLLY_WEIGHT_KG = 15; // Dolly-Eigengewicht, gerundet gewählt
 
+// Dolly-Tiefen-Stufen (Nutzerangabe 2026-10-06/-08): Dollys werden mit der kurzen Seite voran in
+// den Truck geschoben und sind so gebaut, dass 4, 3 oder 2 nebeneinander in die 248 cm Innenbreite
+// passen – je nach Boxentiefe 60, 80 oder 120 cm. Die lange Seite (Boxbreite) bleibt das Boxmaß.
+// Tiefer als 120 cm kommt bei den Vorlagen nicht vor; dann gilt die Boxentiefe selbst statt eines
+// erfundenen Maßes.
+export const DOLLY_DEPTHS = [60, 80, 120];
+export const dollyDepth = boxDepth => DOLLY_DEPTHS.find(d => d >= boxDepth) ?? boxDepth;
+
 // Die ID darf NICHT mit „preset-“ oder „lib-“ beginnen: `js/store/io.js`s `isPreset()` filtert
 // jede ID mit diesem Präfix beim Datei-Import heraus, unabhängig vom `builtin`-Feld – ein
 // Dolly-Stack, dessen ID direkt aus `baseCase.id` (z. B. `preset-k2`) gebildet würde, wäre nach
@@ -34,9 +42,9 @@ export function maxDollyCount(baseCase) {
   return Math.max(1, Math.min(byHeight, byWeight));
 }
 
-// Baut den Case-Typ für „<Basisbox> N er (auf Dolly)“ – der Fußabdruck bleibt exakt der der
-// Basisbox (Nutzer-Entscheidung: die reale, schmalere Dolly-Normbreite ändert nichts an der
-// Pack-Logik, nur an der Dokumentation, s. docs/casemasse-gewichte.md). Die Dolly-Höhe steckt
+// Baut den Case-Typ für „<Basisbox> N er (auf Dolly)“ – Länge = Boxbreite, Tiefe = Dolly-Tiefe
+// (dollyDepth(), seit V 0.12.2 Teil der Stellfläche), echte Boxentiefe in `unitD` für die
+// 3D-Darstellung (s. docs/casemasse-gewichte.md). Die Dolly-Höhe steckt
 // in `wheelH`/`dimsInclWheels: false`, nicht in `h` – dadurch zeichnet die bereits vorhandene
 // 4-Rollen-Zeichnung in js/model/caseShape.js den Dolly automatisch mit, ohne neuen Zeichencode
 // (bei 18 cm Rollenhöhe sichtbar größer/wuchtiger als die case-üblichen 12–16-cm-Blue-Wheels).
@@ -59,7 +67,7 @@ export function dollyStackCase(baseCase, n) {
     category: baseCase.category,
     color: colorFor(baseCase.category),
     l: baseCase.l,
-    w: baseCase.w,
+    w: dollyDepth(baseCase.w),
     h: n * baseCase.h,
     weight: DOLLY_WEIGHT_KG + n * baseCase.weight,
     tippable: false,
@@ -70,6 +78,7 @@ export function dollyStackCase(baseCase, n) {
     layers: [1],
     kind: 'speaker',
     unitH: baseCase.h,
+    unitD: baseCase.w,
     speakerType: baseCase.speakerType,
     cabinetColor: baseCase.cabinetColor,
   };
@@ -80,11 +89,12 @@ export function dollyStackCase(baseCase, n) {
 // Bibliothek liefen ohne `kind` weiter durch die Flightcase-Darstellung). Erkennt die aktuelle ID
 // `dolly-<basis>-<n>` und die alte Form `preset-<basis>-dolly-<n>` (vor dem ID-Fix – die trifft ein
 // erneuter Dialog-Lauf nie, weil der die neue ID erzeugt). Nur fehlende Felder werden ergänzt;
-// Maße, Gewicht, Rollenhöhe und ID bleiben, wie sie sind (CLAUDE.md: Cases dürfen ihre Maße nicht
-// unbemerkt ändern, Platzierungen verweisen auf die ID). `unitH` aus der gespeicherten Höhe statt
+// Länge, Höhe, Gewicht, Rollenhöhe und ID bleiben, wie sie sind (CLAUDE.md: Cases dürfen ihre
+// Maße nicht unbemerkt ändern, Platzierungen verweisen auf die ID). Einzige Ausnahme ist die Tiefe
+// (s. unten, ausdrücklicher Nutzerwunsch). `unitH` aus der gespeicherten Höhe statt
 // aus der Vorlage, damit die Einheiten zur tatsächlich gespeicherten Gesamthöhe passen.
 export function upgradeDollyStack(c, presets) {
-  if (c.kind === 'speaker' && c.unitH > 0 && c.speakerType && c.cabinetColor) return c;
+  if (c.kind === 'speaker' && c.unitH > 0 && c.unitD > 0 && c.speakerType && c.cabinetColor) return c;
   const m = /^dolly-(.+)-(\d+)$/.exec(c.id) ?? /^preset-(.+)-dolly-(\d+)$/.exec(c.id);
   if (!m) return c;
   const base = presets.find(p => p.id === `preset-${m[1]}` && p.dollyPrompt);
@@ -94,6 +104,10 @@ export function upgradeDollyStack(c, presets) {
     ...c,
     kind: 'speaker',
     unitH: c.unitH > 0 ? c.unitH : c.h / n,
+    // Ausnahme von „Maße bleiben unverändert“ auf ausdrücklichen Nutzerwunsch (2026-10-08): alte
+    // Stacks belegten nur die nackte Boxentiefe; jetzt die Dolly-Stufe, Boxentiefe in unitD.
+    w: c.unitD > 0 ? c.w : dollyDepth(c.w),
+    unitD: c.unitD > 0 ? c.unitD : c.w,
     speakerType: c.speakerType ?? base.speakerType,
     cabinetColor: c.cabinetColor ?? base.cabinetColor,
   };
