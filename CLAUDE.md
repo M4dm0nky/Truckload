@@ -25,6 +25,10 @@ offenen Punkte in [docs/offene-punkte.md](docs/offene-punkte.md).
 - **Alte Daten müssen weiter laden.** Fehlende Felder bedeuten Vorgabewerte; bestehende
   Cases dürfen ihre Maße nicht unbemerkt ändern. Jede Änderung am Datenmodell braucht
   einen Regressionstest mit einem Datensatz im alten Schema.
+- **Truckload läuft auch in NYX.** Was NYX voraussetzt (Speicher nur über `js/store/db.js`,
+  relative Pfade, kein Netz zur Laufzeit, keine nativen Dialoge, `vendor/LICENSE-three.txt`),
+  steht in [docs/nyx-host.md](docs/nyx-host.md). Vor Änderungen an `js/store/`, `sw.js` oder
+  `vendor/` lesen.
 
 ## Ablauf
 

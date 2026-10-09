@@ -1,3 +1,11 @@
+import * as hostDb from './hostDb.js';
+
+// Läuft Truckload als Tab in NYX, setzt NYX `globalThis.truckloadHost` (docs/nyx-host.md), und
+// jeder Zugriff geht dorthin statt an IndexedDB. Geprüft wird je Aufruf, nicht einmal beim
+// Laden: NYX setzt den Host per Preload vor allen Skripten, und so bleibt die Wahl ohne
+// Modul-Neuladen testbar. Ohne Host ändert sich für die Web-App nichts.
+const host = () => globalThis.truckloadHost;
+
 const DB_NAME = 'truckload';
 // Version 2 ergänzt den Store ruleSets. onupgradeneeded legt nur fehlende Stores an, vorhandene
 // Daten bleiben.
@@ -24,6 +32,7 @@ export const setVersionChangeHandler = fn => { versionChangeHandler = fn; };
 // Exportiert als kleinste Testnaht: `dbPromise` ist Modulebene und einmalig gespritzt (`??=`),
 // ein Test kann open() aber direkt mit einem Fake-`indexedDB` aufrufen.
 export function open() {
+  if (host()) return Promise.resolve(null);
   return (dbPromise ??= new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
@@ -62,9 +71,23 @@ function run(store, mode, fn) {
   }));
 }
 
-export const getAll = store => run(store, 'readonly', s => s.getAll());
-export const put = (store, value) => run(store, 'readwrite', s => s.put(value));
-export const del = (store, id) => run(store, 'readwrite', s => s.delete(id));
+// Ladesperre (nur im Host-Betrieb): Scheitert ein Lesezugriff, zeigt app.js die Ersatzansicht mit
+// nur den mitgelieferten Daten. Ein Schreibzugriff dürfte dann nicht mehr durchgehen, denn er
+// träfe einen Bestand, den niemand gesehen hat (z. B. Import-Merge gegen leere Daten). Mit
+// IndexedDB hatte das die kaputte DB von selbst, beim Host scheitern Lesen und Schreiben
+// unabhängig. Die Sperre gilt bis zum Neuladen der Seite, ein neues Modul beginnt ohne sie.
+let ladenFehlgeschlagen = false;
+const sperre = () => Promise.reject(new Error('Laden aus NYX fehlgeschlagen – Truckload bitte neu laden.'));
+
+export const getAll = store => (host()
+  ? hostDb.getAll(host(), store).catch(err => { ladenFehlgeschlagen = true; throw err; })
+  : run(store, 'readonly', s => s.getAll()));
+export const put = (store, value) => (host()
+  ? (ladenFehlgeschlagen ? sperre() : hostDb.put(host(), store, value))
+  : run(store, 'readwrite', s => s.put(value)));
+export const del = (store, id) => (host()
+  ? (ladenFehlgeschlagen ? sperre() : hostDb.del(host(), store, id))
+  : run(store, 'readwrite', s => s.delete(id)));
 
 // Schreibt mehrere Datensätze (ggf. über mehrere Object Stores) in EINER Transaktion: entweder
 // landen alle drin, oder – lehnt ein `put` ab (Quota, korrupte DB) – wird die ganze Transaktion
@@ -77,6 +100,7 @@ export const del = (store, id) => run(store, 'readwrite', s => s.delete(id));
 // items: [{ store, value }, …]
 export function putMany(items) {
   if (items.length === 0) return Promise.resolve();
+  if (host()) return ladenFehlgeschlagen ? sperre() : hostDb.putMany(host(), items);
   return open().then(db => new Promise((resolve, reject) => {
     const storeNames = [...new Set(items.map(i => i.store))];
     const tx = db.transaction(storeNames, 'readwrite');
@@ -92,5 +116,6 @@ export function putMany(items) {
   }));
 }
 export async function persist() {
+  if (host()) return;
   try { await navigator.storage?.persist?.(); } catch { /* optional */ }
 }

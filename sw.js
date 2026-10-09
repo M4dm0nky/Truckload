@@ -47,6 +47,7 @@ const ASSETS = [
   'js/model/validate.js',
   'js/store/autosave.js',
   'js/store/db.js',
+  'js/store/hostDb.js',
   'js/store/io.js',
   'js/store/repo.js',
   'js/store/state.js',
@@ -76,6 +77,7 @@ const ASSETS = [
   'js/ui/view3d-parts.js',
   'js/ui/view3d.js',
   'vendor/three.module.min.js',
+  'vendor/LICENSE-three.txt',
   'vendor/addons/controls/OrbitControls.js'
 ];
 
