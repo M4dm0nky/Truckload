@@ -15,6 +15,21 @@ export const limitWarnings = overLimit => overLimit.map(({ name, field, value, m
   return `Case „${name}“: ${label} ${value} ${unit} liegt über der Grenze von ${max} ${unit} – unverändert übernommen.`;
 });
 
+// Mehr als `max` Zeilen sprengen den Hinweisdialog; der Rest wird nur gezählt.
+export const capList = (list, max = 10) =>
+  (list.length <= max ? list : [...list.slice(0, max), `… und ${list.length - max} weitere`]);
+
+// Nur für Datensätze, die den Abgleich gewonnen haben (merge.winners): hat der lokale, neuere
+// Stand gewonnen, kommt der Datensatz aus der Datei nicht in den Bestand und braucht keine Warnung.
+export function warningsForWinners(bundle, winners, state) {
+  const planIds = new Set(winners.plans.map(p => p.id));
+  const caseIds = new Set(winners.cases.map(c => c.id));
+  return [
+    ...importWarnings(bundle.unknownRefs.filter(r => planIds.has(r.planId)), state),
+    ...limitWarnings(bundle.overLimit.filter(o => caseIds.has(o.id))),
+  ];
+}
+
 export function importWarnings(unknownRefs, { cases, trucks }) {
   const caseIds = new Set(cases.map(c => c.id));
   const truckIds = new Set(trucks.map(t => t.id));
@@ -117,7 +132,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
     // Reparaturen an Altwerten werden gemeldet, damit der Nutzer sieht, was angepasst wurde.
     const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
     // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
-    const warnings = [...importWarnings(bundle.unknownRefs, store.get()), ...limitWarnings(bundle.overLimit)];
+    const warnings = capList(warningsForWinners(bundle, merge.winners, store.get()));
     const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';
     await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets (neuere lokale Stände behalten).${repairNote}${warnNote}`);
   };
