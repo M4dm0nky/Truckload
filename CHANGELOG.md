@@ -2,6 +2,16 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.2 – 2026-10-09
+
+- **Startbildschirm:** „Material“ ist jetzt ein großer Hauptknopf neben „Neuen Load erstellen“;
+  darunter steht die laufende Version.
+- **Load zusammenstellen:** Knopf „Material“ unten im Wizard – öffnet die Materialverwaltung,
+  „Zurück“ führt in den Wizard zurück, die bisherige Auswahl bleibt, neues Material steht sofort
+  bereit.
+- **Neuer Reiter „Lautsprecher“** im Wizard und in der Materialverwaltung: alle Line-Array-Boxen,
+  Subs und Boxen-Dollys (vorher im Reiter „Cases“ zwischen Packcases und Racks).
+
 ## V 0.13.1 – 2026-10-09
 
 Die App lädt jetzt immer den aktuellen Stand: Mit Netz kommt jede Datei frisch vom Server, am

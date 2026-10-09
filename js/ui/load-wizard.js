@@ -17,6 +17,15 @@ export function searchInOptionsHtml(companies, selected) {
 // Vorgabe-Ablageziel für neue Cases: die gewählte Firma, sonst keine.
 export const stockDefaultFor = v => (v && v !== NEUTRAL_COMPANY ? v : '');
 
+// Rückkehr aus der Materialverwaltung (Knopf „Material“ im Wizard, Nutzerwunsch 2026-10-09): die
+// Auswahl bleibt, die Case-Liste kommt frisch aus dem Store. Stückzahlen von Cases, die dort
+// gelöscht wurden, fallen weg – sonst zählte der Wizard Stücke ohne Case-Typ mit.
+export function refreshWizardCases(counts, freshCases) {
+  const ids = new Set(freshCases.map(c => c.id));
+  for (const id of [...counts.keys()]) if (!ids.has(id)) counts.delete(id);
+  return freshCases;
+}
+
 // Kappt eine Addition auf den im Wizard verbleibenden Platz unter MAX_ITEMS – ausgelagert aus
 // addDollyStack() (Befund Final-Review Minor #8), damit die 500er-Grenze unabhängig vom DOM
 // getestet werden kann. Gleiche Regel wie addTruss() sie inline anwendet, hier nur als eigene,
@@ -163,6 +172,7 @@ export function openLoadWizard(dlg, opts = {}) {
       </section>
       <menu>
         <button value="cancel" formnovalidate>Abbrechen</button>
+        ${opts.onOpenMaterial ? '<button type="button" data-act="material" title="Materialverwaltung – danach geht es hier weiter">Material</button>' : ''}
         <span class="grow"></span>
         <button type="button" data-act="back" hidden>Zurück</button>
         <button type="button" data-act="next" class="primary">Weiter</button>
@@ -520,8 +530,29 @@ export function openLoadWizard(dlg, opts = {}) {
   backBtn.addEventListener('click', () => showStep(stepIdx - 1));
   showStep(0);
 
+  // „Material“: Wizard beiseitelegen (schließen, ohne das Ergebnis aufzulösen), Materialverwaltung
+  // öffnen, nach deren „Zurück“ mit frischer Case-Liste und unveränderter Auswahl weitermachen.
+  let suspended = false;
+  dlg.querySelector('[data-act="material"]')?.addEventListener('click', () => {
+    suspended = true;
+    dlg.returnValue = 'material';
+    dlg.close();
+  });
+
   return new Promise(resolve => {
-    dlg.addEventListener('close', () => {
+    const onClose = async () => {
+      if (suspended) {
+        suspended = false;
+        const fresh = await opts.onOpenMaterial();
+        cases = refreshWizardCases(counts, fresh);
+        renderCompanyOptions();
+        if (steps[stepIdx] === 'cases') renderCaseList();
+        if (steps[stepIdx] === 'labels') renderGroups();
+        dlg.returnValue = '';
+        dlg.showModal();
+        return;
+      }
+      dlg.removeEventListener('close', onClose);
       const act = dlg.returnValue;
       if (act !== 'finish') return resolve(null);
       buildItemsState();
@@ -541,7 +572,8 @@ export function openLoadWizard(dlg, opts = {}) {
         items,
         autoPack: f.autoPack.checked,
       });
-    }, { once: true });
+    };
+    dlg.addEventListener('close', onClose);
     dlg.returnValue = '';
     dlg.showModal();
   });

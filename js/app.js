@@ -136,6 +136,11 @@ const layoutEl = document.querySelector('main.layout');
 const materialEl = $('#material-screen');
 // Materialverwaltung: eigener Bildschirm, vom Startbildschirm und aus der Kopfleiste erreichbar.
 let materialOpen = false;
+// Aus dem Lade-Wizard geöffnet: „Zurück“ gibt die frische Case-Liste an den Wizard zurück.
+let materialReturn = null;
+function openMaterialFromWizard() {
+  return new Promise(resolve => { materialReturn = resolve; openMaterial(); });
+}
 function openMaterial() {
   materialOpen = true;
   if (store.get().plan) select(null);
@@ -158,10 +163,13 @@ function renderStartScreen(s) {
       `).join('')}</ul>`
     : `<p class="start-hint">Noch keine gespeicherten Ladepläne.</p>`;
   $('#start-actions').innerHTML = `
-    <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
+    <div class="start-main">
+      <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
+      <button id="start-material" class="primary" type="button" title="Materialverwaltung: Firmen, Cases, Lautsprecher, Traversen">Material</button>
+    </div>
     ${listHtml}
     <button id="start-import" type="button" title="JSON-Sicherung einlesen">Sicherung importieren</button>
-    <button id="start-material" type="button" title="Materialverwaltung">Material</button>
+    <p class="start-version">V ${esc(APP_VERSION)}</p>
   `;
   $('#start-material').onclick = openMaterial;
   $('#start-new').onclick = () => runLoadWizard('new');
@@ -311,7 +319,11 @@ async function pickCase(title, cases) {
 const pickFirm = () => pickOption('In welche Firma?', [{ value: '', label: 'Standardliste' }, ...companyList(store.get().cases).map(f => ({ value: f.name, label: f.name }))]);
 
 const material = mountMaterial(materialEl, {
-  onBack: () => { materialOpen = false; scheduleRender(); },
+  onBack: () => {
+    materialOpen = false;
+    scheduleRender();
+    if (materialReturn) { const back = materialReturn; materialReturn = null; back(store.get().cases); }
+  },
   onNewCase: async company => {
     const res = await openCaseEditor($('#dlg-case'), null, { stock: { mode: 'fixed', company } });
     if (res?.action === 'save') await saveCaseValue(res.value);
@@ -371,6 +383,7 @@ async function runLoadWizard(mode) {
     defaultTruckId: s.plan ? ctx().truck.id : DEFAULT_TRUCK_ID,
     defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
     onNewCase: newCaseForWizard,
+    onOpenMaterial: openMaterialFromWizard,
     trussDlg: $('#dlg-truss'),
     onNewTruss: saveCaseValue,
     dollyDlg: $('#dlg-dolly'),

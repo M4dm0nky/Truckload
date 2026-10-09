@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor } from '../js/ui/load-wizard.js';
+import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor, refreshWizardCases } from '../js/ui/load-wizard.js';
 import { caseKind, NEUTRAL_COMPANY } from '../js/ui/caseGroups.js';
 import { mkCase } from './fixtures.js';
 
-test('dollyPrompt-Cases bleiben im normalen "cases"-Tab (kein eigener Reiter nötig)', () => {
+// Seit V 0.13.2 eigener Reiter „Lautsprecher“ (Nutzerwunsch 2026-10-09), vorher im „cases“-Tab.
+test('dollyPrompt-Cases stehen im Reiter „Lautsprecher“', () => {
   const c = mkCase('preset-k2', 138, 40, 35, { category: 'Ton', dollyPrompt: true });
-  assert.equal(caseKind(c), 'cases');
+  assert.equal(caseKind(c), 'lautsprecher');
 });
 
 // capToRoom() ist die aus addDollyStack() herausgezogene 500er-Grenzen-Kappung (Befund
@@ -138,4 +139,12 @@ test('stockDefaultFor: Firma nur bei Firmenwahl', () => {
   assert.equal(stockDefaultFor('CAB'), 'CAB');
   assert.equal(stockDefaultFor(''), '');
   assert.equal(stockDefaultFor(NEUTRAL_COMPANY), '');
+});
+
+test('refreshWizardCases: nach der Materialverwaltung frische Liste, Stückzahl gelöschter Cases fällt weg', () => {
+  const counts = new Map([['a', 2], ['b', 1]]);
+  const fresh = [{ id: 'a', name: 'A geändert' }, { id: 'c', name: 'C neu' }];
+  const out = refreshWizardCases(counts, fresh);
+  assert.equal(out, fresh);
+  assert.deepEqual([...counts], [['a', 2]]);
 });

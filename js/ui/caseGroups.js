@@ -15,19 +15,23 @@ export function companiesOf(cases) {
   return [...new Set(cases.filter(c => !c.legacy && !c.onlyInPlan).map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 }
 
-// Die 3 Reiter der Artikelauswahl (Bibliothek + Wizard-Case-Liste): Traversen sind eigene
+// Die 4 Reiter der Artikelauswahl (Materialverwaltung + Wizard-Case-Liste); Lautsprecher s. caseKind(). Traversen sind eigene
 // Case-Typen (kind:'truss'), Sonderbau eigene Case-Typen mit category:'Sonderbau' – beide
 // Merkmale schließen sich gegenseitig aus (ein Sonderbau ist nie gleichzeitig eine Traverse),
 // alles andere landet im Cases-Reiter. Reine Klassifikation, kein Filtern nach Suche/Gewerk/
 // Firma – das übernimmt groupCases() weiterhin, angewandt auf die per Reiter vorgefilterte Liste.
 export const CASE_TABS = [
   { id: 'cases', label: 'Cases' },
+  { id: 'lautsprecher', label: 'Lautsprecher' },
   { id: 'traversen', label: 'Traversen' },
   { id: 'sonderbau', label: 'Sonderbau' },
 ];
 export function caseKind(c) {
   if (isTruss(c)) return 'traversen';
   if (c.category === 'Sonderbau') return 'sonderbau';
+  // Line-Array-Boxen und Subs (dollyPrompt) und die daraus gebauten Boxen-Dollys (kind
+  // 'speaker') bekommen einen eigenen Reiter (Nutzerwunsch 2026-10-09: „wo sind die Lautsprecher?“).
+  if (c.dollyPrompt || c.kind === 'speaker') return 'lautsprecher';
   return 'cases';
 }
 
