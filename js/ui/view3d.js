@@ -1,3 +1,4 @@
+import { safeColor } from './dom.js';
 import { archBoxes, isTruss } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
@@ -613,6 +614,7 @@ export async function createView3d(container) {
       const bad = result.byPlacement.has(it.id);
       const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
       const colors = caseColors(it.c, colorMode, itemColor);
+      colors.body = safeColor(colors.body); // wie 2D: ohne Farbe Grau statt Standard-Weiß
 
       if (isTruss(it.c)) {
         addTruss(it, bad, it.id === selectedId, chordSegs, chordColors, diagSegs, result.sequence.get(it.id));

@@ -7,9 +7,10 @@ import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, rul
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
 // Drag-Sonderfälle im <dialog>.
 export async function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
-  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten, sonst trifft das alte Ereignis den neuen Listener
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
+    const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
     dlg.returnValue = 'cancel'; dlg.close();
-    await new Promise(r => dlg.addEventListener('close', r, { once: true }));
+    await closed;
   }
   let cur = [...rules];
   let sets = [...ruleSets];

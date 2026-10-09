@@ -20,9 +20,10 @@ const MAX_ITEMS = 500;
 // Ergebnis: { name, truckId, items: [{ caseId, label, color, layers?, tipped?, group? }], autoPack }
 // oder null bei Abbruch.
 export async function openLoadWizard(dlg, opts = {}) {
-  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten, sonst trifft das alte Ereignis den neuen Listener
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
+    const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
     dlg.returnValue = 'cancel'; dlg.close();
-    await new Promise(r => dlg.addEventListener('close', r, { once: true }));
+    await closed;
   }
   const mode = opts.mode ?? 'new';
   const trucks = opts.trucks ?? [];

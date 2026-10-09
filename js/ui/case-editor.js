@@ -32,9 +32,10 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
   // Schließen DIESES Dialogs sonst über sein eigenes, abgehängtes `f` die Werte des alten Formulars
   // lesen und die alte Promise auflösen (heute unerreichbar, da `#dlg-case` nur aus zwei sequentiellen
   // `await`-Pfaden bedient wird – docs/code-review-2026-09-21.md, „S7 — derselbe <dialog> zweimal offen“).
-  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten, sonst trifft das alte Ereignis den neuen Listener
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
+    const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
     dlg.returnValue = 'cancel'; dlg.close();
-    await new Promise(r => dlg.addEventListener('close', r, { once: true }));
+    await closed;
   }
   const src = c ?? draft ?? null;
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
