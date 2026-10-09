@@ -323,7 +323,6 @@ async function runLoadWizard(mode) {
 
 const library = mountLibrary($('#library'), {
   onEdit: id => editCase(id),
-  onDelete: id => deleteCaseDirect(id),
   onAddLoad: () => runLoadWizard('add'),
   onTrayRemove: id => {
     edit(p => A.removeUnplaced(p, id));

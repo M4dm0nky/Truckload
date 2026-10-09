@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom } from '../js/ui/load-wizard.js';
-import { caseKind } from '../js/ui/caseGroups.js';
+import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor } from '../js/ui/load-wizard.js';
+import { caseKind, NEUTRAL_COMPANY } from '../js/ui/caseGroups.js';
 import { mkCase } from './fixtures.js';
 
 test('dollyPrompt-Cases bleiben im normalen "cases"-Tab (kein eigener Reiter nötig)', () => {
@@ -128,4 +128,14 @@ test('bulkState: on / off / mixed / none', () => {
 test('countWithoutLayer zählt Stücke ohne angehakte Lage', () => {
   assert.equal(countWithoutLayer([entry([]), entry([3]), entry([])]), 2);
   assert.equal(countWithoutLayer([entry([1])]), 0);
+});
+
+test('„Suchen in“: Standardkatalog ist Vorgabe, dann kompletter Bestand, dann je Firma', () => {
+  const html = searchInOptionsHtml(['CAB'], NEUTRAL_COMPANY);
+  assert.match(html, new RegExp(`<option value="${NEUTRAL_COMPANY}" selected>Standardkatalog</option><option value="">Kompletter Bestand</option><option value="CAB">nur CAB</option>`));
+});
+test('stockDefaultFor: Firma nur bei Firmenwahl', () => {
+  assert.equal(stockDefaultFor('CAB'), 'CAB');
+  assert.equal(stockDefaultFor(''), '');
+  assert.equal(stockDefaultFor(NEUTRAL_COMPANY), '');
 });
