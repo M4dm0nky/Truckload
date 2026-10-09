@@ -2,6 +2,14 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.9 – 2026-10-09
+
+Aufräumen Teil 5 – die Steuerzentrale der App (`app.js`, über 1.000 Zeilen) ist in kleine,
+getestete Teile zerlegt. Für die Bedienung ändert sich nichts.
+
+- Kleinigkeit: „Sichern“ funktioniert jetzt auch auf dem Startbildschirm ohne geöffneten
+  Ladeplan.
+
 ## V 0.13.8 – 2026-10-09
 
 Aufräumen Teil 4 – Struktur der Oberfläche:
