@@ -8,8 +8,7 @@ import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack } from '../model/audioDolly.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
 
-// FORMAT/VERSION nur hier benutzt (Import- und Export-Prüfung derselben Datei) — nicht mehr
-// exportiert (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
+// FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
 const FORMAT = 'truckload';
 const VERSION = 1;
 const CASE_KINDS = ['case', 'truss', 'speaker'];
@@ -18,8 +17,8 @@ const num = v => typeof v === 'number' && Number.isFinite(v);
 const arr = v => (Array.isArray(v) ? v : []);
 const numOrNullMax = (v, max) => v == null || (num(v) && v >= 0 && v <= max);
 // Mitgeliefertes nie aus fremden Dateien übernehmen. `preset-` (Standardkatalog, nur lesbar)
-// immer verwerfen; `lib-` (Firmen-Vorlagen) nur, wenn als mitgeliefert markiert – seit V 0.12.5
-// sind eigene Überlagerungen mit gleicher lib-ID gewollt (Materialverwaltung).
+// immer verwerfen; `lib-` (Firmen-Vorlagen) nur, wenn als mitgeliefert markiert – eigene
+// Überlagerungen mit gleicher lib-ID sind gewollt (Materialverwaltung).
 const isPreset = x => !!x?.builtin || (typeof x?.id === 'string' && x.id.startsWith('preset-'));
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const colorOk = x => x.color === undefined || COLOR_RE.test(x.color);
@@ -48,8 +47,9 @@ export function checkCase(c) {
   if (isTruss(c)) {
     const t = c.truss;
     // standing: true (Pre-Rig-Traversen wie H.O.F. MLT/Prolyte S36PR) sind EIN stehendes Stück,
-    // width meint dort die Standfläche (bis 80 cm, s. STAND_FOOTPRINT_W in truss.js), nicht den
-    // Wagen-Querschnitt (max. 40 cm) der stapelnden F34/F40-Variante. Brauchen zusätzlich height.
+    // width meint dort die Standfläche (bis TRUSS_LIMITS.standingWidth, s. STAND_FOOTPRINT_W in
+    // truss.js), nicht den Wagen-Querschnitt (max. TRUSS_LIMITS.width) der stapelnden F34/F40-
+    // Variante. Brauchen zusätzlich height.
     const standing = t?.standing === true;
     const trussOk = t
       && num(t.length) && t.length >= 1 && t.length <= TRUSS_LIMITS.length
@@ -62,9 +62,9 @@ export function checkCase(c) {
     if (!trussOk) throw new Error(`Case „${c.name}“ hat ungültige Traversenwagen-Werte.`);
   }
 }
-// `legacy` (ausgeblendet) gilt nur für Überlagerungen von Firmen-Vorlagen (`lib-`). Bis V 0.12.4
-// kopierte der Case-Editor das Feld in neue Kopien ausgeblendeter Vorlagen (eigene UUID) – solche
-// eigenen Cases wären seit der Materialverwaltung nirgends mehr zu finden. Beim Laden und beim
+// `legacy` (ausgeblendet) gilt nur für Überlagerungen von Firmen-Vorlagen (`lib-`). Frühere
+// Versionen des Case-Editors kopierten das Feld in neue Kopien ausgeblendeter Vorlagen (eigene
+// UUID); solche Cases wären in der Materialverwaltung nirgends mehr zu finden. Beim Laden und
 // Import fällt das Feld dort deshalb weg; Maße und alle anderen Felder bleiben unverändert.
 export function dropStrayLegacy(c) {
   if (c?.builtin || !('legacy' in (c ?? {})) || (typeof c.id === 'string' && c.id.startsWith('lib-'))) return c;
@@ -72,17 +72,14 @@ export function dropStrayLegacy(c) {
   return rest;
 }
 export function normalizeCase(c) {
-  // Dolly-Stacks aus früheren Versionen bekommen ihre Darstellungsfelder nach (s.
-  // upgradeDollyStack() in js/model/audioDolly.js) – beim Laden UND beim Datei-Import.
+  // Dolly-Stacks früherer Versionen bekommen ihre Darstellungsfelder nach (upgradeDollyStack() in
+  // js/model/audioDolly.js) – beim Laden UND beim Datei-Import.
   if (!isTruss(c)) return upgradeDollyStack(c, PRESET_CASES);
-  // trussDims() wirft, wenn c.truss.width die Grenze (MAX_TRUSS_WIDTH) überschreitet.
-  // Beim Datei-Import ist das nicht erreichbar: checkCase() lehnt eine solche Breite schon
-  // vorher ab, bevor normalizeCase() überhaupt läuft. Aber repo.normalizeOwnCases() ruft
-  // normalizeCase() beim Laden für JEDES eigene gespeicherte Case auf, ohne vorherige
-  // checkCase()-Prüfung – ein vor Einführung der Grenze gespeichertes Case darf dort nicht
-  // werfen (das würde in app.js den kompletten Ladepfad in loadAllFallback() reißen und
-  // die gesamte eigene Bibliothek stillschweigend leeren). Die gespeicherten Maße bleiben
-  // in diesem Fall unverändert erhalten, statt die Normalisierung zu erzwingen.
+  // trussDims() wirft, wenn c.truss.width die Grenze (MAX_TRUSS_WIDTH) überschreitet. Beim Import
+  // ist das nicht erreichbar (checkCase() lehnt die Breite vorher ab), aber repo.normalizeOwnCases()
+  // ruft normalizeCase() beim Laden für JEDES eigene Case ohne checkCase() auf. Ein vor der Grenze
+  // gespeichertes Case darf dort nicht werfen (das leerte stillschweigend die eigene Bibliothek);
+  // seine gespeicherten Maße bleiben dann unverändert.
   try {
     const { l, w, h } = trussDims(c.truss);
     return { ...c, l, w, h, wheelH: 0, tippable: false };
@@ -149,14 +146,11 @@ export function exportBundle({ cases, trucks, plans, ruleSets = [] }, now = new 
 
 const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets' };
 
-// Zwei Werte aus Wizard-/Editor-Vorgaben, die bis V 0.6 galten, reißen die sonst harte
-// Alles-oder-nichts-Grenze beim Import, obwohl sie reparierbar sind statt unlesbar: eine zu
-// lange Beschriftung (Wizard-Vorgabe bis V0.6: 50 Zeichen, MAX_LABEL ist 40) und eine
-// Rollenhöhe, die die Case-Höhe erreicht oder übersteigt (der Editor bis V0.6 prüfte das
-// nicht). parseBundle repariert genau diese zwei Fälle und zählt sie, damit der Nutzer nach
-// dem Import erfährt, was angepasst wurde, statt dass die Reparatur stillschweigend passiert
-// (Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“). Jeder
-// andere Regelverstoß bleibt Alles-oder-nichts: die Datei wird weiterhin ganz verworfen.
+// Zwei Werte aus älteren Wizard-/Editor-Vorgaben reißen sonst die harte Alles-oder-nichts-Grenze
+// beim Import, obwohl sie reparierbar sind: eine zu lange Beschriftung (früher bis 50 Zeichen,
+// MAX_LABEL ist 40) und eine Rollenhöhe, die die Case-Höhe erreicht oder übersteigt. parseBundle
+// repariert genau diese zwei Fälle und zählt sie, damit der Nutzer nach dem Import erfährt, was
+// angepasst wurde. Jeder andere Regelverstoß verwirft die Datei weiterhin ganz.
 function repairLabel(x) {
   if (typeof x?.label !== 'string' || x.label.length <= MAX_LABEL) return null;
   return { ...x, label: x.label.slice(0, MAX_LABEL) };
@@ -164,10 +158,9 @@ function repairLabel(x) {
 function repairWheelH(c) {
   if (c?.wheelH == null || !num(c.wheelH) || c.wheelH < 0 || c.wheelH > CASE_LIMITS.wheelH) return null;
   if (c.dimsInclWheels === false || c.wheelH < c.h) return null;
-  // Rollenhöhe erreicht/übersteigt die Case-Höhe: Rollen abwählen statt die Datei zu
-  // verwerfen (Alternative aus dem Fund: „auf einen gültigen Wert gesetzt oder die Rollen
-  // werden abgewählt“ – ein erratener Zwischenwert wäre selbst eine Behauptung über eine
-  // physische Maßangabe, die niemand nachgemessen hat).
+  // Rollenhöhe erreicht/übersteigt die Case-Höhe: Rollen abwählen statt die Datei zu verwerfen;
+  // ein erratener Zwischenwert wäre eine Behauptung über eine Maßangabe, die niemand nachgemessen
+  // hat.
   return { ...c, wheelH: 0, wheels: false };
 }
 
@@ -252,8 +245,8 @@ export function mergeById(existing, incoming) {
 export const backupFileName = (now = new Date()) =>
   `truckload-backup-${now.toISOString().slice(0, 10)}.json`;
 
-// Name der stillen Sicherung, die die App vor jedem Import des aktuellen Stands anlegt
-// (Befund Daten-10) – derselbe Name wie beim „Sichern“-Knopf, nur kenntlich gemacht, damit
-// er nicht mit einer bewusst vom Nutzer erzeugten Sicherung verwechselt wird.
+// Name der stillen Sicherung, die die App vor jedem Import des aktuellen Stands anlegt – wie beim
+// „Sichern“-Knopf, nur kenntlich gemacht, damit er nicht mit einer bewusst erzeugten Sicherung
+// verwechselt wird.
 export const preImportBackupFileName = (now = new Date()) =>
   backupFileName(now).replace(/\.json$/, '-vor-import.json');
