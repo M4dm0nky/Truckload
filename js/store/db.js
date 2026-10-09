@@ -1,3 +1,11 @@
+import * as hostDb from './hostDb.js';
+
+// Läuft Truckload als Tab in NYX, setzt NYX `globalThis.truckloadHost` (docs/nyx-host.md), und
+// jeder Zugriff geht dorthin statt an IndexedDB. Geprüft wird je Aufruf, nicht einmal beim
+// Laden: NYX setzt den Host per Preload vor allen Skripten, und so bleibt die Wahl ohne
+// Modul-Neuladen testbar. Ohne Host ändert sich für die Web-App nichts.
+const host = () => globalThis.truckloadHost;
+
 const DB_NAME = 'truckload';
 // Version 2 ergänzt den Store ruleSets. onupgradeneeded legt nur fehlende Stores an, vorhandene
 // Daten bleiben.
@@ -24,6 +32,7 @@ export const setVersionChangeHandler = fn => { versionChangeHandler = fn; };
 // Exportiert als kleinste Testnaht: `dbPromise` ist Modulebene und einmalig gespritzt (`??=`),
 // ein Test kann open() aber direkt mit einem Fake-`indexedDB` aufrufen.
 export function open() {
+  if (host()) return Promise.resolve(null);
   return (dbPromise ??= new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
@@ -62,9 +71,9 @@ function run(store, mode, fn) {
   }));
 }
 
-export const getAll = store => run(store, 'readonly', s => s.getAll());
-export const put = (store, value) => run(store, 'readwrite', s => s.put(value));
-export const del = (store, id) => run(store, 'readwrite', s => s.delete(id));
+export const getAll = store => (host() ? hostDb.getAll(host(), store) : run(store, 'readonly', s => s.getAll()));
+export const put = (store, value) => (host() ? hostDb.put(host(), store, value) : run(store, 'readwrite', s => s.put(value)));
+export const del = (store, id) => (host() ? hostDb.del(host(), store, id) : run(store, 'readwrite', s => s.delete(id)));
 
 // Schreibt mehrere Datensätze (ggf. über mehrere Object Stores) in EINER Transaktion: entweder
 // landen alle drin, oder – lehnt ein `put` ab (Quota, korrupte DB) – wird die ganze Transaktion
@@ -77,6 +86,7 @@ export const del = (store, id) => run(store, 'readwrite', s => s.delete(id));
 // items: [{ store, value }, …]
 export function putMany(items) {
   if (items.length === 0) return Promise.resolve();
+  if (host()) return hostDb.putMany(host(), items);
   return open().then(db => new Promise((resolve, reject) => {
     const storeNames = [...new Set(items.map(i => i.store))];
     const tx = db.transaction(storeNames, 'readwrite');
@@ -92,5 +102,6 @@ export function putMany(items) {
   }));
 }
 export async function persist() {
+  if (host()) return;
   try { await navigator.storage?.persist?.(); } catch { /* optional */ }
 }
