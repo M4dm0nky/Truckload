@@ -4,6 +4,8 @@ import { stamp } from './store/repo.js';
 import { createStore } from './store/state.js';
 import { screenOf, showScreen, renderStartScreen } from './app/screens.js';
 import { attachKeyboard } from './app/keyboard.js';
+import { createPersistence } from './app/persistence.js';
+import { guarded } from './app/guarded.js';
 import { ctxOf, deriveOf, allPlansOf, piecesOf, usage, truckUsage } from './app/core.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
@@ -15,7 +17,7 @@ import { openLoadWizard } from './ui/load-wizard.js';
 import { mountMaterial } from './ui/material.js';
 import { openTrussDialog } from './ui/truss-wizard.js';
 import { openDollyDialog } from './ui/dolly-wizard.js';
-import { companyList, casesOf, deletionFor, isInStock, copyToCompany, applyStockTarget, renameCompany } from './model/material.js';
+import { companyList, isInStock, copyToCompany, applyStockTarget } from './model/material.js';
 import { openPackRules } from './ui/pack-rules.js';
 import { rulesFor, ruleTargets, describeRule, mixTopFor } from './model/packRules.js';
 import { renderInspector } from './ui/inspector.js';
@@ -230,20 +232,9 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') autosave.flush();
 });
 
-// Bug F (nit, Fix-Runde 2): dieselbe Klasse wie die schon behobenen Löschzweige - eine
-// abgelehnte repo.saveCase() darf nicht unbehandelt bleiben, sonst zeigt die Oberfläche im
-// Erfolgsfall stillschweigend nichts an und im Fehlerfall gar nichts.
-async function saveCaseValue(rawValue) {
-  const value = stamp(rawValue);
-  try {
-    await repo.saveCase(value);
-  } catch (err) {
-    await showAlert(`Case konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
-    return undefined;
-  }
-  store.update(st => ({ ...st, cases: [...st.cases.filter(x => x.id !== value.id), value] }));
-  return value;
-}
+// Speicherpfade (Case, Firma, Regelset, Fahrzeug): js/app/persistence.js
+const persistence = createPersistence({ repo, store, showAlert, showConfirm, stamp, uid });
+const saveCaseValue = persistence.saveCase;
 
 async function editCase(caseId) {
   const s = store.get();
@@ -251,29 +242,6 @@ async function editCase(caseId) {
   const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId ? usage(s, caseId) : 0 });
   if (!res) return;
   await saveCaseValue(res.value);
-}
-
-// Löschen aus dem Materialbestand (nur Materialseite): Standardvorlagen (`preset-`) sind nur
-// lesbar, Firmen-Vorlagen werden ausgeblendet (legacy), alles andere wirklich entfernt.
-// `confirmed`: die Rückfrage kam schon (Editor bzw. Firma-löschen-Dialog).
-async function removeFromStock(c, { confirmed = false } = {}) {
-  if (!c) return false;
-  const d = deletionFor(c);
-  if (!d) { await showAlert('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.'); return false; }
-  if (!confirmed) {
-    const used = usage(store.get(), c.id);
-    const msg = used ? `„${c.name}“ wird in ${used} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${c.name}“ löschen?`;
-    if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return false;
-  }
-  if (d.save) return !!await saveCaseValue(d.save);
-  try {
-    await repo.deleteCase(d.remove);
-  } catch (err) {
-    await showAlert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-    return false;
-  }
-  store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== d.remove) }));
-  return true;
 }
 
 async function pickCase(title, cases) {
@@ -302,10 +270,10 @@ const material = mountMaterial(materialEl, {
       stock: c.onlyInPlan ? undefined : { mode: 'fixed', company: c.company ?? '' },
     });
     if (!res) return;
-    if (res.action === 'delete') return removeFromStock(c, { confirmed: true });
+    if (res.action === 'delete') return persistence.removeFromStock(c, { confirmed: true });
     await saveCaseValue(res.value);
   },
-  onDelete: id => removeFromStock(store.get().cases.find(x => x.id === id)),
+  onDelete: id => persistence.removeFromStock(store.get().cases.find(x => x.id === id)),
   onNewTruss: company => openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCaseValue, stock: { mode: 'fixed', company } }),
   onNewDolly: async company => {
     const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
@@ -319,37 +287,8 @@ const material = mountMaterial(materialEl, {
     const firm = await pickFirm();
     if (firm != null) await saveCaseValue(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
   },
-  onRename: async (from, to) => {
-    const renamed = renameCompany(store.get().cases, from, to).map(stamp);
-    try {
-      await repo.saveCases(renamed);
-    } catch (err) {
-      await showAlert(`Firma konnte nicht umbenannt werden: ${err?.message ?? 'unbekannter Fehler'}`);
-      return false;
-    }
-    const ids = new Set(renamed.map(c => c.id));
-    store.update(st => ({ ...st, cases: [...st.cases.filter(x => !ids.has(x.id)), ...renamed] }));
-    return true;
-  },
-  onDeleteCompany: async name => {
-    const list = casesOf(store.get().cases, name);
-    if (list.length && !await showConfirm(`Firma „${name}“ mit ${list.length} Einträgen löschen?`, { okLabel: 'Löschen', danger: true })) return false;
-    const ds = list.map(deletionFor);
-    if (ds.includes(null)) { await showAlert('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.'); return false; }
-    const saves = ds.filter(d => d.save).map(d => stamp(d.save));
-    const removes = ds.filter(d => d.remove).map(d => d.remove);
-    try {
-      // Überlagerungen gesammelt in einer Transaktion; das Entfernen läuft getrennt davon.
-      await repo.saveCases(saves);
-      for (const id of removes) await repo.deleteCase(id);
-    } catch (err) {
-      await showAlert(`Firma konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-      return false;
-    }
-    const savedIds = new Set(saves.map(c => c.id)), gone = new Set(removes);
-    store.update(st => ({ ...st, cases: [...st.cases.filter(x => !savedIds.has(x.id) && !gone.has(x.id)), ...saves] }));
-    return true;
-  },
+  onRename: persistence.renameCompany,
+  onDeleteCompany: persistence.deleteCompany,
 });
 
 // Für den Load-Wizard: legt ein neues Case über den Case-Editor an (optional mit Vorbelegung,
@@ -547,28 +486,6 @@ $('#pack-rest').onclick = async () => {
   await warnIfUnplaced();
 };
 // Pack-Regeln je Load (Spec 2026-09-30): Rangliste im eigenen Dialog, Regelsets als Vorlage.
-async function saveRuleSetValue(name, rules, mixTop) {
-  const existing = store.get().ruleSets.find(r => r.name.toLowerCase() === name.toLowerCase());
-  const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
-  try {
-    await repo.saveRuleSet(value);
-  } catch (err) {
-    await showAlert(`Regelset konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
-    return undefined;
-  }
-  store.update(s => ({ ...s, ruleSets: [...s.ruleSets.filter(r => r.id !== value.id), value] }));
-  return value;
-}
-async function deleteRuleSetValue(id) {
-  try {
-    await repo.deleteRuleSet(id);
-  } catch (err) {
-    await showAlert(`Regelset konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-    return false;
-  }
-  store.update(s => ({ ...s, ruleSets: s.ruleSets.filter(r => r.id !== id) }));
-  return true;
-}
 $('#pack-rules').onclick = async () => {
   const s = store.get(), c = ctx(s);
   const res = await openPackRules($('#dlg-rules'), {
@@ -577,8 +494,8 @@ $('#pack-rules').onclick = async () => {
     targets: ruleTargets(piecesOf(s.plan), c.caseById),
     caseById: c.caseById,
     ruleSets: [...s.ruleSets].sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    onSaveRuleSet: saveRuleSetValue,
-    onDeleteRuleSet: deleteRuleSetValue,
+    onSaveRuleSet: persistence.saveRuleSet,
+    onDeleteRuleSet: persistence.deleteRuleSet,
   });
   if (!res) return;
   // Ein einziger Undo-Schritt für „Regeln setzen und neu packen“.
@@ -694,12 +611,7 @@ $('#plan-dup').onclick = () => {
 $('#plan-del').onclick = async () => {
   const s = store.get();
   if (!await showConfirm(`Ladeplan „${s.plan.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return;
-  try {
-    await repo.deletePlan(s.plan.id);
-  } catch (err) {
-    await showAlert(`Löschen fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
-    return;
-  }
+  if (!(await guarded('Löschen fehlgeschlagen', () => repo.deletePlan(s.plan.id), { showAlert })).ok) return;
   // Erst NACH dem erfolgreichen Löschen die ausstehende Speicherung dieses Plans
   // verwerfen (Befund: vorher hätte ein fehlgeschlagenes deletePlan einen echten
   // ausstehenden Stand ersatzlos verworfen, obwohl der Plan weiter existiert).
@@ -723,42 +635,13 @@ async function editTruck(truck) {
   const res = await openTruckEditor($('#dlg-truck'), truck, { usedIn: truck ? truckUsage(s0, truck.id) : 0 });
   if (!res) return;
   if (res.action === 'delete') {
-    try {
-      await repo.deleteTruck(truck.id);
-    } catch (err) {
-      await showAlert(`Fahrzeug konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-      return;
-    }
-    // Nicht nur den aktuellen Plan umbiegen (Befund Daten-22): jeder Plan, der das
-    // gelöschte Fahrzeug referenziert, bekäme sonst über ctx()s Fallback still den
-    // Sattelauflieger untergeschoben, ohne dass sich sein Ladeergebnis sichtbar ändert.
-    const s1 = store.get();
-    const fixPlan = p => (p.truckId === truck.id ? stamp({ ...p, truckId: DEFAULT_TRUCK_ID }) : p);
-    const fixedOthers = s1.plans.map(fixPlan);
-    const changedOthers = fixedOthers.filter((p, i) => p !== s1.plans[i]);
-    store.update(s => ({ ...s, trucks: s.trucks.filter(t => t.id !== truck.id), plans: fixedOthers }));
-    if (changedOthers.length) {
-      try {
-        await Promise.all(changedOthers.map(repo.savePlan));
-      } catch (err) {
-        // Unbehandelt hätte das eine tote Rejection UND einen toten truckId-Verweis
-        // hinterlassen, der stehen bleibt, weil niemand davon erfährt (Befund:
-        // „Löschzweige ohne Fehlerbehandlung“).
-        await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
-      }
-    }
-    if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
+    if (!await persistence.deleteTruck(truck.id)) return;
+    if (store.get().plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
     store.resetHistory(); // Undo darf den gelöschten truckId nicht zurückholen
     return;
   }
-  const value = stamp(res.value);
-  try {
-    await repo.saveTruck(value);
-  } catch (err) {
-    await showAlert(`Fahrzeug konnte nicht gespeichert werden: ${err?.message ?? 'unbekannter Fehler'}`);
-    return;
-  }
-  store.update(s => ({ ...s, trucks: [...s.trucks.filter(t => t.id !== value.id), value] }));
+  const value = await persistence.saveTruck(res.value);
+  if (!value) return;
   edit(p => stamp({ ...p, truckId: value.id }));
 }
 $('#truck-new').onclick = () => editTruck(null);
