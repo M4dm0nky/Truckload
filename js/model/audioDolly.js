@@ -25,9 +25,39 @@ export const dollyDepth = boxDepth => DOLLY_DEPTHS.find(d => d >= boxDepth) ?? b
 // weil die Wagenmaße firmenabhängig sind); getrennt exportiert, damit der Dolly-Dialog prüfen
 // kann, ob die Kombination schon existiert, ohne das Case neu zu bauen und eine im Case-Editor
 // bearbeitete Zeile zu überschreiben.
-export function dollyStackId(baseCase, n, company = '') {
+// Kandidaten für den Slug einer Firma: der Slug selbst, dann mit Suffix -2, -3 …
+const slugCandidate = (base, k) => (k === 1 ? base : base ? `${base}-${k}` : String(k));
+const isDollyOf = (c, cand) => typeof c.id === 'string' && c.id.startsWith(`dolly-${cand}-`);
+
+// Welchen Slug-Kandidaten nutzt das Dolly-Case `c` seiner Firma? Der LÄNGSTE passende Kandidat
+// gewinnt, damit ein Case mit Suffix („dolly-cab-berlin-2-…“) nicht dem Grundslug zugerechnet wird.
+// null: kein Firmen-Dolly-Case (ohne Firma oder ID nicht aus dieser Familie).
+function ownerSlug(c, limit) {
+  if (!c.company) return null;
+  const base = slug(c.company);
+  for (let k = limit; k >= 1; k--) if (isDollyOf(c, slugCandidate(base, k))) return slugCandidate(base, k);
+  return null;
+}
+
+// Der Slug, unter dem die Dolly-Stacks einer Firma abgelegt werden. Zwei verschiedene Firmen können
+// denselben Slug haben („CAB Berlin“ und „CAB-Berlin“); dann überschriebe der Stack der zweiten den
+// der ersten (gleiche ID). Reine Funktion, eigene Entscheidung:
+//  1. Hat die Firma schon Dolly-Cases, bleibt ihr bisheriger Slug – bestehende IDs ändern sich nie.
+//  2. Sonst gilt der erste Kandidat (slug, slug-2, slug-3 …), den keine ANDERE Firma belegt.
+export function uniqueDollySlug(company, existingCases = []) {
+  const base = slug(company);
+  const limit = existingCases.length + 1;
+  const own = existingCases.filter(c => c.company === company).map(c => ownerSlug(c, limit)).filter(x => x != null);
+  if (own.length) return own.reduce((a, b) => (b.length > a.length ? b : a));
+  const taken = new Set(existingCases.filter(c => c.company !== company).map(c => ownerSlug(c, limit)).filter(x => x != null));
+  for (let k = 1; ; k++) if (!taken.has(slugCandidate(base, k))) return slugCandidate(base, k);
+}
+
+// `existingCases` (optional): die vorhandenen Cases; sie entscheiden bei gleichem Firmen-Slug über
+// das Suffix (uniqueDollySlug). Ohne sie gilt der reine Slug (Stand vor 0.13.11).
+export function dollyStackId(baseCase, n, company = '', existingCases = []) {
   const baseId = baseCase.id.replace(/^(preset-|lib-)/, '');
-  return company ? `dolly-${slug(company)}-${baseId}-${n}` : `dolly-${baseId}-${n}`;
+  return company ? `dolly-${uniqueDollySlug(company, existingCases)}-${baseId}-${n}` : `dolly-${baseId}-${n}`;
 }
 
 // Größte Stückzahl, bei der Höhe und Gewicht der Vorlage innerhalb der CASE_LIMITS bleiben
@@ -49,7 +79,8 @@ export function maxDollyCount(baseCase) {
 // sieht ein Dolly-Stack wie ein normales Flightcase aus); `unitH` ist die Höhe einer Box für die
 // Trennlinien. 2D liest `kind` nicht.
 // `wagen` (optional): { l, w } = Wagengröße der Firma in cm; ohne gilt Boxbreite × Dolly-Stufe.
-// `company` (optional): Firma des Materialbestands, eigener ID-Raum je Firma.
+// `company` (optional): Firma des Materialbestands, eigener ID-Raum je Firma; `existingCases`
+// (optional) macht ihn bei gleichem Firmen-Slug eindeutig (uniqueDollySlug).
 // Firmen-Stacks entstehen vollständig; upgradeDollyStack lässt sie unverändert.
 // „<Basis> N er (auf Dolly)“ höchstens NAME_MAX lang: ein zu langer Basisname wird mit „…“
 // gekürzt, der Zusatz bleibt vollständig (sonst lehnte der Import das Case ab).
@@ -59,9 +90,9 @@ export function dollyName(baseName, n) {
   return `${baseName.length > room ? `${baseName.slice(0, room - 1)}…` : baseName}${suffix}`;
 }
 
-export function dollyStackCase(baseCase, n, wagen = {}, company = '') {
+export function dollyStackCase(baseCase, n, wagen = {}, company = '', existingCases = []) {
   return {
-    id: dollyStackId(baseCase, n, company),
+    id: dollyStackId(baseCase, n, company, existingCases),
     company: company || undefined,
     builtin: false,
     name: dollyName(baseCase.name, n),

@@ -243,7 +243,7 @@ export async function openLoadWizard(dlg, opts = {}) {
   // Stepper ausgelöst. Der erzeugte Dolly-Stack-Case-Typ erscheint als eigene Zeile mit normalem
   // +/−-Stepper (kein dollyPrompt), weitere gleiche Stacks kommen also per „+“ ohne neuen Dialog.
   async function addDollyStack(baseCase) {
-    const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack, stock: stockOpt() });
+    const res = await openDollyDialog(opts.dollyDlg, { baseCase, existingCases: cases, onNewDollyStack: opts.onNewDollyStack, stock: stockOpt() });
     if (!res) return;
     created.add(res.newCase.id);
     cases = [...cases.filter(c => c.id !== res.newCase.id), res.newCase];

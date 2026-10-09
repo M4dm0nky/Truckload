@@ -2,7 +2,7 @@ import { esc } from './dom.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.js';
 
-// opts: { baseCase, onNewDollyStack(caseType) }
+// opts: { baseCase, existingCases (vorhandene Cases, für eindeutige Firmen-IDs), onNewDollyStack(caseType) }
 // Ergebnis: { newCase, addition: { caseId, n } } oder null bei Abbruch/ungültiger Eingabe.
 // Analog openTrussDialog() (js/ui/truss-wizard.js) – fragt NUR die Stückzahl ab, keine „ohne
 // Dolly“-Option (Nutzer-Entscheidung: Line-Array-Tops/Subs stehen in der Praxis immer auf
@@ -26,8 +26,8 @@ export function parseDollyCount(raw, maxN) {
 
 // Reiner Baustein: Bestand → Stack mit Firmen-ID; „nur Load“ → eigene UUID, onlyInPlan, keine
 // Firma, damit er keinen Bestands-Stack gleicher ID verdeckt oder überschreibt.
-export function buildDollyResult(base, n, wagen, target, uuid) {
-  if (target.inStock) return dollyStackCase(base, n, wagen, target.company);
+export function buildDollyResult(base, n, wagen, target, uuid, existingCases = []) {
+  if (target.inStock) return dollyStackCase(base, n, wagen, target.company, existingCases);
   return { ...dollyStackCase(base, n, wagen), id: uuid, company: undefined, onlyInPlan: true };
 }
 
@@ -83,7 +83,7 @@ export function openDollyDialog(dlg, opts = {}) {
       if (act !== 'save') return resolve(null);
       const n = validN();
       if (n === null || !wagenValid()) return resolve(null);
-      const caseType = buildDollyResult(base, n, wagen(), readStockTarget(form, stock), crypto.randomUUID());
+      const caseType = buildDollyResult(base, n, wagen(), readStockTarget(form, stock), crypto.randomUUID(), opts.existingCases ?? []);
       const saved = await opts.onNewDollyStack?.(caseType);
       if (!saved) return resolve(null);
       resolve({ newCase: saved, addition: { caseId: saved.id, n: 1 } });

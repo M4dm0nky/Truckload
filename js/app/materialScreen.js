@@ -59,7 +59,7 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
     onNewTruss: company => openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCase, stock: { mode: 'fixed', company } }),
     onNewDolly: async company => {
       const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
-      if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, onNewDollyStack: saveCase, stock: { mode: 'fixed', company } });
+      if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, existingCases: store.get().cases, onNewDollyStack: saveCase, stock: { mode: 'fixed', company } });
     },
     onCopy: async id => {
       const firm = await pickFirm();
