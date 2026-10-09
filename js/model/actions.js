@@ -3,12 +3,11 @@ import { MAX_LABEL, layersValid } from './limits.js';
 import { buildItems } from './items.js';
 import { pickPieceFields, cleanGroup } from './pieceFields.js';
 import { autoPack } from './packer.js';
+import { stamp } from './stamp.js';
 import { rulesFor, normalizeRules, mixTopFor } from './packRules.js';
 
-const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
-
 export const emptyPlan = (id, name, truckId) =>
-  touch({ id, name, truckId, placements: [], unplaced: [], notes: '' });
+  stamp({ id, name, truckId, placements: [], unplaced: [], notes: '' });
 
 // Nimmt schon aufgelöste `items` statt (plan, ctx): Aufrufer haben sie meist bereits gebaut,
 // ein erneutes buildItems() pro Maus-Bewegung wäre doppelte Arbeit.
@@ -26,7 +25,7 @@ export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null,
     // Das Label kommt gekürzt aus der Namensliste, der Rest aus den Sammelvorgaben.
     ...pickPieceFields({ label: labels[i] ? labels[i].slice(0, MAX_LABEL) : undefined, color, layers, tipped, group }),
   }));
-  return touch({ ...plan, unplaced: [...plan.unplaced, ...extra] });
+  return stamp({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
 
 // Entfernt genau EIN Stück aus der Ablage, über seine eigene `id` (nicht `caseId`, der nur den
@@ -34,7 +33,7 @@ export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null,
 export function removeUnplaced(plan, id) {
   const next = plan.unplaced.filter(u => u.id !== id);
   if (next.length === plan.unplaced.length) return plan;
-  return touch({ ...plan, unplaced: next });
+  return stamp({ ...plan, unplaced: next });
 }
 
 // Raster plus Einrasten an Truckwänden und Kanten der anderen Boxen – gemeinsam für das Absetzen
@@ -64,7 +63,7 @@ export function placeCase(plan, caseId, { x, y }, ctx, { fromUnplacedId = null }
   const fb = boxOf(c, draft);
   const { nx, ny } = snapPos(x, y, fb.x1 - fb.x0, fb.y1 - fb.y0, others, ctx.truck);
   const p = settle({ ...draft, x: nx, y: ny }, c, others);
-  return touch({
+  return stamp({
     ...plan,
     placements: [...plan.placements, p],
     unplaced: plan.unplaced.filter(u => u.id !== fromUnplacedId),
@@ -83,7 +82,7 @@ export function moveGroup(plan, id, x, y, ctx, { grid = 5, edges = true } = {}) 
   const ddx = nx - root.p.x, ddy = ny - root.p.y, ddz = nz - root.p.z;
   if (!ddx && !ddy && !ddz) return plan;
   const set = new Set(group);
-  return touch({
+  return stamp({
     ...plan,
     placements: plan.placements.map(p => set.has(p.id) ? { ...p, x: p.x + ddx, y: p.y + ddy, z: p.z + ddz } : p),
   });
@@ -101,7 +100,7 @@ function reorient(plan, id, ctx, change) {
   if (!Object.keys(patch).length) return plan;
   const { items } = buildItems(plan, ctx.caseById);
   const next = settle({ ...p, ...patch }, c, otherBoxes(items, ctx.truck, stackAbove(id, items)));
-  return touch({ ...plan, placements: plan.placements.map(q => (q.id === id ? next : q)) });
+  return stamp({ ...plan, placements: plan.placements.map(q => (q.id === id ? next : q)) });
 }
 
 export const rotate = (plan, id, ctx) =>
@@ -150,12 +149,12 @@ export function duplicate(plan, id, ctx) {
   if (pos) {
     const patch = { id: ctx.newId(), ...pos, ...(label ? { label } : {}) };
     const copy = settle({ ...p, ...patch }, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
-    return touch({ ...plan, placements: [...plan.placements, copy] });
+    return stamp({ ...plan, placements: [...plan.placements, copy] });
   }
   const trayEntry = {
     id: ctx.newId(), caseId: p.caseId, ...pickPieceFields({ ...p, label }),
   };
-  return touch({ ...plan, unplaced: [...plan.unplaced, trayEntry] });
+  return stamp({ ...plan, unplaced: [...plan.unplaced, trayEntry] });
 }
 
 // Teilweise Änderung mit ausdrücklichem Löschen: ein Feld, das nicht übergeben
@@ -172,7 +171,7 @@ function applyField(it, key, value) {
 
 export function setItemLabel(plan, id, { label, color } = {}) {
   const patch = it => it.id === id ? applyField(applyField(it, 'label', label), 'color', color) : it;
-  return touch({
+  return stamp({
     ...plan,
     placements: plan.placements.map(patch),
     unplaced: plan.unplaced.map(patch),
@@ -216,7 +215,7 @@ export function setPieceLayers(plan, id, layers, ctx) {
     }
     return { ...it, layers: sorted };
   };
-  return touch({ ...plan, placements: plan.placements.map(patch), unplaced: plan.unplaced.map(patch) });
+  return stamp({ ...plan, placements: plan.placements.map(patch), unplaced: plan.unplaced.map(patch) });
 }
 
 export function setPieceTipped(plan, id, tipped, ctx) {
@@ -227,7 +226,7 @@ export function setPieceTipped(plan, id, tipped, ctx) {
   if (found.list === 'unplaced') {
     if (found.item.tipped === tipped) return plan;
     const patch = it => (it.id === id ? { ...it, tipped } : it);
-    return touch({ ...plan, unplaced: plan.unplaced.map(patch) });
+    return stamp({ ...plan, unplaced: plan.unplaced.map(patch) });
   }
   const p = found.item;
   const isTippedNow = p.orientation !== 'standing';
@@ -237,7 +236,7 @@ export function setPieceTipped(plan, id, tipped, ctx) {
   if (!tipped && isTippedNow) return reorient(plan, id, ctx, () => ({ orientation: 'standing', tipped: false }));
   if (p.tipped === tipped) return plan;
   const patch = it => (it.id === id ? { ...it, tipped } : it);
-  return touch({ ...plan, placements: plan.placements.map(patch) });
+  return stamp({ ...plan, placements: plan.placements.map(patch) });
 }
 
 export function setPieceGroup(plan, id, group) {
@@ -250,7 +249,7 @@ export function setPieceGroup(plan, id, group) {
     const { group: _drop, ...rest } = it;
     return next ? { ...rest, group: next } : rest;
   };
-  return touch({ ...plan, placements: plan.placements.map(patch), unplaced: plan.unplaced.map(patch) });
+  return stamp({ ...plan, placements: plan.placements.map(patch), unplaced: plan.unplaced.map(patch) });
 }
 
 // Rangliste der Pack-Regeln je Load (Spec 2026-09-30). Einmal gesetzt, wird packOrder nicht mehr
@@ -258,20 +257,20 @@ export function setPieceGroup(plan, id, group) {
 export function setPackRules(plan, rules) {
   const next = normalizeRules(rules);
   if (Array.isArray(plan.packRules) && JSON.stringify(plan.packRules) === JSON.stringify(next)) return plan;
-  return touch({ ...plan, packRules: next });
+  return stamp({ ...plan, packRules: next });
 }
 
 // Schalter „Deckschicht mischen“ je Load (Spec 2026-09-30-deckschicht-design.md). Aus = Feld fehlt,
 // wie bei Altdaten; unverändert = gleiche Referenz (kein leerer Undo-Schritt).
 export function setMixTop(plan, on) {
   if (mixTopFor(plan) === (on === true)) return plan;
-  if (on === true) return touch({ ...plan, mixTop: true });
+  if (on === true) return stamp({ ...plan, mixTop: true });
   const { mixTop: _drop, ...rest } = plan;
-  return touch(rest);
+  return stamp(rest);
 }
 
 export const removePlacement = (plan, id) =>
-  touch({ ...plan, placements: plan.placements.filter(p => p.id !== id) });
+  stamp({ ...plan, placements: plan.placements.filter(p => p.id !== id) });
 
 // Placement -> Ablage-Eintrag (nur id/caseId/label?/color?/layers?/tipped?/group?, keine Positions-/Orientierungsfelder).
 const placementToUnplaced = p =>
@@ -280,7 +279,7 @@ const placementToUnplaced = p =>
 export function toTray(plan, id) {
   const p = plan.placements.find(q => q.id === id);
   if (!p) return plan;
-  return touch({
+  return stamp({
     ...plan,
     placements: plan.placements.filter(q => q.id !== id),
     unplaced: [...plan.unplaced, placementToUnplaced(p)],
@@ -289,7 +288,7 @@ export function toTray(plan, id) {
 
 export function unloadAll(plan) {
   if (!plan.placements.length) return plan;
-  return touch({ ...plan, placements: [], unplaced: [...plan.unplaced, ...plan.placements.map(placementToUnplaced)] });
+  return stamp({ ...plan, placements: [], unplaced: [...plan.unplaced, ...plan.placements.map(placementToUnplaced)] });
 }
 
 const orphans = (plan, ctx) => plan.unplaced.filter(u => !ctx.caseById.has(u.caseId));
@@ -313,7 +312,7 @@ const missingCasePlacements = (plan, ctx) => plan.placements.filter(p => !ctx.ca
 export function packAll(plan, ctx) {
   const list = [...plan.placements, ...plan.unplaced].map(x => toPiece(x, ctx)).filter(Boolean);
   const { placements, unplaced } = autoPack(list, ctx.truck, { rules: rulesFor(plan), mixTop: mixTopFor(plan) });
-  return touch({
+  return stamp({
     ...plan,
     placements,
     unplaced: [...unplaced, ...orphans(plan, ctx), ...missingCasePlacements(plan, ctx).map(placementToUnplaced)],
@@ -336,7 +335,7 @@ export function packRest(plan, ctx) {
   const { placements, unplaced } = list.length
     ? autoPack(list, ctx.truck, { obstacles: items.map(it => it.box), rules: rulesFor(plan), mixTop: mixTopFor(plan), startX })
     : { placements: [], unplaced: [] };
-  return touch({
+  return stamp({
     ...plan,
     placements: [...plan.placements.filter(p => ctx.caseById.has(p.caseId)), ...placements],
     unplaced: [...unplaced, ...orphans(plan, ctx), ...missing.map(placementToUnplaced)],

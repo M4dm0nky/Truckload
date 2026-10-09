@@ -4,8 +4,6 @@ import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { normalizeCase, mergeById, dropStrayLegacy } from './io.js';
 
-export const stamp = obj => ({ ...obj, updatedAt: new Date().toISOString() });
-
 // Reicht die db.js-Rückrufe weiter: die App-Schicht importiert db.js nicht selbst, sondern nur
 // repo.js.
 export const setBlockedHandler = db.setBlockedHandler;

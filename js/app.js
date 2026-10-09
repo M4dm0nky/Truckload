@@ -4,7 +4,7 @@
 // CDP-Browser-Szenarien (CLAUDE.md, „Prüfen“) importieren js/app.js im laufenden Browser und
 // bauen damit Zustand auf, ohne durch die Oberfläche zu klicken.
 import * as repo from './store/repo.js';
-import { stamp } from './store/repo.js';
+import { stamp } from './model/stamp.js';
 import { createStore } from './store/state.js';
 import { createAutosave } from './store/autosave.js';
 import { screenOf, showScreen, renderStartScreen } from './app/screens.js';

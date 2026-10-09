@@ -43,6 +43,7 @@ const ASSETS = [
   'js/model/packRules.js',
   'js/model/pieceFields.js',
   'js/model/slug.js',
+  'js/model/stamp.js',
   'js/model/truss.js',
   'js/model/validate.js',
   'js/store/autosave.js',
