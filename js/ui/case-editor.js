@@ -11,6 +11,20 @@ const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, 
 const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
 export const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
+// Welche Herkunftsfelder ein gespeichertes Case aus dem Bearbeiten-Ausgangswert `v` übernimmt.
+// Neue Cases (auch Kopien einer Vorlage) behalten nur die Firma; `legacy` (ausgeblendete Vorlage)
+// darf nie in eine eigene Kopie wandern, sonst wäre sie unsichtbar. Überlagerungen (overrideBuiltin)
+// behalten ihre Quelle.
+export function retainedFields(v, { isNew, fromTemplate, overrideBuiltin }) {
+  return {
+    company: v.company,
+    source: overrideBuiltin || !isNew ? v.source : undefined,
+    note: undefined,
+    legacy: fromTemplate ? undefined : v.legacy,
+    onlyInPlan: v.onlyInPlan,
+  };
+}
+
 export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
   // Absicherung gegen einen zweiten Aufruf, bevor der `close`-Listener des vorigen gefeuert hat:
   // der ist an `dlg` selbst hängt (überlebt also das `dlg.innerHTML = …` unten) und würde beim
@@ -301,8 +315,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false,
       const base = {
         ...v,
         id: isNew ? crypto.randomUUID() : v.id,
-        builtin: false, note: undefined, company: v.company,
-        source: overrideBuiltin ? v.source : (isNew ? undefined : v.source), onlyInPlan: v.onlyInPlan,
+        builtin: false, ...retainedFields(v, { isNew, fromTemplate, overrideBuiltin }),
         name: f.name.value.trim(), content: f.content.value.trim(),
         category: f.category.value, color: f.color.value,
         weight: Number(f.weight.value), stock: numOrNull(f.stock.value),
