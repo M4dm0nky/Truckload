@@ -2,6 +2,14 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.3 – 2026-10-09
+
+Schnellere 2D-Ansicht mit Lautsprechern: Ein Klick auf ein Case dauerte mit vielen Boxen-Dollys
+mehrere Sekunden. Ursache war das Kürzen der langen Beschriftungen („L-Acoustics K2 4er (auf
+Dolly) …“) – jede Textmessung zwang den Browser, das ganze Bild neu zu berechnen. Gemessen wird
+jetzt über ein Canvas; ein Klick in 2D braucht statt ~420 ms nur noch ~30 ms (24 Stücke,
+headless Chrome). Die Beschriftungen sehen aus wie vorher.
+
 ## V 0.13.2 – 2026-10-09
 
 - **Startbildschirm:** „Material“ ist jetzt ein großer Hauptknopf neben „Neuen Load erstellen“;
