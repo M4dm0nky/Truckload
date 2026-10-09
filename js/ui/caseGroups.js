@@ -12,7 +12,7 @@ export const NEUTRAL_COMPANY = '__neutral__';
 
 // Liefert die im Datensatz vorkommenden Firmen, alphabetisch sortiert.
 export function companiesOf(cases) {
-  return [...new Set(cases.filter(c => !c.legacy).map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+  return [...new Set(cases.filter(c => !c.legacy && !c.onlyInPlan).map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 }
 
 // Die 3 Reiter der Artikelauswahl (Bibliothek + Wizard-Case-Liste): Traversen sind eigene
@@ -31,27 +31,29 @@ export function caseKind(c) {
   return 'cases';
 }
 
-// Teilt Cases nach Suche/Gewerk/Firma gefiltert in „Eigene Cases“, „Vorlagen“
-// und „Cases aus deiner Liste“ (c.source === 'liste'). Cases ohne `company`
+// Teilt Cases nach Suche/Gewerk/Firma gefiltert in „Eigene Cases”, „Vorlagen”
+// und „Cases aus deiner Liste” (c.source === 'liste'). Cases ohne `company`
 // verschwinden, sobald eine Firma gewählt ist. Mit NEUTRAL_COMPANY ist es
-// umgekehrt: nur Cases OHNE `company` bleiben durch.
-export function groupCases(cases, { q = '', cat = '', company = '' } = {}) {
+// umgekehrt: nur Cases OHNE `company` bleiben durch. `keep: Set<id>` zeigt
+// `onlyInPlan`-Cases trotzdem in der „Eigene Cases”-Gruppe.
+export function groupCases(cases, { q = '', cat = '', company = '', keep = new Set() } = {}) {
   const needle = q.trim().toLowerCase();
   const matchCompany = c => company === NEUTRAL_COMPANY ? !c.company : (!company || c.company === company);
-  const match = c => (!cat || c.category === cat)
+  const match = c => (!c.onlyInPlan || keep.has(c.id))
+    && (!cat || c.category === cat)
     && matchCompany(c)
     && (!needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
   return {
     // `.sort(...)`: eigene Cases kamen bis Task 8 in IndexedDB-Schlüsselreihenfolge an
     // (crypto.randomUUID()), sprangen also bei jeder Bearbeitung zusätzlich um (js/app.js hängt
     // das bearbeitete Case ans Ende des Arrays), weil weder repo.js noch hier sortiert wurde
-    // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge“). Hier
+    // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge”). Hier
     // sortiert statt in repo.js: damit ist die Reihenfolge unabhängig davon, woher die Liste kommt
     // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
-    own: cases.filter(c => !c.builtin && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    own: cases.filter(c => !c.builtin && c.source !== 'liste' && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
     presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && match(c)),
     // `!c.legacy`: ersetzte Listen-Einträge (Aufräumen V0.8.1) bleiben nur für alte Ladepläne.
-    list: cases.filter(c => c.builtin && !c.legacy && c.source === 'liste' && match(c)),
+    list: cases.filter(c => !c.legacy && c.source === 'liste' && match(c)),
   };
 }
 

@@ -22,6 +22,7 @@ const ASSETS = [
   'js/model/audioDolly.js',
   'js/model/caseShape.js',
   'js/model/geometry.js',
+  'js/model/material.js',
   'js/model/packer.js',
   'js/model/packRules.js',
   'js/model/truss.js',

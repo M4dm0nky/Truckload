@@ -117,3 +117,16 @@ test('companiesOf nennt keine Firma, die nur noch an ausgeblendeten Einträgen h
   const cases = [listCase('l1', 'CAB'), listCase('l2', 'Nur-Alt', { legacy: true })];
   assert.deepEqual(companiesOf(cases), ['CAB']);
 });
+
+test('groupCases: onlyInPlan nur mit keep sichtbar, companiesOf ignoriert es', () => {
+  const tmp = { id: 't', builtin: false, name: 'T', company: 'X', onlyInPlan: true, category: 'Ton' };
+  assert.equal(groupCases([tmp]).own.length, 0);
+  assert.equal(groupCases([tmp], { keep: new Set(['t']) }).own.length, 1);
+  assert.deepEqual(companiesOf([tmp]), []);
+});
+
+test('groupCases: bearbeitete Listen-Einträge bleiben in „Cases aus deiner Liste"', () => {
+  const over = { id: 'lib-a', builtin: false, source: 'liste', name: 'A', category: 'Ton' };
+  const g = groupCases([over]);
+  assert.equal(g.own.length, 0); assert.equal(g.list.length, 1);
+});
