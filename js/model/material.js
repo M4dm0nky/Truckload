@@ -20,12 +20,23 @@ export const onlyInPlanCases = cases => cases.filter(c => c.onlyInPlan && !c.leg
 export const renameCompany = (cases, from, to) =>
   cases.filter(c => c.company === from).map(c => ({ ...c, builtin: false, company: to }));
 
-// Standardvorlagen (`preset-`) sind nur lesbar; Firmen-Vorlagen werden ausgeblendet statt
-// entfernt (sonst käme die mitgelieferte Version beim nächsten Start zurück).
+// Standardvorlagen (`preset-`) sind nur lesbar; Firmen-Vorlagen (`lib-`) werden ausgeblendet statt
+// entfernt – auch schon überlagerte (builtin:false, bearbeitet oder Firma umbenannt), sonst käme
+// die mitgelieferte Version beim nächsten Start über mergeOwnWithBuiltins zurück.
 export function deletionFor(c) {
+  if (c.id.startsWith('lib-')) return { save: { ...c, builtin: false, legacy: true } };
   if (!c.builtin) return { remove: c.id };
-  if (c.id.startsWith('preset-')) return null;
-  return { save: { ...c, builtin: false, legacy: true } };
+  return null;
+}
+
+// Firmenname: io.checkCase lässt höchstens 80 Zeichen zu – ein längerer Name machte die eigene
+// Sicherung unimportierbar (parseBundle ist alles oder nichts).
+export const MAX_FIRM = 80;
+export function firmNameError(name) {
+  const n = (name ?? '').trim();
+  if (!n) return 'Firmenname fehlt.';
+  if (n.length > MAX_FIRM) return `Firmenname: höchstens ${MAX_FIRM} Zeichen.`;
+  return null;
 }
 
 export const copyToCompany = (c, company, id) => ({

@@ -28,8 +28,10 @@ export function showConfirm(message, { okLabel = 'OK', cancelLabel = 'Abbrechen'
   return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok'), { once: true }));
 }
 
-export function showPrompt(message, defaultValue = '') {
-  const d = open(`<form method="dialog" class="editor"><label>${esc(message)}<input name="value" value="${esc(defaultValue)}"></label>
+// `maxlength`: optionale Obergrenze fürs Eingabefeld (z. B. Firmenname, s. firmNameError).
+export function showPrompt(message, defaultValue = '', { maxlength } = {}) {
+  const max = Number.isInteger(maxlength) && maxlength > 0 ? ` maxlength="${maxlength}"` : '';
+  const d = open(`<form method="dialog" class="editor"><label>${esc(message)}<input name="value" value="${esc(defaultValue)}"${max}></label>
     <menu><span class="grow"></span><button value="cancel" formnovalidate>Abbrechen</button>
     <button value="ok" class="primary">OK</button></menu></form>`);
   const input = d.querySelector('input');

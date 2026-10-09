@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isInStock, companyList, casesOf, onlyInPlanCases, renameCompany, deletionFor, copyToCompany, applyStockTarget } from '../js/model/material.js';
+import { isInStock, companyList, casesOf, onlyInPlanCases, renameCompany, deletionFor, copyToCompany, applyStockTarget, firmNameError } from '../js/model/material.js';
+import { mergeOwnWithBuiltins } from '../js/store/repo.js';
+import { CASE_LIBRARY } from '../js/data/case-library.js';
 
 const lib = { id: 'lib-k1', builtin: true, source: 'liste', name: 'K1 -CAB', company: 'CAB', l: 1, w: 1, h: 1, weight: 0 };
 const own = { id: 'u1', builtin: false, name: 'Mein Case', company: 'Test', l: 1, w: 1, h: 1, weight: 1 };
@@ -44,4 +46,31 @@ test('applyStockTarget: Firma, Standardliste, nur Load', () => {
   assert.equal(s.company, undefined); assert.equal(s.onlyInPlan, undefined);
   const t = applyStockTarget(own, { inStock: false, company: 'Test' });
   assert.equal(t.onlyInPlan, true); assert.equal(t.company, undefined);
+});
+
+// Final-Review CRITICAL 1: eine `lib-`-Überlagerung (bearbeitete Firmen-Vorlage oder jedes Case
+// einer umbenannten Firma, builtin:false) darf beim Löschen nicht entfernt werden – sonst bringt
+// mergeOwnWithBuiltins beim nächsten Start die mitgelieferte Version zurück.
+test('deletionFor: lib-Überlagerung (builtin:false) wird ausgeblendet, nicht entfernt', () => {
+  const overlay = { ...lib, builtin: false, name: 'K1 bearbeitet' };
+  assert.deepEqual(deletionFor(overlay), { save: { ...overlay, builtin: false, legacy: true } });
+});
+test('Firma umbenennen, dann alles löschen: nach dem Neustart bleibt die Firma leer', () => {
+  const cab = CASE_LIBRARY.filter(c => c.company === 'CAB' && !c.legacy);
+  assert.ok(cab.length > 0);
+  const renamed = renameCompany(CASE_LIBRARY, 'CAB', 'CAB Berlin');
+  const saves = renamed.map(deletionFor);
+  assert.ok(saves.every(d => d?.save), 'jede Überlagerung wird gespeichert, keine entfernt');
+  const merged = mergeOwnWithBuiltins(saves.map(d => d.save), CASE_LIBRARY);
+  const names = companyList(merged).map(f => f.name);
+  assert.ok(!names.includes('CAB Berlin'));
+  assert.ok(!names.includes('CAB'), 'die mitgelieferte Firma kommt nicht zurück');
+});
+
+test('firmNameError: leer, zu lang, gültig', () => {
+  assert.equal(firmNameError('   '), 'Firmenname fehlt.');
+  assert.equal(firmNameError(''), 'Firmenname fehlt.');
+  assert.equal(firmNameError('x'.repeat(81)), 'Firmenname: höchstens 80 Zeichen.');
+  assert.equal(firmNameError(` ${'x'.repeat(80)} `), null);
+  assert.equal(firmNameError('CAB'), null);
 });

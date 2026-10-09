@@ -1,8 +1,8 @@
 import { esc, swatch, icon } from './dom.js';
 import { CASE_TABS, caseKind } from './caseGroups.js';
 import { caseLine } from './load-wizard.js';
-import { companyList, casesOf, onlyInPlanCases } from '../model/material.js';
-import { showPrompt, showConfirm } from './confirmDialog.js';
+import { companyList, casesOf, onlyInPlanCases, firmNameError, MAX_FIRM } from '../model/material.js';
+import { showPrompt, showAlert } from './confirmDialog.js';
 
 // Materialverwaltung (V 0.12.5, Spec 2026-10-09-materialverwaltung-design.md): eigener Bildschirm,
 // immer erreichbar. Links Standardkatalog + Firmen, rechts deren Material. Löschen gibt es NUR hier.
@@ -79,13 +79,20 @@ export function mountMaterial(el, h) {
     switch (btn.dataset.act) {
       case 'back': return h.onBack();
       case 'new-firm': {
-        const name = (await showPrompt('Name der neuen Firma', ''))?.trim();
-        if (!name) return;
+        const raw = await showPrompt('Name der neuen Firma', '', { maxlength: MAX_FIRM });
+        if (raw == null) return;
+        const err = firmNameError(raw);
+        if (err) return showAlert(err);
+        const name = raw.trim();
         extra.add(name); sel = name; return render();
       }
       case 'rename-firm': {
-        const to = (await showPrompt(`„${sel}“ umbenennen in`, sel))?.trim();
-        if (!to || to === sel) return;
+        const raw = await showPrompt(`„${sel}“ umbenennen in`, sel, { maxlength: MAX_FIRM });
+        if (raw == null) return;
+        const err = firmNameError(raw);
+        if (err) return showAlert(err);
+        const to = raw.trim();
+        if (to === sel) return;
         await h.onRename(sel, to); if (extra.delete(sel)) extra.add(to); sel = to; return render();
       }
       case 'delete-firm': {
