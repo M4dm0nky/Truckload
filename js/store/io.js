@@ -253,7 +253,7 @@ export function parseBundle(text) {
 
   const repairs = [];
   if (wheelHRepairs > 0)
-    repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollen abgewählt.`);
+    repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.`);
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 

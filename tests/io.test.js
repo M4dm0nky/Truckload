@@ -90,6 +90,7 @@ test('Case mit wheelH >= h wird repariert (Rollen abgewählt) statt abgelehnt', 
   assert.equal(res.cases[0].wheels, false);
   assert.equal(res.repairs.length, 1);
   assert.match(res.repairs[0], /1 Case.*Rollenhöhe/);
+  assert.match(res.repairs[0], /Rollenhöhe auf 0 gesetzt und Rollen abgewählt/, 'nennt Rollenhöhe UND die Rollen-Angabe (wheels)');
 });
 // Rückbau-Beleg für die Reparatur oben: der bestehende Test „Case mit negativem wheelH wird
 // abgelehnt“ (Zeile 69) zeigt bereits, dass ein außerhalb des gültigen Bereichs liegender
