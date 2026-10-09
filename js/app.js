@@ -2,6 +2,7 @@ import { APP_VERSION } from './version.js';
 import * as repo from './store/repo.js';
 import { createStore } from './state.js';
 import { validatePlan } from './model/validate.js';
+import { memoLast } from './model/memo.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
 import { WHEEL_FACES, wheelFace } from './model/geometry.js';
@@ -105,16 +106,21 @@ export const store = createStore({
   plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
+const caseByIdOf = memoLast(cases => new Map(cases.map(c => [c.id, c])));
 function ctx(s = store.get()) {
   return {
-    caseById: new Map(s.cases.map(c => [c.id, c])),
+    caseById: caseByIdOf(s.cases),
     truck: s.trucks.find(t => t.id === s.plan.truckId) ?? s.trucks.find(t => t.id === DEFAULT_TRUCK_ID),
     newId: uid,
   };
 }
+// Der Store liefert bei jeder Änderung neue Objekte; Aufrufer verändern das Ergebnis nicht.
+const deriveOf = memoLast((plan, cases, trucks) => {
+  const c = ctx({ plan, cases, trucks });
+  return { ...c, result: validatePlan(plan, c.caseById, c.truck) };
+});
 export function derive(s = store.get()) {
-  const c = ctx(s);
-  return { ...c, result: validatePlan(s.plan, c.caseById, c.truck) };
+  return deriveOf(s.plan, s.cases, s.trucks);
 }
 export function edit(fn, history = true) {
   store.update(s => {

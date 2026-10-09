@@ -121,12 +121,14 @@ export function truncateToWidth(full, maxWidth, widthOf) {
 // greift auch für ein ungerendertes SVG wie `#print-root` nicht mehr, weil Canvas dort misst.
 let measureCtx;
 const widthCache = new Map();
+let fontFamily; // einmal je Seite gelesen
 function textMeasurer(svg, weight) {
   if (measureCtx === undefined) {
     measureCtx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
   }
   if (!measureCtx) return (text, fontSize) => estimateTextWidth(text, fontSize);
-  const family = getComputedStyle(svg).fontFamily || 'sans-serif';
+  fontFamily ??= getComputedStyle(svg).fontFamily || 'sans-serif';
+  const family = fontFamily;
   return (text, fontSize) => {
     const font = `${weight} ${fontSize}px ${family}`;
     const key = `${font}|${text}`;
