@@ -515,7 +515,7 @@ export async function createView3d(container) {
     shape.boards.forEach((b, i) => {
       content.add(boxMesh(b, boardMat), edges(b, MAT_EDGE_ALU));
       // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in
-      // validate.js: `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie
+      // items.js: `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie
       // mehr greifen (docs/code-review-2026-09-21.md, „N5 — it.color ?? c.color ist
       // überflüssig und steht zweimal“).
       const dollyColor = it.color;
