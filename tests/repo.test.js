@@ -421,3 +421,13 @@ test('sanitizeAndWriteBack: ein Schreibfehler wird nur geloggt, das bereinigte E
     assert.match(String(logged[0][1]?.message ?? logged[0][0]), /Quota|bereinigt/);
   } finally { console.error = orig; }
 });
+
+// --- saveAndDelete: Überlagerungen und Entfernungen in EINER Transaktion (db.writeMany) --------
+import { buildSaveAndDelete } from '../js/store/repo.js';
+test('buildSaveAndDelete: Cases in den Store „cases“, Löschungen als {store, id}', () => {
+  assert.deepEqual(buildSaveAndDelete({ saves: [{ id: 'a' }], removeIds: ['b', 'c'] }), {
+    puts: [{ store: 'cases', value: { id: 'a' } }],
+    deletes: [{ store: 'cases', id: 'b' }, { store: 'cases', id: 'c' }],
+  });
+  assert.deepEqual(buildSaveAndDelete({}), { puts: [], deletes: [] });
+});

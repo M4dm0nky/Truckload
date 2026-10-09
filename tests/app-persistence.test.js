@@ -14,7 +14,7 @@ function setup({ fail = {}, confirm = true, state = {} } = {}) {
     calls.push([name, ...a]);
     if (fail[name]) throw new Error(fail[name]);
   };
-  const repo = Object.fromEntries(['saveCase', 'deleteCase', 'saveCases', 'saveRuleSet', 'deleteRuleSet', 'saveTruck', 'deleteTruck', 'savePlan'].map(n => [n, stub(n)]));
+  const repo = Object.fromEntries(['saveCase', 'deleteCase', 'saveCases', 'saveAndDelete', 'saveRuleSet', 'deleteRuleSet', 'saveTruck', 'deleteTruck', 'savePlan'].map(n => [n, stub(n)]));
   const store = createStore({ cases: [], ruleSets: [], trucks: [], plans: [], plan: { id: 'cur', truckId: 't1', placements: [], unplaced: [] }, ...state });
   const p = createPersistence({
     repo, store, stamp, uid: () => 'new-id',
@@ -132,7 +132,9 @@ test('deleteCompany: Erfolg entfernt Einträge, blendet lib- aus', async () => {
   const { p, store, calls, confirms } = setup({ state: { cases } });
   assert.equal(await p.deleteCompany('F'), true);
   assert.match(confirms[0][0], /^Firma „F“ mit 2 Einträgen löschen\?$/);
-  assert.deepEqual(calls.map(c => c[0]), ['saveCases', 'deleteCase']);
+  assert.deepEqual(calls.map(c => c[0]), ['saveAndDelete'], 'eine einzige Transaktion für Überlagerungen und Entfernungen');
+  assert.deepEqual(calls[0][1].removeIds, ['a']);
+  assert.deepEqual(calls[0][1].saves.map(c => c.id), ['lib-1']);
   const ids = store.get().cases.map(c => c.id).sort();
   assert.deepEqual(ids, ['lib-1', 'z']);
   assert.equal(store.get().cases.find(c => c.id === 'lib-1').legacy, true);
@@ -143,7 +145,7 @@ test('deleteCompany: Rückfrage abgelehnt -> nichts', async () => {
   assert.deepEqual(calls, []);
 });
 test('deleteCompany: Fehler -> Store unverändert, genau eine Meldung', async () => {
-  const { p, store, alerts } = setup({ fail: { deleteCase: 'x' }, state: { cases: [{ id: 'a', company: 'F' }] } });
+  const { p, store, alerts } = setup({ fail: { saveAndDelete: 'x' }, state: { cases: [{ id: 'a', company: 'F' }, { id: 'lib-1', company: 'F' }] } });
   const before = store.get();
   assert.equal(await p.deleteCompany('F'), false);
   assert.equal(store.get(), before);
@@ -210,4 +212,12 @@ test('deleteTruck: Plan-Aktualisierung scheitert -> Truck weg, eine Sondermeldun
   assert.equal(await p.deleteTruck('t1'), true);
   assert.equal(store.get().trucks.length, 0);
   assert.deepEqual(alerts, ['Fahrzeug gelöscht, aber 1 Plan(e) konnten nicht aktualisiert werden: g. Bitte prüfen und ggf. erneut speichern.']);
+});
+
+test('deleteCompany: nur Entfernungen (keine Überlagerung) laufen ebenfalls über saveAndDelete', async () => {
+  const { p, store, calls } = setup({ state: { cases: [{ id: 'a', company: 'F' }, { id: 'b', company: 'F' }, { id: 'z', company: 'G' }] } });
+  assert.equal(await p.deleteCompany('F'), true);
+  assert.deepEqual(calls.map(c => c[0]), ['saveAndDelete']);
+  assert.deepEqual(calls[0][1], { saves: [], removeIds: ['a', 'b'] });
+  assert.deepEqual(store.get().cases.map(c => c.id), ['z']);
 });

@@ -82,15 +82,24 @@ export const del = (store, id) => run(store, 'readwrite', s => s.delete(id));
 // fehlgeschlagen gilt. Deshalb try/catch um die Schleife und explizites `tx.abort()`.
 // items: [{ store, value }, …]
 export function putMany(items) {
-  if (items.length === 0) return Promise.resolve();
+  return writeMany({ puts: items });
+}
+
+// Wie putMany, nur zusätzlich mit Löschungen in derselben Transaktion: entweder passiert alles
+// (alle Puts und Deletes), oder – wirft ein Aufruf oder lehnt die Datenbank ab – nichts. Gedacht
+// für „Firma löschen“, wo Überlagerungen (Puts) und Entfernungen (Deletes) zusammengehören.
+// puts: [{ store, value }, …], deletes: [{ store, id }, …]
+export function writeMany({ puts = [], deletes = [] } = {}) {
+  if (puts.length === 0 && deletes.length === 0) return Promise.resolve();
   return open().then(db => new Promise((resolve, reject) => {
-    const storeNames = [...new Set(items.map(i => i.store))];
+    const storeNames = [...new Set([...puts, ...deletes].map(i => i.store))];
     const tx = db.transaction(storeNames, 'readwrite');
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(txFailure(tx));
     tx.onabort = () => reject(txFailure(tx));
     try {
-      for (const { store, value } of items) tx.objectStore(store).put(value);
+      for (const { store, value } of puts) tx.objectStore(store).put(value);
+      for (const { store, id } of deletes) tx.objectStore(store).delete(id);
     } catch (err) {
       try { tx.abort(); } catch { /* Transaktion ist evtl. schon abgebrochen */ }
       reject(err); // falls onabort aus irgendeinem Grund nicht feuert, trotzdem sicher ablehnen

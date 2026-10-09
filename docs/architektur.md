@@ -253,7 +253,11 @@ beginnt an der letzten Reihe der vorhandenen Ladung (`startX` = größtes x0 der
 0.8.4 stellt `placeStacks` jeden Stapel zuerst im Spurraster seiner Sorte ab der linken Wand (y = k
 · Stapelbreite) und fällt nur, wenn dort nichts passt (Radkästen), auf die freie Eckensuche zurück –
 sonst übernahm eine Sorte die Spurlage der vorigen, und 62er-Wagen passten neben 60er-Spuren nur zu
-dritt statt zu viert. Spec:
+dritt statt zu viert. Bei überfüllter Ladung merkt sich `placeStacks` je Sorte die gescheiterten
+Grundflächen samt Höhe und lehnt einen gleich großen oder größeren Stapel ohne neue Suche ab (die
+Merkliste verfällt nach jeder Platzierung); die Punkte werden nur nach einer Platzierung neu
+sortiert. Die Ausgabe ist dadurch unverändert (`tests/packer-golden.test.js`,
+`tests/packer-property.test.js`). Spec:
 `docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md`.
 
 **Deckschicht (seit V 0.8.6):** optionaler Schalter `plan.mixTop` (`mixTopFor(plan)`,
@@ -391,7 +395,10 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   laufen also durch Sicherung und Import.
 - **Dolly-IDs je Firma**: `dolly-<slug(firma)>-<basis>-<n>`, weil die Wagenmaße
   firmenabhängig sind. Ohne Firma bleibt es bei `dolly-<basis>-<n>`; bestehende IDs ändern
-  sich nie. Traversenwagen tragen `company` nur mit (ihre IDs sind UUIDs).
+  sich nie. Teilen zwei Firmen denselben Slug („CAB Berlin“, „CAB-Berlin“), bekommt die später
+  hinzugekommene ein Suffix (`dolly-cab-berlin-2-…`); `uniqueDollySlug(firma, vorhandeneCases)`
+  entscheidet das als reine Funktion, eine Firma behält dabei ihren bisherigen Slug (eigene
+  Entscheidung). Traversenwagen tragen `company` nur mit (ihre IDs sind UUIDs).
 - **Ablageziel** (`js/ui/stock-target.js`, `applyStockTarget`): Case-Editor, Traversen- und
   Dolly-Dialog teilen den Block „Im Materialbestand ablegen“. Im Wizard (`mode: 'choose'`)
   Häkchen plus Ziel, auf der Materialseite (`mode: 'fixed'`) die vorgegebene Firma. Ohne
@@ -466,7 +473,9 @@ Weitere Speicher-Details (Abschluss Teil 1): `loadAll` schreibt Datensätze mit 
 bereinigt zurück (`sanitizeAndWriteBack`, ein `putMany`, Fehler nur geloggt). `db.open()` setzt
 eine abgelehnte Promise zurück, der nächste Zugriff versucht es erneut. Plan löschen:
 `removePlanPersisted` in `js/app/plans.js` (erst `autosave.flush()`, dann `deletePlan`, dann
-`forget`). Der Änderungszeitpunkt wird nur von `stamp()` in `js/model/stamp.js` gesetzt (früher
+`forget`). „Firma löschen“ schreibt Überlagerungen und Entfernungen mit `repo.saveAndDelete({ saves,
+removeIds })` in einer einzigen IndexedDB-Transaktion (`db.writeMany`, wie `putMany`, nur mit
+Deletes); ein Fehler lässt Datenbank und Store unverändert. Der Änderungszeitpunkt wird nur von `stamp()` in `js/model/stamp.js` gesetzt (früher
 `touch` in `actions.js` und `stamp` in `repo.js`).
 
 Ist die App in einem zweiten Tab oder Fenster gleichzeitig offen, meldet ein

@@ -55,21 +55,9 @@ geblieben ist, mit Begründung:
   Änderungen, genau die Fehlerklasse von UI-B1) oder so fein, dass der Gewinn gegenüber dem
   heutigen `innerHTML`-Aufbau klein wird. Ohne Performance-Beschwerde aus der Praxis nicht
   angefasst.
-- **`layerMap`-Rückfall `?? 1` ist ungetestet** (Nachtrag Controller). Ein Mutationslauf zeigt,
-  dass `?? 1` → `?? 0` in `js/model/validate.js` unbemerkt bliebe. Der Zweig ist über die
-  öffentliche API (`validatePlan`) nach heutigem Kenntnisstand nicht erreichbar: `layerMap`
-  verarbeitet Items nach `z0` aufsteigend sortiert, und ein Unterstützer liegt per Definition
-  (`supportersOf`) immer bei einem `z1`, das dem `z0` des gestützten Items entspricht – er
-  wurde also schon verarbeitet, bevor das gestützte Item an der Reihe ist, und trägt bereits
-  einen Eintrag in der Map. `layerMap` ist bewusst nicht exportiert; ihn nur für diesen Test
-  zu exportieren widerspräche dem.
 - **Keine „3D-Ansicht veraltet“-Markierung**, wenn die 3D-Ansicht nach einem Fehler in
   `update()` einfach stehen bleibt, statt neu aufgebaut zu werden — der Nutzer sieht dann
   einen möglicherweise nicht mehr aktuellen Stand, ohne Hinweis.
-- **Modellschicht — mehrfach berechnete Auflage (`supportersOf`).** `layerMap`, `validatePlan`
-  und `stackAbove` rufen `supportersOf` je für sich noch einmal über alle Items auf (dreimal
-  O(n²) statt einmal). Bei den heutigen Plangrößen (einstellige bis niedrige zweistellige
-  Stückzahl je Fahrzeug) nicht spürbar; erst relevant, falls Pläne je dreistellig werden.
 - **Modellschicht — `caseShape(c, p, box)`/`trussShape(c, p, box)` erzwingen `box === boxOf(c,
   p)` nicht.** Ein Vorgabewert (`box = boxOf(c, p)`) würde die Zusage in die Signatur schreiben,
   ohne die heutigen Aufrufer (die die Box schon haben) zu verlangsamen. Bisher hat kein
@@ -91,11 +79,6 @@ geblieben ist, mit Begründung:
   den heutigen Plangrößen unkritisch; falls die Placement-Zahl dreistellig wird, ist die
   Kollisionsprüfung (O(n²)) die Stelle, die zuerst spürbar wird. Kein Gitter/Index gebaut,
   solange kein realer Plan das braucht.
-- **Modellschicht — kein Eigenschaftstest über die ganze Schicht.** Ein Lauf über z. B. 50
-  zufällige Case-Mischungen mit der Zusicherung „`autoPack` erzeugt nie einen Plan mit
-  Placement-Fehlern, und die Summe aus `placements` und `unplaced` ist die Eingabe“ würde
-  einen ganzen Klasse von Randfällen auf einmal abdecken. Aufwendig genug, um als eigener
-  Task behandelt zu werden, statt beiläufig in Task 9 entstanden zu sein.
 
 ## Aus der Gesamt-Review vor dem Merge (2026-09-23) offen gelassen
 
@@ -166,20 +149,6 @@ geblieben ist, mit Begründung:
 
 ## Aus dem Aufräumen vor V 0.13.10 bewusst offen gelassen
 
-- **Packer bei überfüllter Ladung.** Passen sehr viele Stücke nicht in den Truck (gemessen in der
-  Code-Review vom 2026-10-09 mit einem Wegwerfskript, nicht per Test im Repo: 1.000 kleine Stücke
-  aus 20 Typen, davon 399 platziert), braucht „Alles neu packen“ rund 0,7 s statt ~35 ms. Ursache:
-  jeder nicht passende Stapel durchsucht alle Positionen erneut. Mögliche Abhilfe: gescheiterte
-  Grundfläche je Sortierung merken und Punkte nur einmal sortieren. Für normale Ladungen ohne
-  Bedeutung.
-- **Slug-Kollision bei Firmennamen.** Die Dolly-ID trägt `slug(firma)` (`dolly-<slug>-<basis>-<n>`,
-  `js/model/audioDolly.js`). Zwei verschiedene Firmennamen mit gleichem Slug (z. B. „Müller“ und
-  „Mueller“, oder „A B“ und „A-B“) führen bei gleicher Basis und Stückzahl zur selben ID; es gibt
-  keine Prüfung darauf.
-- **„Firma löschen“ läuft nicht in einer Transaktion.** `deleteCompany` (`js/app/persistence.js`)
-  schreibt die Überlagerungen gesammelt per `repo.saveCases`, entfernt eigene Cases aber einzeln per
-  `repo.deleteCase`. Schlägt ein Löschen mittendrin fehl, meldet die App „Firma konnte nicht gelöscht werden“
-  und zieht den Store nicht nach, die Datenbank kann aber schon teilweise gelöscht sein.
 - **Restrisiko Service-Worker-Mischstand.** Siehe unter „Kleinigkeiten“ (Versionsmix bei langsamem
   Netz); der Schutz „ein Stand pro Seitenaufruf“ (`docs/architektur.md`, „Service Worker und
   Ladefehler“) schließt ihn nicht aus. Bewusst akzeptiert, der Ladefehler-Hinweis fängt den Rest.

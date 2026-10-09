@@ -160,6 +160,16 @@ export const buildCaseItems = list => list.map(value => ({ store: 'cases', value
 // Schreibt mehrere Cases in EINER Transaktion (alles oder nichts), z. B. beim Umbenennen einer Firma.
 export const saveCases = list => db.putMany(buildCaseItems(list));
 
+export const buildSaveAndDelete = ({ saves = [], removeIds = [] }) => ({
+  puts: buildCaseItems(saves),
+  deletes: removeIds.map(id => ({ store: 'cases', id })),
+});
+
+// Speichert Cases und löscht andere in EINER Transaktion (alles oder nichts), z. B. beim Löschen
+// einer Firma: ihre Überlagerungen (saves) und Entfernungen (removeIds) – eigene Entscheidung: der
+// Name beschreibt beides, statt saveCases() um Löschungen zu erweitern.
+export const saveAndDelete = ({ saves = [], removeIds = [] } = {}) => db.writeMany(buildSaveAndDelete({ saves, removeIds }));
+
 // Schreibt die Gewinner eines Imports (siehe mergeImportedBundle) in EINER Transaktion: alle oder
 // keiner. Unabhängige db.put()-Aufrufe könnten teilweise gelingen, bevor der Gesamtvorgang als
 // fehlgeschlagen gilt, und die Datenbank auf einem Stand lassen, zu dem weder der Vor-Import-

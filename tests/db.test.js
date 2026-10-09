@@ -79,3 +79,62 @@ test('open(): während onblocked-Wartezeit wird NICHT neu geöffnet', async () =
   reqs[0].onsuccess();
   await p1;
 });
+
+// --- writeMany: Puts und Deletes in EINER Transaktion --------------------------------------------
+// Fake-Transaktion: sammelt die Aufrufe; `failOn` lässt einen Aufruf synchron werfen (wie
+// QuotaExceededError), `abort()` feuert onabort.
+function fakeTxDb({ failOn } = {}) {
+  const log = [];
+  const txs = [];
+  const fakeDb = {
+    onversionchange: null, close() {},
+    transaction(stores, mode) {
+      const tx = {
+        stores, mode, committed: false, aborted: false,
+        objectStore: name => ({
+          put: v => { if (failOn === 'put') throw new Error('Quota'); log.push(['put', name, v]); },
+          delete: id => { if (failOn === 'delete') throw new Error('Quota'); log.push(['delete', name, id]); },
+        }),
+        abort() { tx.aborted = true; queueMicrotask(() => tx.onabort?.()); },
+      };
+      txs.push(tx);
+      queueMicrotask(() => { if (!tx.aborted) { tx.committed = true; tx.oncomplete?.(); } });
+      return tx;
+    },
+  };
+  return { fakeDb, log, txs };
+}
+async function freshWriter(label, opts) {
+  const mod = await import(`../js/store/db.js?${label}`);
+  const t = fakeTxDb(opts);
+  globalThis.indexedDB = { open() { const r = makeFakeRequest(t.fakeDb); queueMicrotask(() => r.onsuccess()); return r; } };
+  return { mod, ...t };
+}
+
+test('writeMany: Puts und Deletes in genau einer readwrite-Transaktion', async () => {
+  const { mod, log, txs } = await freshWriter('w1');
+  await mod.writeMany({ puts: [{ store: 'cases', value: { id: 'a' } }], deletes: [{ store: 'cases', id: 'b' }] });
+  assert.equal(txs.length, 1);
+  assert.equal(txs[0].mode, 'readwrite');
+  assert.deepEqual(txs[0].stores, ['cases']);
+  assert.deepEqual(log, [['put', 'cases', { id: 'a' }], ['delete', 'cases', 'b']]);
+});
+test('writeMany: nichts zu tun -> keine Transaktion', async () => {
+  const { mod, txs } = await freshWriter('w2');
+  await mod.writeMany({});
+  await mod.writeMany({ puts: [], deletes: [] });
+  assert.equal(txs.length, 0);
+});
+test('writeMany: wirft ein Delete synchron, wird die Transaktion abgebrochen und abgelehnt', async () => {
+  const { mod, txs } = await freshWriter('w3', { failOn: 'delete' });
+  await assert.rejects(mod.writeMany({ puts: [{ store: 'cases', value: { id: 'a' } }], deletes: [{ store: 'cases', id: 'b' }] }), /Quota/);
+  assert.equal(txs[0].aborted, true);
+  assert.equal(txs[0].committed, false);
+});
+test('putMany bleibt eine Transaktion über mehrere Stores', async () => {
+  const { mod, log, txs } = await freshWriter('w4');
+  await mod.putMany([{ store: 'cases', value: { id: 'a' } }, { store: 'plans', value: { id: 'p' } }]);
+  assert.equal(txs.length, 1);
+  assert.deepEqual(txs[0].stores, ['cases', 'plans']);
+  assert.deepEqual(log.map(l => l[0]), ['put', 'put']);
+});
