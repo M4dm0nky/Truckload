@@ -26,13 +26,16 @@ export function retainedFields(v, { isNew, fromTemplate, overrideBuiltin }) {
   };
 }
 
-export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
+export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
   // Absicherung gegen einen zweiten Aufruf, bevor der `close`-Listener des vorigen gefeuert hat:
   // der ist an `dlg` selbst hängt (überlebt also das `dlg.innerHTML = …` unten) und würde beim
   // Schließen DIESES Dialogs sonst über sein eigenes, abgehängtes `f` die Werte des alten Formulars
   // lesen und die alte Promise auflösen (heute unerreichbar, da `#dlg-case` nur aus zwei sequentiellen
   // `await`-Pfaden bedient wird – docs/code-review-2026-09-21.md, „S7 — derselbe <dialog> zweimal offen“).
-  if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten, sonst trifft das alte Ereignis den neuen Listener
+    dlg.returnValue = 'cancel'; dlg.close();
+    await new Promise(r => dlg.addEventListener('close', r, { once: true }));
+  }
   const src = c ?? draft ?? null;
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
   if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';

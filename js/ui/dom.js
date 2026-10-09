@@ -9,6 +9,11 @@ export function svgEl(tag, attrs = {}, parent = null) {
   return el;
 }
 
+// Bildschirm- in viewBox-Koordinaten eines SVG (über getScreenCTM, folgt also dem Zoom).
+export const toSvg = (svg, x, y) => new DOMPoint(x, y).matrixTransform(svg.getScreenCTM().inverse());
+// Id des Cases unter dem Zeiger, null auf freier Fläche.
+export const caseIdAt = e => e.target.closest('g.case')?.dataset.id ?? null;
+
 export const fmtM = cm => `${(cm / 100).toFixed(2).replace('.', ',')} m`;
 
 // Farbkästchen vor einem Case-/Stück-Namen. Stand bis Task 6 viermal als eigene Kopie in

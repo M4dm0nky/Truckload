@@ -69,7 +69,7 @@ export function mountLibrary(el, h) {
     return `<div class="lib-item${selCls}" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
       ${swatch(color)}
       <span class="lib-text">${esc(label)}</span>
-      <button data-act="tray-remove" title="Entfernen">−</button></div>`;
+      <button data-act="tray-remove" title="Entfernen" aria-label="Entfernen">−</button></div>`;
   }
 
   // Reiner Auswahlwechsel: nur die Klasse umschalten, kein Neuaufbau.

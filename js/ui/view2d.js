@@ -1,5 +1,5 @@
-import { applyViewBox, toSvg } from './zoom2d.js';
-import { safeColor, svgEl } from './dom.js';
+import { applyViewBox } from './zoom2d.js';
+import { caseIdAt, safeColor, svgEl, toSvg } from './dom.js';
 import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
 import { wheelFace, isTruss } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
@@ -236,11 +236,6 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
   const cog = result.totals.cog;
   if (mode === 'top' && cog) svgEl('circle', { cx: cog.x, cy: truck.w - cog.y, r: 12, class: 'cog' }, svg)
     .appendChild(svgEl('title')).textContent = 'Schwerpunkt';
-}
-
-// Id des Cases unter dem Zeiger, null auf freier Fläche.
-export function caseIdAt(e) {
-  return e.target.closest('g.case')?.dataset.id ?? null;
 }
 
 export function attachSelect(svg, onSelect) {

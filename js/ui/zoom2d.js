@@ -1,11 +1,11 @@
 // Zoom und Verschieben der 2D-Ansichten (Draufsicht, Seiten-, Rückansicht – jede für sich).
 // Gezoomt wird allein über die viewBox des SVG; alles, was Bildschirm- in Truck-Koordinaten
-// umrechnet (toSvg unten über getScreenCTM), bleibt dadurch ohne Änderung richtig –
+// umrechnet (toSvg in dom.js über getScreenCTM), bleibt dadurch ohne Änderung richtig –
 // auch Case verschieben und Hineinziehen aus der Liste.
 //
 // Eine viewBox ist hier { x, y, w, h }. `full` ist der ganze Truck samt Rand (wie renderView sie
 // ohne Zoom setzt) – weiter heraus geht es nicht, der Ausschnitt bleibt immer darin.
-import { caseIdAt } from './view2d.js';
+import { caseIdAt, toSvg } from './dom.js';
 
 export const MIN_VIEW_W = 40; // cm – engster Ausschnitt (eigene Festlegung)
 const STEP = 1.5;              // Faktor je Knopfdruck
@@ -59,7 +59,6 @@ function set(svg, vb, full) {
   if (vb.w >= full.w - 1e-9) states.delete(svg); else states.set(svg, { full, vb });
   svg.setAttribute('viewBox', vbAttr(vb));
 }
-export const toSvg = (svg, x, y) => new DOMPoint(x, y).matrixTransform(svg.getScreenCTM().inverse());
 // Maßstab Bildschirm-Pixel -> viewBox-Einheiten (für Verschieben um Pixel-Beträge).
 const unitsPerPx = svg => { const m = svg.getScreenCTM(); return 1 / (m?.a || 1); };
 

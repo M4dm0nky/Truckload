@@ -6,8 +6,11 @@ import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, rul
 // über die Rückrufe von app.js und liefert { rules, mixTop, repack } oder null (Abbrechen/Esc).
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
 // Drag-Sonderfälle im <dialog>.
-export function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
-  if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
+export async function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten, sonst trifft das alte Ereignis den neuen Listener
+    dlg.returnValue = 'cancel'; dlg.close();
+    await new Promise(r => dlg.addEventListener('close', r, { once: true }));
+  }
   let cur = [...rules];
   let sets = [...ruleSets];
 
