@@ -32,12 +32,16 @@ export function pieceLayers(piece, c) {
   return allowed.length ? allowed : base;
 }
 
+export const isTruss = c => c.kind === 'truss';
+// Die eine Tipp-Regel: Traversenwagen werden nie getippt, auch wenn `tippable` (Altdaten) true wäre.
+export const canTip = c => c.tippable === true && !isTruss(c);
+
 // Erlaubte Ausrichtungen eines einzelnen STÜCKS. Ein nicht tippbarer Case-Typ lässt sich vom
 // Stück nicht überstimmen (immer nur „standing“). Ist der Case-Typ tippbar, entscheidet
 // piece.tipped: true zwingt aufs Tippen, false verbietet es, fehlt es (Altdaten), bleibt die
 // Wahl wie bisher beim Packer (ORIENTATIONS, aus denen chooseOrientation selbst wählt).
 export function pieceOrientations(piece, c) {
-  if (!c.tippable) return ['standing'];
+  if (!canTip(c)) return ['standing'];
   if (piece?.tipped === true) return ['tipLong', 'tipShort'];
   if (piece?.tipped === false) return ['standing'];
   return ORIENTATIONS;
@@ -184,19 +188,7 @@ export function cornerBoxes(faceBox, [a1, a2, n], size, inset, nRange) {
   return boxes;
 }
 
-export function faceSlab(b, face, t) {
-  switch (face) {
-    case '+x': return { ...b, x0: b.x1 - t };
-    case '-x': return { ...b, x1: b.x0 + t };
-    case '+y': return { ...b, y0: b.y1 - t };
-    case '-y': return { ...b, y1: b.y0 + t };
-    case 'bottom': return { ...b, z1: b.z0 + t };
-    default: throw new Error(`Unbekannte Seite: ${face}`);
-  }
-}
-
-// Gültige Seitenwerte eines Radkastens; nur die Modellschicht (`archBoxes`) fängt etwas damit an,
-// js/store/io.js benutzt die Liste zur Import-Prüfung.
+// Gültige Seitenwerte eines Radkastens (auch für die Import-Prüfung in js/store/io.js).
 export const ARCH_SIDES = ['left', 'right', 'both'];
 const [ARCH_LEFT, ARCH_RIGHT, ARCH_BOTH] = ARCH_SIDES;
 

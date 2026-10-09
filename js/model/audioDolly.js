@@ -1,6 +1,6 @@
 import { colorFor } from '../data/categories.js';
 import { CASE_LIMITS } from './limits.js';
-import { slug } from '../data/case-library.js';
+import { slug } from './slug.js';
 
 // Recherche: Carvin DB521018 (81×75×20 cm, 18,3 kg, 4× 127-mm-Lenkrollen), SYNQ SQ-218 Dolly
 // (11 kg, 4× 100-mm-Schwerlastrollen), DAS PL-EV118S (~81×71×18 cm Versandmaß, ~11 kg) –

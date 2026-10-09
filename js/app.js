@@ -1,6 +1,6 @@
 import { APP_VERSION } from './version.js';
 import * as repo from './store/repo.js';
-import { createStore } from './state.js';
+import { createStore } from './store/state.js';
 import { validatePlan } from './model/validate.js';
 import { memoLast } from './model/memo.js';
 import * as A from './model/actions.js';

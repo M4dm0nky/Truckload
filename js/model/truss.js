@@ -37,30 +37,6 @@ export function trussDims({ length, width, count, standing, height, wagonW }) {
   return { l: length, w, h };
 }
 
-export const isTruss = c => c.kind === 'truss';
-
-// Ob ein Case getippt werden darf: Traversenwagen sind es nie, auch wenn `tippable` an ihnen
-// (fehlerhaft) true wäre. `checkCase`/`normalizeCase` (js/store/io.js) und der Case-Editor
-// erzwingen `tippable: false` für Traversenwagen bereits an jeder Stelle, an der ein Case
-// entsteht oder geladen wird — `canTip` macht dieselbe Regel zusätzlich dort verlässlich, wo
-// ein Aufrufer nicht über diese Pfade läuft. Ersetzt das doppelt geschriebene
-// `c.tippable && c.kind !== 'truss'` in `actions.js`
-// (docs/code-review-2026-09-21.md, „geometry.js:35, actions.js:86,99“). Liegt hier statt in
-// geometry.js, weil geometry.js sonst truss.js importieren müsste, während truss.js schon von
-// geometry.js benutzte Hilfsfunktionen bräuchte (`cornerBoxes`) — das gäbe einen Zyklus
-// zwischen den beiden Modellmodulen.
-//
-// Strenger als die zwei Ausdrücke, die `canTip` ersetzt (`=== true` statt eines reinen Truthy-
-// Checks). Über reguläre Pfade nicht erreichbar: `checkCase`/`normalizeCase` (js/store/io.js)
-// erzwingen an jeder Stelle, an der ein Case entsteht oder geladen wird, bereits einen echten
-// Boolean. `js/ui/inspector.js` (Tippen-Knopf) und `validate.js` (notTippable-Meldung, s.
-// Kommentar dort) prüfen `c.tippable` bewusst weiter truthy statt über `canTip` – nicht aus
-// Versehen zwei verschiedene Regeln, sondern weil die Truthy-Prüfung an beiden Stellen schon vor
-// `canTip` da war und unter derselben Invariante dasselbe Ergebnis liefert
-// (docs/code-review-2026-09-21.md, Nachtrag Controller: „canTip ist strenger als die zwei
-// Ausdrücke, die es ersetzt hat“).
-export const canTip = c => c.tippable === true && !isTruss(c);
-
 export const DOLLY_L = 60;         // Länge eines Rollwagens (cm)
 const DOLLY_WHEEL_D = 10;   // Rollen-Durchmesser am Wagen (cm)
 export const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (F34: 50 mm Ø / 29 cm)

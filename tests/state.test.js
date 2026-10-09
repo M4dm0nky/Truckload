@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore } from '../js/state.js';
+import { createStore } from '../js/store/state.js';
 
 test('undo/redo nur für den Plan', () => {
   const s = createStore({ plan: { v: 1 }, selectedId: null });

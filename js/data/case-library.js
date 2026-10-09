@@ -29,6 +29,7 @@
 // 0 kg als eine erfundene Zahl. Quellen und Rechenweg: docs/casemasse-gewichte.md.
 
 import { colorFor } from './categories.js';
+import { slug } from '../model/slug.js';
 
 // Rollen: Blue Wheel Ø 100 mm, 13 cm (Nutzerangabe 2026-09-28; bis V0.8.1 12 cm). Die Maße der
 // Liste sind inkl. Rollen gemessen (dimsInclWheels) – die Rollenhöhe ändert also nicht, wie viel
@@ -39,12 +40,6 @@ const C = (name, category, l, w, h, company, content = '', opts = {}) => ({
   maxTopLoad: null, stock: null, wheels: true, wheelH: 13, dimsInclWheels: true,
   company, ...opts,
 });
-
-// Ersetzt Umlaute/ß lesbar, entfernt restliche Diakritika, macht daraus einen Slug.
-export const slug = name => name.toLowerCase()
-  .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
-  .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 // `legacy: true` (Aufräumen V0.8.1, Nutzerwunsch 2026-09-28): in keiner Auswahl mehr gelistet,
 // aber weiter vorhanden, damit alte Ladepläne ihre Stücke unverändert behalten. Betrifft die

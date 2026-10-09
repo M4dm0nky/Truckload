@@ -1,5 +1,4 @@
-import { EPS, archBoxes, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, pieceLayers } from './geometry.js';
-import { isTruss } from './truss.js';
+import { EPS, archBoxes, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, pieceLayers, isTruss, canTip } from './geometry.js';
 import { buildItems } from './items.js';
 
 const SUPPORT_MIN = 0.8;
@@ -43,18 +42,8 @@ export function validatePlan(plan, caseById, truck) {
       || b.x1 > truck.l + EPS || b.y1 > truck.w + EPS || b.z1 > truck.h + EPS)
       add(it.id, 'outOfBounds', `„${n}“ ragt über den Laderaum hinaus.`);
     if (arches.some(a => overlaps(a, b))) add(it.id, 'arch', `„${n}“ kollidiert mit einem Radkasten.`);
-    // Ein Traversenwagen ist geometrisch immer „standing“ (effectiveDims erzwingt das),
-    // p.orientation kann bei importierten Plänen trotzdem andere Werte tragen — die
-    // notTippable-Prüfung darf sich davon nicht täuschen lassen.
-    //
-    // Bewusst NICHT über `canTip(it.c)` (js/model/truss.js) geschrieben: `canTip` ist
-    // `tippable === true && !isTruss(c)`, dessen Verneinung wäre `tippable !== true ||
-    // isTruss(c)` (ODER) — hier steht aber ein UND (`!isTruss(...) && ... && !tippable`), das
-    // Traversenwagen von dieser Prüfung komplett ausnimmt, egal welche Orientierung sie tragen.
-    // Mit `!canTip(it.c)` bekäme ein importierter Traversenwagen mit falscher `p.orientation`
-    // fälschlich eine notTippable-Meldung statt gar keine — genau der Fehler, den der Kommentar
-    // oben beschreibt (docs/code-review-2026-09-21.md, „geometry.js:35“, Vorschlag zu `canTip`).
-    if (!isTruss(it.c) && it.p.orientation !== 'standing' && !it.c.tippable)
+    // Traversenwagen sind geometrisch immer „standing“ (effectiveDims); ihre p.orientation bleibt unbeachtet.
+    if (!isTruss(it.c) && it.p.orientation !== 'standing' && !canTip(it.c))
       add(it.id, 'notTippable', `„${n}“ darf nicht getippt werden.`);
   }
 

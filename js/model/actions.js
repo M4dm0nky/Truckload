@@ -1,11 +1,9 @@
-import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, archBoxes, nextTip, layersOf } from './geometry.js';
+import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, archBoxes, nextTip, layersOf, canTip } from './geometry.js';
 import { MAX_LABEL, layersValid } from './limits.js';
 import { buildItems } from './items.js';
 import { pickPieceFields, cleanGroup } from './pieceFields.js';
 import { autoPack } from './packer.js';
-import { PACK_ORDERS } from './packRules.js';
 import { rulesFor, normalizeRules, mixTopFor } from './packRules.js';
-import { canTip } from './truss.js';
 
 const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
 
@@ -338,13 +336,6 @@ function toPiece(x, ctx) {
 // packt in sie hinein“) – werden sie beim Neupacken sichtbar in die Ablage verschoben. Der
 // Nutzer sieht sie dort (statt zweier Cases im selben Raum) und kann reagieren.
 const missingCasePlacements = (plan, ctx) => plan.placements.filter(p => !ctx.caseById.has(p.caseId));
-
-// Reihenfolge des sortenreinen Packens je Load (Nutzerwunsch 2026-09-28). Fehlt das Feld
-// (Altdaten), packt autoPack mit seiner Vorgabe 'volume' („Große zuerst“).
-export function setPackOrder(plan, order) {
-  if (!PACK_ORDERS.includes(order) || plan.packOrder === order) return plan;
-  return touch({ ...plan, packOrder: order });
-}
 
 export function packAll(plan, ctx) {
   const list = [...plan.placements, ...plan.unplaced].map(x => toPiece(x, ctx)).filter(Boolean);

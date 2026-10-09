@@ -1,8 +1,8 @@
-import { archBoxes } from '../model/geometry.js';
+import { archBoxes, isTruss } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
-import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
+import { trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
 

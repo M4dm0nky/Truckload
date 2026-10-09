@@ -8,7 +8,7 @@ die man kennen muss, bevor man etwas ändert.
 ```
 js/data/     reine Datentabellen (Vorlagen, Bibliothek, Gewerke, Fahrzeuge)
 js/model/    reine Logik ohne DOM — Geometrie, Prüfung, Aktionen, Packer, Traversen
-js/store/    Speicherung (IndexedDB) und Datei-Austausch (JSON)
+js/store/    Speicherung (IndexedDB), Datei-Austausch (JSON) und der Undo-Store (`state.js`)
 js/ui/       Darstellung und Bedienung (SVG, Three.js, Dialoge)
 js/app.js    der einzige Ort, der den Zustand kennt und alles verdrahtet
 ```
@@ -84,14 +84,15 @@ auf einem platzierten Stück) geht direkt auf `standing`, nicht über `cycleTip`
 (Knopf „Truck entladen“) legt alle Placements zurück in die Ablage und behält dabei Label,
 Farbe, `layers` und `tipped` je Stück.
 
-`MAX_LABEL` (= 40) liegt in `js/model/geometry.js` — dort, weil es ein Modul ohne eigene
-Importe ist, das `js/store/io.js` (Prüfung `labelOk`) ohnehin schon importiert, und `js/ui/*`
-sowohl Modell als auch Store benutzen darf. `js/model/actions.js` kürzt jeden gesetzten oder
-vorbelegten Label-Wert selbst darauf (`addUnplaced`, `applyField`, `nextLabel`) — die
-Oberfläche muss die Grenze also nicht mehr an jeder Eingabestelle einzeln durchsetzen, ein
-`maxlength`-Attribut allein hätte einen vorbelegten Wert (Wizard, Duplizieren) nicht erfasst.
+`MAX_LABEL` (= 40) liegt zusammen mit den übrigen Grenzwerten (`CASE_LIMITS`, `TRUSS_LIMITS`,
+`MAX_FIRM`, `MAX_RULESET_NAME`) in `js/model/limits.js` — einem Modul ohne eigene Importe, das
+`js/store/io.js` (Prüfung `labelOk`) und `js/ui/*` ebenso benutzen dürfen wie die Modellschicht.
+`js/model/actions.js` kürzt jeden gesetzten oder vorbelegten Label-Wert selbst darauf
+(`addUnplaced`, `applyField`, `nextLabel`) — die Oberfläche muss die Grenze also nicht mehr an
+jeder Eingabestelle einzeln durchsetzen, ein `maxlength`-Attribut allein hätte einen
+vorbelegten Wert (Wizard, Duplizieren) nicht erfasst.
 
-`buildItems()` in `js/model/validate.js` führt beides zu `items` zusammen und legt
+`buildItems()` in `js/model/items.js` führt beides zu `items` zusammen und legt
 `it.label` und `it.color` mit Rückfall auf Case-Name und Gewerkfarbe frei. **Alle**
 Ansichten, der Inspector und der Druck lesen von dort — nicht selbst aus dem Case.
 
@@ -198,9 +199,10 @@ Auswahlregel (`by: 'truss'|'group'|'case'|'category'`, bei den letzten drei mit 
 („zuletzt“, Tür) die unentschiedenen — oder eine Maßregel (`by: 'volume'|'count'`) ohne `value`
 und `pos`, die nach Einzelvolumen bzw. Stückzahl absteigend sortiert. Bei Gleichstand aller
 Regeln entscheidet der Name, dann die Gruppe, dann bleibt die Eingabereihenfolge
-(`Array.prototype.sort` ist stabil). Ein String-Argument (`'volume'`/`'count'`) wird weiterhin
-über `legacyRules` übersetzt — bestehende Tests und Aufrufer bleiben gültig, `PACK_ORDERS` gilt
-weiter für den Import alter Dateien. `buildStacks` stapelt je Block; die
+(`Array.prototype.sort` ist stabil). Ein alter String (`'volume'`/`'count'`, Altdaten über
+`plan.packOrder`) wird einmal am Eingang von `autoPack` über `legacyRules` in Regeln übersetzt;
+`orderSorts` und `buildStacks` kennen nur noch Regel-Arrays. `PACK_ORDERS` gilt weiter für den
+Import alter Dateien. `buildStacks` stapelt je Block; die
 nächste Sorte darf nur den letzten offenen Stapel der vorigen auffüllen. `placeStacks` stellt
 Sorte für Sorte, jede nur ab dem x0 der letzten Reihe der vorigen (`minX`), und `packRest`
 beginnt an der letzten Reihe der vorhandenen Ladung (`startX` = größtes x0 der Bodenstücke). Seit V 0.8.4 stellt `placeStacks` jeden Stapel zuerst im Spurraster seiner Sorte ab der linken Wand (y = k · Stapelbreite) und fällt nur, wenn dort nichts passt (Radkästen), auf die freie Eckensuche zurück – sonst übernahm eine Sorte die Spurlage der vorigen, und 62er-Wagen passten neben 60er-Spuren nur zu dritt statt zu viert. Spec:
@@ -374,7 +376,7 @@ ohne `ruleSets` (ältere Sicherungen) ergeben beim Einlesen einfach eine leere L
 Export und Import laufen über ein JSON-Bundle (`js/store/io.js`). Mitgelieferte Cases
 (`builtin: true`) landen **nicht** in der Datei; Pläne verweisen weiter per `caseId` darauf.
 `parseBundle` prüft streng, weil die Datei von außen kommt — unter anderem gegen
-`CASE_LIMITS` (Obergrenzen für Maße, Gewicht, Rollenhöhe, Stückzahl), eindeutige Stück-IDs je
+`CASE_LIMITS` (`js/model/limits.js`, Obergrenzen für Maße, Gewicht, Rollenhöhe, Stückzahl), eindeutige Stück-IDs je
 Plan und einen String-Zeitstempel bei `updatedAt`. IDs, die mit `preset-` beginnen, werden
 aus fremden Dateien immer verworfen, um einen mitgelieferten Katalog zu schützen. IDs mit
 `lib-` und `builtin: true` werden ebenso verworfen, während eigene Überlagerungen derselben
@@ -520,7 +522,7 @@ In 3D werden solche Stücke **ausgeblendet** statt blass gezeichnet (`js/ui/view
 `update()` überspringt sie): Materialien liegen dort nach Farbe im Zwischenspeicher und die
 Profilstäbe laufen als ein einziges `InstancedMesh` über alle Cases — eine Transparenz je
 Stück hieße, beides zu verdoppeln und zu trennen. Welche Stücke betroffen sind, entscheidet in
-beiden Ansichten dieselbe Funktion `aboveLayer()` in `js/model/validate.js`, damit sie nicht
+beiden Ansichten dieselbe Funktion `aboveLayer()` in `js/model/items.js`, damit sie nicht
 auseinanderlaufen; das ausgewählte Stück ist dort immer ausgenommen. Die Spanne des
 Gewichtsmodus läuft weiter über ALLE Stücke — sonst spränge die Farbskala beim Umschalten
 der Lagen um.
@@ -567,5 +569,5 @@ schwarzem Case.
 - Alle Meldungstexte in `validatePlan` nennen seit V 0.7.0 `it.label` (die Stück-Beschriftung),
   nicht mehr `it.c.name` (den Case-Typ) — bei mehreren Exemplaren desselben Typs lässt sich eine
   Meldung sonst keinem Stück zuordnen.
-- `ARCH_SIDES` liegt seit V 0.7.0 in `js/model/validate.js` (Modellschicht, wo `archBoxes()` es
-  tatsächlich braucht), nicht mehr in `js/store/io.js`; `io.js` importiert es von dort.
+- `ARCH_SIDES` liegt in `js/model/geometry.js` (Modellschicht, wo `archBoxes()` es tatsächlich
+  braucht), nicht in `js/store/io.js`; `io.js` importiert es von dort.

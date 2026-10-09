@@ -1,5 +1,4 @@
-import { outerDims } from './geometry.js';
-import { isTruss } from './truss.js';
+import { outerDims, isTruss } from './geometry.js';
 
 // Pack-Regeln je Load (Nutzerwunsch 2026-09-30, Spec docs/superpowers/specs/2026-09-30-pack-regeln-
 // design.md): eine Rangliste, die die sortenreinen Blöcke (Case-Typ + Gruppe) von der Stirnwand
@@ -7,7 +6,7 @@ import { isTruss } from './truss.js';
 // schieben einen Block nach vorn (first = Stirnwand) oder hinten (last = Tür), Maßregeln ordnen
 // nach Einzelvolumen bzw. Stückzahl absteigend.
 export const MAX_RULES = 20;
-export const MAX_RULE_VALUE = 200;
+const MAX_RULE_VALUE = 200;
 const SELECT_BY = ['truss', 'group', 'case', 'category'];
 const MEASURE_BY = ['volume', 'count'];
 const POSITIONS = ['first', 'last'];
@@ -51,7 +50,7 @@ const canonical = r => (MEASURE_BY.includes(r.by) ? { by: r.by }
   : { by: r.by, value: r.value.trim(), pos: r.pos });
 
 // Eine Regel je Art und Ziel: „Gruppe Motoren“ kann nicht zugleich zuerst und zuletzt stehen.
-export const ruleKey = r => (r.value === undefined ? r.by : `${r.by}\u0000${r.value.trim()}`);
+const ruleKey = r => (r.value === undefined ? r.by : `${r.by}\u0000${r.value.trim()}`);
 
 export function normalizeRules(rules) {
   if (!Array.isArray(rules)) return [];

@@ -1,4 +1,4 @@
-import { isTruss } from '../model/truss.js';
+import { isTruss } from '../model/geometry.js';
 
 // Farben eines Cases je nach Anzeigemodus – einzige Quelle für 2D, 3D und Druck.
 export const CASE_BLACK = '#1c1d20';

@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_RAIL_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES,
-  TUBE_R_RATIO, trussDims, isTruss, trussShape, MAX_TRUSS_WIDTH,
+  TUBE_R_RATIO, trussDims, trussShape, MAX_TRUSS_WIDTH,
   STAND_FOOTPRINT_W, STAND_TRUSS_W, STAND_TRUSS_H,
   wagonWeight, splitWagons,
 } from '../js/model/truss.js';
-import { boxOf } from '../js/model/geometry.js';
+import { boxOf, isTruss } from '../js/model/geometry.js';
 
 const mkTrussCase = (length, width, count) => {
   const { l, w, h } = trussDims({ length, width, count });

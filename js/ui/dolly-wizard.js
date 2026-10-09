@@ -6,7 +6,7 @@ import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.j
 // Ergebnis: { newCase, addition: { caseId, n } } oder null bei Abbruch/ungültiger Eingabe.
 // Analog openTrussDialog() (js/ui/truss-wizard.js) – fragt NUR die Stückzahl ab, keine „ohne
 // Dolly“-Option (Nutzer-Entscheidung: Line-Array-Tops/Subs stehen in der Praxis immer auf
-// einem Dolly). Die Stückzahl ist auf maxDollyCount(base) begrenzt (CASE_LIMITS (js/model/limits.js), Befund
+// einem Dolly). Die Stückzahl ist auf maxDollyCount(base) begrenzt (CASE_LIMITS in js/model/limits.js, Befund
 // Final-Review Important #3) – keine eigene, engere Grenze darüber hinaus (Nutzer-Entscheidung:
 // die bestehende Höhen-/Gewichtsprüfung reicht).
 //

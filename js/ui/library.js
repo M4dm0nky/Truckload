@@ -1,6 +1,6 @@
 import { esc, swatch, icon } from './dom.js';
-import { layersOf, outerDims } from '../model/geometry.js';
-import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
+import { layersOf, outerDims, isTruss } from '../model/geometry.js';
+import { TRUSS_PROFILES } from '../model/truss.js';
 
 function trussProfileLabel(width) {
   const p = TRUSS_PROFILES.find(p => p.width === width);

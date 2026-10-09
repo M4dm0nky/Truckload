@@ -1,7 +1,7 @@
 import { APP_VERSION } from '../version.js';
-import { ORIENTATIONS, ROTATIONS, ARCH_SIDES } from '../model/geometry.js';
+import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.js';
 import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, layersValid } from '../model/limits.js';
-import { trussDims, isTruss } from '../model/truss.js';
+import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';

@@ -22,6 +22,23 @@ test('pickPieceFields übernimmt nur die Stückfelder, nie Position oder Id', ()
   assert.deepEqual(pickPieceFields(src), { label: 'L', color: '#123456', layers: [1, 2], tipped: false, group: 'G' });
 });
 
+test('pickPieceFields: ein volles Stück liefert genau PIECE_FIELDS, in dieser Reihenfolge', () => {
+  const full = { label: 'L', color: '#123456', layers: [1, 2], tipped: true, group: 'G' };
+  assert.deepEqual(Object.keys(pickPieceFields(full)), PIECE_FIELDS);
+});
+
+test('duplicate: Kopie, die in die Ablage geht (kein Platz), behält alle fünf Stückfelder', () => {
+  const K = mkCase('k', 120, 60, 60, { tippable: true });
+  const truck = mkTruck({ l: 120, w: 60, h: 60 });
+  const ctx = { caseById: byId(K), truck, newId: counter('n') };
+  const fields = { label: 'Kiste 1', color: '#123456', layers: [1, 2], tipped: false, group: 'FOH' };
+  const pl = A.duplicate(plan([{ id: 'a', caseId: 'k', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0, ...fields }]), 'a', ctx);
+  assert.equal(pl.placements.length, 1);
+  assert.equal(pl.unplaced.length, 1);
+  assert.deepEqual(pickPieceFields(pl.unplaced[0]), { ...fields, label: 'Kiste 2' });
+  assert.deepEqual(Object.keys(pickPieceFields(pl.unplaced[0])), PIECE_FIELDS);
+});
+
 test('pickPieceFields: leere Strings entfallen, tipped:false bleibt, group wird getrimmt und gekürzt', () => {
   assert.deepEqual(pickPieceFields({ label: '', color: '', tipped: false, group: '   ' }), { tipped: false });
   assert.deepEqual(pickPieceFields({ group: `  ${'x'.repeat(MAX_LABEL + 5)} ` }), { group: 'x'.repeat(MAX_LABEL) });

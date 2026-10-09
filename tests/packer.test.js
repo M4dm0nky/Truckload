@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts } from '../js/model/packer.js';
-import { PACK_ORDERS } from '../js/model/packRules.js';
+import { PACK_ORDERS, legacyRules } from '../js/model/packRules.js';
 import { validatePlan } from '../js/model/validate.js';
-import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
-import { isTruss } from '../js/model/truss.js';
+import { wheelFace, DOOR_FACE, isTruss, pieceOrientations, canTip } from '../js/model/geometry.js';
 import { mkCase, mkTruck, SPRINTER, plan, byId } from './fixtures.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
@@ -312,7 +311,7 @@ test('orderSorts volume: größtes Einzelvolumen zuerst, Traversen immer zuletzt
   const small = mkCase('small', 60, 60, 60);
   const truss = mkCase('truss', 300, 62, 115, { kind: 'truss', truss: { length: 300, width: 62, count: 1, standing: true, height: 115 } });
   const list = [...items(small, 5, 's'), ...items(truss, 2, 't'), ...items(big, 1, 'b')];
-  assert.deepEqual(sortsOf(orderSorts(list, 'volume')), ['big', 'small', 'truss']);
+  assert.deepEqual(sortsOf(orderSorts(list, legacyRules('volume'))), ['big', 'small', 'truss']);
 });
 
 test('orderSorts count: meiste gleiche Stücke zuerst, Gleichstand nach Volumen', () => {
@@ -320,7 +319,7 @@ test('orderSorts count: meiste gleiche Stücke zuerst, Gleichstand nach Volumen'
   const b = mkCase('b', 120, 60, 100);
   const c = mkCase('c', 60, 60, 60);
   const list = [...items(a, 2, 'a'), ...items(b, 2, 'b'), ...items(c, 7, 'c')];
-  assert.deepEqual(sortsOf(orderSorts(list, 'count')), ['c', 'b', 'a']);
+  assert.deepEqual(sortsOf(orderSorts(list, legacyRules('count'))), ['c', 'b', 'a']);
 });
 
 test('buildStacks: Stapel mischen keine Sorten, außer dem letzten offenen Stapel der vorigen Sorte', () => {
@@ -328,7 +327,7 @@ test('buildStacks: Stapel mischen keine Sorten, außer dem letzten offenen Stape
   const light = mkCase('light', 120, 60, 60, { weight: 30 });
   // 3 × heavy → Stapel [h,h,h] (4 Lagen erlaubt, Truck 270 hoch: 3×60 + 60 = 240 passt),
   // danach 3 × light: das erste light füllt den offenen heavy-Stapel auf, der Rest bildet eigene.
-  const { stacks } = buildStacks([...items(light, 3, 'l'), ...items(heavy, 3, 'h')], mkTruck(), { order: 'count' });
+  const { stacks } = buildStacks([...items(light, 3, 'l'), ...items(heavy, 3, 'h')], mkTruck(), { rules: legacyRules('count') });
   const ids = stacks.map(s => s.items.map(i => i.c.id));
   assert.deepEqual(ids[0], ['heavy', 'heavy', 'heavy', 'light']);
   assert.deepEqual(ids.slice(1), [['light', 'light']]);
@@ -341,7 +340,7 @@ test('buildStacks: nur der LETZTE offene Stapel der vorigen Sorte wird aufgefül
   // a: 3 Stück, höchstens 2 Lagen → Stapel [a,a] und [a]. b füllt nur den letzten ([a]) auf,
   // bis er voll ist (4 Lagen, 240 cm ≤ 270), nie den früheren [a,a] – der hat noch Platz für
   // Lage 3 und 4 und bleibt trotzdem sortenrein.
-  const { stacks } = buildStacks([...items(a, 3, 'a'), ...items(b, 3, 'b')], mkTruck(), { order: 'count' });
+  const { stacks } = buildStacks([...items(a, 3, 'a'), ...items(b, 3, 'b')], mkTruck(), { rules: legacyRules('count') });
   const ids = stacks.map(s => s.items.map(i => i.c.id));
   assert.deepEqual(ids, [['a', 'a'], ['a', 'b', 'b', 'b']]);
 });
@@ -352,7 +351,7 @@ test('buildStacks: Stück ohne Lage 1 ohne passenden offenen Stapel der vorigen 
   const onlyTop = mkCase('onlyTop', 120, 60, 60, { weight: 10, layers: [2] });
   // count: first ×3, mid ×2, onlyTop ×1 → die unmittelbar vorige Sorte von onlyTop ist mid (andere
   // Grundfläche). Die passenden first-Stapel gehören nicht dazu → onlyTop geht in die Ablage.
-  const { unplaced, stacks } = buildStacks([...items(first, 3, 'f'), ...items(mid, 2, 'm'), ...items(onlyTop, 1, 'o')], mkTruck(), { order: 'count' });
+  const { unplaced, stacks } = buildStacks([...items(first, 3, 'f'), ...items(mid, 2, 'm'), ...items(onlyTop, 1, 'o')], mkTruck(), { rules: legacyRules('count') });
   assert.deepEqual(unplaced.map(u => u.caseId), ['onlyTop']);
   assert.ok(stacks.every(s => !s.items.some(i => i.c.id === 'onlyTop')));
 });
@@ -513,7 +512,7 @@ test('F4: Sorte komplett in der Ablage lässt prevLast verfallen – eine übern
   // x-Stapel auffüllen, obwohl toobig dazwischenliegt).
   const { stacks, unplaced } = buildStacks(
     [...items(x, 3, 'x'), ...items(tooBig, 2, 't'), ...items(b, 1, 'b')],
-    mkTruck(), { order: 'count' },
+    mkTruck(), { rules: legacyRules('count') },
   );
   assert.deepEqual(unplaced.map(u => u.caseId), ['toobig', 'toobig']);
   const xStacks = stacks.filter(s => s.items.some(i => i.c.id === 'x'));
@@ -532,7 +531,7 @@ test('F4: Sorte B füllt nur den Stapel von A auf (kein eigener Stapel) – Sort
   // dabei nie einen eigenen Stapel; c darf deshalb nicht auf [a,b] weiterpacken.
   const { stacks } = buildStacks(
     [...items(a, 3, 'a'), ...items(b, 1, 'b'), ...items(c2, 1, 'c')],
-    mkTruck(), { order: 'count' },
+    mkTruck(), { rules: legacyRules('count') },
   );
   const mixedStack = stacks.find(s => s.items.some(i => i.c.id === 'b'));
   assert.deepEqual(mixedStack.items.map(i => i.c.id), ['a', 'b']);
@@ -618,14 +617,14 @@ test('orderSorts: gleicher Case-Typ mit und ohne Gruppe ergibt zwei Blöcke', ()
   assert.deepEqual(blocks.map(b => [b[0].group ?? '', b.length]), [['', 3], ['Motoren', 2]]);
 });
 
-test('orderSorts: Regel-Array und alter String liefern bei Altdaten dieselbe Reihenfolge', () => {
+test('orderSorts: legacyRules geben bei Altdaten die frühere Reihenfolge', () => {
   const big = mkCase('big', 120, 80, 80), small = mkCase('small', 60, 60, 60);
   const tr = mkCase('tr', 300, 62, 115, { kind: 'truss', truss: { length: 300, width: 62, count: 1, standing: true, height: 115 } });
   const list = [...items(small, 5, 's'), ...items(tr, 2, 't'), ...items(big, 1, 'b')];
   const ids = bl => bl.map(b => b[0].caseId);
-  assert.deepEqual(ids(orderSorts(list, 'volume')), ['big', 'small', 'tr']);
+  assert.deepEqual(ids(orderSorts(list, legacyRules('volume'))), ['big', 'small', 'tr']);
   assert.deepEqual(ids(orderSorts(list, [{ by: 'truss', pos: 'last' }, { by: 'volume' }, { by: 'count' }])), ['big', 'small', 'tr']);
-  assert.deepEqual(ids(orderSorts(list, 'count')), ['small', 'tr', 'big']);
+  assert.deepEqual(ids(orderSorts(list, legacyRules('count'))), ['small', 'tr', 'big']);
 });
 
 test('autoPack: Gruppe „Motoren“ zuletzt steht an der Tür, Traversen zuerst an der Stirnwand', () => {
@@ -819,4 +818,20 @@ test('Deckschicht, Eigenschaft: keine neuen Placement-Fehler, nichts geht verlor
       if (below) assert.ok(byAll.get(below.caseId).weight >= byAll.get(p.caseId).weight, `run ${run}: schwer auf leicht`);
     }
   }
+});
+
+// Eine Tipp-Regel (canTip): importierte Altdaten können an einem Traversenwagen `tippable: true`
+// tragen; er wird trotzdem nie getippt.
+test('Traversenwagen mit tippable:true (Altdaten): nur standing, Packer tippt nicht, keine Tipp-Warnung', () => {
+  const tw = mkCase('tw', 120, 62, 115, { kind: 'truss', tippable: true, truss: { length: 120, width: 62, count: 1, standing: true, height: 115 } });
+  assert.equal(canTip(tw), false);
+  assert.deepEqual(pieceOrientations({}, tw), ['standing']);
+  assert.deepEqual(pieceOrientations({ tipped: true }, tw), ['standing']);
+  const o = chooseOrientation(tw, mkTruck(), { tipped: true });
+  assert.equal(o.orientation, 'standing');
+  const { placements, unplaced } = autoPack(items(tw, 3, 'w'), mkTruck());
+  assert.deepEqual(unplaced, []);
+  assert.ok(placements.every(p => p.orientation === 'standing'));
+  const r = validatePlan(plan([...placements, { ...placements[0], id: 'x', x: 900, orientation: 'tipLong' }]), byId(tw), mkTruck());
+  assert.ok(!r.issues.some(i => i.code === 'notTippable'), 'keine Warnung zum Tippen');
 });

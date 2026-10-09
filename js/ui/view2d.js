@@ -1,12 +1,12 @@
 import { applyViewBox } from './zoom2d.js';
 import { svgEl } from './dom.js';
 import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
-import { wheelFace } from '../model/geometry.js';
+import { wheelFace, isTruss } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor } from './caseStyle.js';
 import { archBoxes } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
-import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
+import { trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
 
 // 2D ist die nüchterne Planungsansicht – „Tetris“: jedes Stück ist ein Rechteck im belegten
