@@ -21,7 +21,10 @@ export const fmtM = cm => `${(cm / 100).toFixed(2).replace('.', ',')} m`;
 // (leer, IndexedDB-Altdaten von vor B2, eine künftige fremde Quelle) fällt auf Grau zurück, statt
 // ungeprüft ins style-Attribut zu wandern.
 const SWATCH_COLOR_RE = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
-export const swatch = color => `<span class="swatch" style="background:${SWATCH_COLOR_RE.test(color) ? esc(color) : '#888'}"></span>`;
+// Gibt `c` nur zurück, wenn es #RGB/#RRGGBB ist, sonst Grau – für jede Farbe, die in ein
+// style-Attribut oder SVG-Attribut wandert (esc() schützt dort nicht).
+export const safeColor = c => (SWATCH_COLOR_RE.test(c) ? c : '#888');
+export const swatch = color => `<span class="swatch" style="background:${safeColor(color)}"></span>`;
 
 // Inline-SVG-Icons statt Emoji-Zeichen (✎/🗑 in js/ui/library.js) – ein Emoji bringt seine
 // eigene, betriebssystemabhängige Farbe mit und fällt damit aus dem sonst durchgehend

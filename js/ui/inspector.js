@@ -57,7 +57,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
         <dt>Maße stehend</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
         <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
-        <dt>Gewicht</dt><dd>${selected.c.weight} kg · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
+        <dt>Gewicht</dt><dd>${esc(selected.c.weight)} kg · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
       </dl>
       ${wheelRow}
       ${loadBlock(selected.p, selected.c, tipped)}

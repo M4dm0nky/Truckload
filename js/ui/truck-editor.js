@@ -1,6 +1,7 @@
 import { showConfirm } from './confirmDialog.js';
 
 export function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
+  if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
   const isNew = !t || t.builtin;
   const arch = t?.wheelArches?.[0];
   dlg.innerHTML = `

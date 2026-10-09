@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { esc, swatch, icon } from '../js/ui/dom.js';
+import { esc, swatch, safeColor, icon } from '../js/ui/dom.js';
 
 test('esc maskiert HTML-Sonderzeichen', () => {
   assert.equal(esc('<b>&"\'</b>'), '&lt;b&gt;&amp;&quot;&#39;&lt;/b&gt;');
@@ -39,4 +39,14 @@ test('icon liefert ein Inline-SVG mit currentColor für bekannte Namen', () => {
 
 test('icon wirft bei einem unbekannten Namen, statt still leer zu bleiben', () => {
   assert.throws(() => icon('unbekannt'));
+});
+
+test('safeColor lässt #RGB/#RRGGBB unverändert durch und fällt sonst auf Grau zurück', () => {
+  assert.equal(safeColor('#ff8800'), '#ff8800');
+  assert.equal(safeColor('#F80'), '#F80');
+  assert.equal(safeColor('red;position:fixed'), '#888');
+  assert.equal(safeColor('#ff8800;x'), '#888');
+  assert.equal(safeColor(''), '#888');
+  assert.equal(safeColor(undefined), '#888');
+  assert.equal(safeColor(null), '#888');
 });

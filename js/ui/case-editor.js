@@ -4,6 +4,7 @@ import { TRUSS_PROFILES, trussDims } from '../model/truss.js';
 import { CASE_LIMITS } from '../model/limits.js';
 import { QUICK_LENGTHS } from './caseInfo.js';
 import { showConfirm } from './confirmDialog.js';
+import { esc } from './dom.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 
@@ -46,7 +47,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false,
       <label>Name<input name="name" required maxlength="80" placeholder="z. B. Kabelcase Strom 1"></label>
       <label>Inhalt<textarea name="content" rows="3" placeholder="z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m"></textarea></label>
       <div class="row">
-        <label>Gewerk<select name="category">${CATEGORIES.map(k => `<option>${k.name}</option>`).join('')}</select></label>
+        <label>Gewerk<select name="category">${CATEGORIES.map(k => `<option>${esc(k.name)}</option>`).join('')}</select></label>
         <label>Farbe<input type="color" name="color"></label>
       </div>
       <div class="row kind-switch">
@@ -61,7 +62,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false,
         <label class="check"><input type="checkbox" name="wheels"> mit Rollen</label>
         <div class="row">
           <label>Rollenhöhe<select name="wheelPreset">
-            ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${p.name} – ${p.h} cm</option>`).join('')}
+            ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${esc(p.name)} – ${p.h} cm</option>`).join('')}
             <option value="custom">eigene …</option>
           </select></label>
           <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="40" step="1"></label>

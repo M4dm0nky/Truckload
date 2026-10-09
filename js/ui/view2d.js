@@ -1,5 +1,5 @@
-import { applyViewBox } from './zoom2d.js';
-import { svgEl } from './dom.js';
+import { applyViewBox, toSvg } from './zoom2d.js';
+import { safeColor, svgEl } from './dom.js';
 import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
 import { wheelFace, isTruss } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
@@ -89,7 +89,7 @@ function drawTruss(g, it, mode, truck) {
   const r = project(box, mode, truck);
   svgEl('rect', {
     x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'body truss-box',
-    ...(it.color ? { style: `--mark:${it.color}` } : {}),
+    ...(it.color ? { style: `--mark:${safeColor(it.color)}` } : {}),
   }, g);
   const shape = trussShape(c, p, box);
   const profileWidth = shape.profileWidth ?? c.truss.width;
@@ -170,13 +170,13 @@ function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure }
   } else {
     const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
     const colors = caseColors(it.c, colorMode, itemColor);
-    svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, fill: colors.body, class: 'body' }, g);
+    svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, fill: safeColor(colors.body), class: 'body' }, g);
     // Modus „Schwarz“: dunkle Kiste, die Gewerkfarbe als dünner Innenrahmen – ein eigenes
     // Rechteck, damit die Auswahlfarbe auf `rect.body` über CSS weiter greift.
     if (colors.stripe) svgEl('rect', {
       x: r.u0 + TRADE_EDGE, y: r.v0 + TRADE_EDGE,
       width: Math.max(0, r.u1 - r.u0 - 2 * TRADE_EDGE), height: Math.max(0, r.v1 - r.v0 - 2 * TRADE_EDGE),
-      stroke: colors.stripe, class: 'trade-edge',
+      stroke: safeColor(colors.stripe), class: 'trade-edge',
     }, g);
     // Rollenzone als Streifen in echter Tiefe – nur, wo man die Rollen von der Kante sieht.
     const bodyRect = project(caseShape(it.c, it.p, it.box).body, mode, truck);
@@ -238,20 +238,21 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
     .appendChild(svgEl('title')).textContent = 'Schwerpunkt';
 }
 
-function toSvg(svg, e) {
-  return new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
+// Id des Cases unter dem Zeiger, null auf freier Fläche.
+export function caseIdAt(e) {
+  return e.target.closest('g.case')?.dataset.id ?? null;
 }
 
 export function attachSelect(svg, onSelect) {
-  svg.addEventListener('pointerdown', e => onSelect(e.target.closest('g.case')?.dataset.id ?? null));
+  svg.addEventListener('pointerdown', e => onSelect(caseIdAt(e)));
 }
 
 export function attachTopInteractions(svg, h) {
   let drag = null;
-  const truckPt = e => { const p = toSvg(svg, e); return unproject(p.x, p.y, 'top', h.getTruck()); };
+  const truckPt = e => { const p = toSvg(svg, e.clientX, e.clientY); return unproject(p.x, p.y, 'top', h.getTruck()); };
 
   svg.addEventListener('pointerdown', e => {
-    const id = e.target.closest('g.case')?.dataset.id ?? null;
+    const id = caseIdAt(e);
     h.onSelect(id);
     if (!id) return;
     const it = h.getItem(id);
@@ -285,6 +286,8 @@ export function attachTopInteractions(svg, h) {
     const raw = e.dataTransfer.getData('text/x-case');
     if (!raw) return;
     const pt = truckPt(e);
-    h.onDropCase(JSON.parse(raw), pt.x, pt.y);
+    let data;
+    try { data = JSON.parse(raw); } catch { return; } // fremde Ablage mit demselben Typ, aber kaputtem Inhalt
+    h.onDropCase(data, pt.x, pt.y);
   });
 }

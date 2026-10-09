@@ -21,7 +21,7 @@ import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
 import { COLOR_MODES } from './ui/caseStyle.js';
-import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
+import { showAlert, showConfirm, showPick, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
 import { buildPrint, buildChecklist, buildLabels, pageRuleFor } from './ui/print.js';
@@ -319,23 +319,13 @@ async function removeFromStock(c, { confirmed = false } = {}) {
   return true;
 }
 
-// Kleiner Auswahldialog (<select> in #dlg-pick); null bei Abbruch.
-function pickOption(title, options) {
-  const d = $('#dlg-pick');
-  d.innerHTML = `<form method="dialog" class="editor"><label>${esc(title)}<select name="v">${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></label>
-    <menu><span class="grow"></span><button value="cancel" formnovalidate>Abbrechen</button><button value="ok" class="primary">OK</button></menu></form>`;
-  const sel = d.querySelector('select');
-  d.returnValue = '';
-  d.showModal();
-  return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? sel.value : null), { once: true }));
-}
 async function pickCase(title, cases) {
   if (!cases.length) { await showAlert('Keine passende Box vorhanden.'); return null; }
-  const id = await pickOption(title, cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })));
+  const id = await showPick(title, cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })));
   return id == null ? null : cases.find(c => c.id === id);
 }
 // Zielfirma: '' = Standardliste (Wert ''), sonst Firmenname; null = abgebrochen.
-const pickFirm = () => pickOption('In welche Firma?', [{ value: '', label: 'Standardliste' }, ...companyList(store.get().cases).map(f => ({ value: f.name, label: f.name }))]);
+const pickFirm = () => showPick('In welche Firma?', [{ value: '', label: 'Standardliste' }, ...companyList(store.get().cases).map(f => ({ value: f.name, label: f.name }))]);
 
 const material = mountMaterial(materialEl, {
   onBack: () => {

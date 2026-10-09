@@ -7,7 +7,7 @@
      Radkastens (`svg .arch`, unten) auf dem Truckboden kaum sichtbar. --ok liefert der Skill
      ebenfalls nicht, bleibt unverändert. */
   --bg: #0f172a; --panel: #192134; --line: #2a3444; --text: #ffffff; --muted: #94a3b8;
-  --accent: #d97706; --danger: #dc2626; --ok: #30a46c; --truck: #121a2c; --grid: #223049;
+  --accent: #d97706; --on-accent: #111; --danger: #dc2626; --ok: #30a46c; --truck: #121a2c; --grid: #223049;
   --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   --case-body: #1c1d20; --alu: #b8bec6; --corner: #d6dbe1; --wheel: #2b2d31;
 }
@@ -24,7 +24,8 @@ button, .btn, select, input, textarea { font: inherit; color: inherit; }
 button, .btn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
 button:hover, .btn:hover { border-color: var(--muted); }
 button:disabled { opacity: .4; cursor: default; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #111; font-weight: 600; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 button.danger { color: var(--danger); }
 select, input, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
 
@@ -39,7 +40,7 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .brand { color: var(--accent); letter-spacing: .02em; }
 .brand .version { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 4px; }
 .grow { flex: 1; }
-.seg button.on { background: var(--accent); color: #111; border-color: var(--accent); }
+.seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .seg-label { color: var(--muted); font-size: 12px; margin-right: 2px; }
 .case-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
 .case-tabs button { flex: 1; }
@@ -51,7 +52,6 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .start-card .primary { justify-self: center; padding: 10px 20px; font-size: 15px; }
 .start-plans { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; text-align: left; max-height: 260px; overflow: auto; }
 .start-plan-item { width: 100%; text-align: left; }
-.start-plan-item small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
 .start-hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 #start-import { justify-self: center; margin-top: 6px; }
 .start-main { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
@@ -128,7 +128,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .editor .kind-switch { display: flex; gap: 4px; }
 .editor .kind-switch label { display: flex; align-items: center; gap: 6px; margin: 0; padding: 5px 10px;
   border: 1px solid var(--line); border-radius: 6px; cursor: pointer; color: var(--text); }
-.editor .kind-switch label:has(input:checked) { background: var(--accent); color: #111; border-color: var(--accent); }
+.editor .kind-switch label:has(input:checked) { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .editor .quick-lengths { display: flex; flex-wrap: wrap; gap: 6px; }
 .editor .quick-len { padding: 3px 10px; font-size: 12px; border-radius: 999px; }
 .editor .truss-dims, .editor .outer-dims-hint { color: var(--muted); font-size: 12px; margin: 0; }
@@ -203,7 +203,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .insp-label input[type="color"] { padding: 2px; height: 30px; }
 .insp-wheels { margin: 10px 0; }
 .insp-wheels .hint { display: block; margin-bottom: 4px; }
-.insp-wheels button.on { background: var(--accent); color: #111; border-color: var(--accent); }
+.insp-wheels button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 /* Block „Laden“ (Lage 1–4 + getippt) – gleiche Optik wie die Wizard-Häkchen (.wiz-layers,
    .wiz-tipped, .check, .wiz-layer-hint sind dort schon definiert und werden hier mit
    übernommen), nur kompakter fürs schmale Inspector-Panel. */

@@ -7,6 +7,7 @@ import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, rul
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
 // Drag-Sonderfälle im <dialog>.
 export function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
+  if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
   let cur = [...rules];
   let sets = [...ruleSets];
 
@@ -74,9 +75,9 @@ export function openPackRules(dlg, { rules, mixTop = false, targets, caseById, r
       return `
         <li class="rule ${active ? '' : 'inactive'}" data-i="${i}">
           <span class="rule-text">${esc(describeRule(r, caseById))}${active ? '' : ' <small>(nicht in diesem Load)</small>'}</span>
-          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="Nach oben">↑</button>
-          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="Nach unten">↓</button>
-          <button type="button" data-act="remove" title="Regel entfernen">×</button>
+          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="Nach oben" aria-label="Nach oben">↑</button>
+          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="Nach unten" aria-label="Nach unten">↓</button>
+          <button type="button" data-act="remove" title="Regel entfernen" aria-label="Regel entfernen">×</button>
         </li>`;
     }).join('') || '<li class="hint">Keine Regel – dann entscheidet der Name.</li>';
   }

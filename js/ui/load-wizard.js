@@ -20,6 +20,7 @@ const MAX_ITEMS = 500;
 // Ergebnis: { name, truckId, items: [{ caseId, label, color, layers?, tipped?, group? }], autoPack }
 // oder null bei Abbruch.
 export function openLoadWizard(dlg, opts = {}) {
+  if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
   const mode = opts.mode ?? 'new';
   const trucks = opts.trucks ?? [];
   let cases = [...(opts.cases ?? [])];
@@ -125,9 +126,9 @@ export function openLoadWizard(dlg, opts = {}) {
         ${swatch(c.color)}
         <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
         <div class="stepper">
-          <button type="button" data-act="dec" ${n <= 0 ? 'disabled' : ''}>−</button>
+          <button type="button" data-act="dec" aria-label="Eine weniger" ${n <= 0 ? 'disabled' : ''}>−</button>
           <span class="qty">${n}</span>
-          <button type="button" data-act="inc" ${total() >= MAX_ITEMS ? 'disabled' : ''}>+</button>
+          <button type="button" data-act="inc" aria-label="Eine mehr" ${total() >= MAX_ITEMS ? 'disabled' : ''}>+</button>
         </div>
       </div>`;
   }
