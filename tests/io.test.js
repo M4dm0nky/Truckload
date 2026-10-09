@@ -58,6 +58,14 @@ test('Ladeplan mit ungültiger Drehung wird abgelehnt', () => {
   const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });
   assert.throws(() => parseBundle(bad), /ungültige Platzierungen/);
 });
+test('Altdaten: Platzierung ohne rot lädt, der Export/Import-Kreislauf gelingt und rot ist 0', () => {
+  const old = { id: 'pl1', caseId: 'own', x: 0, y: 0, z: 0, orientation: 'standing' };
+  const p = plan([old]);
+  const first = parseBundle(bundleWith({ cases: [own], trucks: [], plans: [p] }));
+  assert.equal(first.plans[0].placements[0].rot, 0);
+  const again = parseBundle(exportBundle({ cases: [own], trucks: [], plans: first.plans }));
+  assert.equal(again.plans[0].placements[0].rot, 0);
+});
 test('Ladeplan mit nicht-numerischer Position wird abgelehnt', () => {
   const p = plan([P('pl1', 'own', 'nan', 0, 0)]);
   const bad = bundleWith({ cases: [own], trucks: [], plans: [p] });

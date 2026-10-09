@@ -202,7 +202,11 @@ export function parseBundle(text) {
   };
   const plans = rawPlans.map(p => ({
     ...p,
-    placements: Array.isArray(p.placements) ? p.placements.map(repairPiece) : p.placements,
+    // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
+    // placementOk sie annimmt und der eigene Export wieder importierbar ist.
+    placements: Array.isArray(p.placements)
+      ? p.placements.map(x => repairPiece(x?.rot === undefined && typeof x === 'object' && x ? { ...x, rot: 0 } : x))
+      : p.placements,
     unplaced: p.unplaced.map(repairPiece),
   }));
 
