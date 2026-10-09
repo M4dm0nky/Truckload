@@ -47,6 +47,7 @@ const ASSETS = [
   'js/model/validate.js',
   'js/store/autosave.js',
   'js/store/db.js',
+  'js/store/hostDb.js',
   'js/store/io.js',
   'js/store/repo.js',
   'js/store/state.js',
