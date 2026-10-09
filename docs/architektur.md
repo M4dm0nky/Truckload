@@ -10,7 +10,8 @@ js/data/     reine Datentabellen (Vorlagen, Bibliothek, Gewerke, Fahrzeuge)
 js/model/    reine Logik ohne DOM — Geometrie, Prüfung, Aktionen, Packer, Traversen
 js/store/    Speicherung (IndexedDB), Datei-Austausch (JSON) und der Undo-Store (`state.js`)
 js/ui/       Darstellung und Bedienung (SVG, Three.js, Dialoge)
-js/app.js    der einzige Ort, der den Zustand kennt und alles verdrahtet
+js/app/      Verdrahtung in kleinen Modulen (Zustandshelfer, Bildschirme, Speicherpfade, Plan-Verwaltung …)
+js/app.js    Startdatei: lädt die Daten, erzeugt den Store und ruft die Module aus js/app/ auf
 ```
 
 Die Richtung ist strikt: `ui` benutzt `model`, nie umgekehrt. Module unter `model/` haben
@@ -19,9 +20,29 @@ Geometrie herausfällt, wandert sie in ein reines Modul — so entstanden
 `js/ui/instanceMatrix.js`, `js/ui/labelTexture.js` und `js/ui/caseGroups.js`, die trotz
 ihres Ordners keine Three.js- oder DOM-Abhängigkeit haben und eigene Tests besitzen.
 
-`js/app.js` ist bewusst der einzige Ort mit Store-Wissen. Dialoge und Listen bekommen ihre
+`js/app.js` ist die Startdatei (rund 170 Zeilen): sie lädt die Daten, erzeugt den Store und die
+Kern-Hüllen (`ctx`, `derive`, `edit`, `select`), rendert und ruft die Module unter `js/app/` auf.
+Sie exportiert `store`, `derive`, `edit`, `select`, `scheduleRender` und `renderHooks`, damit
+Browser-Szenarien Zustand aufbauen können. Dialoge und Listen unter `js/ui/` bekommen ihre
 Daten als Argumente und liefern reine Ergebnisobjekte zurück (`openCaseEditor`,
 `openTruckEditor`, `openLoadWizard`).
+
+### js/app/ — die Verdrahtung
+
+- `core.js` — reine Zustandshelfer (`ctxOf`, `deriveOf`, `allPlansOf`, `piecesOf`, Nutzungszähler).
+- `screens.js` — Bildschirmwahl (`screenOf`: Start, Plan oder Material) und Startbildschirm.
+- `keyboard.js` — Tastenzuordnung (`keyFor`, rein) und der Dokument-Handler dafür.
+- `guarded.js` — führt eine Speicheraktion mit genau einer Fehlermeldung aus.
+- `persistence.js` — Speicherpfade für Case, Firma, Regelset und Fahrzeug: erst schreiben, dann den Store nachziehen.
+- `plans.js` — Plan-Knöpfe (Neu, Umbenennen, Duplizieren, Löschen, Auswahl), Lade-Wizard und die reinen Übergänge `switchPlanState`/`deletePlanState`.
+- `materialScreen.js` — Materialbildschirm samt Case-Editor-Wegen (`editCase`, `newCaseForWizard`).
+- `importExport.js` — Sichern und Importieren mit Vorab-Sicherung.
+- `chrome.js` — Hinweisbänder, Speicherstatus, Versionsanzeige, Druck, Service-Worker-Registrierung.
+- `planView.js` — Plan-Bildschirm: Seitenleiste, Inspector, Werkzeugleiste, 2D-Interaktionen, Aktionen, Fahrzeuge, 3D-Nachladen.
+
+Abhängigkeitsregel: `app.js` reicht Store, `edit`, `select` und die übrigen Hüllen als Parameter
+an `wire…`/`mount…`/`create…` weiter (Injektion). Kein Modul unter `js/app/` importiert
+`js/app.js`; untereinander benutzen sie nur `core.js` und `guarded.js`.
 
 `js/store/autosave.js` ist seit V 0.7.0 die Buchhaltung des Autosaves: reine Logik ohne
 DOM-, IndexedDB- oder Store-Wissen, alle Abhängigkeiten (Schreibfunktion, Uhr, Timer,
@@ -57,7 +78,7 @@ laden also unverändert):
   lassen sich davon nie überstimmen). Wird ein Stück platziert, entscheidet
   `tipped === true && canTip(c)` über die Startausrichtung (`tipLong` statt `standing`).
 - `group` — ein freier, getrimmter Gruppenname (höchstens `MAX_LABEL` Zeichen), gesetzt über
-  `addUnplaced({ group })` (Wizard-Schritt „Beschriften“, `js/app.js`) oder `A.setPieceGroup`
+  `addUnplaced({ group })` (Wizard-Schritt „Beschriften“, verdrahtet in `js/app/plans.js`) oder `A.setPieceGroup`
   (Inspector). Er wandert wie die übrigen
   Stückfelder mit: `PIECE_FIELDS` und `pickPieceFields` (`js/model/pieceFields.js`) sind die
   einzige Stelle, die diese Felder aufzählt; `addUnplaced`, `placeCase`, `duplicate`,
@@ -356,10 +377,10 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   angelegt wurden; sie umgehen alle Filter (Suche, Gewerk, Firma, `onlyInPlan`), sonst
   verschwände ein eben angelegtes Case sofort wieder aus der Liste.
 - **Materialseite als eigenes Modul**: `mountMaterial` in `js/ui/material.js` bekommt nur
-  Callbacks (`onEdit`, `onNewCase`, …) aus `js/app.js`, das Speichern und Löschen
-  (`saveCaseValue`, `removeFromStock`) bleibt dort. Die Seite ist ein eigener Bildschirm
+  Callbacks (`onEdit`, `onNewCase`, …) aus `js/app/materialScreen.js`, das Speichern und Löschen
+  (`saveCase`, `removeFromStock`) liegt in `js/app/persistence.js`. Die Seite ist ein eigener Bildschirm
   (`#material-screen`, Schalter `materialOpen`). Solange er offen ist, kehrt der
-  `keydown`-Handler von `js/app.js` sofort zurück, damit Entf, Pfeile oder Rückgängig nicht
+  `keydown`-Handler aus `js/app/keyboard.js` sofort zurück, damit Entf, Pfeile oder Rückgängig nicht
   den dahinterliegenden Plan verändern.
 
 ## Speicherung und Austausch
@@ -389,7 +410,7 @@ Import nicht verlieren (Materialverwaltung). Beim Zusammenführen gewinnt der ne
 aber nur wenn **beide** Seiten einen String-Zeitstempel tragen — ein kaputter oder fehlender
 Zeitstempel verliert immer gegen einen gültigen.
 
-Vor jedem Import lädt `js/app.js` still eine Sicherung des bisherigen Stands herunter
+Vor jedem Import lädt `js/app/importExport.js` still eine Sicherung des bisherigen Stands herunter
 (`preImportBackupFileName()`, gleicher Name wie `backupFileName()` plus `-vor-import`), bevor
 irgendetwas in IndexedDB überschrieben wird. Das Mischen läuft synchron innerhalb eines
 `store.update()`-Updaters, damit eine Änderung, die der Nutzer während des Schreibens macht,
@@ -533,13 +554,13 @@ der Lagen um.
 
 `js/ui/print.js` erzeugt drei Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
 SVG-Ansichten), `buildChecklist` (Abhakliste) und `buildLabels` (Etiketten). Welches gilt,
-steuert `js/app.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`,
+steuert `js/app/chrome.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`,
 bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle drei schreiben
 nur `root.innerHTML`, brauchen dafür also kein echtes DOM, sondern nur eine Attrappe – deshalb
 sind sie ohne jsdom testbar (`tests/print.test.js`). Allein `buildPrint` greift danach über
 `root.querySelector` auf das DOM zu, um die SVGs einzuhängen. Die Seitenvorschrift hängt an der Druckart:
 `pageRuleFor(doc)` liefert für Etiketten `@page { size: A4 portrait; margin: 0 }`, sonst `null`.
-`js/app.js` hängt die Regel vor `window.print()` als `<style id="print-page">` ein und entfernt
+`js/app/chrome.js` hängt die Regel vor `window.print()` als `<style id="print-page">` ein und entfernt
 sie im `afterprint` wieder — benannte Seiten (`@page x { … }` + `page:`) wären der direktere
 Weg, werden aber von Browsern uneinheitlich unterstützt. Die Grundregel in `css/print.css`
 bleibt A4 quer und gilt damit für Ladeplan und Abhakliste.
