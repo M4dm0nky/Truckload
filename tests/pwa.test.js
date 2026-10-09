@@ -71,6 +71,12 @@ test('importmap steht vor dem ersten modulepreload (Firefox verwirft ihn sonst)'
   assert.ok(html.indexOf('type="importmap"') < html.indexOf('rel="modulepreload"'));
 });
 
+test('Fehler-Skript steht vor dem importmap', () => {
+  const html = read('index.html');
+  assert.ok(html.indexOf("addEventListener('error'") >= 0);
+  assert.ok(html.indexOf("addEventListener('error'") < html.indexOf('type="importmap"'));
+});
+
 test('Ladefehler-Hinweis erkennt auch Link-Fehler über __tlBooted', () => {
   assert.match(read('js/app.js').trimEnd(), /window\.__tlBooted = true;$/);
   const html = read('index.html');

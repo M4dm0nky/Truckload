@@ -1,5 +1,5 @@
 import { esc } from './dom.js';
-import { MAX_FIRM } from '../model/material.js';
+import { MAX_FIRM, firmNameError } from '../model/material.js';
 
 // Auswahlwert für „+ Neue Firma …“ – der Name kommt dann aus dem Feld `stockNewCompany`
 // (Nutzer-Feedback 2026-10-09: neue Firma direkt beim Ablegen im Wizard, ohne Umweg über die
@@ -7,6 +7,10 @@ import { MAX_FIRM } from '../model/material.js';
 const NEW_FIRM = '__new__';
 export const resolveStockCompany = (selectValue, newName) =>
   (selectValue === NEW_FIRM ? String(newName ?? '').trim() : selectValue);
+
+// Fehlertext für den Namen einer neuen Firma (null = gültig oder nicht im Neu-Modus).
+export const newCompanyError = (selectValue, newName, inStock = true) =>
+  (inStock && selectValue === NEW_FIRM ? firmNameError(newName) : null);
 
 // Block „Im Materialbestand ablegen“ (Spec-Nachtrag 2026-10-09) – gemeinsam für Case-Editor,
 // Traversen- und Dolly-Dialog. 'choose' = Wizard (Häkchen + Ziel), 'fixed' = Materialseite.
@@ -41,8 +45,10 @@ export function wireStockTarget(form) {
     newLabel.hidden = !isNew;
     f.stockNewCompany.disabled = !isNew;
     f.stockNewCompany.required = isNew; // Formularprüfung blockiert Speichern ohne Namen
+    f.stockNewCompany.setCustomValidity(newCompanyError(f.stockCompany.value, f.stockNewCompany.value, f.inStock.checked) ?? '');
     if (isNew && focus) f.stockNewCompany.focus();
   };
+  f.stockNewCompany?.addEventListener('input', () => sync());
   f.inStock.addEventListener('change', () => sync());
   f.stockCompany.addEventListener('change', () => sync(true));
   sync();

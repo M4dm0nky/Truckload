@@ -111,7 +111,7 @@ export function edit(fn, history = true) {
 }
 export const select = id => store.update(s => (s.selectedId === id ? s : { ...s, selectedId: id }));
 
-// F2+F6 (Fix-Welle 2026-09-28): nach „Alles neu packen", „Rest einpacken" und dem Wizard-
+// F2+F6 (Fix-Welle 2026-09-28): nach „Alles neu packen“, „Rest einpacken“ und dem Wizard-
 // Autopack meldet sich die App, wenn danach noch Stücke in der Ablage liegen – sonst merkt der
 // Nutzer die Lücke nur, wenn er die Ablage zufällig aufklappt. `edit()` ist synchron, store.get()
 // liefert direkt danach den frischen Stand.
@@ -745,7 +745,7 @@ $('#plan-del').onclick = async () => {
   // LETZTE Plan, führt „Löschen“ jetzt zurück zum Startbildschirm (plan: null) statt
   // automatisch einen neuen leeren Plan zu erzeugen.
   const next = rest[0] ?? null;
-  if (next && rest.some(p => p.id === next.id)) autosave.markKnown(next); // sonst: neu, braucht sein erstes Speichern
+  if (next) autosave.markKnown(next);
   store.update(st => ({ ...st, plans: rest.filter(p => p.id !== next?.id), plan: next, selectedId: null }));
   store.resetHistory();
 };
@@ -784,7 +784,7 @@ async function editTruck(truck) {
         await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
       }
     }
-    if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }));
+    if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
     return;
   }
   const value = stamp(res.value);
@@ -1032,6 +1032,15 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 
 scheduleRender();
+
+// Globaler Auffangnetz-Hinweis: Fehler, die schon per showAlert gemeldet werden, sind gefangen
+// und erreichen diesen Handler nicht.
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unbehandelte Ablehnung', e.reason);
+  const el = $('#storage-warning');
+  el.hidden = false;
+  el.textContent = `Unerwarteter Fehler: ${e.reason?.message ?? String(e.reason)}`;
+});
 
 // Marker für den Ladefehler-Hinweis in index.html: ab hier ist das Modul-Skript vollständig gelaufen.
 window.__tlBooted = true;

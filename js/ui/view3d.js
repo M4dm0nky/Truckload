@@ -50,14 +50,16 @@ export async function createView3d(container) {
 
   const render = () => renderer.render(scene, camera);
   controls.addEventListener('change', render);
-  const resize = () => {
+  let sizedW = 0, sizedH = 0;
+  const ensureSize = () => {
     const { clientWidth: w, clientHeight: h } = container;
-    if (!w || !h) return;
+    if (!w || !h || (w === sizedW && h === sizedH)) return;
+    sizedW = w; sizedH = h;
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    render();
   };
+  const resize = () => { ensureSize(); render(); };
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
 
@@ -804,7 +806,7 @@ export async function createView3d(container) {
       controls.update();
       framedFor = frameKey;
     }
-    resize();
+    ensureSize();
     render();
   }
   return { update, dispose };

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stockTargetHtml, readStockTarget, resolveStockCompany } from '../js/ui/stock-target.js';
+import { stockTargetHtml, readStockTarget, resolveStockCompany, newCompanyError } from '../js/ui/stock-target.js';
 
 test('stockTargetHtml (choose): Häkchen an, Standardliste + Firmen, Firmennamen escaped', () => {
   const html = stockTargetHtml({ mode: 'choose', companies: ['CAB', '<b>X'], defaultCompany: 'CAB' });
@@ -36,4 +36,12 @@ test('resolveStockCompany: neue Firma getrimmt, sonst die Auswahl', () => {
 test('readStockTarget: neue Firma aus dem Namensfeld', () => {
   const form = { elements: { inStock: { checked: true }, stockCompany: { value: '__new__' }, stockNewCompany: { value: ' X ' } } };
   assert.deepEqual(readStockTarget(form, { mode: 'choose' }), { inStock: true, company: 'X' });
+});
+test('newCompanyError: nur im Neu-Modus, prüft leer/zu lang/reserviert', () => {
+  assert.equal(newCompanyError('CAB', ''), null);
+  assert.equal(newCompanyError('__new__', 'Neu', false), null);
+  assert.equal(newCompanyError('__new__', 'Neu'), null);
+  assert.match(newCompanyError('__new__', '  '), /fehlt/);
+  assert.match(newCompanyError('__new__', 'x'.repeat(81)), /höchstens/);
+  assert.match(newCompanyError('__new__', '__Standard__'), /reserviert/);
 });

@@ -11,6 +11,30 @@
   <meta name="apple-mobile-web-app-title" content="Truckload">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/print.css" media="print">
+  <script>
+    // Schlägt ein Modul (oder sein Preload) fehl, z. B. bei abgebrochener Verbindung: Hinweis statt weißer Seite.
+    window.addEventListener('error', e => {
+      const t = e.target;
+      const isModule = t && t.tagName === 'SCRIPT' && t.type === 'module';
+      const isPreload = t && t.tagName === 'LINK' && t.rel === 'modulepreload';
+      // Versionsmix: ein fehlender Export meldet sich als SyntaxError am window, nicht am Skript.
+      const isLinkError = t === window && e.error instanceof SyntaxError && !window.__tlBooted;
+      if ((!isModule && !isPreload && !isLinkError) || document.getElementById('load-error')) return;
+      const box = document.createElement('div');
+      box.id = 'load-error';
+      box.className = 'banner banner-warn';
+      box.setAttribute('role', 'alert');
+      box.append('Die App konnte nicht vollständig geladen werden. Bitte neu laden. ');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Neu laden';
+      btn.addEventListener('click', () => location.reload());
+      box.append(btn);
+      // Im <head> kann der Fehler vor dem body auftreten: dann erst nach DOMContentLoaded einfügen.
+      if (document.body) document.body.prepend(box);
+      else document.addEventListener('DOMContentLoaded', () => document.body.prepend(box), { once: true });
+    }, true);
+  </script>
   <script type="importmap">
     { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
   </script>
@@ -154,28 +178,6 @@
   <dialog id="dlg-confirm"></dialog>
   <dialog id="dlg-pick"></dialog>
   <section id="print-root" class="print-root" aria-hidden="true"></section>
-  <script>
-    // Schlägt ein Modul (oder sein Preload) fehl, z. B. bei abgebrochener Verbindung: Hinweis statt weißer Seite.
-    window.addEventListener('error', e => {
-      const t = e.target;
-      const isModule = t && t.tagName === 'SCRIPT' && t.type === 'module';
-      const isPreload = t && t.tagName === 'LINK' && t.rel === 'modulepreload';
-      // Versionsmix: ein fehlender Export meldet sich als SyntaxError am window, nicht am Skript.
-      const isLinkError = t === window && e.error instanceof SyntaxError && !window.__tlBooted;
-      if ((!isModule && !isPreload && !isLinkError) || document.getElementById('load-error')) return;
-      const box = document.createElement('div');
-      box.id = 'load-error';
-      box.className = 'banner banner-warn';
-      box.setAttribute('role', 'alert');
-      box.append('Die App konnte nicht vollständig geladen werden. Bitte neu laden. ');
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = 'Neu laden';
-      btn.addEventListener('click', () => location.reload());
-      box.append(btn);
-      document.body.prepend(box);
-    }, true);
-  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
