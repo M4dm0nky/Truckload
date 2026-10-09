@@ -77,6 +77,7 @@ const ASSETS = [
   'js/ui/view3d-parts.js',
   'js/ui/view3d.js',
   'vendor/three.module.min.js',
+  'vendor/LICENSE-three.txt',
   'vendor/addons/controls/OrbitControls.js'
 ];
 
