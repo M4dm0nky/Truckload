@@ -105,12 +105,42 @@ test('Leere Client-Id markiert nichts als degradiert', async () => {
   assert.equal(degraded.size, 0);
 });
 
-test('Cache-Schreiben läuft über waitUntil', async () => {
+test('waitUntil wird synchron registriert und endet erst nach dem Cache-Schreiben', async () => {
   const { networkFirst } = loadSw();
   const waited = [];
   const cache = fakeCache();
-  await networkFirst(req, cache, async () => new Response('neu'), 1000, { waitUntil: p => waited.push(p) });
-  assert.equal(waited.length, 1);
+  const slow = () => new Promise(r => setTimeout(() => r(new Response('neu')), 60));
+  cache.store.set(req.url, new Response('alt'));
+  let settled = false;
+  const p = networkFirst(req, cache, slow, 10, { waitUntil: w => waited.push(w.then(() => { settled = true; })) });
+  assert.equal(waited.length, 1, 'synchron registriert');
+  assert.equal(await body(await p), 'alt');
+  assert.equal(settled, false);
   await waited[0];
   assert.equal(await body(await cache.match(req)), 'neu');
+});
+
+test('Erster Timeout eines Clients beantwortet seine noch offenen Abrufe sofort aus dem Cache', async () => {
+  const { networkFirst } = loadSw();
+  const other = new Request('https://x.test/js/state.js');
+  const cache = fakeCache({ [req.url]: new Response('alt'), [other.url]: new Response('alt2') });
+  const degraded = new Set(), pending = new Map();
+  const opts = { degraded, pending, clientId: 'a' };
+  const t0 = Date.now();
+  const first = networkFirst(req, cache, () => new Promise(r => setTimeout(() => r(new Response('neu')), 500)), 30, opts);
+  const second = networkFirst(other, cache, () => new Promise(r => setTimeout(() => r(new Response('neu2')), 500)), 5000, opts);
+  assert.equal(await body(await first), 'alt');
+  assert.equal(await body(await second), 'alt2');
+  assert.ok(Date.now() - t0 < 400);
+  assert.equal(pending.size, 0);
+});
+
+test('Das Degradiert-Set ist auf 50 Clients begrenzt, der älteste fliegt raus', async () => {
+  const { networkFirst } = loadSw();
+  const degraded = new Set(Array.from({ length: 50 }, (_, i) => `c${i}`));
+  const slow = () => new Promise(r => setTimeout(() => r(new Response('neu')), 100));
+  await networkFirst(req, fakeCache({ [req.url]: new Response('alt') }), slow, 10, { degraded, clientId: 'neu' });
+  assert.equal(degraded.size, 50);
+  assert.ok(degraded.has('neu'));
+  assert.ok(!degraded.has('c0'));
 });

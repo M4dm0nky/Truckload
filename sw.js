@@ -74,42 +74,60 @@ const NETWORK_TIMEOUT_MS = 3000;
 const MAX_DEGRADED_CLIENTS = 50;
 // Clients (Seitenaufrufe), bei denen das Netz zu langsam war; Schlüssel ist die Client-Id.
 const degradedClients = new Set();
+const pendingByClient = new Map();
 
 // Eigene Funktion (statt inline im fetch-Handler), damit tests/sw.test.js sie ohne Browser prüfen
 // kann. `cache: 'no-cache'` lässt den Browser beim Server nachfragen statt seine eigene HTTP-Kopie
 // zu nehmen (GitHub Pages schickt max-age=600). Neuer Request aus der URL, weil sich ein
 // Navigations-Request nicht mit geänderten Optionen kopieren lässt.
-// `opts`: { degraded: Set, clientId: string, waitUntil: fn } – alles optional.
+// `opts`: { degraded: Set, pending: Map, clientId: string, waitUntil: fn } – alles optional.
+// `waitUntil` wird synchron mit einer Promise aufgerufen, die endet, wenn Abruf und Cache-Schreiben
+// abgeschlossen sind (und nie fehlschlägt). `pending` merkt sich je Client die noch offenen Abrufe,
+// damit sie beim ersten Timeout des Clients sofort aus dem Cache beantwortet werden können.
 function networkFirst(request, cache, fetchFn = fetch, timeoutMs = NETWORK_TIMEOUT_MS, opts = {}) {
-  const { degraded, clientId, waitUntil } = opts;
+  const { degraded, pending, clientId, waitUntil } = opts;
   const fallback = () => cache.match(request, { ignoreSearch: true });
   const markDegraded = () => {
     if (!degraded || !clientId) return;
-    if (degraded.size >= MAX_DEGRADED_CLIENTS) degraded.delete(degraded.values().next().value);
+    if (!degraded.has(clientId) && degraded.size >= MAX_DEGRADED_CLIENTS) degraded.delete(degraded.values().next().value);
     degraded.add(clientId);
+    for (const release of [...(pending?.get(clientId) ?? [])]) release();
   };
   const run = () => {
+    let putDone = Promise.resolve();
     const fromNet = fetchFn(new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' }))
       .then(res => {
         if (res.ok) {
-          const put = cache.put(request, res.clone());
-          if (waitUntil) waitUntil(put.catch(() => {}));
+          putDone = Promise.resolve(cache.put(request, res.clone()));
           return res;
         }
         return fallback().then(cached => cached ?? res);
       });
+    if (waitUntil) waitUntil(fromNet.then(() => putDone, () => {}).then(() => {}, () => {}));
     return new Promise((resolve, reject) => {
       let done = false;
-      const finish = r => { if (!done) { done = true; resolve(r); } };
+      const mine = clientId && pending ? (pending.get(clientId) ?? pending.set(clientId, new Set()).get(clientId)) : null;
+      const release = async () => {
+        const cached = await fallback();
+        if (cached && !done) finish(cached);
+      };
+      const finish = r => {
+        if (done) return;
+        done = true;
+        if (mine) { mine.delete(release); if (!mine.size) pending.delete(clientId); }
+        resolve(r);
+      };
+      mine?.add(release);
       const timer = setTimeout(async () => {
         const cached = await fallback();
-        if (cached) { markDegraded(); finish(cached); }
+        if (cached && !done) { markDegraded(); finish(cached); }
       }, timeoutMs);
       fromNet.then(res => { clearTimeout(timer); finish(res); }, async err => {
         clearTimeout(timer);
         const cached = await fallback();
         if (done) return;
-        if (cached) finish(cached); else { done = true; reject(err); }
+        if (cached) finish(cached);
+        else { done = true; if (mine) { mine.delete(release); if (!mine.size) pending.delete(clientId); } reject(err); }
       });
     });
   };
@@ -125,5 +143,5 @@ self.addEventListener('fetch', event => {
   const clientId = event.resultingClientId || event.clientId || '';
   event.respondWith(caches.open(CACHE).then(cache =>
     networkFirst(request, cache, fetch, NETWORK_TIMEOUT_MS,
-      { degraded: degradedClients, clientId, waitUntil: p => { try { event.waitUntil(p); } catch { /* Ereignis schon beendet */ } } })));
+      { degraded: degradedClients, pending: pendingByClient, clientId, waitUntil: p => event.waitUntil(p) })));
 });

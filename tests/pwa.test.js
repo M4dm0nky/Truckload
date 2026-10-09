@@ -64,3 +64,15 @@ test('index.html zeigt bei Ladefehlern eines Moduls einen Neu-laden-Hinweis', ()
   assert.match(html, /Die App konnte nicht vollständig geladen werden\. Bitte neu laden\./);
   assert.ok(html.indexOf('addEventListener(\'error\'') < html.indexOf('<script type="module" src="js/app.js">'));
 });
+
+test('importmap steht vor dem ersten modulepreload (Firefox verwirft ihn sonst)', () => {
+  const html = read('index.html');
+  assert.ok(html.indexOf('type="importmap"') >= 0);
+  assert.ok(html.indexOf('type="importmap"') < html.indexOf('rel="modulepreload"'));
+});
+
+test('Ladefehler-Hinweis erkennt auch Link-Fehler über __tlBooted', () => {
+  assert.match(read('js/app.js').trimEnd(), /window\.__tlBooted = true;$/);
+  const html = read('index.html');
+  assert.match(html, /e\.error instanceof SyntaxError && !window\.__tlBooted/);
+});

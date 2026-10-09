@@ -1032,3 +1032,6 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 
 scheduleRender();
+
+// Marker für den Ladefehler-Hinweis in index.html: ab hier ist das Modul-Skript vollständig gelaufen.
+window.__tlBooted = true;
