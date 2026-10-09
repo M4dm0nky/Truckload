@@ -6,24 +6,20 @@ import { screenOf, showScreen, renderStartScreen } from './app/screens.js';
 import { attachKeyboard } from './app/keyboard.js';
 import { createPersistence } from './app/persistence.js';
 import { wirePlans } from './app/plans.js';
+import { mountMaterialScreen } from './app/materialScreen.js';
 import { ctxOf, deriveOf, allPlansOf, piecesOf, usage, truckUsage } from './app/core.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
 import { WHEEL_FACES, wheelFace } from './model/geometry.js';
 import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js';
 import { mountLibrary } from './ui/library.js';
-import { openCaseEditor } from './ui/case-editor.js';
-import { mountMaterial } from './ui/material.js';
-import { openTrussDialog } from './ui/truss-wizard.js';
-import { openDollyDialog } from './ui/dolly-wizard.js';
-import { companyList, isInStock, copyToCompany, applyStockTarget } from './model/material.js';
 import { openPackRules } from './ui/pack-rules.js';
 import { rulesFor, ruleTargets, describeRule, mixTopFor } from './model/packRules.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
 import { COLOR_MODES } from './ui/caseStyle.js';
-import { showAlert, showConfirm, showPick, showPrompt } from './ui/confirmDialog.js';
+import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
 import { buildPrint, buildChecklist, buildLabels, pageRuleFor } from './ui/print.js';
@@ -145,16 +141,6 @@ const startScreenEl = $('#start-screen');
 const headerEl = document.querySelector('header.topbar');
 const layoutEl = document.querySelector('main.layout');
 const materialEl = $('#material-screen');
-// Materialverwaltung: eigener Bildschirm (store.materialOpen), vom Startbildschirm und aus der
-// Kopfleiste erreichbar.
-// Aus dem Lade-Wizard geöffnet: „Zurück“ gibt die frische Case-Liste an den Wizard zurück.
-let materialReturn = null;
-function openMaterialFromWizard() {
-  return new Promise(resolve => { materialReturn = resolve; openMaterial(); });
-}
-function openMaterial() {
-  store.update(s => ({ ...s, materialOpen: true, selectedId: s.plan ? null : s.selectedId }));
-}
 const screenEls = { start: startScreenEl, header: headerEl, layout: layoutEl, material: materialEl };
 
 function render() {
@@ -233,73 +219,13 @@ document.addEventListener('visibilitychange', () => {
 
 // Speicherpfade (Case, Firma, Regelset, Fahrzeug): js/app/persistence.js
 const persistence = createPersistence({ repo, store, showAlert, showConfirm, stamp, uid });
-const saveCaseValue = persistence.saveCase;
 
-async function editCase(caseId) {
-  const s = store.get();
-  const c = caseId ? s.cases.find(x => x.id === caseId) : null;
-  const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId ? usage(s, caseId) : 0 });
-  if (!res) return;
-  await saveCaseValue(res.value);
-}
-
-async function pickCase(title, cases) {
-  if (!cases.length) { await showAlert('Keine passende Box vorhanden.'); return null; }
-  const id = await showPick(title, cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })));
-  return id == null ? null : cases.find(c => c.id === id);
-}
-// Zielfirma: '' = Standardliste (Wert ''), sonst Firmenname; null = abgebrochen.
-const pickFirm = () => showPick('In welche Firma?', [{ value: '', label: 'Standardliste' }, ...companyList(store.get().cases).map(f => ({ value: f.name, label: f.name }))]);
-
-const material = mountMaterial(materialEl, {
-  onBack: () => {
-    store.update(s => ({ ...s, materialOpen: false }));
-    if (materialReturn) { const back = materialReturn; materialReturn = null; back(store.get().cases); }
-  },
-  onNewCase: async company => {
-    const res = await openCaseEditor($('#dlg-case'), null, { stock: { mode: 'fixed', company } });
-    if (res?.action === 'save') await saveCaseValue(res.value);
-  },
-  onEdit: async id => {
-    const s = store.get();
-    const c = s.cases.find(x => x.id === id);
-    if (!c) return;
-    const res = await openCaseEditor($('#dlg-case'), c, {
-      usedIn: usage(s, id), allowDelete: true, overrideBuiltin: c.builtin,
-      stock: c.onlyInPlan ? undefined : { mode: 'fixed', company: c.company ?? '' },
-    });
-    if (!res) return;
-    if (res.action === 'delete') return persistence.removeFromStock(c, { confirmed: true });
-    await saveCaseValue(res.value);
-  },
-  onDelete: id => persistence.removeFromStock(store.get().cases.find(x => x.id === id)),
-  onNewTruss: company => openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCaseValue, stock: { mode: 'fixed', company } }),
-  onNewDolly: async company => {
-    const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
-    if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, onNewDollyStack: saveCaseValue, stock: { mode: 'fixed', company } });
-  },
-  onCopy: async id => {
-    const firm = await pickFirm();
-    if (firm != null) await saveCaseValue(copyToCompany(store.get().cases.find(c => c.id === id), firm, uid()));
-  },
-  onAdopt: async id => {
-    const firm = await pickFirm();
-    if (firm != null) await saveCaseValue(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
-  },
-  onRename: persistence.renameCompany,
-  onDeleteCompany: persistence.deleteCompany,
-});
-
-// Für den Load-Wizard: legt ein neues Case über den Case-Editor an (optional mit Vorbelegung,
-// z. B. für den „Sonderbau“-Schnellentwurf) und liefert es zurück, ohne den Wizard zu schließen.
-async function newCaseForWizard(draft, stock) {
-  const res = await openCaseEditor($('#dlg-case'), null, { draft, stock });
-  return res?.action === 'save' ? saveCaseValue(res.value) : null;
-}
+const { material, openMaterial, openMaterialFromWizard, editCase, newCaseForWizard } =
+  mountMaterialScreen({ el: materialEl, store, uid, persistence });
 
 const { switchPlan, runLoadWizard } = wirePlans({
   store, edit, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,
-  warnIfUnplaced, saveCase: saveCaseValue, newCaseForWizard, openMaterialFromWizard,
+  warnIfUnplaced, saveCase: persistence.saveCase, newCaseForWizard, openMaterialFromWizard,
 });
 
 const library = mountLibrary($('#library'), {
@@ -439,7 +365,6 @@ attachKeyboard({
 
 // Undo/Redo, Modus, Auto-Pack
 $('#undo').onclick = () => store.undo();
-$('#material-open').onclick = openMaterial;
 $('#redo').onclick = () => store.redo();
 $('#pack-all').onclick = async () => {
   const s = store.get();
