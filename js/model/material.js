@@ -1,7 +1,7 @@
 // Materialbestand (V 0.12.5, docs/superpowers/specs/2026-10-09-materialverwaltung-design.md):
 // Firma = `company`-String am Case, keine eigene Tabelle. Reine Funktionen, kein DOM, kein Store.
 // `legacy` = ausgeblendet (gelöschte Firmen-Vorlage, alte Ladepläne behalten das Stück),
-// `onlyInPlan` = im Wizard ohne „Im Materialbestand ablegen" angelegt, gilt nur für den Load.
+// `onlyInPlan` = im Wizard ohne „Im Materialbestand ablegen“ angelegt, gilt nur für den Load.
 export const isInStock = c => !c.legacy && !c.onlyInPlan;
 
 export function companyList(cases, extra = []) {

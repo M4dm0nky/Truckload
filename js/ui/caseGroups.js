@@ -31,11 +31,11 @@ export function caseKind(c) {
   return 'cases';
 }
 
-// Teilt Cases nach Suche/Gewerk/Firma gefiltert in „Eigene Cases”, „Vorlagen”
-// und „Cases aus deiner Liste” (c.source === 'liste'). Cases ohne `company`
+// Teilt Cases nach Suche/Gewerk/Firma gefiltert in „Eigene Cases“, „Vorlagen“
+// und „Cases aus deiner Liste“ (c.source === 'liste'). Cases ohne `company`
 // verschwinden, sobald eine Firma gewählt ist. Mit NEUTRAL_COMPANY ist es
 // umgekehrt: nur Cases OHNE `company` bleiben durch. `keep: Set<id>` zeigt
-// `onlyInPlan`-Cases trotzdem in der „Eigene Cases”-Gruppe.
+// `onlyInPlan`-Cases trotzdem in der „Eigene Cases“-Gruppe.
 export function groupCases(cases, { q = '', cat = '', company = '', keep = new Set() } = {}) {
   const needle = q.trim().toLowerCase();
   const matchCompany = c => company === NEUTRAL_COMPANY ? !c.company : (!company || c.company === company);
@@ -47,7 +47,7 @@ export function groupCases(cases, { q = '', cat = '', company = '', keep = new S
     // `.sort(...)`: eigene Cases kamen bis Task 8 in IndexedDB-Schlüsselreihenfolge an
     // (crypto.randomUUID()), sprangen also bei jeder Bearbeitung zusätzlich um (js/app.js hängt
     // das bearbeitete Case ans Ende des Arrays), weil weder repo.js noch hier sortiert wurde
-    // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge”). Hier
+    // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge“). Hier
     // sortiert statt in repo.js: damit ist die Reihenfolge unabhängig davon, woher die Liste kommt
     // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
     own: cases.filter(c => !c.builtin && c.source !== 'liste' && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),

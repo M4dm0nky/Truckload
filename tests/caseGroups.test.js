@@ -31,10 +31,10 @@ test('Firmenfilter blendet Cases ohne company aus', () => {
 });
 
 // NEUTRAL_COMPANY ist der Vorgabewert des Firmen-Filters im Lade-Wizard (Nutzerwunsch
-// 2026-10-06: firmen-gebrandete Cases wie „-CAB“ sollen nie von selbst auftauchen, nur wenn
+// 2026-10-06: firmen-gebrandete Cases wie „-CAB" sollen nie von selbst auftauchen, nur wenn
 // der Nutzer selbst eine Firma wählt). Spiegelbildlich zum Test oben: statt nur Cases EINER
-// Firma durchzulassen, lässt NEUTRAL_COMPANY nur Cases OHNE company durch – „Eigene Cases“
-// und „Vorlagen“ haben nie ein company-Feld und bleiben deshalb sichtbar.
+// Firma durchzulassen, lässt NEUTRAL_COMPANY nur Cases OHNE company durch – „Eigene Cases"
+// und „Vorlagen" haben nie ein company-Feld und bleiben deshalb sichtbar.
 test('NEUTRAL_COMPANY lässt nur Cases ohne company durch', () => {
   const cases = [own('o1'), preset('p1'), listCase('l1', 'CAB'), listCase('l2', undefined)];
   const { own: ownGroup, presets, list } = groupCases(cases, { company: NEUTRAL_COMPANY });
