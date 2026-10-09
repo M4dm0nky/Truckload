@@ -538,7 +538,8 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
   (`js/model/audioDolly.js`), aufgerufen aus `normalizeCase()` beim Laden und beim Import;
   Maße, Gewicht und ID bleiben unverändert. `openDollyDialog()` berechnet den Case-Typ bei jedem
   Dialog-Lauf neu und überschreibt einen vorhandenen Stack gleicher ID, damit bestehende Stacks
-  neue Darstellungsfelder bekommen.
+  neue Darstellungsfelder bekommen (eigene Entscheidung 2026-10-08 nach Nutzer-Feedback: ein
+  bereits angelegter „K2 2er“ behielt sonst die alte Darstellung).
 
   2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen Tetris-Darstellung.
 
