@@ -47,6 +47,7 @@ test('putMany leer ruft den Host nicht', async () => {
 });
 
 test('ohne Host weiter IndexedDB (Gegenprobe)', async () => {
+  const vorher = idbOpens;
   await assert.rejects(db.getAll('cases'), /IndexedDB benutzt/);
-  assert.equal(idbOpens, 1);
+  assert.equal(idbOpens, vorher + 1);
 });

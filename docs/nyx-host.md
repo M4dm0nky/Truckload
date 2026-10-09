@@ -21,6 +21,8 @@ bleibt alles bei IndexedDB.
 Fehler kommen als abgelehnte Promise mit `Error`. Typische Meldungen sind „Kein Projekt offen.“
 und „Das Projekt wurde gewechselt – Truckload lädt neu.“
 
+Schlägt ein Lesezugriff fehl, sperrt Truckload bis zum Neuladen jeden Schreibzugriff („Laden aus NYX fehlgeschlagen – Truckload bitte neu laden.“). Die Ersatzansicht nach einem Ladefehler zeigt nur die mitgelieferten Daten, und Schreiben gegen einen Bestand, den niemand gesehen hat, könnte echte Daten überschreiben.
+
 Wo NYX speichert:
 
 | Store | Ort in NYX |

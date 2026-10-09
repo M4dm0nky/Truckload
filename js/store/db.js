@@ -71,9 +71,23 @@ function run(store, mode, fn) {
   }));
 }
 
-export const getAll = store => (host() ? hostDb.getAll(host(), store) : run(store, 'readonly', s => s.getAll()));
-export const put = (store, value) => (host() ? hostDb.put(host(), store, value) : run(store, 'readwrite', s => s.put(value)));
-export const del = (store, id) => (host() ? hostDb.del(host(), store, id) : run(store, 'readwrite', s => s.delete(id)));
+// Ladesperre (nur im Host-Betrieb): Scheitert ein Lesezugriff, zeigt app.js die Ersatzansicht mit
+// nur den mitgelieferten Daten. Ein Schreibzugriff dürfte dann nicht mehr durchgehen, denn er
+// träfe einen Bestand, den niemand gesehen hat (z. B. Import-Merge gegen leere Daten). Mit
+// IndexedDB hatte das die kaputte DB von selbst, beim Host scheitern Lesen und Schreiben
+// unabhängig. Die Sperre gilt bis zum Neuladen der Seite, ein neues Modul beginnt ohne sie.
+let ladenFehlgeschlagen = false;
+const sperre = () => Promise.reject(new Error('Laden aus NYX fehlgeschlagen – Truckload bitte neu laden.'));
+
+export const getAll = store => (host()
+  ? hostDb.getAll(host(), store).catch(err => { ladenFehlgeschlagen = true; throw err; })
+  : run(store, 'readonly', s => s.getAll()));
+export const put = (store, value) => (host()
+  ? (ladenFehlgeschlagen ? sperre() : hostDb.put(host(), store, value))
+  : run(store, 'readwrite', s => s.put(value)));
+export const del = (store, id) => (host()
+  ? (ladenFehlgeschlagen ? sperre() : hostDb.del(host(), store, id))
+  : run(store, 'readwrite', s => s.delete(id)));
 
 // Schreibt mehrere Datensätze (ggf. über mehrere Object Stores) in EINER Transaktion: entweder
 // landen alle drin, oder – lehnt ein `put` ab (Quota, korrupte DB) – wird die ganze Transaktion
@@ -86,7 +100,7 @@ export const del = (store, id) => (host() ? hostDb.del(host(), store, id) : run(
 // items: [{ store, value }, …]
 export function putMany(items) {
   if (items.length === 0) return Promise.resolve();
-  if (host()) return hostDb.putMany(host(), items);
+  if (host()) return ladenFehlgeschlagen ? sperre() : hostDb.putMany(host(), items);
   return open().then(db => new Promise((resolve, reject) => {
     const storeNames = [...new Set(items.map(i => i.store))];
     const tx = db.transaction(storeNames, 'readwrite');

@@ -24,8 +24,10 @@ test('getAll reicht an den Host durch und liefert dessen Liste', async () => {
 });
 
 test('getAll lehnt Nicht-Liste ab (sonst sähe der Bestand gelöscht aus)', async () => {
-  const h = fakeHost({ getAll: async () => undefined });
-  await assert.rejects(hostDb.getAll(h, 'plans'), /keine Liste/);
+  for (const wert of [undefined, null, {}]) {
+    const h = fakeHost({ getAll: async () => wert });
+    await assert.rejects(hostDb.getAll(h, 'plans'), err => err instanceof Error && /keine Liste/.test(err.message));
+  }
 });
 
 test('put, del und putMany reichen unverändert durch und lösen ohne Wert auf', async () => {
