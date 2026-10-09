@@ -233,13 +233,9 @@ export function openLoadWizard(dlg, opts = {}) {
   // dieselbe Hilfsfunktion bereits richtig (renderCompanyOptions) und merkt sich zusätzlich die
   // bisherige Auswahl.
   //
-  // Heute ohne beobachtbare Wirkung, bewusst als Vorsorge stehen gelassen (Fix-Runde 1, Reviewer):
-  // `js/ui/case-editor.js` hat kein Formularfeld für `company` und setzt es beim Speichern explizit
-  // auf `undefined` (Zeile „builtin: false, note: undefined, company: undefined, …“) – ein über
-  // „+ Neues Case“/„Sonderbau“ angelegtes Case kann also nie eine neue Firma mitbringen, `company`
-  // kommt heute ausschließlich aus der mitgelieferten Bibliothek (`js/data/case-library.js`).
-  // Der Fall tritt erst ein, wenn der Case-Editor je ein Firmenfeld bekommt – dann greift dieser
-  // Aufruf ohne weitere Änderung.
+  // Vorsorge (Fix-Runde 1, Reviewer):
+  // Ein im Case-Editor neu angelegtes Case kann über den Ablageziel-Block eine neue Firma mitbringen;
+  // dann greift dieser Aufruf ohne weitere Änderung.
   function renderCompanyOptions() {
     const prev = companyFilterSel.value;
     const companies = companiesOf(cases);

@@ -45,6 +45,7 @@ const ASSETS = [
   'js/ui/pack-rules.js',
   'js/ui/print.js',
   'js/ui/projection.js',
+  'js/ui/stock-target.js',
   'js/ui/truck-editor.js',
   'js/ui/truss-wizard.js',
   'js/ui/view2d.js',

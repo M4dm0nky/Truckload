@@ -3,13 +3,15 @@ import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, 
 import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
 import { CASE_LIMITS } from '../model/validate.js';
 import { showConfirm } from './confirmDialog.js';
+import { applyStockTarget } from '../model/material.js';
+import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
 const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
 export const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
-export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
+export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
   // Absicherung gegen einen zweiten Aufruf, bevor der `close`-Listener des vorigen gefeuert hat:
   // der ist an `dlg` selbst hängt (überlebt also das `dlg.innerHTML = …` unten) und würde beim
   // Schließen DIESES Dialogs sonst über sein eigenes, abgehängtes `f` die Werte des alten Formulars
@@ -20,12 +22,13 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
   if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';
   if (src && src.color == null) v.color = colorFor(v.category);
-  const isNew = !c || c.builtin;
+  const isNew = !c || (c.builtin && !overrideBuiltin);
+  const fromTemplate = !!c?.builtin && !overrideBuiltin;
   const dim = n => `type="number" name="${n}" min="1" max="${CASE_LIMITS[n]}" step="0.5" required`;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
       <h2>${isNew ? 'Neues Case' : 'Case bearbeiten'}</h2>
-      ${c?.builtin ? '<p class="hint">Vorlage (Richtwert) – Speichern legt eine eigene Kopie an.</p>' : ''}
+      ${fromTemplate ? '<p class="hint">Vorlage (Richtwert) – Speichern legt eine eigene Kopie an.</p>' : ''}
       <label>Name<input name="name" required maxlength="80" placeholder="z. B. Kabelcase Strom 1"></label>
       <label>Inhalt<textarea name="content" rows="3" placeholder="z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m"></textarea></label>
       <div class="row">
@@ -85,15 +88,18 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
         </div>
         <p class="hint layer-hint" hidden>Mindestens eine Lage muss ausgewählt sein.</p>
       </fieldset>
+      ${stock ? stockTargetHtml(stock) : ''}
       <menu>
-        <button value="delete" class="danger" formnovalidate ${isNew ? 'hidden' : ''}>Löschen</button>
+        ${allowDelete && !isNew ? '<button value="delete" class="danger" formnovalidate>Löschen</button>' : ''}
         <span class="grow"></span>
         <button value="cancel" formnovalidate>Abbrechen</button>
         <button value="save" class="primary">Speichern</button>
       </menu>
     </form>`;
-  const f = dlg.querySelector('form').elements;
-  f.name.value = c?.builtin ? `${v.name} (eigenes)` : v.name;
+  const form = dlg.querySelector('form');
+  const f = form.elements;
+  wireStockTarget(form);
+  f.name.value = fromTemplate ? `${v.name} (eigenes)` : v.name;
   f.content.value = v.content;
   f.category.value = v.category;
   f.color.value = v.color;
@@ -295,28 +301,30 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
       const base = {
         ...v,
         id: isNew ? crypto.randomUUID() : v.id,
-        builtin: false, note: undefined, company: undefined, source: undefined,
+        builtin: false, note: undefined, company: v.company,
+        source: overrideBuiltin ? v.source : (isNew ? undefined : v.source), onlyInPlan: v.onlyInPlan,
         name: f.name.value.trim(), content: f.content.value.trim(),
         category: f.category.value, color: f.color.value,
         weight: Number(f.weight.value), stock: numOrNull(f.stock.value),
         maxTopLoad: numOrNull(f.maxTopLoad.value), stackable: f.stackable.checked,
         layers: layerBoxes.filter(cb => cb.checked).map(cb => Number(cb.value)),
       };
+      const withStock = value => (stock ? applyStockTarget(value, readStockTarget(form, stock)) : value);
       if (kind === 'truss') {
         const truss = currentTruss();
         const d = trussDims(truss);
-        resolve({ action: 'save', value: {
+        resolve({ action: 'save', value: withStock({
           ...base, kind: 'truss', truss,
           l: d.l, w: d.w, h: d.h, wheelH: 0, tippable: false,
-        } });
+        }) });
       } else {
-        resolve({ action: 'save', value: {
+        resolve({ action: 'save', value: withStock({
           ...base, kind: undefined, truss: undefined,
           l: Number(f.l.value), w: Number(f.w.value), h: Number(f.h.value),
           wheels: f.wheels.checked, wheelH: f.wheels.checked ? currentWheelH() : 0,
           dimsInclWheels: (dimsInclRadios.find(r => r.checked)?.value ?? 'incl') !== 'excl',
           tippable: f.tippable.checked,
-        } });
+        }) });
       }
     }, { once: true });
     dlg.returnValue = '';

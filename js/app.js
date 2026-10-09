@@ -279,8 +279,8 @@ async function deleteCaseDirect(caseId) {
 
 // Für den Load-Wizard: legt ein neues Case über den Case-Editor an (optional mit Vorbelegung,
 // z. B. für den „Sonderbau“-Schnellentwurf) und liefert es zurück, ohne den Wizard zu schließen.
-async function newCaseForWizard(draft) {
-  const res = await openCaseEditor($('#dlg-case'), null, { draft });
+async function newCaseForWizard(draft, stock) {
+  const res = await openCaseEditor($('#dlg-case'), null, { draft, stock });
   return res?.action === 'save' ? saveCaseValue(res.value) : null;
 }
 
