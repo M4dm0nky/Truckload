@@ -214,7 +214,7 @@ export function parseBundle(text) {
 
   cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet);
 
-  const knownCaseIds = new Set([...cases.map(c => c.id), ...CASE_LIBRARY.map(c => c.id)]);
+  const knownCaseIds = new Set([...cases.map(c => c.id), ...CASE_LIBRARY.map(c => c.id), ...PRESET_CASES.map(c => c.id)]);
   const knownTruckIds = new Set([...trucks.map(t => t.id), ...PRESET_TRUCKS.map(t => t.id)]);
   const warnings = [];
   for (const p of plans) {

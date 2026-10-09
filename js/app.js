@@ -354,13 +354,36 @@ const material = mountMaterial(materialEl, {
     const firm = await pickFirm();
     if (firm != null) await saveCaseValue(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
   },
-  onRename: async (from, to) => { for (const c of renameCompany(store.get().cases, from, to)) await saveCaseValue(c); },
+  onRename: async (from, to) => {
+    const renamed = renameCompany(store.get().cases, from, to).map(stamp);
+    try {
+      await repo.saveCases(renamed);
+    } catch (err) {
+      await showAlert(`Firma konnte nicht umbenannt werden: ${err?.message ?? 'unbekannter Fehler'}`);
+      return false;
+    }
+    const ids = new Set(renamed.map(c => c.id));
+    store.update(st => ({ ...st, cases: [...st.cases.filter(x => !ids.has(x.id)), ...renamed] }));
+    return true;
+  },
   onDeleteCompany: async name => {
     const list = casesOf(store.get().cases, name);
     if (list.length && !await showConfirm(`Firma „${name}“ mit ${list.length} Einträgen löschen?`, { okLabel: 'Löschen', danger: true })) return false;
-    let ok = true;
-    for (const c of list) ok = await removeFromStock(c, { confirmed: true }) && ok;
-    return ok;
+    const ds = list.map(deletionFor);
+    if (ds.includes(null)) { await showAlert('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.'); return false; }
+    const saves = ds.filter(d => d.save).map(d => stamp(d.save));
+    const removes = ds.filter(d => d.remove).map(d => d.remove);
+    try {
+      // Überlagerungen gesammelt in einer Transaktion; das Entfernen läuft getrennt davon.
+      await repo.saveCases(saves);
+      for (const id of removes) await repo.deleteCase(id);
+    } catch (err) {
+      await showAlert(`Firma konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
+      return false;
+    }
+    const savedIds = new Set(saves.map(c => c.id)), gone = new Set(removes);
+    store.update(st => ({ ...st, cases: [...st.cases.filter(x => !savedIds.has(x.id) && !gone.has(x.id)), ...saves] }));
+    return true;
   },
 });
 

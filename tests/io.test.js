@@ -435,6 +435,18 @@ test('Ladeplan mit Verweis auf unbekanntes Case wird gemeldet, aber importiert',
   assert.equal(res.plans.length, 1);
   assert.ok(res.warnings.some(w => /unbekannt|weder in der Datei/.test(w)));
 });
+test('Ladeplan mit Verweis auf ein Standard-Case (preset-) erzeugt keine Warnung', () => {
+  const p = plan([P('pl1', 'preset-k2', 0, 0, 0)]);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
+  assert.equal(res.plans.length, 1);
+  assert.deepEqual(res.warnings.filter(w => /weder in der Datei/.test(w)), []);
+});
+test('Ladeplan mit Verweis auf ein Standard-Case und ein unbekanntes meldet nur das unbekannte', () => {
+  const p = plan([P('pl1', 'preset-k2', 0, 0, 0), P('pl2', 'gibt-es-nicht', 0, 0, 0)]);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
+  assert.equal(res.warnings.filter(w => /weder in der Datei/.test(w)).length, 1);
+  assert.match(res.warnings.find(w => /weder in der Datei/.test(w)), /1 Stück/);
+});
 test('Ladeplan mit Verweis auf unbekanntes Fahrzeug wird gemeldet, aber importiert', () => {
   const p = { ...plan([]), truckId: 'geist-truck-123' };
   const ok = bundleWith({ cases: [], trucks: [], plans: [p] });

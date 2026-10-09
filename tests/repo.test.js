@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, sanitizeUpdatedAt, pickLatestPlan } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, buildCaseItems, saveCases, sanitizeUpdatedAt, pickLatestPlan } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
@@ -368,4 +368,16 @@ test('parseBundle: altes eigenes Case mit legacy (keine lib-ID) kommt sichtbar a
   const text = JSON.stringify({ format: 'truckload', version: 1, cases: [{ id: '3f2a9c1e-uuid', legacy: true, name: 'Kopie', l: 1, w: 1, h: 1, weight: 0 }], trucks: [], plans: [] });
   const { cases } = parseBundle(text);
   assert.equal(cases[0].legacy, undefined);
+});
+
+// --- saveCases: alle Cases in EINER Transaktion (db.putMany), z. B. beim Firma-Umbenennen ---
+test('buildCaseItems: jeder Eintrag geht in den Object Store „cases“', () => {
+  assert.deepEqual(buildCaseItems([{ id: 'a' }, { id: 'b' }]), [
+    { store: 'cases', value: { id: 'a' } },
+    { store: 'cases', value: { id: 'b' } },
+  ]);
+  assert.deepEqual(buildCaseItems([]), []);
+});
+test('saveCases: leere Liste schreibt nichts und löst auf', async () => {
+  await saveCases([]);
 });

@@ -36,6 +36,7 @@ export function firmNameError(name) {
   const n = (name ?? '').trim();
   if (!n) return 'Firmenname fehlt.';
   if (n.length > MAX_FIRM) return `Firmenname: höchstens ${MAX_FIRM} Zeichen.`;
+  if (/^__.*__$/.test(n)) return 'Dieser Firmenname ist reserviert.';
   return null;
 }
 
