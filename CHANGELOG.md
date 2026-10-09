@@ -2,6 +2,16 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.1 – 2026-10-09
+
+Die App lädt jetzt immer den aktuellen Stand: Mit Netz kommt jede Datei frisch vom Server, am
+Browser-Cache vorbei. Die Offline-Kopie springt nur ein, wenn kein Netz da ist oder der Server
+länger als 3 Sekunden braucht. Vorher kam alles zuerst aus dem Cache und Updates wirkten erst beim
+übernächsten Öffnen.
+
+- Einmalig gilt noch das alte Verhalten: Die erste Öffnung nach diesem Update läuft über den alten
+  Service Worker, danach lädt die Seite automatisch neu.
+
 ## V 0.13.0 – 2026-10-09
 
 Neuer Bereich **„Material“**: dein Materialbestand je Firma, immer erreichbar über den

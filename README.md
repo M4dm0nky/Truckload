@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.13.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.13.1** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -14,7 +14,7 @@ Nichts installieren, kein Terminal. Nach dem ersten Öffnen läuft die App auch 
 - Safari: Seite öffnen → Menü *Ablage → Zum Dock hinzufügen*
 - Chrome: Seite öffnen → Installieren-Symbol rechts in der Adressleiste
 
-Updates kommen automatisch: Die neue Version ist beim übernächsten Öffnen aktiv.
+Updates kommen automatisch: Mit Netz lädt die App immer den aktuellen Stand vom Server; nur ohne Netz (oder wenn der Server länger als 3 Sekunden braucht) nimmt sie die zuletzt gespeicherte Kopie.
 
 **Lokal ohne Internet-Adresse (für Entwicklung):** Doppelklick auf `start.command` bzw. `python3 -m http.server 8765` und `http://localhost:8765` öffnen. Achtung: Jede Adresse hat ihren eigenen Browser-Speicher – Daten zwischen `localhost` und der GitHub-Adresse mit „Sichern“ / „Importieren“ übertragen.
 

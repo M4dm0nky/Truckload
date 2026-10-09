@@ -976,8 +976,9 @@ if ('BroadcastChannel' in window) {
   tabChannel.postMessage('hallo');
 }
 
-// Offline-Betrieb (nur über http/https, nicht über file://). sw.js selbst bleibt cache-first
-// (Offline-Fähigkeit bleibt erhalten) – hier nur der fehlende Teil: sobald ein neuer Service
+// Offline-Betrieb (nur über http/https, nicht über file://). sw.js lädt seit V 0.13.1 Netz zuerst
+// und nimmt den Offline-Cache nur ohne Netz. `updateViaCache: 'none'` holt auch sw.js selbst nie
+// aus dem HTTP-Cache, damit eine neue Version sofort erkannt wird. Sobald ein neuer Service
 // Worker übernimmt (skipWaiting/clients.claim in sw.js sorgen dafür), lädt die offene Seite sich
 // einmal automatisch neu, statt dass der Nutzer bis zum nächsten manuellen Reload eine Mischung
 // aus altem und neuem Stand sieht (kurz neue Version, dann Rücksprung auf die alte). hadController
@@ -985,7 +986,7 @@ if ('BroadcastChannel' in window) {
 // unkontrollierte Seite ganz normal übernimmt.
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline-Modus nicht verfügbar:', err));
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(err => console.warn('Offline-Modus nicht verfügbar:', err));
   let reloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || reloaded) return;
