@@ -19,8 +19,10 @@ const CASE_KINDS = ['case', 'truss', 'speaker'];
 const num = v => typeof v === 'number' && Number.isFinite(v);
 const arr = v => (Array.isArray(v) ? v : []);
 const numOrNullMax = (v, max) => v == null || (num(v) && v >= 0 && v <= max);
-const isPreset = x => !!x?.builtin
-  || (typeof x?.id === 'string' && (x.id.startsWith('preset-') || x.id.startsWith('lib-')));
+// Mitgeliefertes nie aus fremden Dateien übernehmen. `preset-` (Standardkatalog, nur lesbar)
+// immer verwerfen; `lib-` (Firmen-Vorlagen) nur, wenn als mitgeliefert markiert – seit V 0.12.5
+// sind eigene Überlagerungen mit gleicher lib-ID gewollt (Materialverwaltung).
+const isPreset = x => !!x?.builtin || (typeof x?.id === 'string' && x.id.startsWith('preset-'));
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const colorOk = x => x.color === undefined || COLOR_RE.test(x.color);
 const updatedAtOk = x => x.updatedAt === undefined || typeof x.updatedAt === 'string';
@@ -42,6 +44,9 @@ export function checkCase(c) {
     && (c.stackable === undefined || typeof c.stackable === 'boolean')
     && (c.wheels === undefined || typeof c.wheels === 'boolean')
     && (c.dimsInclWheels === undefined || typeof c.dimsInclWheels === 'boolean')
+    && (c.company === undefined || (typeof c.company === 'string' && c.company.length <= 80))
+    && (c.legacy === undefined || typeof c.legacy === 'boolean')
+    && (c.onlyInPlan === undefined || typeof c.onlyInPlan === 'boolean')
     && wheelHOk && layersOk && kindOk;
   if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
   if (isTruss(c)) {

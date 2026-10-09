@@ -331,11 +331,13 @@ Export und Import laufen über ein JSON-Bundle (`js/store/io.js`). Mitgelieferte
 (`builtin: true`) landen **nicht** in der Datei; Pläne verweisen weiter per `caseId` darauf.
 `parseBundle` prüft streng, weil die Datei von außen kommt — unter anderem gegen
 `CASE_LIMITS` (Obergrenzen für Maße, Gewicht, Rollenhöhe, Stückzahl), eindeutige Stück-IDs je
-Plan und einen String-Zeitstempel bei `updatedAt`. IDs, die mit `preset-` oder `lib-`
-beginnen, werden aus fremden Dateien verworfen, damit ein importiertes Case nie einen
-mitgelieferten Bibliothekseintrag verdeckt. Beim Zusammenführen gewinnt der neuere
-`updatedAt`-Stand (`mergeById`), aber nur wenn **beide** Seiten einen String-Zeitstempel
-tragen — ein kaputter oder fehlender Zeitstempel verliert immer gegen einen gültigen.
+Plan und einen String-Zeitstempel bei `updatedAt`. IDs, die mit `preset-` beginnen, werden
+aus fremden Dateien immer verworfen, um einen mitgelieferten Katalog zu schützen. IDs mit
+`lib-` und `builtin: true` werden ebenso verworfen, während eigene Überlagerungen derselben
+`lib-`-ID mit `builtin: false` überleben und ermöglichen, dass Teams Firmenmuster anpassen
+(Materialverwaltung). Beim Zusammenführen gewinnt der neuere `updatedAt`-Stand (`mergeById`),
+aber nur wenn **beide** Seiten einen String-Zeitstempel tragen — ein kaputter oder fehlender
+Zeitstempel verliert immer gegen einen gültigen.
 
 Vor jedem Import lädt `js/app.js` still eine Sicherung des bisherigen Stands herunter
 (`preImportBackupFileName()`, gleicher Name wie `backupFileName()` plus `-vor-import`), bevor

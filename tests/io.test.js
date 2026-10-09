@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS, normalizeCase, MAX_LABEL } from '../js/store/io.js';
+import { exportBundle, parseBundle, checkCase, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS, normalizeCase, MAX_LABEL } from '../js/store/io.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -417,10 +417,10 @@ test('mergeById: neuer Eintrag ohne lokales Gegenstück wird trotzdem übernomme
   assert.deepEqual(mergeById([], [incoming]), [incoming]);
 });
 
-// --- Daten-20: lib-… IDs werden wie preset-… beim Import verworfen ---
+// --- Daten-20: lib-… IDs mit builtin:true werden beim Import verworfen ---
 
-test('Ein Case mit lib-…-ID wird beim Import verworfen (verdeckt sonst die Bibliothek)', () => {
-  const fakeLib = { ...mkCase('lib-lakabaum-flach-bbm', 10, 10, 10), builtin: false };
+test('Ein Case mit lib-…-ID und builtin:true wird beim Import verworfen (verdeckt sonst die Bibliothek)', () => {
+  const fakeLib = { ...mkCase('lib-lakabaum-flach-bbm', 10, 10, 10), builtin: true };
   const bad = bundleWith({ cases: [own, fakeLib], trucks: [], plans: [] });
   const res = parseBundle(bad);
   assert.deepEqual(res.cases.map(c => c.id), ['own']);
@@ -612,4 +612,28 @@ test('normalizeCase: alter Dolly-Stack ohne kind wird zum Lautsprecher, Tiefe au
   assert.equal(c.unitH, 35);
   assert.equal(c.speakerType, 'top');
   assert.deepEqual([c.l, c.w, c.h, c.weight, c.unitD], [138, 60, 70, 127, 40]);
+});
+
+// --- Materialverwaltung (Task 2) ---
+
+test('Materialbestand: bearbeitete Firmen-Vorlage (lib-ID, builtin:false) überlebt Sicherung und Import', () => {
+  const over = { id: 'lib-k1-cab', builtin: false, source: 'liste', company: 'CAB', name: 'K1 geändert', category: 'Ton', l: 100, w: 60, h: 80, weight: 40 };
+  const text = exportBundle({ cases: [over], trucks: [], plans: [] });
+  const { cases } = parseBundle(text);
+  assert.equal(cases.length, 1);
+  assert.equal(cases[0].company, 'CAB');
+});
+test('Materialbestand: mitgelieferte Einträge (builtin:true) bleiben beim Import ausgefiltert', () => {
+  const text = JSON.stringify({ format: 'truckload', version: 1, cases: [
+    { id: 'lib-x', builtin: true, name: 'X', l: 1, w: 1, h: 1, weight: 0 },
+    { id: 'preset-y', builtin: false, name: 'Y', l: 1, w: 1, h: 1, weight: 0 },
+    { id: 'u1', name: 'Z', l: 1, w: 1, h: 1, weight: 0 }] });
+  assert.deepEqual(parseBundle(text).cases.map(c => c.id), ['u1']);
+});
+test('checkCase: company/legacy/onlyInPlan werden geprüft, fehlen darf jedes (altes Schema)', () => {
+  const base = { id: 'a', name: 'A', l: 1, w: 1, h: 1, weight: 0 };
+  checkCase(base);
+  checkCase({ ...base, company: 'CAB', legacy: true, onlyInPlan: true });
+  assert.throws(() => checkCase({ ...base, company: 5 }));
+  assert.throws(() => checkCase({ ...base, onlyInPlan: 'ja' }));
 });
