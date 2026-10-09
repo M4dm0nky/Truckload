@@ -11,6 +11,47 @@
   <meta name="apple-mobile-web-app-title" content="Truckload">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/print.css" media="print">
+  <link rel="modulepreload" href="js/app.js">
+  <link rel="modulepreload" href="js/state.js">
+  <link rel="modulepreload" href="js/version.js">
+  <link rel="modulepreload" href="js/data/case-library.js">
+  <link rel="modulepreload" href="js/data/categories.js">
+  <link rel="modulepreload" href="js/data/preset-cases.js">
+  <link rel="modulepreload" href="js/data/preset-trucks.js">
+  <link rel="modulepreload" href="js/model/actions.js">
+  <link rel="modulepreload" href="js/model/audioDolly.js">
+  <link rel="modulepreload" href="js/model/caseShape.js">
+  <link rel="modulepreload" href="js/model/geometry.js">
+  <link rel="modulepreload" href="js/model/material.js">
+  <link rel="modulepreload" href="js/model/packer.js">
+  <link rel="modulepreload" href="js/model/packRules.js">
+  <link rel="modulepreload" href="js/model/truss.js">
+  <link rel="modulepreload" href="js/model/validate.js">
+  <link rel="modulepreload" href="js/store/autosave.js">
+  <link rel="modulepreload" href="js/store/db.js">
+  <link rel="modulepreload" href="js/store/io.js">
+  <link rel="modulepreload" href="js/store/repo.js">
+  <link rel="modulepreload" href="js/ui/case-editor.js">
+  <link rel="modulepreload" href="js/ui/caseGroups.js">
+  <link rel="modulepreload" href="js/ui/caseStyle.js">
+  <link rel="modulepreload" href="js/ui/confirmDialog.js">
+  <link rel="modulepreload" href="js/ui/dolly-wizard.js">
+  <link rel="modulepreload" href="js/ui/dom.js">
+  <link rel="modulepreload" href="js/ui/inspector.js">
+  <link rel="modulepreload" href="js/ui/instanceMatrix.js">
+  <link rel="modulepreload" href="js/ui/labelTexture.js">
+  <link rel="modulepreload" href="js/ui/library.js">
+  <link rel="modulepreload" href="js/ui/load-wizard.js">
+  <link rel="modulepreload" href="js/ui/material.js">
+  <link rel="modulepreload" href="js/ui/pack-rules.js">
+  <link rel="modulepreload" href="js/ui/print.js">
+  <link rel="modulepreload" href="js/ui/projection.js">
+  <link rel="modulepreload" href="js/ui/stock-target.js">
+  <link rel="modulepreload" href="js/ui/truck-editor.js">
+  <link rel="modulepreload" href="js/ui/truss-wizard.js">
+  <link rel="modulepreload" href="js/ui/view2d.js">
+  <link rel="modulepreload" href="js/ui/zoom2d.js">
+  <link rel="modulepreload" href="js/ui/view3d.js">
   <script type="importmap">
     { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
   </script>
@@ -113,6 +154,26 @@
   <dialog id="dlg-confirm"></dialog>
   <dialog id="dlg-pick"></dialog>
   <section id="print-root" class="print-root" aria-hidden="true"></section>
+  <script>
+    // Schlägt ein Modul (oder sein Preload) fehl, z. B. bei abgebrochener Verbindung: Hinweis statt weißer Seite.
+    window.addEventListener('error', e => {
+      const t = e.target;
+      const isModule = t && t.tagName === 'SCRIPT' && t.type === 'module';
+      const isPreload = t && t.tagName === 'LINK' && t.rel === 'modulepreload';
+      if ((!isModule && !isPreload) || document.getElementById('load-error')) return;
+      const box = document.createElement('div');
+      box.id = 'load-error';
+      box.className = 'banner banner-warn';
+      box.setAttribute('role', 'alert');
+      box.append('Die App konnte nicht vollständig geladen werden. Bitte neu laden. ');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Neu laden';
+      btn.addEventListener('click', () => location.reload());
+      box.append(btn);
+      document.body.prepend(box);
+    }, true);
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

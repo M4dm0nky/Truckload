@@ -65,3 +65,52 @@ test('Serverfehler (z. B. 404) mit Kopie im Cache: Kopie, Cache bleibt unveränd
   const res = await networkFirst(req, cache, async () => new Response('weg', { status: 404 }), 1000);
   assert.equal(await body(res), 'alt');
 });
+
+test('Nach einem Timeout liefert derselbe Client sofort den Cache, ohne das Netz', async () => {
+  const { networkFirst } = loadSw();
+  const cache = fakeCache({ [req.url]: new Response('alt') });
+  const degraded = new Set();
+  const slow = () => new Promise(r => setTimeout(() => r(new Response('neu')), 100));
+  const first = await networkFirst(req, cache, slow, 20, { degraded, clientId: 'a' });
+  assert.equal(await body(first), 'alt');
+  assert.ok(degraded.has('a'));
+  let calls = 0;
+  const spy = async () => { calls++; return new Response('neu'); };
+  const next = await networkFirst(new Request('https://x.test/js/state.js'),
+    fakeCache({ 'https://x.test/js/state.js': new Response('alt2') }), spy, 20, { degraded, clientId: 'a' });
+  assert.equal(await body(next), 'alt2');
+  assert.equal(calls, 0);
+});
+
+test('Ein anderer Client geht trotz degradiertem Nachbarn wieder ans Netz', async () => {
+  const { networkFirst } = loadSw();
+  const cache = fakeCache({ [req.url]: new Response('alt') });
+  const degraded = new Set(['a']);
+  const res = await networkFirst(req, cache, async () => new Response('neu'), 20, { degraded, clientId: 'b' });
+  assert.equal(await body(res), 'neu');
+});
+
+test('Degradierter Client ohne Cache-Treffer geht trotzdem ans Netz', async () => {
+  const { networkFirst } = loadSw();
+  const res = await networkFirst(req, fakeCache(), async () => new Response('neu'), 20,
+    { degraded: new Set(['a']), clientId: 'a' });
+  assert.equal(await body(res), 'neu');
+});
+
+test('Leere Client-Id markiert nichts als degradiert', async () => {
+  const { networkFirst } = loadSw();
+  const degraded = new Set();
+  const slow = () => new Promise(r => setTimeout(() => r(new Response('neu')), 100));
+  await networkFirst(req, fakeCache({ [req.url]: new Response('alt') }), slow, 20, { degraded, clientId: '' });
+  assert.equal(degraded.size, 0);
+});
+
+test('Cache-Schreiben läuft über waitUntil', async () => {
+  const { networkFirst } = loadSw();
+  const waited = [];
+  const cache = fakeCache();
+  await networkFirst(req, cache, async () => new Response('neu'), 1000, { waitUntil: p => waited.push(p) });
+  assert.equal(waited.length, 1);
+  await waited[0];
+  assert.equal(await body(await cache.match(req)), 'neu');
+});
