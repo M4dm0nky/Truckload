@@ -19,7 +19,7 @@ const TRADE_EDGE = 3; // cm, Innenrahmen in Gewerkfarbe im Modus „Schwarz“
 
 // Beschriftung: Schriftgröße aus der kleineren Korpus-Rechteckseite abgeleitet, auf 6–16 cm begrenzt.
 //
-// 2D kürzt zu lange Beschriftungen einzeilig mit „…“ (fitLabelText() unten), 3D bricht sie
+// 2D kürzt zu lange Beschriftungen einzeilig mit „…“ (truncateToWidth() unten), 3D bricht sie
 // stattdessen mehrzeilig um und verkleinert die Schrift (labelTexture.js, fitFontSize()/
 // wrapText()) — zwei verschiedene Lösungen für dieselbe Aufgabe, mit unterschiedlichem Ergebnis
 // auf demselben Case (docs/code-review-2026-09-21.md, „S3 — eine Textmetrik für 2D und 3D“).
@@ -27,8 +27,7 @@ const TRADE_EDGE = 3; // cm, Innenrahmen in Gewerkfarbe im Modus „Schwarz“
 // Verhaltensänderung (mehrzeiliger statt gekürzter Text), keine reine Dopplung, und damit
 // außerhalb dessen, was Task 6 zusammenführen soll. Was tatsächlich geteilt wird, ist nur die
 // Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, aus labelTexture.js importiert) als Rückfall,
-// wenn `getComputedTextLength()` nicht zur Verfügung steht (s. `fitLabelText()`) — das war schon
-// vor Task 6 der Fall und ist keine Änderung hier.
+// wenn kein Canvas zum Messen da ist (s. `textMeasurer()`).
 const LABEL_MIN = 6;
 const LABEL_MAX = 16;
 const LABEL_RATIO = 0.32;
@@ -99,37 +98,57 @@ function drawTruss(g, it, mode, truck) {
   else drawEndSquare(g, r, profileWidth);
 }
 
-// Passt den Textinhalt an eine maximale Breite an (binäre Suche); verkürzt notwendigenfalls mit
-// „…“. Der volle Text bleibt im <title> des Case erhalten. Misst wo möglich über
-// `getComputedTextLength()` (exakt) – ein ungerendertes SVG (z. B. `#print-root` vor
-// `window.print()`, siehe I2) liefert dafür aber immer 0, was die Kürzung sonst stillschweigend
-// unterließe. In dem Fall wird stattdessen mit `estimateTextWidth()` (labelTexture.js, dieselbe
-// Schätzung wie in 3D) ohne DOM-Messung gekürzt.
-function fitLabelText(el, full, maxWidth, fontSize) {
-  if (maxWidth <= 0) { el.textContent = ''; return; }
-  el.textContent = full;
-  const rendered = typeof el.getComputedTextLength === 'function' && el.getComputedTextLength() > 0;
-  const widthOf = rendered
-    ? text => { el.textContent = text; return el.getComputedTextLength(); }
-    : text => estimateTextWidth(text, fontSize);
-  if (widthOf(full) <= maxWidth) { el.textContent = full; return; }
+// Kürzt `full` auf die größte Länge, die mit „…“ in `maxWidth` passt (binäre Suche, höchstens
+// log2(Länge)+2 Messungen). Rein und ohne DOM, damit testbar (tests/view2d.test.js).
+export function truncateToWidth(full, maxWidth, widthOf) {
+  if (maxWidth <= 0) return '';
+  if (widthOf(full) <= maxWidth) return full;
   let lo = 0, hi = full.length;
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
     const candidate = mid > 0 ? `${full.slice(0, mid)}…` : '…';
     if (widthOf(candidate) <= maxWidth) lo = mid; else hi = mid - 1;
   }
-  el.textContent = lo > 0 ? `${full.slice(0, lo)}…` : '…';
+  return lo > 0 ? `${full.slice(0, lo)}…` : '…';
 }
 
-function drawLabel(g, labelRect, it) {
+// Textbreite über ein Canvas messen statt über `getComputedTextLength()`. Die DOM-Messung zwang den
+// Browser bei jedem Aufruf, das ganze SVG neu zu layouten – mit langen Lautsprecher-Namen auf
+// schmalen Stacks waren das Hunderte Layouts je Klick (Nutzer-Feedback 2026-10-09: „bis man die
+// anklicken kann vergehen ein paar Sekunden“; gemessen 474 Messungen = 384 ms von 416 ms je
+// Auswahl in 2D). `measureText` löst kein Layout aus. Gleiche Schrift wie `.label` (fett, vom Body
+// geerbt); ohne Canvas (Node, sehr alte Browser) die grobe Schätzung aus labelTexture.js – sie
+// greift auch für ein ungerendertes SVG wie `#print-root` nicht mehr, weil Canvas dort misst.
+let measureCtx;
+const widthCache = new Map();
+function textMeasurer(svg, weight) {
+  if (measureCtx === undefined) {
+    measureCtx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
+  }
+  if (!measureCtx) return (text, fontSize) => estimateTextWidth(text, fontSize);
+  const family = getComputedStyle(svg).fontFamily || 'sans-serif';
+  return (text, fontSize) => {
+    const font = `${weight} ${fontSize}px ${family}`;
+    const key = `${font}|${text}`;
+    let w = widthCache.get(key);
+    if (w === undefined) {
+      if (widthCache.size > 5000) widthCache.clear();
+      measureCtx.font = font;
+      w = measureCtx.measureText(text).width;
+      widthCache.set(key, w);
+    }
+    return w;
+  };
+}
+
+function drawLabel(g, labelRect, it, measure) {
   const w = labelRect.u1 - labelRect.u0, h = labelRect.v1 - labelRect.v0;
   const fontSize = Math.max(LABEL_MIN, Math.min(LABEL_MAX, Math.min(w, h) * LABEL_RATIO));
   const label = svgEl('text', {
     x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2,
     class: 'label', style: `font-size:${fontSize}px`,
   }, g);
-  fitLabelText(label, it.label, Math.max(0, w - LABEL_PAD * 2), fontSize);
+  label.textContent = truncateToWidth(it.label, Math.max(0, w - LABEL_PAD * 2), text => measure(text, fontSize));
 
   const seqSize = Math.max(LABEL_MIN, fontSize * 0.55);
   svgEl('text', {
@@ -138,7 +157,7 @@ function drawLabel(g, labelRect, it) {
   }, g).textContent = it.seq;
 }
 
-function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan }) {
+function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure }) {
   const r = project(it.box, mode, truck);
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
 
@@ -163,7 +182,7 @@ function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan }) {
     labelRect = bodyRect;
   }
 
-  if (labels) drawLabel(g, labelRect, it);
+  if (labels) drawLabel(g, labelRect, it, measure);
   svgEl('title', {}, g).textContent = it.title;
 }
 
@@ -185,6 +204,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
 
   // Einmal je Render über alle Stücke, nicht je Case (sonst O(n²)).
   const weightSpan = colorMode === 'weight' ? weightRange(result.items) : null;
+  const measure = labels ? textMeasurer(svg, 700) : null;
   for (const a of archBoxes(truck)) {
     if (mode === 'side' && a.y0 > 0) continue; // Seitenansicht zeigt nur den linken Radkasten
     const r = project(a, mode, truck);
@@ -203,7 +223,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
       ...it,
       seq: result.sequence.get(it.id),
       title: `${result.sequence.get(it.id)}. ${it.label}${it.c.content ? ` – ${it.c.content}` : ''}`,
-    }, mode, truck, { colorMode, labels, weightSpan });
+    }, mode, truck, { colorMode, labels, weightSpan, measure });
     if (bad) {
       const r = project(it.box, mode, truck);
       svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'alert' }, g);
