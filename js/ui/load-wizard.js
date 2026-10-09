@@ -83,7 +83,11 @@ export function bulkState(entries, key) {
 
 function caseLine(c) {
   const company = c.company ? ` · ${c.company}` : '';
-  if (isTruss(c)) return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück${company}`;
+  if (isTruss(c)) {
+    const wagen = c.truss.standing ? '' : ` · Wagen ${c.w} cm breit`;
+    return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück${wagen}${company}`;
+  }
+  if (c.kind === 'speaker' && c.unitH > 0) return `Dolly ${c.l} × ${c.w} cm (B × T) · ${c.h + (c.wheelH ?? 0)} cm hoch · ${c.weight} kg${company}`;
   const { l, w, h } = outerDims(c);
   return `${l}×${w}×${h} cm · ${c.weight} kg${company}`;
 }

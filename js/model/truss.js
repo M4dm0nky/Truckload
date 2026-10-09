@@ -21,12 +21,18 @@ export const MAX_TRUSS_WIDTH = DOLLY_WIDTHS.at(-1) / 2;
 // oben – width/height sind hier direkt die Außenmaße (Standfläche/Standhöhe), nicht Eingaben für
 // die Wagen-Layout-Formel. Die MAX_TRUSS_WIDTH-Grenze gilt nur für die stapelnde Wagen-Variante
 // (2 Stück nebeneinander auf einen Dolly) und ist für stehende Einzelstücke bedeutungslos.
-export function trussDims({ length, width, count, standing, height }) {
+//
+// `wagonW` (optional, V 0.12.3): Wagenbreite der jeweiligen Firma, per Dialog eingegeben. Ohne sie
+// gilt die Automatik 60/80 cm, alte Daten laden also unverändert. Eine eigene Breite muss die
+// zwei Stück nebeneinander aufnehmen, sonst ragen sie heraus.
+export function trussDims({ length, width, count, standing, height, wagonW }) {
   if (standing) return { l: length, w: width, h: height };
   if (width > MAX_TRUSS_WIDTH)
     throw new Error(`Traversenbreite ${width} cm überschreitet die Grenze von ${MAX_TRUSS_WIDTH} cm.`);
   const perRow = 2;
-  const w = perRow * width <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1];
+  if (wagonW != null && wagonW < perRow * width)
+    throw new Error(`Wagenbreite ${wagonW} cm ist schmaler als zwei Traversenstücke (${perRow * width} cm).`);
+  const w = wagonW ?? (perRow * width <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1]);
   const h = DOLLY_H + Math.ceil(count / perRow) * width;
   return { l: length, w, h };
 }

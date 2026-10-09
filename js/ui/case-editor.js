@@ -178,7 +178,9 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft } = {}) {
 
   function currentTruss() {
     const width = f.trussWidthProfile.value === 'custom' ? Number(f.trussWidthCustom.value) : Number(f.trussWidthProfile.value);
-    return { length: Number(f.trussLength.value), width, count: Number(f.trussCount.value) };
+    // wagonW (Wagenbreite aus dem Traversen-Dialog) hat hier kein Feld und bleibt erhalten.
+    return { length: Number(f.trussLength.value), width, count: Number(f.trussCount.value),
+      ...(truss0.wagonW != null ? { wagonW: truss0.wagonW } : {}) };
   }
   function trussFieldsValid(t) {
     return t.length > 0 && t.width > 0 && t.count > 0;

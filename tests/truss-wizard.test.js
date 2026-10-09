@@ -45,3 +45,14 @@ test('buildWagonCaseType: Stückzahl an der checkCase()-Obergrenze (12) ist noch
   assert.doesNotThrow(() => checkCase(c));
   assert.ok(c.truss.count <= 12);
 });
+
+test('buildWagonCaseType: eigene Wagenbreite landet in truss.wagonW und in der Breite', () => {
+  const c = buildWagonCaseType('id-w', '34er', 300, 29, 4, 70);
+  assert.equal(c.truss.wagonW, 70);
+  assert.equal(c.w, 70);
+  assert.equal(checkCase(c), undefined);
+});
+test('buildWagonCaseType: ohne Wagenbreite kein wagonW-Feld', () => {
+  const c = buildWagonCaseType('id-x', '34er', 300, 29, 4);
+  assert.ok(!('wagonW' in c.truss));
+});

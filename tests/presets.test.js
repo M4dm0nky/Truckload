@@ -24,7 +24,7 @@ test('Case-Vorlagen gültig', () => {
 });
 test('Traversenwagen-Vorlagen sind vom Typ truss mit passenden Maßen', () => {
   const trussCases = PRESET_CASES.filter(isTruss);
-  assert.equal(trussCases.length, 27);
+  assert.equal(trussCases.length, 24);
   for (const c of trussCases) {
     assert.ok(c.truss && c.truss.length > 0 && c.truss.width > 0 && c.truss.count > 0, c.id);
     const dims = trussDims(c.truss);
@@ -112,4 +112,9 @@ test('Audio-Vorlagen: 8 Array-Tops speakerType "top", 5 Subs "sub", jede mit cab
   for (const id of tops) assert.equal(PRESET_CASES.find(c => c.id === id)?.speakerType, 'top', id);
   for (const id of subs) assert.equal(PRESET_CASES.find(c => c.id === id)?.speakerType, 'sub', id);
   for (const id of [...tops, ...subs]) assert.match(PRESET_CASES.find(c => c.id === id).cabinetColor, /^#[0-9a-f]{6}$/, id);
+});
+// V 0.12.3 (Nutzerwunsch): Wagengrößen sind firmenabhängig – die festen F34/F40-Wagen-Vorlagen sind
+// entfernt, Traversenwagen entstehen über den Traversen-Dialog.
+test('Die festen F34/F40-Traversenwagen-Vorlagen sind entfernt', () => {
+  assert.ok(!PRESET_CASES.some(c => /^preset-truss-(34|40)-/.test(c.id)));
 });

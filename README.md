@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.12.2** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.12.3** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -50,7 +50,7 @@ So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gel�
 Seitenleiste öffnet denselben Wizard für den aktuellen Load, dann ohne den ersten Schritt.
 
 1. **Load** – Name und Fahrzeug (Truck) wählen.
-2. **Cases** – aus der Bibliothek Cases mit Stückzahl auswählen, oder über „+ Neues Case“ bzw. „⬛ Sonderbau“ direkt neue Cases anlegen. „+ Traverse hinzufügen“ legt mengenbasiert klassische F34/F40-Wagen oder Pre-Rig-Traversen (MLT/S36PR) an.
+2. **Cases** – aus der Bibliothek Cases mit Stückzahl auswählen, oder über „+ Neues Case“ bzw. „⬛ Sonderbau“ direkt neue Cases anlegen. „+ Traverse hinzufügen“ legt mengenbasiert klassische F34/F40-Wagen (Wagenbreite einstellbar) oder Pre-Rig-Traversen (MLT/S36PR) an.
 3. **Beschriften** – jedes einzelne Stück bekommt eine vorbelegte Beschriftung (z. B. „Kabelcase 1“ … „6“), die sich überschreiben lässt, sowie optional eine Gruppenfarbe. Dazu je Stück Häkchen für Lage (1–4) und „getippt“:
    - Vorbelegt sind Lage 1 und 2 sowie „getippt“. Lage 3 und 4 sind nie vorab angehakt, sie werden immer von Hand geklickt.
    - Die Zeile „Alle Stücke“ oben setzt oder entfernt ein Häkchen bei allen Stücken auf einmal, z. B. Lage 4 für alle. Sind die Stücke unterschiedlich eingestellt, zeigt das Häkchen einen Strich.

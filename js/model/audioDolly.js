@@ -58,7 +58,9 @@ export function maxDollyCount(baseCase) {
 // `unitH` ist die Höhe einer einzelnen Box im Stack, damit dieser Zweig die Trennlinien
 // zwischen den gestapelten Boxen zeichnen kann, ohne sie aus `h`/Stückzahl zurückrechnen zu
 // müssen. 2D (js/ui/view2d.js) liest `kind` nicht und bleibt unverändert.
-export function dollyStackCase(baseCase, n) {
+// `wagen` (optional, V 0.12.3): { l, w } = Wagengröße der Firma in cm (Breite × Tiefe). Ohne sie
+// gilt Boxbreite × Dolly-Stufe wie in 0.12.2. Die Höhe des Wagens ist fest (DOLLY_HEIGHT_CM).
+export function dollyStackCase(baseCase, n, wagen = {}) {
   return {
     id: dollyStackId(baseCase, n),
     builtin: false,
@@ -66,8 +68,8 @@ export function dollyStackCase(baseCase, n) {
     content: '',
     category: baseCase.category,
     color: colorFor(baseCase.category),
-    l: baseCase.l,
-    w: dollyDepth(baseCase.w),
+    l: wagen.l ?? baseCase.l,
+    w: wagen.w ?? dollyDepth(baseCase.w),
     h: n * baseCase.h,
     weight: DOLLY_WEIGHT_KG + n * baseCase.weight,
     tippable: false,

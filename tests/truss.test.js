@@ -501,3 +501,18 @@ for (const [name, mk] of [['offen', mkStandingCase], ['geschlossen', mkClosedCas
     });
   }
 }
+
+// V 0.12.3: Wagenbreite ist pro Firma verschieden und im Dialog änderbar (truss.wagonW).
+test('trussDims: eigene Wagenbreite (wagonW) ersetzt die 60/80-Automatik', () => {
+  const d = trussDims({ length: 300, width: 29, count: 4, wagonW: 70 });
+  assert.equal(d.w, 70);
+  assert.equal(d.l, 300);
+  assert.equal(d.h, DOLLY_H + 2 * 29);
+});
+test('trussDims: ohne wagonW bleibt die Automatik (alte Daten laden unverändert)', () => {
+  assert.equal(trussDims({ length: 300, width: 29, count: 4 }).w, 60);
+  assert.equal(trussDims({ length: 300, width: 40, count: 4 }).w, 80);
+});
+test('trussDims: Wagenbreite schmaler als zwei Stücke nebeneinander wirft', () => {
+  assert.throws(() => trussDims({ length: 300, width: 29, count: 4, wagonW: 50 }));
+});

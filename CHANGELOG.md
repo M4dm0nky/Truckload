@@ -2,6 +2,20 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.12.3 – 2026-10-09
+
+Wagengrößen sind von Firma zu Firma verschieden – deshalb jetzt im Dialog sichtbar und änderbar.
+
+- **Dolly-Dialog (Boxen):** „Wagen Breite“ und „Wagen Tiefe“ in cm, vorbelegt mit Boxbreite und der
+  bisherigen Stufe 60/80/120; darunter steht „Wagen: B × T“. Die Wagenhöhe bleibt fest. In der
+  Case-Liste zeigt jeder Dolly-Stack seine Wagengröße.
+- **Traversen-Dialog:** „Wagenbreite (cm)“, vorbelegt mit der bisherigen Automatik (60 für 34er,
+  80 für 40er). Nur die Breite zählt; die Länge bestimmt die Traverse. Gespeichert als
+  `truss.wagonW`; Wagen ohne diesen Wert laden unverändert.
+- Die drei festen Traversenwagen-Vorlagen (34er 3 m/2 m, 40er 3 m) sind entfernt. Ladepläne, die
+  genau diese Vorlagen enthalten, zeigen die Stücke danach als fehlendes Case. Die Pre-Rig-Wagen
+  (MLT/Prolyte) bleiben.
+
 ## V 0.12.2 – 2026-10-08
 
 Dolly-Stacks belegen im Truck jetzt die echte Dolly-Tiefe: 60, 80 oder 120 cm, je nachdem, was

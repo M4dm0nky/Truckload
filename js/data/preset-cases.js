@@ -1,5 +1,5 @@
 import { colorFor } from './categories.js';
-import { trussDims, STAND_FOOTPRINT_W, wagonWeight } from '../model/truss.js';
+import { trussDims, STAND_FOOTPRINT_W } from '../model/truss.js';
 
 const NOTE = 'Richtwert – Maße und Gewicht an dein Case anpassen';
 const P = (id, name, category, l, w, h, weight, opts = {}) => ({
@@ -7,18 +7,10 @@ const P = (id, name, category, l, w, h, weight, opts = {}) => ({
   l, w, h, weight, tippable: true, stackable: true, maxTopLoad: null, stock: null, wheelH: 13, // Blue Wheel Ø 100 mm, Maß inkl. Rollen
   dimsInclWheels: true, note: NOTE, ...opts,
 });
-// F34 (34er) ≈ 6 kg/m, F44 (40er) ≈ 8 kg/m Traversengewicht; Wagen (Paar) ≈ 2 × 12 kg.
-// (Gewichtsformel exportiert als wagonWeight() aus model/truss.js, damit Task 3 sie wiedernutzen kann)
-const T = (id, name, length, width, count) => {
-  const truss = { length, width, count };
-  const { l, w, h } = trussDims(truss);
-  const weight = wagonWeight(length, width, count);
-  return P(id, name, 'Rigging', l, w, h, weight,
-    { kind: 'truss', truss, tippable: false, wheelH: 0, layers: [1, 2] });
-};
 // Pre-Rig-Traversen (H.O.F. MLT/Prolyte S36PR): EIN Stück ist EINE stehende Traverse auf Beinen/
-// Rollwagen (standing:true, count immer 1) – anders als T() oben, das mehrere Stücke auf einen
-// Standfläche ist STAND_FOOTPRINT_W (62 cm - 4 Stück nebeneinander im 40-Tonner), Höhe je
+// Rollwagen (standing:true, count immer 1). Klassische F34/F40-Wagen mit mehreren Stücken gibt es
+// nicht mehr als Vorlage (Wagengrößen sind firmenabhängig, V 0.12.3) – sie entstehen über den
+// Traversen-Dialog. Standfläche ist STAND_FOOTPRINT_W (62 cm - 4 Stück nebeneinander im 40-Tonner), Höhe je
 // Modell (standH). BASE_KG ist ein Richtwert für Grundplatte+Beine+Rollen (kein Herstellerwert,
 // s. docs/mlt-truss-gewichte.md) – das Stückgewicht selbst ist recherchiert.
 const BASE_KG = 25;
@@ -66,9 +58,6 @@ export const PRESET_CASES = [
   P('led-8er', 'LED-Wall-Case (8 Panels)', 'Video', 120, 60, 110, 220, { tippable: false, layers: [1, 2] }),
   P('distro-63a', 'Stromverteiler 63 A', 'Strom', 80, 60, 90, 110, { tippable: false }),
   P('foh-pult', 'FOH-Pult-Case', 'Ton', 150, 80, 110, 160, { tippable: false, stackable: false, layers: [1] }),
-  T('truss-34-3m', 'Traversenwagen 34er 3 m (4 Stück)', 300, 29, 4),
-  T('truss-34-2m', 'Traversenwagen 34er 2 m (4 Stück)', 200, 29, 4),
-  T('truss-40-3m', 'Traversenwagen 40er 3 m (4 Stück)', 300, 40, 4),
   // Pre-Rig-Traversen (Moving-Light-Truss): EIN Stück ist EINE stehende Traverse auf Beinen/
   // Rollwagen, keine gestapelten Mehrfachstücke (s. MLT() oben). Stückgewichte und Standhöhe
   // recherchiert, siehe docs/mlt-truss-gewichte.md. Alle stehen gleich hoch (115 cm, MLT ONE nach

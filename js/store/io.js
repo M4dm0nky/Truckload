@@ -54,6 +54,7 @@ export function checkCase(c) {
       && num(t.length) && t.length >= 1 && t.length <= 1000
       && num(t.width) && t.width >= 1 && t.width <= (standing ? 200 : 40)
       && Number.isInteger(t.count) && t.count >= 1 && t.count <= 12
+      && (t.wagonW === undefined || (num(t.wagonW) && t.wagonW >= 2 * t.width && t.wagonW <= 200))
       && (t.standing === undefined || typeof t.standing === 'boolean')
       && (!standing || (num(t.height) && t.height >= 1 && t.height <= CASE_LIMITS.h))
       && c.tippable !== true;

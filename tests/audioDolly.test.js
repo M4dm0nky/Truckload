@@ -183,3 +183,20 @@ test('dollyStackCase: übernimmt speakerType und cabinetColor der Basisbox', () 
   assert.equal(c.speakerType, 'top');
   assert.equal(c.cabinetColor, '#3a332e');
 });
+
+// V 0.12.3: Wagengröße ist pro Firma verschieden und im Dolly-Dialog änderbar.
+test('dollyStackCase: eigene Wagenmaße ersetzen Boxbreite/Dolly-Stufe, Höhe bleibt', () => {
+  const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
+  const c = dollyStackCase(base, 2, { l: 150, w: 70 });
+  assert.equal(c.l, 150);
+  assert.equal(c.w, 70);
+  assert.equal(c.unitD, 40);
+  assert.equal(c.h, 70);
+  assert.equal(c.wheelH, DOLLY_HEIGHT_CM);
+});
+test('dollyStackCase: ohne Wagenmaße gilt der Stand von 0.12.2', () => {
+  const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
+  const c = dollyStackCase(base, 2);
+  assert.equal(c.l, 138);
+  assert.equal(c.w, dollyDepth(40));
+});

@@ -290,7 +290,9 @@ Vorlagen im Gewerk „Ton“ (8 Array-Tops, 5 Subs, `docs/casemasse-gewichte.md`
 sich `openDollyDialog()` (`js/ui/dolly-wizard.js`) statt den Stepper direkt zu erhöhen – wie
 `addTruss()`/`openTrussDialog()` für Traversenwagen, nur mit einer einzigen Abfrage (Stückzahl
 auf dem Dolly, keine „ohne Dolly“-Option: Line-Array-Elemente und Subwoofer stehen in der
-Praxis immer auf einem Dolly). Die reine Geometrie-Funktion `dollyStackCase(baseCase, n)`
+Praxis immer auf einem Dolly). Seit V 0.12.3 fragt der Dialog zusätzlich die Wagengröße ab
+(Breite × Tiefe, vorbelegt mit Boxbreite und Dolly-Stufe; Höhe fest), weil Wagen je Firma
+verschieden sind; der Traversen-Dialog fragt analog nur die Wagenbreite (`truss.wagonW`). Die reine Geometrie-Funktion `dollyStackCase(baseCase, n, wagen?)`
 (`js/model/audioDolly.js`) baut daraus einen neuen, konkreten Case-Typ (Fußabdruck unverändert,
 Höhe = Stückzahl × Boxhöhe, Dolly-Höhe im `wheelH`-Feld statt in `h` – die vorhandene
 Rollen-Zeichnung aus `caseShape()` übernimmt die Darstellung ohne eigenen Code), der über

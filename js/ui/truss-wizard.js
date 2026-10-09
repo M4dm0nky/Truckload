@@ -1,6 +1,6 @@
 import { esc } from './dom.js';
 import { QUICK_LENGTHS } from './case-editor.js';
-import { TRUSS_PROFILES, trussDims, wagonWeight, splitWagons, isTruss } from '../model/truss.js';
+import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons, isTruss } from '../model/truss.js';
 import { colorFor } from '../data/categories.js';
 
 // Baut einen neuen Traversenwagen-Case-Typ für eine Stückzahl auf einem Wagen (klassische F34/
@@ -8,8 +8,9 @@ import { colorFor } from '../data/categories.js';
 // `builtin: false`, weil hier ein vom Nutzer erzeugtes Case entsteht statt einer mitgelieferten
 // Vorlage. Rein funktional (keine DOM-/Store-Berührung), deshalb wie splitWagons()/wagonWeight()
 // (Task 2) unabhängig testbar.
-export function buildWagonCaseType(id, profileName, length, width, count) {
-  const truss = { length, width, count };
+// `wagonW` (optional): Wagenbreite der Firma in cm, sonst die Automatik 60/80 (trussDims).
+export function buildWagonCaseType(id, profileName, length, width, count, wagonW) {
+  const truss = { length, width, count, ...(wagonW != null ? { wagonW } : {}) };
   const { l, w, h } = trussDims(truss);
   const weight = wagonWeight(length, width, count);
   const lengthLabel = (length / 100).toLocaleString('de-DE', { maximumFractionDigits: 2 });
@@ -62,6 +63,8 @@ export function openTrussDialog(dlg, opts = {}) {
         <label>Profil<select name="profile">${TRUSS_PROFILES.map(p => `<option value="${p.width}">${esc(p.name)}</option>`).join('')}</select></label>
         <label>Länge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
         <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
+        <label>Wagenbreite (cm)<input type="number" name="wagonW" min="20" max="200" step="1" required></label>
+        <p class="hint">Wagen unterscheiden sich je Firma – die Breite hier an den echten Wagen anpassen.</p>
         <div class="row">
           <label>Gesamtstückzahl<input type="number" name="total" min="1" step="1" required></label>
           <label>Stück pro Wagen<input type="number" name="perWagon" min="1" max="12" step="1" required></label>
@@ -95,6 +98,7 @@ export function openTrussDialog(dlg, opts = {}) {
     classicOnly.hidden = isPrerig;
     prerigOnly.hidden = !isPrerig;
     f.trussLength.required = !isPrerig; f.total.required = !isPrerig; f.perWagon.required = !isPrerig;
+    f.wagonW.required = !isPrerig; f.wagonW.disabled = isPrerig;
     f.trussLength.disabled = isPrerig; f.total.disabled = isPrerig; f.perWagon.disabled = isPrerig; f.profile.disabled = isPrerig;
     if (f.preset) f.preset.disabled = !isPrerig;
     if (f.prerigTotal) { f.prerigTotal.required = isPrerig; f.prerigTotal.disabled = !isPrerig; }
@@ -112,6 +116,13 @@ export function openTrussDialog(dlg, opts = {}) {
     }
   }
   for (const name of ['total', 'perWagon']) f[name].addEventListener('input', updateWagonsHint);
+  // Vorbelegung = bisherige Automatik (2 Stück nebeneinander: bis 60 cm → 60, sonst 80); folgt dem
+  // Profil, solange der Nutzer die Breite nicht selbst geändert hat.
+  let wagonWTouched = false;
+  const autoWagonW = () => (2 * Number(f.profile.value) <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1]);
+  f.wagonW.value = autoWagonW();
+  f.wagonW.addEventListener('input', () => { wagonWTouched = true; });
+  f.profile.addEventListener('change', () => { if (!wagonWTouched) f.wagonW.value = autoWagonW(); });
   for (const btn of dlg.querySelectorAll('.quick-len')) {
     btn.addEventListener('click', () => { f.trussLength.value = btn.dataset.len; });
   }
@@ -121,8 +132,10 @@ export function openTrussDialog(dlg, opts = {}) {
     if (act !== 'save') return;
     const kind = kindInputs.find(r => r.checked)?.value ?? 'classic';
     if (kind === 'classic') {
-      try { splitWagons(Number(f.total.value), Number(f.perWagon.value)); }
-      catch { e.preventDefault(); }
+      try {
+        splitWagons(Number(f.total.value), Number(f.perWagon.value));
+        trussDims({ length: 1, width: Number(f.profile.value), count: 1, wagonW: Number(f.wagonW.value) });
+      } catch { e.preventDefault(); }
     } else if (!prerigCases.length) {
       e.preventDefault();
     }
@@ -145,7 +158,7 @@ export function openTrussDialog(dlg, opts = {}) {
         const newCases = [];
         const additions = [];
         for (const n of distinct) {
-          const caseType = buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n);
+          const caseType = buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, Number(f.wagonW.value));
           const saved = await opts.onNewTruss?.(caseType);
           if (!saved) continue;
           newCases.push(saved);

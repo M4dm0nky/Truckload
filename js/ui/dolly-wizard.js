@@ -1,5 +1,5 @@
 import { esc } from './dom.js';
-import { dollyStackCase, maxDollyCount } from '../model/audioDolly.js';
+import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.js';
 
 // opts: { baseCase, onNewDollyStack(caseType) }
 // Ergebnis: { newCase, addition: { caseId, n } } oder null bei Abbruch/ungültiger Eingabe.
@@ -39,6 +39,11 @@ export function openDollyDialog(dlg, opts = {}) {
       <p class="hint">Line-Array-Elemente und Subwoofer stehen immer auf einem Dolly mit
         Schwerlastrollen – wie viele Boxen übereinander?</p>
       <label>Stückzahl auf diesem Dolly<input type="number" name="n" min="1" max="${maxN}" step="1" value="1" required></label>
+      <div class="row">
+        <label>Wagen Breite (cm)<input type="number" name="wl" min="20" max="400" step="1" value="${base.l}" required></label>
+        <label>Wagen Tiefe (cm)<input type="number" name="ww" min="20" max="250" step="1" value="${dollyDepth(base.w)}" required></label>
+      </div>
+      <p class="hint wagen-hint"></p>
       <menu>
         <button value="cancel" formnovalidate>Abbrechen</button>
         <span class="grow"></span>
@@ -50,11 +55,20 @@ export function openDollyDialog(dlg, opts = {}) {
   const f = form.elements;
 
   const validN = () => parseDollyCount(f.n.value, maxN);
+  const wagenHint = dlg.querySelector('.wagen-hint');
+  // Wagengröße ist firmenabhängig – hier anzeigen und änderbar halten; die Höhe ist fest.
+  const wagen = () => ({ l: Number(f.wl.value), w: Number(f.ww.value) });
+  const wagenValid = () => { const g = wagen(); return g.l >= 20 && g.w >= 20; };
+  const updateWagenHint = () => {
+    wagenHint.textContent = wagenValid() ? `Wagen: ${wagen().l} × ${wagen().w} cm (B × T)` : '';
+  };
+  for (const name of ['wl', 'ww']) f[name].addEventListener('input', updateWagenHint);
+  updateWagenHint();
 
   form.addEventListener('submit', e => {
     const act = e.submitter?.value;
     if (act !== 'save') return;
-    if (validN() === null) e.preventDefault();
+    if (validN() === null || !wagenValid()) e.preventDefault();
   });
 
   return new Promise(resolve => {
@@ -62,8 +76,8 @@ export function openDollyDialog(dlg, opts = {}) {
       const act = dlg.returnValue;
       if (act !== 'save') return resolve(null);
       const n = validN();
-      if (n === null) return resolve(null);
-      const caseType = dollyStackCase(base, n);
+      if (n === null || !wagenValid()) return resolve(null);
+      const caseType = dollyStackCase(base, n, wagen());
       const saved = await opts.onNewDollyStack?.(caseType);
       if (!saved) return resolve(null);
       resolve({ newCase: saved, addition: { caseId: saved.id, n: 1 } });
