@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.13.1** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.13.2** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -129,12 +129,13 @@ Zeile in der Seitenleiste anklicken).
 
 Die Materialverwaltung ist ein eigener Bereich für den Bestand an Cases, Traversen und
 Boxen-Dollys. Sie ist immer erreichbar: über „Material“ auf dem Startbildschirm und über
-„Material“ in der Kopfleiste, auch mitten in einem Load. „Zurück“ führt dorthin zurück, wo man
-herkam. Solange sie offen ist, ruhen die Tastenkürzel des Ladeplans.
+„Material“ in der Kopfleiste, auch mitten in einem Load, und über „Material“ unten im Wizard
+„Load zusammenstellen“. „Zurück“ führt dorthin zurück, wo man herkam – in den Wizard mit
+unveränderter Auswahl. Solange sie offen ist, ruhen die Tastenkürzel des Ladeplans.
 
 Links stehen der **Standardkatalog**, darunter alle Firmen mit der Zahl ihrer Cases, „+ Firma“
 und „Nur in Ladeplänen“. Rechts liegt das Material der gewählten Stelle, aufgeteilt in die
-Reiter Cases, Traversen und Sonderbau, mit Suche.
+Reiter Cases, Lautsprecher (Line-Array-Boxen, Subs, Boxen-Dollys), Traversen und Sonderbau, mit Suche.
 
 - **Standardkatalog** – die mitgelieferten Vorlagen, nur lesbar. „Kopieren“ legt eine eigene
   Version in einer Firma an (oder in der Standardliste); die Vorlage selbst bleibt unverändert.

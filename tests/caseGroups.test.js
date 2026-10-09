@@ -96,8 +96,9 @@ test('caseKind: alles andere ist ein normales Case', () => {
   assert.equal(caseKind({ category: 'Licht' }), 'cases');
   assert.equal(caseKind({}), 'cases');
 });
-test('CASE_TABS enthält genau die 3 Reiter cases/traversen/sonderbau', () => {
-  assert.deepEqual(CASE_TABS.map(t => t.id), ['cases', 'traversen', 'sonderbau']);
+test('CASE_TABS: Cases, Lautsprecher, Traversen, Sonderbau (Nutzerwunsch 2026-10-09)', () => {
+  assert.deepEqual(CASE_TABS.map(t => t.id), ['cases', 'lautsprecher', 'traversen', 'sonderbau']);
+  assert.equal(CASE_TABS.find(t => t.id === 'lautsprecher').label, 'Lautsprecher');
 });
 
 test('leere Eingabe liefert leere Gruppen statt zu werfen', () => {
@@ -143,4 +144,10 @@ test('groupCases blendet legacy-Cases auch aus „Eigene Cases“ aus', () => {
   const y = { id: 'lib-y', builtin: false, source: 'liste', name: 'Y', category: 'Ton', legacy: true };
   const g = groupCases([x, y]);
   assert.deepEqual([g.own, g.presets, g.list].map(a => a.length), [0, 0, 0]);
+});
+
+test('caseKind: Line-Array-Boxen, Subs (dollyPrompt) und Boxen-Dollys (kind speaker) sind Lautsprecher', () => {
+  assert.equal(caseKind({ category: 'Ton', dollyPrompt: true }), 'lautsprecher');
+  assert.equal(caseKind({ category: 'Ton', kind: 'speaker' }), 'lautsprecher');
+  assert.equal(caseKind({ category: 'Ton' }), 'cases');
 });
