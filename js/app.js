@@ -7,6 +7,7 @@ import { attachKeyboard } from './app/keyboard.js';
 import { createPersistence } from './app/persistence.js';
 import { wirePlans } from './app/plans.js';
 import { mountMaterialScreen } from './app/materialScreen.js';
+import { wireImportExport } from './app/importExport.js';
 import { ctxOf, deriveOf, allPlansOf, piecesOf, usage, truckUsage } from './app/core.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
@@ -23,7 +24,6 @@ import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 import { createView3d } from './ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from './ui/zoom2d.js';
 import { buildPrint, buildChecklist, buildLabels, pageRuleFor } from './ui/print.js';
-import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
 
 // Globaler Auffangnetz-Hinweis (eigenes Element, damit er keinen wichtigeren Speicher-Hinweis in
@@ -549,105 +549,7 @@ $('#print').onclick = () => {
   window.print();
 };
 
-function downloadJSON(filename, text) {
-  const blob = new Blob([text], { type: 'application/json' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-$('#export').onclick = () => {
-  const s = store.get();
-  const plans = allPlansOf(s);
-  downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans, ruleSets: s.ruleSets }));
-};
-
-// Vorher ein <label class="btn"> um das versteckte <input type="file">: ein <label> ist kein
-// fokussierbares Bedienelement, „Importieren“ war per Tastatur nicht erreichbar, während alle
-// Nachbarn <button> sind (docs/code-review-2026-09-21.md, „N11 — Kleinigkeiten in index.html“).
-$('#import-btn').onclick = () => $('#import').click();
-$('#import').onchange = async e => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  let bundle;
-  try {
-    bundle = parseBundle(await file.text());
-  } catch (err) {
-    await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
-    return;
-  }
-
-  // Still eine Sicherung des aktuellen Stands anlegen, BEVOR irgendetwas überschrieben
-  // wird (Befund Daten-10) – das einzige Netz, falls der Import den falschen Stand bringt.
-  const s0 = store.get();
-  const backupName = preImportBackupFileName();
-  // s0.plan ist null, wenn der Import vom Startbildschirm ausgelöst wird (Task 1: kein Plan
-  // automatisch angelegt) – dann gibt es keinen aktuellen Plan, der in die Sicherung
-  // gehört, nur die schon gespeicherten.
-  const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0), ruleSets: s0.ruleSets });
-  downloadJSON(backupName, backupText);
-
-  // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen (Befund: „der
-  // Import läuft gegen den eigenen Autosave“). exclude() nimmt einen schon wartenden oder
-  // gerade fehlschlagenden Eintrag vollständig aus der Buchhaltung heraus (parkt ihn) –
-  // sonst könnte sein Timer (oder ein pagehide/visibilitychange-Flush) währenddessen den
-  // alten, ungesicherten Stand über den frisch importierten schreiben, ohne dass jemand es
-  // bemerkt. saveImportWinners() schreibt diesen Plan (falls die Datei ihn gewinnt) selbst.
-  // Ohne aktuellen Plan (Startbildschirm) gibt es nichts stillzulegen.
-  if (s0.plan) autosave.exclude(s0.plan.id);
-  let merge;
-  let importFailed = false;
-  let importErr = null;
-  try {
-    // Das Mischen passiert synchron im Store-Updater, auf dem Zustand zum Zeitpunkt des
-    // Updates – nicht auf einem vor den beiden obigen await-Grenzen genommenen Schnappschuss
-    // (Befund Daten-5). Zwischenzeitliche Änderungen des Nutzers gehen so nicht verloren.
-    store.update(s => {
-      merge = repo.mergeImportedBundle(s, bundle);
-      return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan, ruleSets: merge.ruleSets };
-    });
-    // Eine einzige Transaktion statt unabhängiger Promise.all-Schreibvorgänge (Befund:
-    // „Teil-Import lässt Store und Datenbank auseinanderlaufen“ ging tiefer, als es zuerst
-    // aussah – unabhängige db.put()-Aufrufe je Datensatz können TEILWEISE erfolgreich sein,
-    // bevor Promise.all insgesamt ablehnt, sodass ein Rollback der Oberfläche auf s0 nicht
-    // mehr zur Datenbank passt. saveImportWinners() schreibt alles oder nichts.)
-    await repo.saveImportWinners(merge.winners);
-  } catch (err) {
-    importFailed = true;
-    importErr = err;
-    // Teilfehlschlag: Store und Datenbank sind jetzt auseinandergelaufen, die Oberfläche
-    // zeigt möglicherweise Daten, die nicht (vollständig) geschrieben wurden. Zurück auf
-    // den Stand vor dem Import – der ist noch da (s0) und stimmt mit der Datenbank überein
-    // (Befund: „Teil-Import lässt Store und Datenbank auseinanderlaufen“).
-    store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan, ruleSets: s0.ruleSets }));
-  } finally {
-    // include() gehört in ein finally: würfe irgendetwas zwischen exclude() und hier, bliebe
-    // der Autosave für diesen Plan sonst den Rest der Sitzung stumm tot. restore:true, wenn
-    // entweder der Import fehlschlug ODER der lokale Stand gewonnen hat (merge.planChanged
-    // === false) – in beiden Fällen wurde ein vorher geparkter, ausstehender eigener Stand
-    // NICHT mitgeschrieben und muss weiter als ausstehend gelten. `merge` kann bei einem
-    // Fehler vor der Zuweisung undefined geblieben sein, daher der sichere Optional-Chain.
-    if (s0.plan) autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
-  }
-
-  if (importFailed) {
-    const retry = await showConfirm(
-      `Import: Schreiben in die Datenbank fehlgeschlagen (${importErr?.message ?? 'unbekannter Fehler'}). ` +
-      'Der Stand von vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
-    );
-    if (retry) downloadJSON(backupName, backupText);
-    return;
-  }
-
-  if (merge.planChanged) store.resetHistory();
-  // Reparaturen an reparierbaren Altwerten (zu lange Beschriftung, Rollenhöhe ≥ Case-Höhe –
-  // beide bis V0.6 durch Wizard/Editor entstanden) werden gemeldet, statt stillschweigend zu
-  // passieren, damit der Nutzer erkennt, was und wie viele Datensätze angepasst wurden
-  // (Befund „eine Sicherung aus V 0.5 oder V 0.6 kann heute komplett unlesbar sein“).
-  const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
-  await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets (neuere lokale Stände behalten).${repairNote}`);
-};
+wireImportExport({ store, autosave, repo, showAlert, showConfirm });
 
 // Version sichtbar machen (einzige Quelle: js/version.js)
 $('#app-version').textContent = `V ${APP_VERSION}`;

@@ -18,6 +18,7 @@ const ASSETS = [
   'js/app.js',
   'js/app/core.js',
   'js/app/guarded.js',
+  'js/app/importExport.js',
   'js/app/keyboard.js',
   'js/app/materialScreen.js',
   'js/app/persistence.js',
