@@ -29,17 +29,10 @@ export function mountMaterial(el, h) {
     </div>`;
   }
 
-  function render() {
+  // Kopf, Firmenliste, Reiter, Suchfeld und Aktionen. Die Zeilen selbst baut renderList().
+  function renderFrame() {
     if (!last) return;
     const companies = companyList(last.cases, [...extra]);
-    const items = sel === ONLY_IN_PLAN ? onlyInPlanCases(last.cases) : casesOf(last.cases, sel);
-    const needle = q.trim().toLowerCase();
-    const matches = items.filter(c => !needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
-    const shown = matches.filter(c => caseKind(c) === tab).sort((a, b) => a.name.localeCompare(b.name, 'de'));
-    // Zähler links zählen alle Reiter – ist dieser Reiter leer, aber ein anderer nicht, sagen wir das.
-    const empty = matches.length
-      ? '<p class="hint">In diesem Reiter nichts – andere Reiter prüfen.</p>'
-      : '<p class="hint">Hier ist noch nichts – „+ Neues Case“ legt etwas an.</p>';
     const isFirm = sel !== STANDARD && sel !== ONLY_IN_PLAN;
     el.innerHTML = `
       <div class="mat-head"><h1>Material</h1><button data-act="back">Zurück</button></div>
@@ -61,15 +54,32 @@ export function mountMaterial(el, h) {
             <button data-act="new-dolly">+ Boxen-Dolly</button>
             ${isFirm ? '<span class="grow"></span><button data-act="rename-firm">Firma umbenennen</button><button data-act="delete-firm" class="danger">Firma löschen</button>' : ''}
           </div>`}
-          ${shown.map(rowHtml).join('') || empty}
+          <div class="mat-rows"></div>
         </section>
       </div>`;
   }
 
+  // Nur die Zeilen (bzw. der Leerhinweis): beim Tippen in der Suche bleibt der Rest samt
+  // Fokus, Cursor und Scrollposition unberührt.
+  function renderList() {
+    const rows = el.querySelector('.mat-rows');
+    if (!last || !rows) return;
+    const items = sel === ONLY_IN_PLAN ? onlyInPlanCases(last.cases) : casesOf(last.cases, sel);
+    const needle = q.trim().toLowerCase();
+    const matches = items.filter(c => !needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
+    const shown = matches.filter(c => caseKind(c) === tab).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    // Zähler links zählen alle Reiter – ist dieser Reiter leer, aber ein anderer nicht, sagen wir das.
+    const empty = matches.length
+      ? '<p class="hint">In diesem Reiter nichts – andere Reiter prüfen.</p>'
+      : '<p class="hint">Hier ist noch nichts – „+ Neues Case“ legt etwas an.</p>';
+    rows.innerHTML = shown.map(rowHtml).join('') || empty;
+  }
+
+  function render() { renderFrame(); renderList(); }
+
   el.addEventListener('input', e => {
     if (!e.target.matches('.mat-search')) return;
-    q = e.target.value; render();
-    const s = el.querySelector('.mat-search'); s.focus(); s.setSelectionRange(q.length, q.length);
+    q = e.target.value; renderList();
   });
   el.addEventListener('click', async e => {
     const firmBtn = e.target.closest('[data-firm]');

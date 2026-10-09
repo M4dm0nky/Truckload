@@ -24,6 +24,18 @@ function caseDetail(c) {
     : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${layerLabel(c)}` : ''}`;
 }
 
+// Was muss die Seitenleiste bei einer Zustandsänderung tun? 'full' = Inhalt neu bauen,
+// 'sel' = nur die Auswahl-Klasse umschalten, 'none' = nichts. In „Noch nicht geladen“ zählt nur
+// plan.unplaced, in „Alles Material“ auch plan.placements.
+export function libraryRenderMode(prev, next, view) {
+  if (!prev) return 'full';
+  const planChanged = view === 'all'
+    ? prev.plan.placements !== next.plan.placements || prev.plan.unplaced !== next.plan.unplaced
+    : prev.plan.unplaced !== next.plan.unplaced;
+  if (prev.cases !== next.cases || planChanged) return 'full';
+  return prev.selectedId !== next.selectedId ? 'sel' : 'none';
+}
+
 const VIEWS = [
   { id: 'unplaced', label: 'Noch nicht geladen' },
   { id: 'all', label: 'Alles Material' },
@@ -83,13 +95,24 @@ export function mountLibrary(el, h) {
       <button data-act="tray-remove" title="Entfernen">−</button></div>`;
   }
 
+  // Reiner Auswahlwechsel: nur die Klasse umschalten, kein Neuaufbau.
+  function markSelection() {
+    for (const row of content.querySelectorAll('.lib-item')) {
+      const id = row.dataset.placed ?? row.dataset.unplaced;
+      row.classList.toggle('sel', id === last.selectedId);
+    }
+  }
+
   function renderContent() {
     if (!last) return;
     const items = view === 'all'
       ? [...last.plan.placements.map(p => ({ ...p, placed: true })), ...last.plan.unplaced.map(u => ({ ...u, placed: false }))]
       : last.plan.unplaced.map(u => ({ ...u, placed: false }));
     const groups = new Map(); // caseId -> Einträge
-    for (const it of items) groups.set(it.caseId, [...(groups.get(it.caseId) ?? []), it]);
+    for (const it of items) {
+      const g = groups.get(it.caseId);
+      if (g) g.push(it); else groups.set(it.caseId, [it]);
+    }
     if (groups.size === 0) {
       content.innerHTML = view === 'all'
         ? '<p class="hint">Noch kein Material in diesem Load. „+ Material hinzufügen“ öffnet den Katalog.</p>'
@@ -127,11 +150,13 @@ export function mountLibrary(el, h) {
 
   return {
     update(state) {
-      const casesChanged = !last || last.cases !== state.cases;
-      const planChanged = !last || last.plan.unplaced !== state.plan.unplaced || last.plan.placements !== state.plan.placements;
-      const selChanged = !last || last.selectedId !== state.selectedId;
-      last = { cases: state.cases, plan: state.plan, selectedId: state.selectedId, byId: new Map(state.cases.map(c => [c.id, c])) };
-      if (casesChanged || planChanged || selChanged) renderContent();
+      const next = { cases: state.cases, plan: state.plan, selectedId: state.selectedId, byId: null };
+      const mode = libraryRenderMode(last, next, view);
+      if (mode === 'full') next.byId = new Map(state.cases.map(c => [c.id, c]));
+      else next.byId = last.byId;
+      last = next;
+      if (mode === 'full') renderContent();
+      else if (mode === 'sel') markSelection();
     },
   };
 }

@@ -226,6 +226,7 @@ kbd { font-size: 11px; color: var(--muted); border: 1px solid var(--line); borde
 .mat-firms { display: flex; flex-direction: column; gap: 4px; overflow: auto; }
 .mat-firms button { text-align: left; display: flex; justify-content: space-between; }
 .mat-firms button.on { border-color: var(--accent); }
+.mat-rows { display: contents; }
 .mat-list { overflow: auto; display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
 .mat-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .mat-row .lib-text { flex: 1; }

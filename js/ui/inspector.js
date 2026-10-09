@@ -45,6 +45,9 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         </div>
       </div>` : '';
   const dims = selected ? outerDims(selected.c) : null;
+  // Tippen-Knopf: Truthy-Check statt canTip(c) (js/model/truss.js) – bewusst, s. Kommentar an der
+  // canTip-Definition: checkCase/normalizeCase erzwingen an jeder Entstehungsstelle bereits einen
+  // echten Boolean, Truthy und canTip liefern hier also dasselbe.
   const sel = selected ? `
     <section class="insp-sel" data-id="${esc(selected.id)}">
       <h2>${swatch(selected.color)}${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
@@ -64,9 +67,6 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
         <button data-act="rotate">Drehen <kbd>R</kbd></button>
-        <!-- Truthy-Check statt canTip(c) (js/model/truss.js) — bewusst, s. Kommentar an der
-             canTip-Definition: checkCase/normalizeCase erzwingen an jeder Entstehungsstelle
-             bereits einen echten Boolean, Truthy und canTip liefern hier also dasselbe. -->
         <button data-act="tip" ${selected.c.tippable ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
         <button data-act="dup">Duplizieren <kbd>D</kbd></button>
         <button data-act="tray">In Ablage</button>
@@ -90,7 +90,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       </div>
     </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>');
 
-  el.innerHTML = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+  const html = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
     ${sel}
     <section class="insp-totals">
       <h3>Ladung – ${esc(truck.name)}</h3>
@@ -110,4 +110,38 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         || '<p class="ok">Alles in Ordnung.</p>'}
     </section>
     <p class="hint">Tasten: R drehen · T tippen · W Rollenrichtung · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
+  if (html === el.__lastHtml) return;
+  const focus = captureFocus(el);
+  el.innerHTML = html;
+  el.__lastHtml = html;
+  restoreFocus(el, focus);
+}
+
+// Fokus über den Neuaufbau retten: Das Element wird durch ein gleichartiges neues ersetzt, das
+// per name / data-layer / data-act(+data-face) wiedergefunden wird. Nur wenn der Fokus vorher
+// im Inspector lag – sonst wird nichts angefasst.
+function focusSelector(node) {
+  if (node.name) return `[name="${CSS.escape(node.name)}"]`;
+  if (node.dataset.layer) return `[data-layer="${CSS.escape(node.dataset.layer)}"]`;
+  if (node.dataset.act) {
+    const face = node.dataset.face ? `[data-face="${CSS.escape(node.dataset.face)}"]` : '';
+    return `[data-act="${CSS.escape(node.dataset.act)}"]${face}`;
+  }
+  return null;
+}
+function captureFocus(el) {
+  const node = document.activeElement;
+  if (!node || node === el || !el.contains(node)) return null;
+  const selector = focusSelector(node);
+  if (!selector) return null;
+  let start = null, end = null;
+  try { start = node.selectionStart; end = node.selectionEnd; } catch { /* Typ ohne Auswahl */ }
+  return { selector, start, end };
+}
+function restoreFocus(el, focus) {
+  if (!focus) return;
+  const node = el.querySelector(focus.selector);
+  if (!node || node.disabled) return;
+  node.focus({ preventScroll: true });
+  if (focus.start != null) { try { node.setSelectionRange(focus.start, focus.end); } catch { /* ignorieren */ } }
 }
