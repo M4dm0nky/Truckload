@@ -56,3 +56,10 @@ test('buildWagonCaseType: ohne Wagenbreite kein wagonW-Feld', () => {
   const c = buildWagonCaseType('id-x', '34er', 300, 29, 4);
   assert.ok(!('wagonW' in c.truss));
 });
+
+import { applyStockTarget } from '../js/model/material.js';
+test('Traversenwagen + Ablageziel: Firma landet am Case, checkCase akzeptiert es', () => {
+  const c = applyStockTarget(buildWagonCaseType('id-f', '34er', 300, 29, 4), { inStock: true, company: 'CAB' });
+  assert.equal(c.company, 'CAB');
+  assert.equal(checkCase(c), undefined);
+});

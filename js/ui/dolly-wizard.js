@@ -1,4 +1,5 @@
 import { esc } from './dom.js';
+import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.js';
 
 // opts: { baseCase, onNewDollyStack(caseType) }
@@ -28,10 +29,18 @@ export function parseDollyCount(raw, maxN) {
   return (n > 0 && Number.isInteger(n) && n <= maxN) ? n : null;
 }
 
+// Reiner Baustein: Bestand → Stack mit Firmen-ID; „nur Load“ → eigene UUID, onlyInPlan, keine
+// Firma, damit er keinen Bestands-Stack gleicher ID verdeckt oder überschreibt.
+export function buildDollyResult(base, n, wagen, target, uuid) {
+  if (target.inStock) return dollyStackCase(base, n, wagen, target.company);
+  return { ...dollyStackCase(base, n, wagen), id: uuid, company: undefined, onlyInPlan: true };
+}
+
 export function openDollyDialog(dlg, opts = {}) {
   if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
   const base = opts.baseCase;
   const maxN = maxDollyCount(base);
+  const stock = opts.stock ?? { mode: 'fixed', company: '' };
 
   dlg.innerHTML = `
     <form method="dialog" class="editor">
@@ -44,6 +53,7 @@ export function openDollyDialog(dlg, opts = {}) {
         <label>Wagen Tiefe (cm)<input type="number" name="ww" min="20" max="250" step="1" value="${dollyDepth(base.w)}" required></label>
       </div>
       <p class="hint wagen-hint"></p>
+      ${stockTargetHtml(stock)}
       <menu>
         <button value="cancel" formnovalidate>Abbrechen</button>
         <span class="grow"></span>
@@ -53,6 +63,7 @@ export function openDollyDialog(dlg, opts = {}) {
 
   const form = dlg.querySelector('form');
   const f = form.elements;
+  wireStockTarget(form);
 
   const validN = () => parseDollyCount(f.n.value, maxN);
   const wagenHint = dlg.querySelector('.wagen-hint');
@@ -77,7 +88,7 @@ export function openDollyDialog(dlg, opts = {}) {
       if (act !== 'save') return resolve(null);
       const n = validN();
       if (n === null || !wagenValid()) return resolve(null);
-      const caseType = dollyStackCase(base, n, wagen());
+      const caseType = buildDollyResult(base, n, wagen(), readStockTarget(form, stock), crypto.randomUUID());
       const saved = await opts.onNewDollyStack?.(caseType);
       if (!saved) return resolve(null);
       resolve({ newCase: saved, addition: { caseId: saved.id, n: 1 } });

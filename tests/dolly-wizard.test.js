@@ -35,3 +35,12 @@ test('parseDollyCount: 0, negativ, leer, nicht-numerisch oder über max → null
 test('parseDollyCount: Kommazahl (keine Ganzzahl) → null', () => {
   assert.equal(parseDollyCount('2.5', 10), null);
 });
+
+import { buildDollyResult } from '../js/ui/dolly-wizard.js';
+test('buildDollyResult: „nur Load“ bekommt eigene UUID und verdeckt keinen Bestands-Stack', () => {
+  const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
+  const inStock = buildDollyResult(base, 2, {}, { inStock: true, company: 'CAB' }, 'uuid-1');
+  const temp = buildDollyResult(base, 2, {}, { inStock: false, company: 'CAB' }, 'uuid-1');
+  assert.equal(inStock.id, 'dolly-cab-k2-2');
+  assert.equal(temp.id, 'uuid-1'); assert.equal(temp.onlyInPlan, true); assert.equal(temp.company, undefined);
+});
