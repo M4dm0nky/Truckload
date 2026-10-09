@@ -153,11 +153,13 @@ export function supportersOf(item, items) {
     && footprintOverlapArea(o.box, item.box) > 0);
 }
 
-export function stackAbove(rootId, items) {
+// `supporters` (optional): Map id → Auflage-Stücke, wie validatePlan sie einmal berechnet; ohne sie
+// rechnet stackAbove selbst per supportersOf().
+export function stackAbove(rootId, items, supporters) {
   const set = new Set([rootId]);
   for (const it of [...items].sort((a, b) => a.box.z0 - b.box.z0)) {
     if (set.has(it.id) || it.box.z0 <= EPS) continue;
-    const sup = supportersOf(it, items);
+    const sup = supporters ? (supporters.get(it.id) ?? []) : supportersOf(it, items);
     if (sup.length && sup.every(s => set.has(s.id))) set.add(it.id);
   }
   return [...set];

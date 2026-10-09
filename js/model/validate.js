@@ -10,12 +10,19 @@ function loadSequence(items) {
   return new Map(sorted.map((it, i) => [it.id, i + 1]));
 }
 
-function layerMap(items) {
+// `supporters`: Map id → Auflage-Stücke (nur für Stücke über dem Boden), von validatePlan einmal
+// berechnet. Jeder Auflager liegt mit z1 = z0 des Stücks UNTER diesem (z0 < z1 für Maße > 0) und
+// ist in der nach z0 sortierten Schleife normalerweise schon eingetragen. Erreichbar ist der
+// Rückfall `?? 1` nur mit einem Auflager, das im Toleranzfenster EPS liegt und höchstens EPS hoch
+// ist (z0 knapp über dem des Stücks, z1 trotzdem ≤ z0 + EPS): dann kommt er in der Schleife später.
+// Er wird durch den Test „layerMap: …“ in validate.test.js belegt und bleibt als Absicherung
+// bewusst stehen (eigene Entscheidung): ohne ihn wäre die Lage NaN.
+function layerMap(items, supporters) {
   const layers = new Map();
   const sorted = [...items].sort((a, b) => a.box.z0 - b.box.z0);
   for (const it of sorted) {
     if (it.box.z0 <= EPS) { layers.set(it.id, 1); continue; }
-    const sup = supportersOf(it, items);
+    const sup = supporters.get(it.id) ?? [];
     const maxSup = sup.length ? Math.max(...sup.map(s => layers.get(s.id) ?? 1)) : 0;
     layers.set(it.id, 1 + maxSup);
   }
@@ -52,11 +59,14 @@ export function validatePlan(plan, caseById, truck) {
     add(items[j].id, 'collision', `„${items[j].label}“ überschneidet sich mit „${items[i].label}“.`);
   }
 
+  // Die Auflage jedes Stücks über dem Boden einmal berechnen; Unterstützungs-, Last- und Lagen-
+  // prüfung teilen sich dieses Ergebnis.
   const supporters = new Map();
+  for (const it of items) if (it.box.z0 > EPS) supporters.set(it.id, supportersOf(it, items));
+
   for (const it of items) {
     if (it.box.z0 <= EPS) continue;
-    const sup = supportersOf(it, items);
-    supporters.set(it.id, sup);
+    const sup = supporters.get(it.id);
     const archSup = arches.filter(a => Math.abs(a.z1 - it.box.z0) <= EPS);
     const area = [...sup.map(s => s.box), ...archSup]
       .reduce((s, bx) => s + footprintOverlapArea(bx, it.box), 0);
@@ -84,7 +94,7 @@ export function validatePlan(plan, caseById, truck) {
       add(it.id, 'overload', `Auf „${it.label}“ lasten ${Math.round(load.get(it.id))} kg (max. ${max} kg).`);
   }
 
-  const layers = layerMap(items);
+  const layers = layerMap(items, supporters);
   for (const it of items) {
     const n = layers.get(it.id);
     if (n > 4) add(it.id, 'tooManyLayers', `„${it.label}“ steht in Lage ${n} – mehr als 4 Lagen sind nicht vorgesehen.`);
