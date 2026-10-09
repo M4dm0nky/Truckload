@@ -1,6 +1,6 @@
 import { esc, swatch, icon } from './dom.js';
-import { layersOf, outerDims } from '../model/geometry.js';
-import { TRUSS_PROFILES, isTruss } from '../model/truss.js';
+import { layersOf, outerDims, isTruss, canTip } from '../model/geometry.js';
+import { TRUSS_PROFILES } from '../model/truss.js';
 
 function trussProfileLabel(width) {
   const p = TRUSS_PROFILES.find(p => p.width === width);
@@ -21,7 +21,7 @@ function caseDetail(c) {
   const { l, w, h } = outerDims(c);
   return isTruss(c)
     ? trussLabel(c)
-    : `${l}×${w}×${h} cm · ${c.weight} kg${c.tippable ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${layerLabel(c)}` : ''}`;
+    : `${l}×${w}×${h} cm · ${c.weight} kg${canTip(c) ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${layerLabel(c)}` : ''}`;
 }
 
 // Was muss die Seitenleiste bei einer Zustandsänderung tun? 'full' = Inhalt neu bauen,

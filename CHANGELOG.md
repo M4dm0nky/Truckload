@@ -2,6 +2,15 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.7 – 2026-10-09
+
+Aufräumen Teil 3 – Struktur der Logik:
+
+- Intern aufgeräumt: Grenzwerte, Stückfelder und die Regel „darf getippt werden“ stehen jeweils
+  an genau einer Stelle; tote Programmteile sind entfernt. Am Verhalten ändert sich nichts –
+  alte Ladepläne packen nachweislich genauso wie vorher.
+- Sehr alte Ladepläne ohne gespeicherten Drehwinkel lassen sich wieder sichern und einlesen.
+
 ## V 0.13.6 – 2026-10-09
 
 Aufräumen Teil 2 – weniger unnötiges Neuzeichnen:

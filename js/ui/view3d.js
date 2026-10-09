@@ -1,7 +1,8 @@
-import { archBoxes, aboveLayer } from '../model/validate.js';
+import { archBoxes, isTruss } from '../model/geometry.js';
+import { aboveLayer } from '../model/items.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
-import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
+import { trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
 
@@ -514,7 +515,7 @@ export async function createView3d(container) {
     shape.boards.forEach((b, i) => {
       content.add(boxMesh(b, boardMat), edges(b, MAT_EDGE_ALU));
       // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in
-      // validate.js: `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie
+      // items.js: `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie
       // mehr greifen (docs/code-review-2026-09-21.md, „N5 — it.color ?? c.color ist
       // überflüssig und steht zweimal“).
       const dollyColor = it.color;

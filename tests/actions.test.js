@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from '../js/model/actions.js';
 import { validatePlan } from '../js/model/validate.js';
-import { wheelFace, DOOR_FACE, MAX_LABEL } from '../js/model/geometry.js';
+import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
+import { MAX_LABEL } from '../js/model/limits.js';
 import { rulesFor } from '../js/model/packRules.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
 
@@ -613,18 +614,39 @@ const unplacedMix = () => plan([], [
   { id: 'b0', caseId: 'big' },
 ]);
 
-test('setPackOrder: nur volume/count, sonst unverändert', () => {
-  const p0 = plan([]);
-  assert.equal(A.setPackOrder(p0, 'count').packOrder, 'count');
-  assert.equal(A.setPackOrder(p0, 'quatsch'), p0);
-});
-
 test('packAll: ohne packOrder (Altdaten) = Große zuerst', () => {
   assert.equal(firstAtWall(A.packAll(unplacedMix(), ctxBS())), 'big');
 });
 
 test('packAll: packOrder count = Stückzahl zuerst', () => {
   assert.equal(firstAtWall(A.packAll({ ...unplacedMix(), packOrder: 'count' }, ctxBS())), 'small');
+});
+
+// Regression (Aufräumen Phase C): Pläne im alten Schema (nur `packOrder`, keine `packRules`) packen
+// weiter exakt wie vor dem Entfernen der String-Pfade im Packer. Erwartung vor der Änderung
+// aufgenommen (Positionen je Stück-Id).
+test('packAll: Altplan mit packOrder volume/count (ohne packRules) packt unverändert', () => {
+  const tr = mkCase('tr', 300, 62, 115, { kind: 'truss', truss: { length: 300, width: 62, count: 1, standing: true, height: 115 } });
+  const big = mkCase('big', 120, 80, 80), small = mkCase('small', 60, 60, 60), mid = mkCase('mid', 80, 60, 60);
+  const ctx = { caseById: byId(big, small, tr, mid), truck: mkTruck(), newId: counter('n') };
+  const unplaced = [
+    ...Array.from({ length: 5 }, (_, i) => ({ id: `s${i}`, caseId: 'small' })),
+    ...Array.from({ length: 2 }, (_, i) => ({ id: `t${i}`, caseId: 'tr' })),
+    ...Array.from({ length: 3 }, (_, i) => ({ id: `m${i}`, caseId: 'mid' })),
+    { id: 'b0', caseId: 'big' },
+  ];
+  const at = pl => pl.placements.map(p => [p.id, p.x, p.y, p.z, p.rot].join(','));
+  const volume = [
+    'b0,0,0,0,0', 'm0,0,80,0,90', 'm1,0,80,60,90', 'm2,0,80,120,90', 's0,0,180,0,0', 's1,0,180,60,0',
+    's2,0,180,120,0', 's3,0,180,180,0', 's4,60,120,0,0', 't0,60,186,0,0', 't1,60,186,115,0',
+  ];
+  const count = [
+    's0,0,0,0,0', 's1,0,0,60,0', 's2,0,0,120,0', 's3,0,0,180,0', 's4,0,60,0,0', 'm0,0,120,0,0',
+    'm1,0,120,60,0', 'm2,0,120,120,0', 't0,0,186,0,0', 't1,0,186,115,0', 'b0,60,0,0,0',
+  ];
+  assert.deepEqual(at(A.packAll({ ...plan([], unplaced), packOrder: 'volume' }, ctx)), volume);
+  assert.deepEqual(at(A.packAll(plan([], unplaced), ctx)), volume, 'ohne packOrder = volume');
+  assert.deepEqual(at(A.packAll({ ...plan([], unplaced), packOrder: 'count' }, ctx)), count);
 });
 
 // Ruling F3: startX in packRest ist das größte x0 der vorhandenen BODENSTÜCKE (letzte Reihe),

@@ -1,6 +1,7 @@
 import { esc } from './dom.js';
 import { QUICK_LENGTHS } from './case-editor.js';
-import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons, isTruss } from '../model/truss.js';
+import { isTruss } from '../model/geometry.js';
+import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons } from '../model/truss.js';
 import { colorFor } from '../data/categories.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';

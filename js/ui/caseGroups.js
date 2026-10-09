@@ -1,7 +1,7 @@
 // Gemeinsame Filter- und Gruppierungslogik für die Case-Listen in der
 // Bibliothek (library.js) und im Lade-Wizard (load-wizard.js), damit sich
 // beide Listen gleich anfühlen und Such-/Gewerk-/Firmenfilter identisch wirken.
-import { isTruss } from '../model/truss.js';
+import { isTruss } from '../model/geometry.js';
 
 // Sentinel für den Firmen-Filter: „nur Cases OHNE company“ – der Vorgabewert im Lade-Wizard
 // (Nutzerwunsch 2026-10-06: firmen-gebrandete Cases wie „-CAB“ sollen nie von selbst

@@ -1,12 +1,4 @@
 export const EPS = 0.5;
-// Höchstlänge einer Beschriftung (Platzierung oder Ablage-Eintrag). Einzige Quelle für
-// `maxlength` in der Oberfläche, für die Kürzung beim Bilden/Ändern von Labels
-// (js/model/actions.js) UND für die Import-Prüfung (js/store/io.js, `labelOk`) – alle drei
-// müssen dieselbe Zahl benutzen, sonst erzeugt die App Beschriftungen, die ihr eigener Import
-// ablehnt. Liegt hier (nicht in io.js), weil `js/model/` unter `js/store/` in der Schichtfolge
-// liegt (docs/architektur.md) – io.js importiert bereits von hier, actions.js soll nicht
-// umgekehrt von io.js abhängen müssen.
-export const MAX_LABEL = 40;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
 // Die vier gültigen Rotationen. Stand vorher doppelt als Literal in packer.js und io.js
 // (docs/code-review-2026-09-21.md, „packer.js:7 / io.js:7“); beide benutzen jetzt diese Quelle.
@@ -40,12 +32,16 @@ export function pieceLayers(piece, c) {
   return allowed.length ? allowed : base;
 }
 
+export const isTruss = c => c.kind === 'truss';
+// Die eine Tipp-Regel: Traversenwagen werden nie getippt, auch wenn `tippable` (Altdaten) true wäre.
+export const canTip = c => c.tippable === true && !isTruss(c);
+
 // Erlaubte Ausrichtungen eines einzelnen STÜCKS. Ein nicht tippbarer Case-Typ lässt sich vom
 // Stück nicht überstimmen (immer nur „standing“). Ist der Case-Typ tippbar, entscheidet
 // piece.tipped: true zwingt aufs Tippen, false verbietet es, fehlt es (Altdaten), bleibt die
 // Wahl wie bisher beim Packer (ORIENTATIONS, aus denen chooseOrientation selbst wählt).
 export function pieceOrientations(piece, c) {
-  if (!c.tippable) return ['standing'];
+  if (!canTip(c)) return ['standing'];
   if (piece?.tipped === true) return ['tipLong', 'tipShort'];
   if (piece?.tipped === false) return ['standing'];
   return ORIENTATIONS;
@@ -192,13 +188,18 @@ export function cornerBoxes(faceBox, [a1, a2, n], size, inset, nRange) {
   return boxes;
 }
 
-export function faceSlab(b, face, t) {
-  switch (face) {
-    case '+x': return { ...b, x0: b.x1 - t };
-    case '-x': return { ...b, x1: b.x0 + t };
-    case '+y': return { ...b, y0: b.y1 - t };
-    case '-y': return { ...b, y1: b.y0 + t };
-    case 'bottom': return { ...b, z1: b.z0 + t };
-    default: throw new Error(`Unbekannte Seite: ${face}`);
-  }
+// Gültige Seitenwerte eines Radkastens (auch für die Import-Prüfung in js/store/io.js).
+export const ARCH_SIDES = ['left', 'right', 'both'];
+const [ARCH_LEFT, ARCH_RIGHT, ARCH_BOTH] = ARCH_SIDES;
+
+export function archBoxes(truck) {
+  return (truck.wheelArches ?? []).flatMap(a => {
+    const sides = a.side === ARCH_BOTH ? [ARCH_LEFT, ARCH_RIGHT] : [a.side];
+    return sides.map(s => ({
+      x0: a.x, x1: a.x + a.l,
+      y0: s === ARCH_LEFT ? 0 : truck.w - a.w,
+      y1: s === ARCH_LEFT ? a.w : truck.w,
+      z0: 0, z1: a.h,
+    }));
+  });
 }

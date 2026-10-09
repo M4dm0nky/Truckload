@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
-  snap, snapToEdges, stackAbove, faceSlab, DEFAULT_WHEEL_H, wheelHOf,
+  snap, snapToEdges, stackAbove, DEFAULT_WHEEL_H, wheelHOf,
   DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims,
   ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace, nextTip,
   pieceLayers, pieceOrientations } from '../js/model/geometry.js';
@@ -115,12 +115,6 @@ test('stackAbove: nur was allein auf dem Stapel steht', () => {
   ];
   assert.deepEqual(stackAbove('A', items).sort(), ['A', 'Bx', 'C']);
 });
-test('faceSlab', () => {
-  assert.deepEqual(faceSlab(B(0,0,0,100,60,50), '+x', 3), B(97,0,0,100,60,50));
-  assert.deepEqual(faceSlab(B(0,0,0,100,60,50), 'bottom', 3), B(0,0,0,100,60,3));
-  assert.deepEqual(faceSlab(B(0,0,0,100,60,50), '-y', 3), B(0,0,0,100,3,50));
-});
-
 test('boxOf einer Traverse ignoriert p.orientation: immer wie stehend', () => {
   const truss = { kind: 'truss', l: 300, w: 60, h: 80 };
   const standing = boxOf(truss, { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 });

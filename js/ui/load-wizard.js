@@ -1,9 +1,8 @@
 import { esc, swatch } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
-import { outerDims, layersOf } from '../model/geometry.js';
-import { isTruss, canTip } from '../model/truss.js';
+import { outerDims, layersOf, isTruss, canTip } from '../model/geometry.js';
 import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
-import { MAX_LABEL } from '../model/geometry.js';
+import { MAX_LABEL } from '../model/limits.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
 

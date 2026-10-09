@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePlan, archBoxes, buildItems, aboveLayer } from '../js/model/validate.js';
+import { validatePlan } from '../js/model/validate.js';
+import { archBoxes } from '../js/model/geometry.js';
+import { buildItems, aboveLayer } from '../js/model/items.js';
 import { mkCase, mkTruck, SPRINTER, P, plan, byId } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);

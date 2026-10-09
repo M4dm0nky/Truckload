@@ -1,7 +1,6 @@
 import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
-import { outerDims, wheelFace, layersOf, pieceLayers } from '../model/geometry.js';
-import { MAX_LABEL } from '../model/geometry.js';
-import { canTip } from '../model/truss.js';
+import { outerDims, wheelFace, layersOf, pieceLayers, canTip } from '../model/geometry.js';
+import { MAX_LABEL } from '../model/limits.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
 // (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die
@@ -45,9 +44,6 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         </div>
       </div>` : '';
   const dims = selected ? outerDims(selected.c) : null;
-  // Tippen-Knopf: Truthy-Check statt canTip(c) (js/model/truss.js) – bewusst, s. Kommentar an der
-  // canTip-Definition: checkCase/normalizeCase erzwingen an jeder Entstehungsstelle bereits einen
-  // echten Boolean, Truthy und canTip liefern hier also dasselbe.
   const sel = selected ? `
     <section class="insp-sel" data-id="${esc(selected.id)}">
       <h2>${swatch(selected.color)}${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
@@ -67,7 +63,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
         <button data-act="rotate">Drehen <kbd>R</kbd></button>
-        <button data-act="tip" ${selected.c.tippable ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
+        <button data-act="tip" ${canTip(selected.c) ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
         <button data-act="dup">Duplizieren <kbd>D</kbd></button>
         <button data-act="tray">In Ablage</button>
         <button data-act="edit-case">Case bearbeiten</button>

@@ -1,6 +1,6 @@
 import { APP_VERSION } from './version.js';
 import * as repo from './store/repo.js';
-import { createStore } from './state.js';
+import { createStore } from './store/state.js';
 import { validatePlan } from './model/validate.js';
 import { memoLast } from './model/memo.js';
 import * as A from './model/actions.js';
@@ -490,7 +490,7 @@ renderHooks.push((s, d) => {
   const selected = d.result.items.find(it => it.id === s.selectedId) ?? null;
   // Kein Placement gefunden, aber eine Auswahl gesetzt: das Stück liegt noch in der Ablage
   // (Task 2) – Label/Farbe mit demselben Rückfall auf Case-Name/Gewerkfarbe wie buildItems()
-  // (js/model/validate.js) es für Placements schon macht.
+  // (js/model/items.js) es für Placements schon macht.
   let selectedUnplaced = null;
   if (!selected && s.selectedId) {
     const u = s.plan.unplaced.find(x => x.id === s.selectedId);

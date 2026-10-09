@@ -1,5 +1,6 @@
 import { esc } from './dom.js';
-import { MAX_FIRM, firmNameError } from '../model/material.js';
+import { firmNameError } from '../model/material.js';
+import { MAX_FIRM } from '../model/limits.js';
 
 // Auswahlwert für „+ Neue Firma …“ – der Name kommt dann aus dem Feld `stockNewCompany`
 // (Nutzer-Feedback 2026-10-09: neue Firma direkt beim Ablegen im Wizard, ohne Umweg über die

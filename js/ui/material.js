@@ -1,7 +1,8 @@
 import { esc, swatch, icon } from './dom.js';
 import { CASE_TABS, caseKind } from './caseGroups.js';
 import { caseLine } from './load-wizard.js';
-import { companyList, casesOf, onlyInPlanCases, firmNameError, MAX_FIRM } from '../model/material.js';
+import { companyList, casesOf, onlyInPlanCases, firmNameError } from '../model/material.js';
+import { MAX_FIRM } from '../model/limits.js';
 import { showPrompt, showAlert } from './confirmDialog.js';
 
 // Materialverwaltung (V 0.12.5, Spec 2026-10-09-materialverwaltung-design.md): eigener Bildschirm,

@@ -1,71 +1,15 @@
-import { EPS, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, pieceLayers } from './geometry.js';
-import { isTruss } from './truss.js';
+import { EPS, archBoxes, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, pieceLayers, isTruss, canTip } from './geometry.js';
+import { buildItems } from './items.js';
 
-// SUPPORT_MIN/IMBALANCE_RATIO nur in dieser Datei benutzt — nicht mehr exportiert
-// (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
 const SUPPORT_MIN = 0.8;
 const IMBALANCE_RATIO = 0.1;
 
-// Gültige Seitenwerte eines Radkastens. Lag vorher in js/store/io.js (Speicherschicht), obwohl
-// nur die Modellschicht (hier, `archBoxes`) etwas mit der Seite anfängt — io.js benutzt die Liste
-// nur zur Import-Prüfung (docs/code-review-2026-09-21.md, „validate.js:9“).
-export const ARCH_SIDES = ['left', 'right', 'both'];
-const [ARCH_LEFT, ARCH_RIGHT, ARCH_BOTH] = ARCH_SIDES;
-
-// Obergrenzen für Case-Werte aus fremden Dateien. Großzügig, aber so, dass Unsinn
-// (ein 100 m langes, 100 t schweres Case) auffällt. Auch für die `max=`-Attribute
-// im Case-Editor benutzt, damit Oberfläche und Import nicht auseinanderlaufen.
-export const CASE_LIMITS = {
-  l: 2000, w: 2000, h: 2000, // cm
-  weight: 50000, // kg
-  wheelH: 200, // cm
-  maxTopLoad: 50000, // kg
-  stock: 9999, // Stück
-};
-
-export function archBoxes(truck) {
-  return (truck.wheelArches ?? []).flatMap(a => {
-    const sides = a.side === ARCH_BOTH ? [ARCH_LEFT, ARCH_RIGHT] : [a.side];
-    return sides.map(s => ({
-      x0: a.x, x1: a.x + a.l,
-      y0: s === ARCH_LEFT ? 0 : truck.w - a.w,
-      y1: s === ARCH_LEFT ? a.w : truck.w,
-      z0: 0, z1: a.h,
-    }));
-  });
-}
-
-// Lagen-Durchsicht: liegt dieses Stück oberhalb der gewählten Lage? `limit === null` heißt
-// „alle“ und damit nie. Das AUSGEWÄHLTE Stück ist immer ausgenommen — in 3D verschwände es
-// sonst ganz, während der Inspector es weiter als ausgewählt führt, in 2D verblasste sein
-// Auswahlrahmen auf 18 %. Eine Regel für beide Ansichten, damit sie nicht auseinanderlaufen
-// (die Lagen selbst kommen schon aus `layerMap` hier in dieser Datei).
-export const aboveLayer = (layers, id, limit, selectedId) =>
-  limit != null && id !== selectedId && (layers.get(id) ?? 1) > limit;
-
-export function buildItems(plan, caseById) {
-  const items = [], missing = [];
-  for (const p of plan.placements) {
-    const c = caseById.get(p.caseId);
-    if (!c) { missing.push(p); continue; }
-    items.push({
-      id: p.id, p, c, box: boxOf(c, p), label: p.label ?? c.name, color: p.color ?? c.color,
-      layers: p.layers, tipped: p.tipped,
-    });
-  }
-  return { items, missing };
-}
-
-// Nur in dieser Datei benutzt — nicht mehr exportiert (docs/code-review-2026-09-21.md,
-// „zehn zu weit offene Exporte“).
 function loadSequence(items) {
   const sorted = [...items].sort((a, b) =>
     a.box.x0 - b.box.x0 || a.box.y0 - b.box.y0 || a.box.z0 - b.box.z0);
   return new Map(sorted.map((it, i) => [it.id, i + 1]));
 }
 
-// Nur in dieser Datei benutzt — nicht mehr exportiert (docs/code-review-2026-09-21.md,
-// „zehn zu weit offene Exporte“).
 function layerMap(items) {
   const layers = new Map();
   const sorted = [...items].sort((a, b) => a.box.z0 - b.box.z0);
@@ -98,18 +42,8 @@ export function validatePlan(plan, caseById, truck) {
       || b.x1 > truck.l + EPS || b.y1 > truck.w + EPS || b.z1 > truck.h + EPS)
       add(it.id, 'outOfBounds', `„${n}“ ragt über den Laderaum hinaus.`);
     if (arches.some(a => overlaps(a, b))) add(it.id, 'arch', `„${n}“ kollidiert mit einem Radkasten.`);
-    // Ein Traversenwagen ist geometrisch immer „standing“ (effectiveDims erzwingt das),
-    // p.orientation kann bei importierten Plänen trotzdem andere Werte tragen — die
-    // notTippable-Prüfung darf sich davon nicht täuschen lassen.
-    //
-    // Bewusst NICHT über `canTip(it.c)` (js/model/truss.js) geschrieben: `canTip` ist
-    // `tippable === true && !isTruss(c)`, dessen Verneinung wäre `tippable !== true ||
-    // isTruss(c)` (ODER) — hier steht aber ein UND (`!isTruss(...) && ... && !tippable`), das
-    // Traversenwagen von dieser Prüfung komplett ausnimmt, egal welche Orientierung sie tragen.
-    // Mit `!canTip(it.c)` bekäme ein importierter Traversenwagen mit falscher `p.orientation`
-    // fälschlich eine notTippable-Meldung statt gar keine — genau der Fehler, den der Kommentar
-    // oben beschreibt (docs/code-review-2026-09-21.md, „geometry.js:35“, Vorschlag zu `canTip`).
-    if (!isTruss(it.c) && it.p.orientation !== 'standing' && !it.c.tippable)
+    // Traversenwagen sind geometrisch immer „standing“ (effectiveDims); ihre p.orientation bleibt unbeachtet.
+    if (!isTruss(it.c) && it.p.orientation !== 'standing' && !canTip(it.c))
       add(it.id, 'notTippable', `„${n}“ darf nicht getippt werden.`);
   }
 

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { CATEGORIES, colorFor } from '../js/data/categories.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { PRESET_TRUCKS, DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
-import { trussDims, isTruss } from '../js/model/truss.js';
+import { isTruss } from '../js/model/geometry.js';
+import { trussDims } from '../js/model/truss.js';
 
 const unique = xs => new Set(xs).size === xs.length;
 
