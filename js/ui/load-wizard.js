@@ -3,7 +3,7 @@ import { CATEGORIES, colorFor } from '../data/categories.js';
 import { layersOf, canTip } from '../model/geometry.js';
 import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
 import { caseLine } from './caseInfo.js';
-import { MAX_LABEL } from '../model/limits.js';
+import { MAX_LABEL, NAME_MAX } from '../model/limits.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
 import { searchInOptionsHtml, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
@@ -42,7 +42,7 @@ export async function openLoadWizard(dlg, opts = {}) {
       <h2>Load zusammenstellen</h2>
       <div class="wiz-progress">${steps.map(() => '<span class="wiz-dot"></span>').join('')}</div>
       <section class="wiz-step" data-step="load">
-        <label>Name<input name="loadName" required maxlength="80"></label>
+        <label>Name<input name="loadName" required maxlength="${NAME_MAX}"></label>
         <label>Fahrzeug<select name="truckId">${trucks.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
       </section>
       <section class="wiz-step" data-step="cases" hidden>

@@ -23,6 +23,15 @@ export const MAX_LABEL = 40;
 // Firmenname: ein längerer Name machte die eigene Sicherung unimportierbar
 // (parseBundle ist alles oder nichts).
 export const MAX_FIRM = 80;
+// Höchstlänge von Case-, Fahrzeug- und Ladeplan-Namen. Entspricht dem `maxlength` der Felder in
+// Case-Editor, Fahrzeug-Editor, Ladeplan-Assistent und Umbenennen-Dialog (alle 80; der Umbenennen-
+// Dialog hatte bis V 0.13.10 keine Grenze).
+export const NAME_MAX = 80;
+// Obergrenze für Platzierungskoordinaten x/y/z (cm, Betrag). Eigene Entscheidung: die größte
+// mitgelieferte Fahrzeugabmessung ist 1362 cm (Trailer-Länge), mal Sicherheitsfaktor 2. Fängt
+// Unsinn wie 1e9 ab, lässt aber jedes echte Fahrzeug (der Fahrzeug-Editor erlaubt höchstens 2000 cm)
+// mit Reserve zu.
+export const COORD_MAX = 2724;
 // Name eines Regelsets (Pack-Regeln). Zufällig ebenfalls 80, aber eine eigene Bedeutung.
 export const MAX_RULESET_NAME = 80;
 

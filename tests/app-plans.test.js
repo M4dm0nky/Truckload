@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { switchPlanState, deletePlanState } from '../js/app/plans.js';
+import { switchPlanState, deletePlanState, copyName } from '../js/app/plans.js';
 
 const P = (id, name = id) => ({ id, name });
 
@@ -51,4 +51,10 @@ test('deletePlanState: ein Duplikat des aktiven Plans in der Liste verschwindet 
   const next = deletePlanState(s);
   assert.equal(next.plan.id, 'b');
   assert.deepEqual(next.plans, []);
+});
+
+test('copyName: hängt „ (Kopie)“ an; ein langer Name wird so gekürzt, dass das Ergebnis in NAME_MAX passt', () => {
+  assert.equal(copyName('Tour'), 'Tour (Kopie)');
+  assert.equal(copyName('N'.repeat(80)).length, 80);
+  assert.ok(copyName('N'.repeat(80)).endsWith(' (Kopie)'));
 });

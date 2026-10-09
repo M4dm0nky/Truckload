@@ -5,6 +5,7 @@ import * as A from '../model/actions.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { ruleTargets } from '../model/packRules.js';
 import { openLoadWizard } from '../ui/load-wizard.js';
+import { NAME_MAX } from '../model/limits.js';
 import { guarded } from './guarded.js';
 import { piecesOf } from './core.js';
 
@@ -20,6 +21,11 @@ export function switchPlanState(s, plan) {
     selectedId: null,
   };
 }
+
+// Name der Kopie: „(Kopie)“ anhängen, den Originalnamen aber so weit kürzen, dass das Ergebnis in
+// NAME_MAX passt – sonst wäre die eigene Sicherung nicht importierbar.
+const COPY_SUFFIX = ' (Kopie)';
+export const copyName = name => `${name.slice(0, NAME_MAX - COPY_SUFFIX.length)}${COPY_SUFFIX}`;
 
 // Nach dem Löschen des aktiven Plans: ein übriger Plan wird aktiv, der letzte führt zurück zum
 // Startbildschirm (plan: null) statt automatisch einen leeren Plan anzulegen.
@@ -92,12 +98,12 @@ export function wirePlans(deps) {
   };
   $('#plan-new').onclick = () => runLoadWizard('new');
   $('#plan-rename').onclick = async () => {
-    const name = await showPrompt('Neuer Name:', store.get().plan.name);
+    const name = await showPrompt('Neuer Name:', store.get().plan.name, { maxlength: NAME_MAX });
     if (name?.trim()) edit(p => stamp({ ...p, name: name.trim() }));
   };
   $('#plan-dup').onclick = () => {
     const p = store.get().plan;
-    switchPlan(stamp({ ...structuredClone(p), id: uid(), name: `${p.name} (Kopie)` }));
+    switchPlan(stamp({ ...structuredClone(p), id: uid(), name: copyName(p.name) }));
   };
   $('#plan-del').onclick = async () => {
     const s = store.get();

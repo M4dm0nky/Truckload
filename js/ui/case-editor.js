@@ -1,7 +1,7 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims, isTruss } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims } from '../model/truss.js';
-import { CASE_LIMITS } from '../model/limits.js';
+import { CASE_LIMITS, NAME_MAX } from '../model/limits.js';
 import { QUICK_LENGTHS } from './caseInfo.js';
 import { showConfirm } from './confirmDialog.js';
 import { esc } from './dom.js';
@@ -47,7 +47,7 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
     <form method="dialog" class="editor">
       <h2>${isNew ? 'Neues Case' : 'Case bearbeiten'}</h2>
       ${fromTemplate ? '<p class="hint">Vorlage (Richtwert) – Speichern legt eine eigene Kopie an.</p>' : ''}
-      <label>Name<input name="name" required maxlength="80" placeholder="z. B. Kabelcase Strom 1"></label>
+      <label>Name<input name="name" required maxlength="${NAME_MAX}" placeholder="z. B. Kabelcase Strom 1"></label>
       <label>Inhalt<textarea name="content" rows="3" placeholder="z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m"></textarea></label>
       <div class="row">
         <label>Gewerk<select name="category">${CATEGORIES.map(k => `<option>${esc(k.name)}</option>`).join('')}</select></label>

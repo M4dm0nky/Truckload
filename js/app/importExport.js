@@ -8,6 +8,13 @@ const $ = sel => document.querySelector(sel);
 // Warntexte für Verweise, die auch NACH dem Zusammenführen ins Leere zeigen. parseBundle kennt nur
 // die Datei (plus Vorlagen), nicht die eigenen lokalen Cases/Fahrzeuge; deshalb filtert diese
 // Funktion `unknownRefs` gegen den lokalen Zustand nach dem Mischen (`{ cases, trucks }`).
+const LIMIT_FIELDS = { weight: ['Gewicht', 'kg'], maxTopLoad: ['Auflast', 'kg'], stock: ['Bestand', 'Stück'] };
+// Werte über CASE_LIMITS werden übernommen (nicht abgelehnt), aber genannt.
+export const limitWarnings = overLimit => overLimit.map(({ name, field, value, max }) => {
+  const [label, unit] = LIMIT_FIELDS[field];
+  return `Case „${name}“: ${label} ${value} ${unit} liegt über der Grenze von ${max} ${unit} – unverändert übernommen.`;
+});
+
 export function importWarnings(unknownRefs, { cases, trucks }) {
   const caseIds = new Set(cases.map(c => c.id));
   const truckIds = new Set(trucks.map(t => t.id));
@@ -110,7 +117,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
     // Reparaturen an Altwerten werden gemeldet, damit der Nutzer sieht, was angepasst wurde.
     const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
     // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
-    const warnings = importWarnings(bundle.unknownRefs, store.get());
+    const warnings = [...importWarnings(bundle.unknownRefs, store.get()), ...limitWarnings(bundle.overLimit)];
     const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';
     await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets (neuere lokale Stände behalten).${repairNote}${warnNote}`);
   };
