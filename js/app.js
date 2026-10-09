@@ -533,7 +533,11 @@ const ACTIONS = {
     edit((pl, c) => A.setWheelFace(pl, id, next, c));
   },
 };
+// Jede Nutzeraktion im Inspector erzwingt genau einen echten Neuaufbau (renderInspector überspringt
+// sonst identisches HTML, obwohl das Feld z. B. nach Trimmen/Leeren noch den getippten Text zeigt).
+const invalidateInspector = () => { $('#inspector').__lastHtml = null; };
 $('#inspector').addEventListener('click', e => {
+  invalidateInspector();
   const wheelBtn = e.target.closest('[data-act="wheel-face"]');
   if (wheelBtn) return withSel(id => edit((p, c) => A.setWheelFace(p, id, wheelBtn.dataset.face, c)));
   const act = e.target.closest('[data-act]')?.dataset.act;
@@ -542,6 +546,7 @@ $('#inspector').addEventListener('click', e => {
   if (target) select(target);
 });
 $('#inspector').addEventListener('change', e => {
+  invalidateInspector();
   const name = e.target.name;
   const sectionEl = e.target.closest('[data-id]');
   const id = sectionEl?.dataset.id;

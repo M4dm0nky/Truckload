@@ -150,10 +150,9 @@ export function mountLibrary(el, h) {
 
   return {
     update(state) {
-      const next = { cases: state.cases, plan: state.plan, selectedId: state.selectedId, byId: null };
-      const mode = libraryRenderMode(last, next, view);
-      if (mode === 'full') next.byId = new Map(state.cases.map(c => [c.id, c]));
-      else next.byId = last.byId;
+      const mode = libraryRenderMode(last, state, view);
+      const next = { cases: state.cases, plan: state.plan, selectedId: state.selectedId,
+        byId: mode === 'full' ? new Map(state.cases.map(c => [c.id, c])) : last.byId };
       last = next;
       if (mode === 'full') renderContent();
       else if (mode === 'sel') markSelection();
