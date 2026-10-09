@@ -16,6 +16,7 @@ const ASSETS = [
   'css/app.css',
   'css/print.css',
   'js/app.js',
+  'js/app/core.js',
   'js/version.js',
   'js/data/case-library.js',
   'js/data/categories.js',

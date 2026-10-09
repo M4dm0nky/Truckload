@@ -1,8 +1,8 @@
 import { APP_VERSION } from './version.js';
 import * as repo from './store/repo.js';
+import { stamp } from './store/repo.js';
 import { createStore } from './store/state.js';
-import { validatePlan } from './model/validate.js';
-import { memoLast } from './model/memo.js';
+import { ctxOf, deriveOf, allPlansOf, piecesOf, usage, truckUsage } from './app/core.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
 import { WHEEL_FACES, wheelFace } from './model/geometry.js';
@@ -16,7 +16,6 @@ import { openDollyDialog } from './ui/dolly-wizard.js';
 import { companyList, casesOf, deletionFor, isInStock, copyToCompany, applyStockTarget, renameCompany } from './model/material.js';
 import { openPackRules } from './ui/pack-rules.js';
 import { rulesFor, ruleTargets, describeRule, mixTopFor } from './model/packRules.js';
-import { stamp } from './store/repo.js';
 import { renderInspector } from './ui/inspector.js';
 import { openTruckEditor } from './ui/truck-editor.js';
 import { esc } from './ui/dom.js';
@@ -106,21 +105,11 @@ export const store = createStore({
   plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
-const caseByIdOf = memoLast(cases => new Map(cases.map(c => [c.id, c])));
 function ctx(s = store.get()) {
-  return {
-    caseById: caseByIdOf(s.cases),
-    truck: s.trucks.find(t => t.id === s.plan.truckId) ?? s.trucks.find(t => t.id === DEFAULT_TRUCK_ID),
-    newId: uid,
-  };
+  return ctxOf(s, uid);
 }
-// Der Store liefert bei jeder Änderung neue Objekte; Aufrufer verändern das Ergebnis nicht.
-const deriveOf = memoLast((plan, cases, trucks) => {
-  const c = ctx({ plan, cases, trucks });
-  return { ...c, result: validatePlan(plan, c.caseById, c.truck) };
-});
 export function derive(s = store.get()) {
-  return deriveOf(s.plan, s.cases, s.trucks);
+  return deriveOf(s, uid);
 }
 export function edit(fn, history = true) {
   store.update(s => {
@@ -269,9 +258,6 @@ window.addEventListener('pagehide', () => autosave.flush());
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') autosave.flush();
 });
-
-const usage = (s, caseId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan?.id)].filter(Boolean)
-  .filter(p => [...p.placements, ...p.unplaced].some(x => x.caseId === caseId)).length;
 
 // Bug F (nit, Fix-Runde 2): dieselbe Klasse wie die schon behobenen Löschzweige - eine
 // abgelehnte repo.saveCase() darf nicht unbehandelt bleiben, sonst zeigt die Oberfläche im
@@ -422,7 +408,7 @@ async function runLoadWizard(mode) {
     onNewDollyStack: saveCaseValue,
     // Bei mode 'new' gehört noch kein Plan zum Startbildschirm — Gruppenvorschläge aus dem
     // gerade geöffneten Load gehören nicht zu einem neuen Load (Befund F5).
-    groups: mode === 'add' && s.plan ? ruleTargets([...s.plan.placements, ...s.plan.unplaced], ctx().caseById).groups : [],
+    groups: mode === 'add' && s.plan ? ruleTargets(piecesOf(s.plan), ctx().caseById).groups : [],
   });
   if (!res) return;
   if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));
@@ -492,7 +478,7 @@ renderHooks.push((s, d) => {
     selectedUnplaced,
     result: d.result,
     truck: d.truck,
-    groups: ruleTargets([...s.plan.placements, ...s.plan.unplaced], d.caseById).groups,
+    groups: ruleTargets(piecesOf(s.plan), d.caseById).groups,
   });
 });
 const withSel = fn => { const id = store.get().selectedId; if (id) fn(id); };
@@ -621,7 +607,7 @@ $('#pack-rules').onclick = async () => {
   const res = await openPackRules($('#dlg-rules'), {
     rules: rulesFor(s.plan),
     mixTop: mixTopFor(s.plan),
-    targets: ruleTargets([...s.plan.placements, ...s.plan.unplaced], c.caseById),
+    targets: ruleTargets(piecesOf(s.plan), c.caseById),
     caseById: c.caseById,
     ruleSets: [...s.ruleSets].sort((a, b) => a.name.localeCompare(b.name, 'de')),
     onSaveRuleSet: saveRuleSetValue,
@@ -674,7 +660,7 @@ renderHooks.push(s => {
 // jedem Frame neu“). Ein aufgeklapptes <select> mit Tastaturauswahl schließt sich dabei und die
 // Auswahl geht verloren. Die erzeugte Markup-Zeichenkette wird jetzt gemerkt und nur bei
 // tatsächlicher Änderung zugewiesen.
-const allPlans = s => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
+const allPlans = s => allPlansOf(s)
   .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 let lastPlanHtml = null, lastTruckHtml = null;
 renderHooks.push((s, d) => {
@@ -766,8 +752,6 @@ $('#plan-del').onclick = async () => {
 
 // Fahrzeuge
 $('#truck-select').onchange = e => edit(p => stamp({ ...p, truckId: e.target.value }));
-const truckUsage = (s, truckId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
-  .filter(p => p.truckId === truckId).length;
 
 async function editTruck(truck) {
   const s0 = store.get();
@@ -898,14 +882,9 @@ function downloadJSON(filename, text) {
 
 $('#export').onclick = () => {
   const s = store.get();
-  const plans = [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)];
+  const plans = allPlansOf(s);
   downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans, ruleSets: s.ruleSets }));
 };
-
-// Inhalt der zuletzt heruntergeladenen Vor-Import-Sicherung, damit sie sich bei Bedarf
-// erneut anbieten lässt (Befund: downloadJSON weiß nicht, ob die Datei je ankommt, z. B.
-// wenn der Nutzer den Speicherdialog des Browsers abbricht).
-let lastPreImportBackup = null;
 
 // Vorher ein <label class="btn"> um das versteckte <input type="file">: ein <label> ist kein
 // fokussierbares Bedienelement, „Importieren“ war per Tastatur nicht erreichbar, während alle
@@ -930,8 +909,7 @@ $('#import').onchange = async e => {
   // s0.plan ist null, wenn der Import vom Startbildschirm ausgelöst wird (Task 1: kein Plan
   // automatisch angelegt) – dann gibt es keinen aktuellen Plan, der in die Sicherung
   // gehört, nur die schon gespeicherten.
-  const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: s0.plan ? [s0.plan, ...s0.plans] : s0.plans, ruleSets: s0.ruleSets });
-  lastPreImportBackup = { name: backupName, text: backupText };
+  const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0), ruleSets: s0.ruleSets });
   downloadJSON(backupName, backupText);
 
   // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen (Befund: „der
@@ -982,7 +960,7 @@ $('#import').onchange = async e => {
       `Import: Schreiben in die Datenbank fehlgeschlagen (${importErr?.message ?? 'unbekannter Fehler'}). ` +
       'Der Stand von vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
     );
-    if (retry) downloadJSON(lastPreImportBackup.name, lastPreImportBackup.text);
+    if (retry) downloadJSON(backupName, backupText);
     return;
   }
 
