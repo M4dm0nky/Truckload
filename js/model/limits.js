@@ -28,9 +28,9 @@ export const MAX_FIRM = 80;
 // Dialog hatte bis V 0.13.10 keine Grenze).
 export const NAME_MAX = 80;
 // Obergrenze für Platzierungskoordinaten x/y/z (cm, Betrag). Eigene Entscheidung: die größte
-// mitgelieferte Fahrzeugabmessung ist 1362 cm (Trailer-Länge), mal Sicherheitsfaktor 2. Fängt
-// Unsinn wie 1e9 ab, lässt aber jedes echte Fahrzeug (der Fahrzeug-Editor erlaubt höchstens 2000 cm)
-// mit Reserve zu.
+// mitgelieferte Fahrzeugabmessung ist 1362 cm (Trailer-Länge), mal Sicherheitsfaktor 2. Der Import
+// lehnt darüber NICHT ab, sondern verschiebt die Platzierung in die Ablage (parseBundle); die
+// Grenze wächst dort mit dem größten Fahrzeug der Datei (2 × Abmessung).
 export const COORD_MAX = 2724;
 // Name eines Regelsets (Pack-Regeln). Zufällig ebenfalls 80, aber eine eigene Bedeutung.
 export const MAX_RULESET_NAME = 80;

@@ -6,6 +6,7 @@ import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack } from '../model/audioDolly.js';
+import { pickPieceFields } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
 
 // FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
@@ -25,7 +26,6 @@ const updatedAtOk = x => x.updatedAt === undefined || typeof x.updatedAt === 'st
 
 const nameTooLong = (kind, x) => x.name.length > NAME_MAX
   && new Error(`${kind} „${x.name.slice(0, 20)}…“: Name zu lang (höchstens ${NAME_MAX} Zeichen).`);
-const coordOk = v => num(v) && Math.abs(v) <= COORD_MAX;
 
 // Gewicht, Auflast und Bestand über CASE_LIMITS lehnen den Import NICHT ab (eigene Entscheidung:
 // ein schweres Spezialcase soll die ganze Sicherung nicht unlesbar machen). Der Wert bleibt
@@ -138,7 +138,7 @@ export function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Deckschicht-Schalter.`);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
-    && coordOk(pl.x) && coordOk(pl.y) && coordOk(pl.z) && labelOk(pl) && colorOk(pl)
+    && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl)
     && pieceLayersOk(pl) && tippedOk(pl) && groupOk(pl);
   const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u)
     && pieceLayersOk(u) && tippedOk(u) && groupOk(u);
@@ -220,7 +220,25 @@ export function parseBundle(text) {
     planNameRepairs++;
     return name.slice(0, NAME_MAX);
   };
-  const plans = rawPlans.map(p => ({
+  // Platzierungen weit außerhalb jedes Fahrzeugs (Betrag > coordMax) kommen in die Ablage statt die
+  // Datei abzulehnen: die App begrenzt Koordinaten nirgends, ein solcher Stand ist für sie
+  // möglich (validatePlan warnt nur). coordMax = 2 × größte Fahrzeugabmessung (mitgelieferte und
+  // die der Datei), mindestens COORD_MAX – ein langes eigenes Fahrzeug löst die Reparatur also nie
+  // für legitime Positionen aus.
+  const coordMax = Math.max(COORD_MAX, 2 * Math.max(0, ...trucks.flatMap(t => [t.l, t.w, t.h]).filter(num)));
+  const farOut = x => x && typeof x === 'object' && ['x', 'y', 'z'].some(k => num(x[k]) && Math.abs(x[k]) > coordMax);
+  const planRepairs = [];
+  const movePlaced = p => {
+    if (!Array.isArray(p.placements) || !p.placements.some(farOut)) return p;
+    const out = p.placements.filter(farOut);
+    planRepairs.push(`Ladeplan „${p.name}“: ${out.length} ${out.length === 1 ? 'Platzierung' : 'Platzierungen'} außerhalb des Fahrzeugbereichs – in die Ablage verschoben.`);
+    return {
+      ...p,
+      placements: p.placements.filter(x => !farOut(x)),
+      unplaced: [...p.unplaced, ...out.map(x => ({ id: x.id, caseId: x.caseId, ...pickPieceFields(x) }))],
+    };
+  };
+  const plans = rawPlans.map(movePlaced).map(p => ({
     ...p,
     name: repairPlanName(p.name),
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
@@ -257,6 +275,7 @@ export function parseBundle(text) {
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
+  repairs.push(...planRepairs);
   if (planNameRepairs > 0)
     repairs.push(`${planNameRepairs} ${planNameRepairs === 1 ? 'Ladeplan' : 'Ladepläne'}: Name länger als ${NAME_MAX} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.`);
 

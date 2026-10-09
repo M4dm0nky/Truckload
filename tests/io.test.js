@@ -678,13 +678,28 @@ test('Planname über NAME_MAX aus einer älteren Sicherung wird gekürzt und gem
   assert.equal(res.repairs.length, 1);
   assert.match(res.repairs[0], /1 Ladeplan.*Name.*gekürzt/);
 });
-test('Platzierungskoordinaten: bis COORD_MAX gültig, knapp darüber abgelehnt (x, y, z, auch negativ)', () => {
-  for (const k of ['x', 'y', 'z']) {
-    assert.doesNotThrow(() => checkPlan(plan([P('a', 'own', 0, 0, 0, { [k]: COORD_MAX })])), k);
-    assert.doesNotThrow(() => checkPlan(plan([P('a', 'own', 0, 0, 0, { [k]: -COORD_MAX })])), k);
-    assert.throws(() => checkPlan(plan([P('a', 'own', 0, 0, 0, { [k]: COORD_MAX + 1 })])), /Platzierungen/, k);
-    assert.throws(() => checkPlan(plan([P('a', 'own', 0, 0, 0, { [k]: -COORD_MAX - 1 })])), /Platzierungen/, k);
+test('checkPlan prüft Koordinaten nur auf endliche Zahlen (Bereichsprüfung ist eine Reparatur in parseBundle)', () => {
+  assert.doesNotThrow(() => checkPlan(plan([P('a', 'own', COORD_MAX + 1, 0, 0)])));
+  assert.throws(() => checkPlan(plan([P('a', 'own', 'x', 0, 0)])), /Platzierungen/);
+  assert.throws(() => checkPlan(plan([P('a', 'own', Infinity, 0, 0)])), /Platzierungen/);
+});
+test('Platzierung außerhalb COORD_MAX (x, y, z, auch negativ) wandert in die Ablage und wird gemeldet', () => {
+  for (const k of ['x', 'y', 'z']) for (const sign of [1, -1]) {
+    const bad = P('bad', 'own', 0, 0, 0, { [k]: sign * (COORD_MAX + 1), label: 'L1', color: '#112233', layers: [1], tipped: true, group: 'G' });
+    const edge = P('edge', 'own', 0, 0, 0, { [k]: sign * COORD_MAX });
+    const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [plan([bad, edge])] }));
+    assert.deepEqual(res.plans[0].placements.map(x => x.id), ['edge'], `${k}${sign}`);
+    assert.deepEqual(res.plans[0].unplaced, [{ id: 'bad', caseId: 'own', label: 'L1', color: '#112233', layers: [1], tipped: true, group: 'G' }]);
+    assert.equal(res.repairs.length, 1);
+    assert.match(res.repairs[0], /Ladeplan „Test“.*1 Platzierung.*Ablage/);
   }
+});
+test('Eigenes 2000-cm-Fahrzeug: Platzierung bei x=3500 bleibt (Grenze wächst mit dem größten Fahrzeug der Datei, 2 × Maß)', () => {
+  const big = mkTruck({ id: 'big', l: 2000 });
+  const p = { ...plan([P('far', 'own', 3500, 0, 0)]), truckId: 'big' };
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [big], plans: [p] }));
+  assert.equal(res.plans[0].placements.length, 1);
+  assert.deepEqual(res.repairs, []);
 });
 test('Doppelte IDs innerhalb einer Liste lehnen die Datei ab (Cases, Fahrzeuge, Pläne, Regelsets)', () => {
   const rs = { id: 'r1', name: 'Set', rules: [] };
