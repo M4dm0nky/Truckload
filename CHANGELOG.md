@@ -8,8 +8,8 @@ Aufräumen Teil 4 – Struktur der Oberfläche:
 
 - Intern aufgeräumt: Oberflächen-Module hängen nicht mehr über Kreuz voneinander ab; die großen
   Dateien (Wizard, 3D) haben ihre reine Logik abgegeben (3D sieht nachweislich gleich aus).
-- **Fehler behoben:** Wurde ein Dialog (Case, Fahrzeug, Pack-Regeln, Wizard) geöffnet, während er
-  schon offen war, blieb ein Dialog stehen, dessen Speichern nichts mehr tat.
+- Absicherung: Würde ein Dialog (Case, Fahrzeug, Pack-Regeln, Wizard) erneut geöffnet, während er
+  noch offen ist, funktioniert der neue jetzt korrekt (über die Oberfläche heute nicht auslösbar).
 - Bedienung per Tastatur: sichtbarer Fokus-Rahmen, Beschriftungen für Symbolknöpfe (−, +, ×,
   Zoom) für Bildschirmleser.
 - Ein Case ganz ohne Farbe erscheint in der Ansicht „Gewerk“ jetzt grau statt schwarz.
