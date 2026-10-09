@@ -23,17 +23,17 @@
 // angehängt, wenn es darin noch gar nicht vorkommt – steht es schon irgendwo im
 // Namen (z. B. „D8+ 0,5t CAB x12“), bleibt der Name unverändert.
 //
-// Gewichte: 65 von 137 Einträgen tragen ein recherchiertes Schätzgewicht (Feld
-// `note`, Text „Gewicht geschätzt: …“); die beiden FR10-Zeilen behalten ihre
-// Originalwerte aus der Tabelle unverändert. Alle übrigen bleiben bei 0 – lieber
-// 0 kg als eine erfundene Zahl. Quellen und Rechenweg: docs/casemasse-gewichte.md.
+// Gewichte: 89 von 137 Einträgen tragen ein recherchiertes Schätzgewicht (Feld `note`, Text
+// „Gewicht geschätzt: …“); die beiden FR10-Zeilen behalten ihre Originalwerte aus der Tabelle
+// unverändert. Alle übrigen bleiben bei 0 – lieber 0 kg als eine erfundene Zahl. Quellen und
+// Rechenweg: docs/casemasse-gewichte.md.
 
 import { colorFor } from './categories.js';
 import { slug } from '../model/slug.js';
 
-// Rollen: Blue Wheel Ø 100 mm, 13 cm (Nutzerangabe 2026-09-28; bis V0.8.1 12 cm). Die Maße der
-// Liste sind inkl. Rollen gemessen (dimsInclWheels) – die Rollenhöhe ändert also nicht, wie viel
-// Platz ein Case im Truck belegt, nur wie hoch Rollen und Korpus gezeichnet werden.
+// Rollen: Blue Wheel Ø 100 mm, 13 cm (Nutzerangabe 2026-09-28). Die Maße der Liste sind inkl.
+// Rollen gemessen (dimsInclWheels) – die Rollenhöhe ändert also nicht, wie viel Platz ein Case im
+// Truck belegt, nur wie hoch Rollen und Korpus gezeichnet werden.
 const C = (name, category, l, w, h, company, content = '', opts = {}) => ({
   id: `lib-${slug(name)}`, builtin: true, source: 'liste', name, content, category,
   color: colorFor(category), l, w, h, weight: 0, tippable: true, stackable: true,
@@ -41,14 +41,12 @@ const C = (name, category, l, w, h, company, content = '', opts = {}) => ({
   company, ...opts,
 });
 
-// `legacy: true` (Aufräumen V0.8.1, Nutzerwunsch 2026-09-28): in keiner Auswahl mehr gelistet,
-// aber weiter vorhanden, damit alte Ladepläne ihre Stücke unverändert behalten. Betrifft die
-// leeren Pack-/Transflex-Cases (ersetzt durch „Packcase L×B×H“ in preset-cases.js) und die
-// Traversen aus der Liste (Traversenwagen baut man über „+ Traverse hinzufügen“) – seit
-// 2026-09-30 auch FD34 2m CUSTOMIZE und Slick: beides Traversen-Reste-Cases, aber Traversen
-// werden nicht über einen Case-Eintrag geführt, sondern über „+ Traverse hinzufügen“ neu
-// gebaut; dort hat jedes Profil (F34/F40) bereits ein echtes Gewicht (`wagonWeight()` in
-// js/model/truss.js, nie 0) – die beiden Einträge waren überflüssig.
+// `legacy: true` (Nutzerwunsch 2026-09-28): in keiner Auswahl mehr gelistet, aber weiter
+// vorhanden, damit alte Ladepläne ihre Stücke unverändert behalten. Betrifft die leeren Pack-/
+// Transflex-Cases (ersetzt durch „Packcase L×B×H“ in preset-cases.js) und die Traversen aus der
+// Liste (Traversenwagen baut man über „+ Traverse hinzufügen“). Seit 2026-09-30 auch FD34 2m
+// CUSTOMIZE und Slick: Traversen führt man nicht als Case-Eintrag, und dort hat jedes Profil
+// (F34/F40) bereits ein echtes Gewicht (`wagonWeight()` in js/model/truss.js, nie 0).
 export const CASE_LIBRARY = [
   // Lakabaum (flach/Transflex) -BBM: auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt
   // (überflüssig, siehe docs/casemasse-gewichte.md „Nachrecherche 2026-09-30“). Maße/Namen
@@ -93,11 +91,13 @@ export const CASE_LIBRARY = [
   C('Dimmerdolly (klein/Rack) -CAB', 'Strom', 206, 80, 162, 'CAB', '', { weight: 200, note: 'Gewicht geschätzt: leeres Gestell, Standard 75 kg/m³' }),
   C('Markus Tools -ROW only -CAB', 'Strom', 60, 60, 118, 'CAB', '', { weight: 30, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
   // MLVT (Moving-Light-Verteiler mit Patchfeld, Nutzerangabe 2026-09-30): kein Katalogprodukt
-  // auffindbar, Nutzer-Standardgewicht 75 kg für alle vier Varianten gleich.
+  // auffindbar, Nutzer-Standardgewicht 75 kg für alle vier Varianten (24ch, 48ch, 63A 19″, 63A
+  // Hotpatch ROW).
   C('MLVT 24ch -CAB', 'Strom', 75, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzerangabe, kein recherchiertes Produkt – Standardwert für MLVT-Verteiler' }),
   C('MLVT 48ch -CAB', 'Strom', 120, 60, 95, 'CAB', '', { weight: 75, note: 'Gewicht geschätzt: Nutzerangabe, kein recherchiertes Produkt – Standardwert für MLVT-Verteiler' }),
-  // Kleine Cases unter ca. 45 cm Höhe haben keine Rollen (Nutzerangabe 2026-09-28): MLVT 63A 19″,
-  // ChamSys-Pulte, ZR44, Look Viper NT, SF Data II, SF TourHazer II – Maß unverändert.
+  // Cases unter ca. 45 cm Höhe haben keine Rollen (Nutzerangabe 2026-09-28; `wheels: false`, Maß
+  // unverändert): MLVT 63A 19″, ChamSys-Pulte, ZR44, Look Viper NT, SF Data II, SF TourHazer II,
+  // Atomic 3000 x4 no wheels und die 19″-Racks von 1 bis 6 HE.
   C('MLVT 63A 19" -CAB', 'Strom', 65, 55, 33, 'CAB', '', { wheels: false, wheelH: 0, weight: 75, note: 'Gewicht geschätzt: Nutzerangabe, kein recherchiertes Produkt – Standardwert für MLVT-Verteiler' }),
   C('Multicore -CAB', 'Strom', 80, 61, 60, 'CAB'),
   C('Multicore LK24 -CAB', 'Strom', 80, 61, 60, 'CAB'),
@@ -191,19 +191,16 @@ export const CASE_LIBRARY = [
   C('D8+ 1t PlusLite -cab', 'Rigging', 69, 60, 71, 'CAB', 'Motor', { weight: 45, note: 'Gewicht geschätzt: 1 × D8+ 1t à 31 kg + Case' }),
   // Auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt (überflüssig).
   C('63A VT Haube -BBM', 'Ton', 60, 60, 73, 'BBM', '', { legacy: true }),
-  // Aufschlag für Deckel + Boden aus den drei gemessenen Racks abgeleitet
-  // (h_gemessen − HE × 4,45 cm): 2 HE → 15 − 8,9 = 6,1 cm; 3 HE → 19 − 13,35 =
-  // 5,65 cm; 6 HE → 32 − 26,7 = 5,3 cm. Mittelwert ≈ 5,68 cm — damit für die
-  // Racks ohne gemessene Höhe gerechnet: h = HE × 4,45 + 5,68.
+  // Die folgenden 19″-Racks von 1 bis 6 HE rechnen ihre Höhe aus der Höheneinheit, wo die Tabelle
+  // sie nicht nennt: Aufschlag für Deckel + Boden aus den drei gemessenen Racks abgeleitet
+  // (h_gemessen − HE × 4,45 cm): 2 HE → 15 − 8,9 = 6,1 cm; 3 HE → 19 − 13,35 = 5,65 cm;
+  // 6 HE → 32 − 26,7 = 5,3 cm. Mittelwert ≈ 5,68 cm, also h = HE × 4,45 + 5,68.
   //
-  // Die kleinen 19″-Racks (1–6 HE) haben keine Rollen: Nur der 16-HE-Eintrag
-  // heißt „on wheels“ – der Zusatz steht dort genau deshalb, weil er auf die
-  // anderen nicht zutrifft. Die gemessenen Werte bestätigen das: Ein 2-HE-Case
-  // mit 15 cm Gesamthöhe hätte bei 12 cm Rollenhöhe nur noch 3 cm Korpus, ein
-  // 3-HE-Case mit 19 cm nur noch 7 cm – offensichtlich Racks ohne Rollen, die
-  // in ein größeres Case oder ins Regal wandern. Deshalb hier wheels: false,
-  // wheelH: 0 (keine Rollenhöhe abzuziehen); das erlaubt auch für 1 HE den
-  // sauber abgeleiteten Wert statt einer künstlichen Mindesthöhe.
+  // Diese kleinen Racks haben keine Rollen (nur der 16-HE-Eintrag heißt „on wheels“, weil der
+  // Zusatz auf die anderen nicht zutrifft). Die gemessenen Werte bestätigen das: ein 2-HE-Case mit
+  // 15 cm Gesamthöhe hätte bei 13 cm Rollenhöhe nur 2 cm Korpus, ein 3-HE-Case mit 19 cm nur 6 cm.
+  // Daher `wheels: false, wheelH: 0`; das erlaubt auch für 1 HE den abgeleiteten Wert statt einer
+  // künstlichen Mindesthöhe.
   C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 76.9, 'CAB'),  // 16 HE: h = 16 * 4,45 + 5,68, l/w geschätzt 60 x 60 – hat Rollen (Name)
   C('19" 1HE -CAB', 'Ton', 60, 60, 10.1, 'CAB', '', { wheels: false, wheelH: 0 }),  // 1 HE: h = 1 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
   C('19" 2HE -CAB', 'Ton', 60, 60, 15, 'CAB', '', { wheels: false, wheelH: 0 }),  // 2 HE: h = 15 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen

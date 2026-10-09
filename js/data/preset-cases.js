@@ -9,10 +9,10 @@ const P = (id, name, category, l, w, h, weight, opts = {}) => ({
 });
 // Pre-Rig-Traversen (H.O.F. MLT/Prolyte S36PR): EIN Stück ist EINE stehende Traverse auf Beinen/
 // Rollwagen (standing:true, count immer 1). Klassische F34/F40-Wagen mit mehreren Stücken gibt es
-// nicht mehr als Vorlage (Wagengrößen sind firmenabhängig, V 0.12.3) – sie entstehen über den
-// Traversen-Dialog. Standfläche ist STAND_FOOTPRINT_W (62 cm - 4 Stück nebeneinander im 40-Tonner), Höhe je
-// Modell (standH). BASE_KG ist ein Richtwert für Grundplatte+Beine+Rollen (kein Herstellerwert,
-// s. docs/mlt-truss-gewichte.md) – das Stückgewicht selbst ist recherchiert.
+// nicht als Vorlage (Wagengrößen sind firmenabhängig) – sie entstehen über den Traversen-Dialog.
+// Standfläche ist STAND_FOOTPRINT_W (62 cm – 4 Stück nebeneinander im 40-Tonner), Höhe je Modell
+// (standH). BASE_KG ist ein Richtwert für Grundplatte+Beine+Rollen (kein Herstellerwert, s.
+// docs/mlt-truss-gewichte.md) – das Stückgewicht selbst ist recherchiert.
 const BASE_KG = 25;
 // frame: 'closed' = geschlossener Alu-Rahmen (ab MLT TWO, Prolyte S36PR); ohne = offener Rahmen
 // mit zwei Längsholmen (MLT ONE), s. standingTrussShape() in truss.js.
@@ -26,12 +26,12 @@ const MLT = (id, name, length, pieceWeight, standH, frame) => {
 
 // Truckmaß (EU): Breiten 60/80/120 cm, gehen in 240 cm Innenbreite auf (Megacase, Gäng-Case).
 // Leere Standard-Pack-/Kabelcases: je Maß genau eines, neutral benannt (Nutzerwunsch 2026-09-28).
-// Gewicht seit V 0.8.6 als Standardwert des Nutzers (2026-09-30): das Standard-Packcase 120×60×60
-// ohne bzw. 120×60×80 mit Rollen wiegt 100 kg, alle anderen nach Volumen ab- bzw. aufgestuft
+// Gewicht als Standardwert des Nutzers (2026-09-30): das Standard-Packcase 120×60×60 ohne bzw.
+// 120×60×80 mit Rollen wiegt 100 kg, alle anderen nach Volumen ab- bzw. aufgestuft
 // (docs/casemasse-gewichte.md). Ein anderer Standard: PACK_REF_KG ändern (für eine andere
-// Referenzgröße zusätzlich PACK_REF_VOLUME). Ersetzt die früheren „Kabelcase/Packcase
-// Truckmaß“-Vorlagen und die leeren Pack-/Transflex-Cases aus der Liste – die bleiben unten bzw. in
-// case-library.js als `legacy` für alte Ladepläne erhalten.
+// Referenzgröße zusätzlich PACK_REF_VOLUME). Die früheren „Kabelcase/Packcase Truckmaß“-Vorlagen
+// und die leeren Pack-/Transflex-Cases aus der Liste bleiben unten bzw. in case-library.js als
+// `legacy` für alte Ladepläne erhalten.
 const PACK_REF_VOLUME = 120 * 60 * 80;
 const PACK_REF_KG = 100;
 const PACK = (l, w, h) => P(`packcase-${l}x${w}x${h}`, `Packcase ${l}×${w}×${h}`, 'Sonstiges', l, w, h,
@@ -95,11 +95,10 @@ export const PRESET_CASES = [
   // Verleihfirma des Nutzers, nicht für den Geräte-Hersteller). `tippable: false` und
   // `wheelH: 0` bei den 13 Einzelboxen unten – Array-Tops werden geflogen/gestapelt, nie
   // getippt, und tragen als Einzelbox selbst keine Rollen; Subs sind schon in ihrer liegenden
-  // Transportlage angelegt (s. u.), kein weiteres Tippen nötig. Seit V 0.11.0 bekommt jede der
-  // 13 über `dollyPrompt: true` beim Einladen immer einen Dolly mit Schwerlastrollen
-  // untergelegt (js/ui/dolly-wizard.js, js/model/audioDolly.js). Die 8 früher festen
-  // „…4er/6er (auf Dolly)“-Vorlagen aus V 0.10.0 sind seit V 0.12.1 ganz entfernt
-  // (Nutzerwunsch) – Dolly-Stacks entstehen nur noch über den Dolly-Dialog.
+  // Transportlage angelegt (s. u.), kein weiteres Tippen nötig. Jede der 13 bekommt über
+  // `dollyPrompt: true` beim Einladen einen Dolly mit Schwerlastrollen untergelegt
+  // (js/ui/dolly-wizard.js, js/model/audioDolly.js); Dolly-Stacks entstehen nur über den
+  // Dolly-Dialog (Nutzerwunsch).
 
   // Array-Tops, stehend wie geflogen (0°-Splay).
   P('k2', 'L-Acoustics K2', 'Ton', 138, 40, 35, 56,
@@ -122,8 +121,7 @@ export const PRESET_CASES = [
   // Subwoofer: liegend (flach) transportiert (Nutzerangabe). Maße liegend: die kleinste
   // recherchierte Achse wird zur Höhe, die beiden größeren zur Grundfläche – eine Umrechnung
   // der recherchierten Maße, keine neue Zahl. Keine feste Herstellerangabe zur Stückzahl auf
-  // dem Dolly; seit V 0.11.0 fragt der Dolly-Dialog (`dollyPrompt: true`) genau das beim
-  // Einladen ab, statt eine feste Stückzahl vorzugeben.
+  // dem Dolly; der Dolly-Dialog (`dollyPrompt: true`) fragt sie beim Einladen ab.
   P('ks28', 'L-Acoustics KS28', 'Ton', 134, 72, 55, 79,
     { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', speakerType: 'sub', cabinetColor: LA_FINISH, note: 'l-acoustics.com/products/ks28, liegend umgerechnet' }),
   P('v-sub', 'd&b V-SUB', 'Ton', 73, 70, 61, 64,
@@ -136,14 +134,14 @@ export const PRESET_CASES = [
     { tippable: false, wheelH: 0, dollyPrompt: true, kind: 'speaker', speakerType: 'sub', cabinetColor: SPEAKER_BLACK, note: 'LS18 Datasheet (nexo-sa.com), liegend umgerechnet' }),
 
   // Legacy – nicht mehr in der Bibliothek gelistet, bleiben aber für alte Ladepläne bestehen.
-  // Seit V0.8.1 durch die Packcases oben ersetzt (Maße und Gewichte unverändert, damit bestehende
-  // Loads nicht unbemerkt anders aussehen oder wiegen):
+  // Durch die Packcases oben ersetzt (Maße und Gewichte unverändert, damit bestehende Loads nicht
+  // unbemerkt anders aussehen oder wiegen):
   P('kabel-120x60x60', 'Kabelcase Truckmaß 120×60×60', 'Strom', 120, 60, 60, 110, { legacy: true }),
   P('kabel-120x60x80', 'Kabelcase Truckmaß 120×60×80', 'Strom', 120, 60, 80, 140, { legacy: true }),
   P('pack-80x60x60', 'Packcase Truckmaß 80×60×60', 'Sonstiges', 80, 60, 60, 70, { legacy: true }),
   P('pack-60x60x60', 'Packcase Truckmaß 60×60×60', 'Sonstiges', 60, 60, 60, 50, { legacy: true }),
   P('pack-120x80x80', 'Packcase Truckmaß 120×80×80', 'Sonstiges', 120, 80, 80, 150, { legacy: true }),
-  // Seit V0.2:
+  // Ältere Traversen-Vorlagen, ebenfalls legacy:
   P('truss-29-3m', 'Traverse 29er Dreipunkt 3 m', 'Rigging', 300, 29, 29, 15, { tippable: false, wheelH: 0, legacy: true }),
   P('truss-dolly', 'Traversen-Dolly 29er (8× 2 m)', 'Rigging', 200, 60, 70, 180, { tippable: false, legacy: true }),
 ];
