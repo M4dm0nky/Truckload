@@ -86,7 +86,8 @@ function capFits(s, it, c, o, truck) {
 // Sortenrein packen: ein Block ist ein Case-Typ (caseId) PLUS Gruppe (Stück-Feld `group`, Spec
 // 2026-09-30) – so lassen sich z. B. 20 von 30 gleichen Cases als „Motoren“ an die Tür schieben.
 // `rules` ist die Rangliste des Loads (js/model/packRules.js).
-export function orderSorts(itemList, rules = legacyRules('volume')) {
+export function orderSorts(itemList, rules) {
+  rules ??= legacyRules('volume');
   const groups = new Map();
   for (const it of itemList) {
     const key = `${it.caseId}\u0000${it.group ?? ''}`;
@@ -102,7 +103,8 @@ export function orderSorts(itemList, rules = legacyRules('volume')) {
 // auffüllen (Nutzerregel „Letzter Stapel darf aufgefüllt werden“) – mit denselben Grenzen wie
 // immer (gleiche Grundfläche, Lagen je Stück, höchstens 4 Lagen, nichts Schweres auf Leichtes,
 // maxTopLoad). Jeder Stapel trägt `sort` = Index der Sorte, die ihn begonnen hat.
-export function buildStacks(itemList, truck, { rules = legacyRules('volume'), mixTop = false } = {}) {
+export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
+  rules ??= legacyRules('volume');
   const stacks = [], unplaced = [];
   const maxLayer = (it, c) => Math.max(...pieceLayers(it, c));
   const minLayer = (it, c) => Math.min(...pieceLayers(it, c));

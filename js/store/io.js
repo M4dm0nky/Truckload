@@ -205,7 +205,7 @@ export function parseBundle(text) {
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
     // placementOk sie annimmt und der eigene Export wieder importierbar ist.
     placements: Array.isArray(p.placements)
-      ? p.placements.map(x => repairPiece(x?.rot === undefined && typeof x === 'object' && x ? { ...x, rot: 0 } : x))
+      ? p.placements.map(x => repairPiece(x && typeof x === 'object' && x.rot === undefined ? { ...x, rot: 0 } : x))
       : p.placements,
     unplaced: p.unplaced.map(repairPiece),
   }));
