@@ -16,11 +16,12 @@ export const stepFor = e => (e.shiftKey ? 1 : 5);
 export function keyFor(e, { dialogOpen = false } = {}) {
   if (dialogOpen || e.target?.closest?.('input, textarea, select')) return null;
   const mod = e.metaKey || e.ctrlKey;
-  if (mod && e.key.toLowerCase() === 'z') return e.shiftKey ? 'redo' : 'undo';
-  if (e.key === 'Escape') return 'deselect';
-  const act = LETTER_ACTIONS[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+  const key = e.key ?? '';
+  if (mod && key.toLowerCase() === 'z') return e.shiftKey ? 'redo' : 'undo';
+  if (key === 'Escape') return 'deselect';
+  const act = LETTER_ACTIONS[key.length === 1 ? key.toLowerCase() : key];
   if (act && !mod) return act;
-  return ARROWS[e.key]?.[0] ?? null;
+  return ARROWS[key]?.[0] ?? null;
 }
 
 // `actions`: undo(), redo(), deselect(), je Auswahl-Aktion (rotate, tip, 'wheel-face', dup, delete)

@@ -143,7 +143,9 @@ test('attachKeyboard: offener Dialog -> ignoriert', () => {
 });
 test('attachKeyboard: Ziel document wirft nicht', () => {
   const { press, calls } = setup();
-  assert.doesNotThrow(() => press('r', { target: document_like() }));
+  assert.doesNotThrow(() => press('r', { target: {} }));
   assert.deepEqual(calls, [['rotate', 'a']]);
 });
-function document_like() { return {}; }
+test('keyFor: Ereignis ohne key wirft nicht', () => {
+  assert.equal(keyFor({ target: {} }), null);
+});
