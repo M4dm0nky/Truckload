@@ -24,6 +24,10 @@ export const RULE_KINDS = [
 
 export const volumeOf = c => { const { l, w, h } = outerDims(c); return l * w * h; };
 
+// Die bis V 0.8.4 festen Pack-Reihenfolgen ('volume'/'count'). Seit V 0.8.5 nur noch für Altdaten;
+// neue Loads tragen `packRules`.
+export const PACK_ORDERS = ['volume', 'count'];
+
 // Die bis V 0.8.4 festen Reihenfolgen, als Regeln ausgedrückt – liefert exakt dieselbe Ordnung wie
 // die früheren Komparatoren in orderSorts (Regressionstest in tests/packer.test.js).
 export function legacyRules(order) {

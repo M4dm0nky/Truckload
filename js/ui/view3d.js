@@ -1,4 +1,5 @@
-import { archBoxes, aboveLayer } from '../model/validate.js';
+import { archBoxes } from '../model/geometry.js';
+import { aboveLayer } from '../model/items.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
 import { isTruss, trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';

@@ -1,5 +1,5 @@
 import { colorFor } from '../data/categories.js';
-import { CASE_LIMITS } from './validate.js';
+import { CASE_LIMITS } from './limits.js';
 import { slug } from '../data/case-library.js';
 
 // Recherche: Carvin DB521018 (81×75×20 cm, 18,3 kg, 4× 127-mm-Lenkrollen), SYNQ SQ-218 Dolly
@@ -34,7 +34,7 @@ export function dollyStackId(baseCase, n, company = '') {
 }
 
 // Größte Stückzahl, bei der sowohl Höhe als auch Gewicht der Dolly-Stack-Vorlage innerhalb der
-// CASE_LIMITS bleiben (js/model/validate.js) – für das „max“-Attribut im Dolly-Dialog, nach
+// CASE_LIMITS bleiben (js/model/limits.js) – für das „max“-Attribut im Dolly-Dialog, nach
 // demselben Muster wie case-editor.js es für seine eigenen Zahlenfelder schon tut (Befund
 // Final-Review Important #3: ohne Grenze hätte ein Tippfehler ein Case erzeugt, das beim
 // nächsten Export/Import an checkCase() scheitert, ohne dass der Nutzer das beim Anlegen merkt).

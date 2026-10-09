@@ -62,8 +62,6 @@ export const isTruss = c => c.kind === 'truss';
 export const canTip = c => c.tippable === true && !isTruss(c);
 
 export const DOLLY_L = 60;         // Länge eines Rollwagens (cm)
-// Nur in dieser Datei benutzt — nicht mehr exportiert (docs/code-review-2026-09-21.md,
-// „zehn zu weit offene Exporte“).
 const DOLLY_WHEEL_D = 10;   // Rollen-Durchmesser am Wagen (cm)
 export const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (F34: 50 mm Ø / 29 cm)
 export const DIAG_R_RATIO = 0.035; // Diagonalen-Radius (F34: 20 mm Ø / 29 cm)

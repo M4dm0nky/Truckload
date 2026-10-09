@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, checkCase, mergeById, backupFileName, preImportBackupFileName, CASE_LIMITS, normalizeCase, MAX_LABEL } from '../js/store/io.js';
+import { exportBundle, parseBundle, checkCase, mergeById, backupFileName, preImportBackupFileName, normalizeCase } from '../js/store/io.js';
+import { CASE_LIMITS, MAX_LABEL } from '../js/model/limits.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';

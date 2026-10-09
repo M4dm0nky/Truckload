@@ -1,12 +1,4 @@
 export const EPS = 0.5;
-// Höchstlänge einer Beschriftung (Platzierung oder Ablage-Eintrag). Einzige Quelle für
-// `maxlength` in der Oberfläche, für die Kürzung beim Bilden/Ändern von Labels
-// (js/model/actions.js) UND für die Import-Prüfung (js/store/io.js, `labelOk`) – alle drei
-// müssen dieselbe Zahl benutzen, sonst erzeugt die App Beschriftungen, die ihr eigener Import
-// ablehnt. Liegt hier (nicht in io.js), weil `js/model/` unter `js/store/` in der Schichtfolge
-// liegt (docs/architektur.md) – io.js importiert bereits von hier, actions.js soll nicht
-// umgekehrt von io.js abhängen müssen.
-export const MAX_LABEL = 40;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
 // Die vier gültigen Rotationen. Stand vorher doppelt als Literal in packer.js und io.js
 // (docs/code-review-2026-09-21.md, „packer.js:7 / io.js:7“); beide benutzen jetzt diese Quelle.
@@ -201,4 +193,21 @@ export function faceSlab(b, face, t) {
     case 'bottom': return { ...b, z1: b.z0 + t };
     default: throw new Error(`Unbekannte Seite: ${face}`);
   }
+}
+
+// Gültige Seitenwerte eines Radkastens; nur die Modellschicht (`archBoxes`) fängt etwas damit an,
+// js/store/io.js benutzt die Liste zur Import-Prüfung.
+export const ARCH_SIDES = ['left', 'right', 'both'];
+const [ARCH_LEFT, ARCH_RIGHT, ARCH_BOTH] = ARCH_SIDES;
+
+export function archBoxes(truck) {
+  return (truck.wheelArches ?? []).flatMap(a => {
+    const sides = a.side === ARCH_BOTH ? [ARCH_LEFT, ARCH_RIGHT] : [a.side];
+    return sides.map(s => ({
+      x0: a.x, x1: a.x + a.l,
+      y0: s === ARCH_LEFT ? 0 : truck.w - a.w,
+      y1: s === ARCH_LEFT ? a.w : truck.w,
+      z0: 0, z1: a.h,
+    }));
+  });
 }

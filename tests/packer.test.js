@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts, PACK_ORDERS } from '../js/model/packer.js';
+import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts } from '../js/model/packer.js';
+import { PACK_ORDERS } from '../js/model/packRules.js';
 import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
 import { isTruss } from '../js/model/truss.js';

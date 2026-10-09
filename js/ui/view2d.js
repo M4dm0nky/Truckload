@@ -4,7 +4,8 @@ import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
 import { wheelFace } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor } from './caseStyle.js';
-import { archBoxes, aboveLayer } from '../model/validate.js';
+import { archBoxes } from '../model/geometry.js';
+import { aboveLayer } from '../model/items.js';
 import { isTruss, trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './labelTexture.js';
 

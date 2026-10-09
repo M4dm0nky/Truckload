@@ -9,7 +9,7 @@ export const COLOR_MODES = ['black', 'trade', 'weight'];
 // `itemColor ?? c.color` sieht wie die dritte Kopie derselben toten Rückfallkette aus, die N5
 // (docs/code-review-2026-09-21.md, Nachtrag Controller) an view2d.js/view3d.js bemängelt hat –
 // beide heutigen Aufrufer übergeben bereits `it.color`, das den Rückfall auf die Gewerkfarbe
-// über `buildItems()` (js/model/validate.js: `p.color ?? c.color`) schon trägt. Anders als dort
+// über `buildItems()` (js/model/items.js: `p.color ?? c.color`) schon trägt. Anders als dort
 // ist der Rückfall HIER aber Teil der öffentlichen Signatur dieser Funktion, nicht eine
 // zusätzliche Kopie einer fremden Regel: `caseColors(c, mode)` ohne dritten Parameter ist ein
 // eigenständig getesteter, gültiger Aufruf (tests/caseStyle.test.js, „ohne itemColor bleibt es

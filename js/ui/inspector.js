@@ -1,6 +1,6 @@
 import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
 import { outerDims, wheelFace, layersOf, pieceLayers } from '../model/geometry.js';
-import { MAX_LABEL } from '../model/geometry.js';
+import { MAX_LABEL } from '../model/limits.js';
 import { canTip } from '../model/truss.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür

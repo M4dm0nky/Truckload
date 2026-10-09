@@ -1,7 +1,7 @@
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims, isTruss } from '../model/truss.js';
-import { CASE_LIMITS } from '../model/validate.js';
+import { CASE_LIMITS } from '../model/limits.js';
 import { showConfirm } from './confirmDialog.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';

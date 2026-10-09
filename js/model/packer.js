@@ -1,5 +1,4 @@
-import { ROTATIONS, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations, outerDims } from './geometry.js';
-import { archBoxes } from './validate.js';
+import { ROTATIONS, archBoxes, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations, outerDims } from './geometry.js';
 import { isTruss } from './truss.js';
 import { legacyRules, blockComparator, volumeOf, sameSelectorRank } from './packRules.js';
 
@@ -96,8 +95,6 @@ function capFits(s, it, c, o, truck) {
 // 2026-09-30) – so lassen sich z. B. 20 von 30 gleichen Cases als „Motoren“ an die Tür schieben.
 // `rules` ist die Rangliste des Loads (js/model/packRules.js); ein String 'volume'/'count' (Altdaten,
 // alte Aufrufer) wird über legacyRules übersetzt und ergibt exakt die frühere Reihenfolge.
-// Seit V 0.8.5 nur noch für Altdaten; neue Loads tragen `packRules`.
-export const PACK_ORDERS = ['volume', 'count'];
 
 export function orderSorts(itemList, rules = 'volume') {
   const list = typeof rules === 'string' ? legacyRules(rules) : rules;

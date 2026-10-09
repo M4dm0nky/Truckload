@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from '../js/model/actions.js';
 import { validatePlan } from '../js/model/validate.js';
-import { wheelFace, DOOR_FACE, MAX_LABEL } from '../js/model/geometry.js';
+import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
+import { MAX_LABEL } from '../js/model/limits.js';
 import { rulesFor } from '../js/model/packRules.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
 

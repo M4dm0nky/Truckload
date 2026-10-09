@@ -1,6 +1,8 @@
-import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, MAX_LABEL, nextTip, layersOf } from './geometry.js';
-import { archBoxes, buildItems } from './validate.js';
-import { autoPack, PACK_ORDERS } from './packer.js';
+import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, archBoxes, nextTip, layersOf } from './geometry.js';
+import { MAX_LABEL, layersValid } from './limits.js';
+import { buildItems } from './items.js';
+import { autoPack } from './packer.js';
+import { PACK_ORDERS } from './packRules.js';
 import { rulesFor, normalizeRules, mixTopFor } from './packRules.js';
 import { canTip } from './truss.js';
 
@@ -225,19 +227,12 @@ function findPiece(plan, id) {
   return null;
 }
 
-// Gültig: Array, nicht leer, nur Ganzzahlen 1–4, keine Duplikate. Die Oberfläche verhindert das
-// bereits selbst (Checkboxen 1–4), die Aktion schützt sich trotzdem gegen fremden Aufruf.
-const isValidLayers = layers =>
-  Array.isArray(layers) && layers.length > 0
-  && layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4)
-  && new Set(layers).size === layers.length;
-
 export function setPieceLayers(plan, id, layers, ctx) {
   const found = findPiece(plan, id);
   if (!found) return plan;
   const c = ctx.caseById.get(found.item.caseId);
   if (!c) return plan;
-  if (!isValidLayers(layers)) return plan;
+  if (!layersValid(layers)) return plan;
   const allowed = layersOf(c);
   const filtered = layers.filter(n => allowed.includes(n));
   if (!filtered.length) return plan;

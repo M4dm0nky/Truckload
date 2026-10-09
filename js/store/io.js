@@ -1,15 +1,13 @@
 import { APP_VERSION } from '../version.js';
-import { ORIENTATIONS, ROTATIONS, MAX_LABEL } from '../model/geometry.js';
+import { ORIENTATIONS, ROTATIONS, ARCH_SIDES } from '../model/geometry.js';
+import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, layersValid } from '../model/limits.js';
 import { trussDims, isTruss } from '../model/truss.js';
-import { ARCH_SIDES, CASE_LIMITS } from '../model/validate.js';
-import { PACK_ORDERS } from '../model/packer.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack } from '../model/audioDolly.js';
-import { ruleOk, MAX_RULES } from '../model/packRules.js';
+import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
 
-export { MAX_LABEL, CASE_LIMITS };
 // FORMAT/VERSION nur hier benutzt (Import- und Export-Prüfung derselben Datei) — nicht mehr
 // exportiert (docs/code-review-2026-09-21.md, „zehn zu weit offene Exporte“).
 const FORMAT = 'truckload';
@@ -35,16 +33,14 @@ export function checkCase(c) {
   if (!updatedAtOk(c)) throw new Error(`Case „${c.name}“ hat einen ungültigen Zeitstempel.`);
   const wheelHOk = c.wheelH == null || (num(c.wheelH) && c.wheelH >= 0 && c.wheelH <= CASE_LIMITS.wheelH
     && (c.dimsInclWheels === false || c.wheelH < c.h));
-  const layersOk = c.layers == null || (Array.isArray(c.layers) && c.layers.length > 0
-    && new Set(c.layers).size === c.layers.length
-    && c.layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4));
+  const layersOk = c.layers == null || layersValid(c.layers);
   const kindOk = c.kind == null || CASE_KINDS.includes(c.kind);
   const propsOk = numOrNullMax(c.maxTopLoad, CASE_LIMITS.maxTopLoad) && numOrNullMax(c.stock, CASE_LIMITS.stock)
     && (c.tippable === undefined || typeof c.tippable === 'boolean')
     && (c.stackable === undefined || typeof c.stackable === 'boolean')
     && (c.wheels === undefined || typeof c.wheels === 'boolean')
     && (c.dimsInclWheels === undefined || typeof c.dimsInclWheels === 'boolean')
-    && (c.company === undefined || (typeof c.company === 'string' && c.company.length <= 80))
+    && (c.company === undefined || (typeof c.company === 'string' && c.company.length <= MAX_FIRM))
     && (c.legacy === undefined || typeof c.legacy === 'boolean')
     && (c.onlyInPlan === undefined || typeof c.onlyInPlan === 'boolean')
     && wheelHOk && layersOk && kindOk;
@@ -56,10 +52,10 @@ export function checkCase(c) {
     // Wagen-Querschnitt (max. 40 cm) der stapelnden F34/F40-Variante. Brauchen zusätzlich height.
     const standing = t?.standing === true;
     const trussOk = t
-      && num(t.length) && t.length >= 1 && t.length <= 1000
-      && num(t.width) && t.width >= 1 && t.width <= (standing ? 200 : 40)
-      && Number.isInteger(t.count) && t.count >= 1 && t.count <= 12
-      && (t.wagonW === undefined || (num(t.wagonW) && t.wagonW >= 2 * t.width && t.wagonW <= 200))
+      && num(t.length) && t.length >= 1 && t.length <= TRUSS_LIMITS.length
+      && num(t.width) && t.width >= 1 && t.width <= (standing ? TRUSS_LIMITS.standingWidth : TRUSS_LIMITS.width)
+      && Number.isInteger(t.count) && t.count >= 1 && t.count <= TRUSS_LIMITS.count
+      && (t.wagonW === undefined || (num(t.wagonW) && t.wagonW >= 2 * t.width && t.wagonW <= TRUSS_LIMITS.wagonW))
       && (t.standing === undefined || typeof t.standing === 'boolean')
       && (!standing || (num(t.height) && t.height >= 1 && t.height <= CASE_LIMITS.h))
       && c.tippable !== true;
@@ -108,9 +104,7 @@ function checkTruck(t) {
 const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.label.length <= MAX_LABEL);
 // Stück-eigene layers: dieselbe Prüfung wie layersOk für Case-Typen (checkCase oben), nur
 // hier auf einem Placement/Ablage-Eintrag statt auf einem Case.
-const pieceLayersOk = x => x.layers === undefined || (Array.isArray(x.layers) && x.layers.length > 0
-  && new Set(x.layers).size === x.layers.length
-  && x.layers.every(n => Number.isInteger(n) && n >= 1 && n <= 4));
+const pieceLayersOk = x => x.layers === undefined || layersValid(x.layers);
 const tippedOk = x => x.tipped === undefined || typeof x.tipped === 'boolean';
 const groupOk = x => x.group === undefined || (typeof x.group === 'string' && x.group.trim().length > 0 && x.group.length <= MAX_LABEL);
 const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk);
@@ -141,7 +135,7 @@ function checkPlan(p) {
 
 export function checkRuleSet(rs) {
   const name = typeof rs?.name === 'string' ? rs.name : '';
-  if (!rs || typeof rs.id !== 'string' || !name.trim() || name.length > 80 || !rulesOk(rs.rules) || !updatedAtOk(rs)
+  if (!rs || typeof rs.id !== 'string' || !name.trim() || name.length > MAX_RULESET_NAME || !rulesOk(rs.rules) || !updatedAtOk(rs)
     || (rs.mixTop !== undefined && typeof rs.mixTop !== 'boolean'))
     throw new Error(`Regelset „${name || '?'}“ ist ungültig.`);
 }

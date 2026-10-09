@@ -1,3 +1,5 @@
+import { MAX_FIRM } from './limits.js';
+
 // Materialbestand (V 0.12.5, docs/superpowers/specs/2026-10-09-materialverwaltung-design.md):
 // Firma = `company`-String am Case, keine eigene Tabelle. Reine Funktionen, kein DOM, kein Store.
 // `legacy` = ausgeblendet (gelöschte Firmen-Vorlage, alte Ladepläne behalten das Stück),
@@ -29,9 +31,6 @@ export function deletionFor(c) {
   return null;
 }
 
-// Firmenname: io.checkCase lässt höchstens 80 Zeichen zu – ein längerer Name machte die eigene
-// Sicherung unimportierbar (parseBundle ist alles oder nichts).
-export const MAX_FIRM = 80;
 export function firmNameError(name) {
   const n = (name ?? '').trim();
   if (!n) return 'Firmenname fehlt.';
