@@ -16,7 +16,7 @@ export function companiesOf(cases) {
 }
 
 // Die 4 Reiter der Artikelauswahl (Materialverwaltung + Wizard-Case-Liste); Lautsprecher s. caseKind().
-// Case-Typen (kind:'truss'), Sonderbau eigene Case-Typen mit category:'Sonderbau' – beide
+// Traversen sind eigene Case-Typen (kind:'truss'), Sonderbau eigene Case-Typen mit category:'Sonderbau' – beide
 // Merkmale schließen sich gegenseitig aus (ein Sonderbau ist nie gleichzeitig eine Traverse),
 // alles andere landet im Cases-Reiter. Reine Klassifikation, kein Filtern nach Suche/Gewerk/
 // Firma – das übernimmt groupCases() weiterhin, angewandt auf die per Reiter vorgefilterte Liste.

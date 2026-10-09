@@ -131,8 +131,8 @@ export async function createView3d(container) {
   // Lautsprecher-Modell (kind: 'speaker', Nutzer-Foto L-Acoustics K2, 2026-10-08): jede Einzelbox
   // hat eine FRONT (helleres Grillefeld im Gehäuserahmen, Marken-Badge), SEITEN (Rigging-Platte +
   // Griffstange) und eine schlichte Rückseite – nicht sechs gleiche Flächen wie ein Case. Die
-  // Sichtbarkeit trägt der Helligkeitskontrast Grille ↔ Gehäuse (feine
-  // Texturen/Spalte verschwinden aus normaler Kamera-Distanz).
+  // Sichtbarkeit trägt der Helligkeitskontrast Grille ↔ Gehäuse. Feine Texturen/Spalte verschwinden
+  // aus normaler Kamera-Distanz.
   const MAT_SPEAKER_GRILLE = shared(new THREE.MeshStandardMaterial({ color: 0x4c4f55, roughness: 0.95 }));
   const MAT_SPEAKER_MULLION = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.8 }));
   const MAT_SPEAKER_RIG = shared(new THREE.MeshStandardMaterial({ color: 0x2b2d31, metalness: 0.4, roughness: 0.5 }));
@@ -468,7 +468,8 @@ export async function createView3d(container) {
     }
   }
 
-  // Eigener Render-Zweig für `kind: 'speaker'`: jede Einzelbox als Lautsprecher-Gehäuse mit
+  // Eigener Render-Zweig für `kind: 'speaker'` (nach Nutzer-Feedback: Lautsprecher sollen nicht wie
+  // Cases aussehen): jede Einzelbox als Lautsprecher-Gehäuse mit
   // Front/Seiten/Rückseite (speakerUnitParts()) statt eines glatten Quaders mit Bändern;
   // Array-Tops mit Keilprofil (GEO_WEDGE), Subs als Quader. Jede Box ist eine THREE.Group in
   // lokalen Koordinaten, um p.rot gedreht – die Front zeigt also je nach Drehung in eine andere
