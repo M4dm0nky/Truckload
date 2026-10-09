@@ -38,7 +38,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false,
   if (src && src.color == null) v.color = colorFor(v.category);
   const isNew = !c || (c.builtin && !overrideBuiltin);
   const fromTemplate = !!c?.builtin && !overrideBuiltin;
-  const dim = n => `type="number" name="${n}" min="1" max="${CASE_LIMITS[n]}" step="0.5" required`;
+  const dim = n => `type="number" name="${n}" min="1" max="${CASE_LIMITS[n]}" step="any" required`;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
       <h2>${isNew ? 'Neues Case' : 'Case bearbeiten'}</h2>
@@ -90,7 +90,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false,
         <p class="hint truss-width-hint" hidden>Traversenbreite max. 40 cm (Wagen 60er oder 80er)</p>
       </fieldset>
       <div class="row">
-        <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" max="${CASE_LIMITS.weight}" step="0.5" required></label>
+        <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" max="${CASE_LIMITS.weight}" step="any" required></label>
         <label>Bestand (Stück)<input type="number" name="stock" min="0" max="${CASE_LIMITS.stock}" step="1"></label>
       </div>
       <label class="check case-only"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>

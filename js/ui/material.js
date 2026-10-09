@@ -86,7 +86,7 @@ export function mountMaterial(el, h) {
       case 'rename-firm': {
         const to = (await showPrompt(`„${sel}“ umbenennen in`, sel))?.trim();
         if (!to || to === sel) return;
-        await h.onRename(sel, to); extra.delete(sel); sel = to; return render();
+        await h.onRename(sel, to); if (extra.delete(sel)) extra.add(to); sel = to; return render();
       }
       case 'delete-firm': {
         if (await h.onDeleteCompany(sel)) { extra.delete(sel); sel = STANDARD; render(); }

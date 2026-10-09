@@ -12,7 +12,7 @@ import { openLoadWizard } from './ui/load-wizard.js';
 import { mountMaterial } from './ui/material.js';
 import { openTrussDialog } from './ui/truss-wizard.js';
 import { openDollyDialog } from './ui/dolly-wizard.js';
-import { companyList, casesOf, deletionFor, copyToCompany, applyStockTarget, renameCompany } from './model/material.js';
+import { companyList, casesOf, deletionFor, isInStock, copyToCompany, applyStockTarget, renameCompany } from './model/material.js';
 import { openPackRules } from './ui/pack-rules.js';
 import { rulesFor, ruleTargets, describeRule, mixTopFor } from './model/packRules.js';
 import { stamp } from './store/repo.js';
@@ -136,7 +136,11 @@ const layoutEl = document.querySelector('main.layout');
 const materialEl = $('#material-screen');
 // Materialverwaltung: eigener Bildschirm, vom Startbildschirm und aus der Kopfleiste erreichbar.
 let materialOpen = false;
-function openMaterial() { materialOpen = true; scheduleRender(); }
+function openMaterial() {
+  materialOpen = true;
+  if (store.get().plan) select(null);
+  scheduleRender();
+}
 
 // Startbildschirm: kein Plan gewählt. Eigener, viel einfacherer Render-Pfad statt der
 // vollen Pipeline unten (renderHooks setzen durchgehend einen vorhandenen s.plan voraus).
@@ -262,39 +266,30 @@ async function editCase(caseId) {
   const c = caseId ? s.cases.find(x => x.id === caseId) : null;
   const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId ? usage(s, caseId) : 0 });
   if (!res) return;
-  if (res.action === 'delete') {
-    try {
-      await repo.deleteCase(caseId);
-    } catch (err) {
-      await showAlert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-      return;
-    }
-    store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
-  } else {
-    await saveCaseValue(res.value);
-  }
+  await saveCaseValue(res.value);
 }
 
 // Löschen aus dem Materialbestand (nur Materialseite): Standardvorlagen (`preset-`) sind nur
 // lesbar, Firmen-Vorlagen werden ausgeblendet (legacy), alles andere wirklich entfernt.
 // `confirmed`: die Rückfrage kam schon (Editor bzw. Firma-löschen-Dialog).
 async function removeFromStock(c, { confirmed = false } = {}) {
-  if (!c) return;
+  if (!c) return false;
   const d = deletionFor(c);
-  if (!d) { await showAlert('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.'); return; }
+  if (!d) { await showAlert('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.'); return false; }
   if (!confirmed) {
     const used = usage(store.get(), c.id);
     const msg = used ? `„${c.name}“ wird in ${used} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${c.name}“ löschen?`;
-    if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return;
+    if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return false;
   }
-  if (d.save) { await saveCaseValue(d.save); return; }
+  if (d.save) return !!await saveCaseValue(d.save);
   try {
     await repo.deleteCase(d.remove);
   } catch (err) {
     await showAlert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-    return;
+    return false;
   }
   store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== d.remove) }));
+  return true;
 }
 
 // Kleiner Auswahldialog (<select> in #dlg-pick); null bei Abbruch.
@@ -303,6 +298,7 @@ function pickOption(title, options) {
   d.innerHTML = `<form method="dialog" class="editor"><label>${esc(title)}<select name="v">${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></label>
     <menu><span class="grow"></span><button value="cancel" formnovalidate>Abbrechen</button><button value="ok" class="primary">OK</button></menu></form>`;
   const sel = d.querySelector('select');
+  d.returnValue = '';
   d.showModal();
   return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? sel.value : null), { once: true }));
 }
@@ -335,7 +331,7 @@ const material = mountMaterial(materialEl, {
   onDelete: id => removeFromStock(store.get().cases.find(x => x.id === id)),
   onNewTruss: company => openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCaseValue, stock: { mode: 'fixed', company } }),
   onNewDolly: async company => {
-    const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt));
+    const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
     if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, onNewDollyStack: saveCaseValue, stock: { mode: 'fixed', company } });
   },
   onCopy: async id => {
@@ -350,8 +346,9 @@ const material = mountMaterial(materialEl, {
   onDeleteCompany: async name => {
     const list = casesOf(store.get().cases, name);
     if (list.length && !await showConfirm(`Firma „${name}“ mit ${list.length} Einträgen löschen?`, { okLabel: 'Löschen', danger: true })) return false;
-    for (const c of list) await removeFromStock(c, { confirmed: true });
-    return true;
+    let ok = true;
+    for (const c of list) ok = await removeFromStock(c, { confirmed: true }) && ok;
+    return ok;
   },
 });
 
@@ -515,6 +512,7 @@ $('#inspector').addEventListener('change', e => {
 
 // Tastatur
 document.addEventListener('keydown', e => {
+  if (materialOpen) return;
   if (e.target.closest('input, textarea, select') || document.querySelector('dialog[open]')) return;
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); return; }
