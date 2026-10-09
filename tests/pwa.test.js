@@ -45,7 +45,7 @@ test('Service-Worker hält alle App-Dateien offline vor', () => {
 });
 
 test('Cache-Name enthält die App-Version', () => {
-  assert.match(read('sw.js'), new RegExp(`truckload-v${APP_VERSION.replace('.', '\\.')}`));
+  assert.match(read('sw.js'), new RegExp(`truckload-v${APP_VERSION.replaceAll('.', '\\.')}`));
 });
 
 test('index.html lädt jedes js/-Modul aus dem Offline-Cache per modulepreload vor', () => {

@@ -15,7 +15,7 @@ export function mountMaterial(el, h) {
   let sel = STANDARD;
   let tab = CASE_TABS[0].id;
   let q = '';
-  const extra = new Set(); // frisch angelegte, noch leere Firmen (nur UI-Zustand, Spec)
+  const extra = new Set(); // frisch angelegte, noch leere Firmen (nur UI-Zustand)
 
   function rowHtml(c) {
     const readOnly = c.builtin && c.id.startsWith('preset-');

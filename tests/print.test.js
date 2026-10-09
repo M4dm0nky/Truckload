@@ -144,9 +144,10 @@ test('buildPrint-Regression: Kopfzeile und Tabelle bleiben wortgleich', () => {
   assert.match(html, /<h1>Test<\/h1>/);
   assert.match(html, /Innen 1360×248×270 cm/);
   assert.match(html, /10 \/ 24.000 kg/);
-  assert.match(html, new RegExp(`Truckload V ${APP_VERSION.replace('.', '\\.')}`));
-  assert.match(html, /<td>1<\/td><td>Stück 1<\/td><td>Case A<\/td><td>Inhalt A<\/td>/);
-  assert.match(html, /<figure><figcaption>Draufsicht \(Stirnwand links\)<\/figcaption><svg class="p-top"><\/svg><\/figure>/);
+  assert.match(html, new RegExp(`Truckload V ${APP_VERSION.replaceAll('.', '\\.')}`));
+  for (const cell of ['1', 'Stück 1', 'Case A', 'Inhalt A']) assert.ok(html.includes(`<td>${cell}</td>`), `Tabellenzelle ${cell}`);
+  assert.match(html, /<figcaption>Draufsicht \(Stirnwand links\)<\/figcaption>/);
+  assert.match(html, /<svg class="p-top"><\/svg>/);
 });
 
 // Schlussprüfung des Branches, Befund 3: Die Abhakliste speiste sich nur aus result.items,

@@ -133,7 +133,13 @@ test('countWithoutLayer zählt Stücke ohne angehakte Lage', () => {
 
 test('„Suchen in“: Standardkatalog ist Vorgabe, dann kompletter Bestand, dann je Firma', () => {
   const html = searchInOptionsHtml(['CAB'], NEUTRAL_COMPANY);
-  assert.match(html, new RegExp(`<option value="${NEUTRAL_COMPANY}" selected>Standardkatalog</option><option value="">Kompletter Bestand</option><option value="CAB">nur CAB</option>`));
+  const options = [...html.matchAll(/<option value="([^"]*)"( selected)?>([^<]*)<\/option>/g)]
+    .map(m => ({ value: m[1], selected: !!m[2], label: m[3] }));
+  assert.deepEqual(options, [
+    { value: NEUTRAL_COMPANY, selected: true, label: 'Standardkatalog' },
+    { value: '', selected: false, label: 'Kompletter Bestand' },
+    { value: 'CAB', selected: false, label: 'nur CAB' },
+  ]);
 });
 test('stockDefaultFor: Firma nur bei Firmenwahl', () => {
   assert.equal(stockDefaultFor('CAB'), 'CAB');

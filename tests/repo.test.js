@@ -241,11 +241,9 @@ test('buildImportWinnerItems: leere Gewinnerlisten erzeugen keine Einträge', ()
   assert.deepEqual(buildImportWinnerItems({ cases: [], trucks: [], plans: [] }), []);
 });
 
-// --- Befund „der Absturzpfad ist nur an der Grenze geschlossen, nicht an der
-// Absturzstelle“: js/app.js:41 sortierte VOR dem Fix außerhalb des try/catch, das
-// repo.loadAll() absichert. Ein `updatedAt`, das keine Zeichenkette ist (z. B. eine Zahl
-// aus einem vor V0.7 importierten Datensatz), ließ `.localeCompare()` dort auf
-// Modulebene werfen und die ganze Seite unbedienbar machen (kein Planwähler, kein
+// --- Ein `updatedAt`, das keine Zeichenkette ist (z. B. eine Zahl aus einem vor V0.7
+// importierten Datensatz), darf beim Sortieren der Pläne nicht werfen: Ein `.localeCompare()`
+// auf Modulebene machte sonst die ganze Seite unbedienbar (kein Planwähler, kein
 // Importieren-Handler). Rückbau-Beleg: kommentiert man in repo.js entweder sanitizeUpdatedAt()
 // (loadAll gibt den ungefilterten `plans` zurück) ODER die ts()-Absicherung in
 // pickLatestPlan() aus (schlicht `p.updatedAt` statt der Typprüfung), wirft einer der beiden
