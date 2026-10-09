@@ -63,32 +63,9 @@ geblieben ist, mit Begründung:
   wurde also schon verarbeitet, bevor das gestützte Item an der Reihe ist, und trägt bereits
   einen Eintrag in der Map. `layerMap` ist bewusst nicht exportiert; ihn nur für diesen Test
   zu exportieren widerspräche dem.
-- **Import: Verweisprüfung kennt nur die eingebauten Vorlagen, nicht den lokalen
-  Zustand** (Daten-21). `parseBundle` (`js/store/io.js`) meldet in `warnings`, wenn ein Plan
-  auf ein Case oder Fahrzeug verweist, das weder im Bundle noch unter `CASE_LIBRARY`/
-  `PRESET_TRUCKS` bekannt ist. Ein Plan, der auf ein eigenes (nicht mitgeliefertes) Case
-  verweist, das lokal existiert, aber nicht im Bundle enthalten ist, erzeugt dadurch eine
-  falsch-positive Warnung. `io.js` hat keinen Zugriff auf den App-Zustand; eine Prüfung nach
-  dem Mischen (in `js/app/importExport.js`) wäre die genauere Lösung. `warnings` wird dort
-  aktuell nicht gelesen (rein additiv).
-- **Keine Obergrenzen für `name`-Textlängen und Platzierungskoordinaten (`x`/`y`/`z`), keine
-  Prüfung doppelter IDs innerhalb derselben Liste** über die bereits vorhandene planweite
-  Eindeutigkeitsprüfung hinaus. Keiner der drei Punkte ist ein Absturz- oder
-  Einschleusungspfad; eine absurd lange Zeichenkette bläht höchstens die Anzeige auf.
-- **`js/store/db.js`: eine einmal abgelehnte `dbPromise` bleibt dauerhaft abgelehnt.**
-  Schlägt `indexedDB.open()` einmal fehl, versucht derselbe Tab es später nicht erneut — die
-  App bleibt für den Rest der Sitzung im (funktionierenden, aber ungesicherten) Fallback-
-  Modus. Kein belegter Datenverlustpfad, nur ein fehlender Wiederholungsversuch.
 - **Keine „3D-Ansicht veraltet“-Markierung**, wenn die 3D-Ansicht nach einem Fehler in
   `update()` einfach stehen bleibt, statt neu aufgebaut zu werden — der Nutzer sieht dann
   einen möglicherweise nicht mehr aktuellen Stand, ohne Hinweis.
-- **Kein `autosave.flush()`-Await vor `repo.deletePlan`.** Eine noch ausstehende Änderung an
-  genau dem Plan, der gerade gelöscht wird, geht beim Löschen ohne Rückfrage unter — praktisch
-  selten (derselbe Plan müsste im selben Moment geändert und gelöscht werden), aber nicht
-  ausgeschlossen.
-- **`touch()` (`js/model/actions.js`) und `stamp()` (`js/store/repo.js`) sind dieselbe
-  Ein-Zeiler-Funktion in zwei Modulen.** `js/app.js` und `js/app/` benutzen `stamp()`,
-  `actions.js` intern `touch()`. Die Dopplung ist nur Politur.
 - **Modellschicht — mehrfach berechnete Auflage (`supportersOf`).** `layerMap`, `validatePlan`
   und `stackAbove` rufen `supportersOf` je für sich noch einmal über alle Items auf (dreimal
   O(n²) statt einmal). Bei den heutigen Plangrößen (einstellige bis niedrige zweistellige
@@ -122,24 +99,6 @@ geblieben ist, mit Begründung:
 
 ## Aus der Gesamt-Review vor dem Merge (2026-09-23) offen gelassen
 
-- **Import-Grenzen, die die App selbst bis V 0.6 nicht erzeugen konnte, aber theoretisch
-  entstehen könnten.** `CASE_LIBRARY` und die Obergrenzen `weight`/`stock`/`maxTopLoad`
-  (`CASE_LIMITS`) sind erst in V 0.7 entstanden; der Case-Editor hatte für diese drei Felder
-  bis V 0.6 kein `max`-Attribut. Ein Case mit `weight: 60000` o. ä. würde heute die ganze
-  Importdatei ablehnen, genauso wie die schon behobenen Fälle bei Beschriftung und
-  Rollenhöhe. Die Alltagswahrscheinlichkeit ist deutlich geringer (kein Editor-Weg, der
-  solche Werte plausibel erzeugt), und ein automatisches Kürzen wäre hier eine erfundene
-  Zahl statt einer Reparatur — deshalb zurückgestellt statt automatisch repariert. Sauberer
-  wäre, diese drei Obergrenzen beim Import als Warnung statt als Abbruch zu behandeln.
-- **`repairWheelH` (`js/store/io.js`) normalisiert nebenbei ein ungültiges `wheels`.** Ein
-  Bundle mit `h:12, wheelH:16, wheels: {...}` (kein Boolean) wird angenommen, weil die
-  Reparatur `wheels` auf `false` setzt — `checkCase` würde ein solches Case sonst verwerfen.
-  Es wird nichts eingeschleust, aber die Reparatur greift weiter als die Meldung an den
-  Nutzer sagt (die nennt nur die Rollenhöhe).
-- **Ein kaputtes `updatedAt` wird beim Laden nur in der Kopie im Store bereinigt, nicht in
-  IndexedDB selbst.** Weil die Bereinigung bei jedem Start erneut läuft, kehrt das Symptom
-  nicht zurück – der Datensatz in der Datenbank bleibt aber technisch weiterhin fehlerhaft,
-  bis er einmal neu gespeichert wird.
 
 ## Aus dem Leerer-Start/Truss-Wizard-Branch (2026-09-23) offen gelassen
 

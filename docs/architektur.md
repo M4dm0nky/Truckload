@@ -433,6 +433,25 @@ Import nicht verlieren (Materialverwaltung). Beim Zusammenführen gewinnt der ne
 aber nur wenn **beide** Seiten einen String-Zeitstempel tragen — ein kaputter oder fehlender
 Zeitstempel verliert immer gegen einen gültigen.
 
+Import-Regeln (Abschluss Teil 1):
+- Namen: `NAME_MAX` (= 80, `js/model/limits.js`) gilt für Case-, Fahrzeug- und Ladeplan-Namen und
+  entspricht den `maxlength`-Attributen der Editoren (das Umbenennen-Feld des Plans hatte vorher
+  keine; Kopien kürzen den Namen via `copyName` in `js/app/plans.js`). Ein Ladeplan-Name über 80
+  Zeichen aus einer älteren Sicherung wird beim Import gekürzt und gemeldet (eigene Entscheidung,
+  damit eigene alte Sicherungen importierbar bleiben); `checkPlan` selbst lehnt ihn ab.
+  Dolly-Stack-Namen kürzt `dollyName` (`audioDolly.js`).
+- Doppelte IDs innerhalb derselben Liste (Cases, Fahrzeuge, Pläne, Regelsets) lehnen die Datei ab.
+- Koordinaten: `COORD_MAX` (= 2724 cm = 2 × größte mitgelieferte Fahrzeugabmessung, eigene
+  Entscheidung). Eine Platzierung mit |x|, |y| oder |z| über `max(COORD_MAX, 2 × größte Abmessung
+  der Fahrzeuge in der Datei)` wird nicht abgelehnt, sondern in die Ablage verschoben (Label,
+  Farbe, Lagen, Tippen, Gruppe bleiben) und unter „Beim Import angepasst“ gemeldet, weil die App
+  Koordinaten selbst nirgends begrenzt.
+- Gewicht, Auflast und Bestand über `CASE_LIMITS` lehnen nicht ab: der Wert bleibt, `parseBundle`
+  liefert ihn in `overLimit`. Verweise auf unbekannte Cases/Fahrzeuge liefert es als `unknownRefs`
+  (IDs); `js/app/importExport.js` bildet daraus nach dem Mischen die Warntexte, filtert sie gegen
+  den lokalen Bestand und die Gewinner des Abgleichs und zeigt höchstens 10 Zeilen.
+- `repairWheelH` meldet Rollenhöhe und Rollen-Angabe (`wheels`) gemeinsam.
+
 Vor jedem Import lädt `js/app/importExport.js` still eine Sicherung des bisherigen Stands herunter
 (`preImportBackupFileName()`, gleicher Name wie `backupFileName()` plus `-vor-import`), bevor
 irgendetwas in IndexedDB überschrieben wird. Das Mischen läuft synchron innerhalb eines
@@ -442,6 +461,13 @@ Stand vor dem Import zurückgesetzt und der Nutzer kann die eben heruntergeladen
 erneut anfordern. `js/store/autosave.js` nimmt den betroffenen Plan für die Dauer des Imports
 per `exclude()`/`include()` aus der eigenen Buchhaltung, damit ein parallel laufender
 Autosave-Schreibvorgang den Import nicht überholt oder rückgängig macht.
+
+Weitere Speicher-Details (Abschluss Teil 1): `loadAll` schreibt Datensätze mit kaputtem `updatedAt`
+bereinigt zurück (`sanitizeAndWriteBack`, ein `putMany`, Fehler nur geloggt). `db.open()` setzt
+eine abgelehnte Promise zurück, der nächste Zugriff versucht es erneut. Plan löschen:
+`removePlanPersisted` in `js/app/plans.js` (erst `autosave.flush()`, dann `deletePlan`, dann
+`forget`). Der Änderungszeitpunkt wird nur von `stamp()` in `js/model/stamp.js` gesetzt (früher
+`touch` in `actions.js` und `stamp` in `repo.js`).
 
 Ist die App in einem zweiten Tab oder Fenster gleichzeitig offen, meldet ein
 `BroadcastChannel('truckload')` das den beteiligten Tabs — es gibt (Stand V 0.7.0) keinen
