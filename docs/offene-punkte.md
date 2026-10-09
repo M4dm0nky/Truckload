@@ -207,10 +207,12 @@ geblieben ist, mit Begründung:
 
 ## Aus dem Aufräumen vor V 0.13.10 bewusst offen gelassen
 
-- **Packer bei sehr überfüllter Ladung.** Das Verhalten des Packers, wenn weit mehr Stücke vorgegeben
-  sind, als in den Truck passen (der Wizard erlaubt bis zu 500 Stück), wurde beim Aufräumen weder
-  untersucht noch verändert; es ist für eine spätere Phase G vorgesehen. Die Ablage fängt, was nicht
-  passt, ob Laufzeit und Ergebnis dabei durchgängig sinnvoll bleiben, ist ungeprüft.
+- **Packer bei überfüllter Ladung.** Passen sehr viele Stücke nicht in den Truck (gemessen in der
+  Code-Review vom 2026-10-09 mit einem Wegwerfskript, nicht per Test im Repo: 1.000 kleine Stücke
+  aus 20 Typen, davon 399 platziert), braucht „Alles neu packen“ rund 0,7 s statt ~35 ms. Ursache:
+  jeder nicht passende Stapel durchsucht alle Positionen erneut. Mögliche Abhilfe: gescheiterte
+  Grundfläche je Sortierung merken und Punkte nur einmal sortieren. Für normale Ladungen ohne
+  Bedeutung.
 - **Slug-Kollision bei Firmennamen.** Die Dolly-ID trägt `slug(firma)` (`dolly-<slug>-<basis>-<n>`,
   `js/model/audioDolly.js`). Zwei verschiedene Firmennamen mit gleichem Slug (z. B. „Müller“ und
   „Mueller“, oder „A B“ und „A-B“) führen bei gleicher Basis und Stückzahl zur selben ID; es gibt
