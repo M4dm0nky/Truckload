@@ -2,6 +2,18 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.12.4 – 2026-10-09
+
+Fahrzeugliste nach den Begriffen aus der Praxis: Sprinter kurz/lang, 3,5-t-, 7,5-t-, 12-t- und
+18-t-Koffer sowie drei Trailer – „Trailer 40 t Koffer“, „Trailer 40 t Koffer extra hoch“ und
+„Trailer 40 t Gardine“ (Curtainsider).
+
+- Innenmaße und Nutzlast von 7,5 t, 12 t und 18 t aus Verleiherangeboten, die Trailer auf
+  13,62 × 2,48 m (Herleitung und Quellen: `docs/fahrzeugmasse.md`). Richtwerte, mit dem echten
+  Fahrzeug abgleichen.
+- Neu: Sprinter kurz, 18-t-Koffer, Trailer Gardine. Die bisherigen Fahrzeuge behalten ihre IDs,
+  gespeicherte Pläne laden weiter.
+
 ## V 0.12.3 – 2026-10-09
 
 Wagengrößen sind von Firma zu Firma verschieden – deshalb jetzt im Dialog sichtbar und änderbar.

@@ -118,3 +118,27 @@ test('Audio-Vorlagen: 8 Array-Tops speakerType "top", 5 Subs "sub", jede mit cab
 test('Die festen F34/F40-Traversenwagen-Vorlagen sind entfernt', () => {
   assert.ok(!PRESET_CASES.some(c => /^preset-truss-(34|40)-/.test(c.id)));
 });
+
+// V 0.12.4: Fahrzeugliste nach Praxisbegriffen (Nutzerwunsch 2026-10-09); Maße aus Verleiher-
+// angeboten (docs/fahrzeugmasse.md). Alte IDs bleiben, damit gespeicherte Pläne weiter laden.
+test('Fahrzeuge: Namen nach Praxisbegriffen, alte IDs unverändert', () => {
+  const names = Object.fromEntries(PRESET_TRUCKS.map(t => [t.id, t.name]));
+  assert.deepEqual(names, {
+    'preset-sprinter-kurz': 'Sprinter kurz',
+    'preset-sprinter': 'Sprinter lang',
+    'preset-koffer35': '3,5-t-Koffer',
+    'preset-lkw75': '7,5-t-Koffer',
+    'preset-lkw12': '12-t-Koffer',
+    'preset-lkw18': '18-t-Koffer',
+    'preset-sattel': 'Trailer 40 t Koffer',
+    'preset-mega': 'Trailer 40 t Koffer extra hoch',
+    'preset-gardine': 'Trailer 40 t Gardine',
+  });
+});
+test('Fahrzeuge: Innenmaße aus Verleiherangeboten', () => {
+  const dims = id => { const t = PRESET_TRUCKS.find(x => x.id === id); return [t.l, t.w, t.h, t.payload]; };
+  assert.deepEqual(dims('preset-lkw75'), [610, 250, 240, 2500]);
+  assert.deepEqual(dims('preset-lkw12'), [720, 248, 230, 5100]);
+  assert.deepEqual(dims('preset-lkw18'), [730, 248, 260, 9000]);
+  assert.deepEqual(dims('preset-gardine'), [1362, 248, 270, 24000]);
+});
