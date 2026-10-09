@@ -32,7 +32,7 @@ function loadBlock(piece, c, tippedOn) {
 
 export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [] }) {
   const t = result.totals;
-  const pct = Math.min(100, Math.round(t.weight / t.payload * 100));
+  const pct = t.payload > 0 ? Math.min(100, Math.round(t.weight / t.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
   const wheelRow = tipped ? `
       <div class="insp-wheels">

@@ -14,7 +14,7 @@
 // - Fünf Rigging-Zeilen ohne brauchbares Höhenmaß (leere Zellen bzw. die
 //   Zeichenketten „-“/„x“) entfallen ersatzlos:
 //   „Motorsteuerung (Koffer -BBM“, „Bolzenkoffer -BBM“, „FD34 x2 -CAB“,
-//   „HOF BOLT -CAB“, „Dolly "Drohne" -CAB“.
+//   „HOF BOLT -CAB“, „Dolly ‚Drohne‘ -CAB“.
 //
 // Gewerk-Zuordnung (Spalte „Family“ → Gewerk): Fixture/Desk → Licht,
 // Rigging → Rigging, DC/Cable → Strom, Rack → Ton, FOH → Video, Case → Sonstiges.

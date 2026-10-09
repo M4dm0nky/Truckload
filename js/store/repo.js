@@ -156,6 +156,11 @@ export function buildImportWinnerItems(winners) {
   ];
 }
 
+export const buildCaseItems = list => list.map(value => ({ store: 'cases', value }));
+
+// Schreibt mehrere Cases in EINER Transaktion (alles oder nichts), z. B. beim Umbenennen einer Firma.
+export const saveCases = list => db.putMany(buildCaseItems(list));
+
 // Schreibt die Gewinner eines Imports (siehe mergeImportedBundle) in EINER Transaktion:
 // entweder landen alle drin, oder – schlägt einer der Schreibvorgänge fehl – keiner.
 // Unabhängige db.put()-Aufrufe je Datensatz könnten sonst teilweise erfolgreich sein, bevor

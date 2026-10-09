@@ -11,12 +11,82 @@
   <meta name="apple-mobile-web-app-title" content="Truckload">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/print.css" media="print">
+  <script>
+    // Schlägt ein Modul (oder sein Preload) fehl, z. B. bei abgebrochener Verbindung: Hinweis statt weißer Seite.
+    window.addEventListener('error', e => {
+      const t = e.target;
+      const isModule = t && t.tagName === 'SCRIPT' && t.type === 'module';
+      const isPreload = t && t.tagName === 'LINK' && t.rel === 'modulepreload';
+      // Versionsmix: ein fehlender Export meldet sich als SyntaxError am window, nicht am Skript.
+      const isLinkError = t === window && e.error instanceof SyntaxError && !window.__tlBooted;
+      if ((!isModule && !isPreload && !isLinkError) || window.__tlLoadErr) return;
+      window.__tlLoadErr = true;
+      const box = document.createElement('div');
+      box.id = 'load-error';
+      box.className = 'banner banner-warn';
+      box.setAttribute('role', 'alert');
+      box.append('Die App konnte nicht vollständig geladen werden. Bitte neu laden. ');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Neu laden';
+      btn.addEventListener('click', () => location.reload());
+      box.append(btn);
+      // Im <head> kann der Fehler vor dem body auftreten: dann erst nach DOMContentLoaded einfügen.
+      if (document.body) document.body.prepend(box);
+      else document.addEventListener('DOMContentLoaded', () => document.body.prepend(box), { once: true });
+    }, true);
+  </script>
   <script type="importmap">
     { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
   </script>
+  <link rel="modulepreload" href="js/app.js">
+  <link rel="modulepreload" href="js/state.js">
+  <link rel="modulepreload" href="js/version.js">
+  <link rel="modulepreload" href="js/data/case-library.js">
+  <link rel="modulepreload" href="js/data/categories.js">
+  <link rel="modulepreload" href="js/data/preset-cases.js">
+  <link rel="modulepreload" href="js/data/preset-trucks.js">
+  <link rel="modulepreload" href="js/model/actions.js">
+  <link rel="modulepreload" href="js/model/audioDolly.js">
+  <link rel="modulepreload" href="js/model/caseShape.js">
+  <link rel="modulepreload" href="js/model/geometry.js">
+  <link rel="modulepreload" href="js/model/material.js">
+  <link rel="modulepreload" href="js/model/packer.js">
+  <link rel="modulepreload" href="js/model/packRules.js">
+  <link rel="modulepreload" href="js/model/truss.js">
+  <link rel="modulepreload" href="js/model/validate.js">
+  <link rel="modulepreload" href="js/store/autosave.js">
+  <link rel="modulepreload" href="js/store/db.js">
+  <link rel="modulepreload" href="js/store/io.js">
+  <link rel="modulepreload" href="js/store/repo.js">
+  <link rel="modulepreload" href="js/ui/case-editor.js">
+  <link rel="modulepreload" href="js/ui/caseGroups.js">
+  <link rel="modulepreload" href="js/ui/caseStyle.js">
+  <link rel="modulepreload" href="js/ui/confirmDialog.js">
+  <link rel="modulepreload" href="js/ui/dolly-wizard.js">
+  <link rel="modulepreload" href="js/ui/dom.js">
+  <link rel="modulepreload" href="js/ui/inspector.js">
+  <link rel="modulepreload" href="js/ui/instanceMatrix.js">
+  <link rel="modulepreload" href="js/ui/labelTexture.js">
+  <link rel="modulepreload" href="js/ui/library.js">
+  <link rel="modulepreload" href="js/ui/load-wizard.js">
+  <link rel="modulepreload" href="js/ui/material.js">
+  <link rel="modulepreload" href="js/ui/pack-rules.js">
+  <link rel="modulepreload" href="js/ui/print.js">
+  <link rel="modulepreload" href="js/ui/projection.js">
+  <link rel="modulepreload" href="js/ui/stock-target.js">
+  <link rel="modulepreload" href="js/ui/truck-editor.js">
+  <link rel="modulepreload" href="js/ui/truss-wizard.js">
+  <link rel="modulepreload" href="js/ui/view2d.js">
+  <link rel="modulepreload" href="js/ui/zoom2d.js">
+  <link rel="modulepreload" href="js/ui/view3d.js">
 </head>
 <body>
   <div id="storage-warning" class="banner banner-warn" hidden></div>
+  <div id="error-banner" class="banner banner-warn" role="alert" hidden>
+    <span id="error-banner-text"></span>
+    <button id="error-banner-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>
+  </div>
   <div id="tab-warning" class="banner banner-warn" hidden>
     Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.
     <button id="tab-warning-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>
@@ -34,7 +104,7 @@
   </section>
   <section id="material-screen" class="material-screen" hidden></section>
   <header class="topbar" hidden>
-    <strong class="brand">Truckload <span id="app-version" class="version">V 0.13.4</span></strong>
+    <strong class="brand">Truckload <span id="app-version" class="version">V 0.13.5</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
       <select id="plan-select" title="Ladeplan"></select>

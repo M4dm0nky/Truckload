@@ -2,6 +2,25 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.5 – 2026-10-09
+
+Aufräumen Teil 1 – Fehler und Robustheit (aus einer Durchsicht des ganzen Codes):
+
+- **Keine falsche Warnung mehr beim Importieren:** Pläne mit mitgelieferten Cases (z. B. K2,
+  Packcases) meldeten fälschlich „verweisen auf ein Case, das … nicht bekannt ist“.
+- **Stabiler bei schlechtem Netz:** Braucht der Server zu lange, lädt die App den Rest dieses
+  Aufrufs aus der gespeicherten Kopie statt neue und alte Teile zu mischen. Schlägt das Laden
+  trotzdem fehl, erscheint „Bitte neu laden“ statt einer weißen Seite. Dateien werden vorab
+  parallel angefordert, der Start ist bei langsamer Verbindung schneller.
+- **Firma umbenennen oder löschen in einem Zug:** entweder alles oder nichts, mit genau einer
+  Meldung bei einem Fehler. Enthält eine Firma eine Standardvorlage, wird das Löschen ganz
+  abgebrochen statt halb ausgeführt. Reservierte Namen wie „__neutral__“ sind als Firmenname
+  gesperrt, auch beim Anlegen im Wizard.
+- **Wizard:** hängt nicht mehr, wenn beim Ausflug in die Materialverwaltung ein Fehler passiert.
+- **3D:** zeichnet pro Änderung nur noch einmal (vorher doppelt).
+- Kleinigkeiten: Nutzlast 0 zeigt keine „NaN %“ mehr; nach dem Löschen eines Fahrzeugs holt
+  Rückgängig es nicht mehr in den Plan zurück; unerwartete Fehler erscheinen als Hinweis oben.
+
 ## V 0.13.4 – 2026-10-09
 
 Neue Firma direkt beim Ablegen: In „Im Materialbestand ablegen“ (Boxen-Dolly, „+ Neues Case“,

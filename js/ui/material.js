@@ -97,7 +97,9 @@ export function mountMaterial(el, h) {
         if (err) return showAlert(err);
         const to = raw.trim();
         if (to === sel) return;
-        await h.onRename(sel, to); if (extra.delete(sel)) extra.add(to); sel = to; return render();
+        if (!await h.onRename(sel, to)) return;
+        if (extra.delete(sel)) extra.add(to);
+        sel = to; return render();
       }
       case 'delete-firm': {
         if (await h.onDeleteCompany(sel)) { extra.delete(sel); sel = STANDARD; render(); }

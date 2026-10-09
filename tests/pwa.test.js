@@ -47,3 +47,38 @@ test('Service-Worker hält alle App-Dateien offline vor', () => {
 test('Cache-Name enthält die App-Version', () => {
   assert.match(read('sw.js'), new RegExp(`truckload-v${APP_VERSION.replace('.', '\\.')}`));
 });
+
+test('index.html lädt jedes js/-Modul aus dem Offline-Cache per modulepreload vor', () => {
+  const html = read('index.html');
+  const preloaded = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)">/g)].map(m => m[1]).sort();
+  const expected = precacheList().filter(a => a.startsWith('js/')).sort();
+  assert.deepEqual(preloaded, expected);
+});
+
+test('Service-Worker lädt beim Install am HTTP-Cache vorbei', () => {
+  assert.match(read('sw.js'), /new Request\(u, \{ cache: 'reload' \}\)/);
+});
+
+test('index.html zeigt bei Ladefehlern eines Moduls einen Neu-laden-Hinweis', () => {
+  const html = read('index.html');
+  assert.match(html, /Die App konnte nicht vollständig geladen werden\. Bitte neu laden\./);
+  assert.ok(html.indexOf('addEventListener(\'error\'') < html.indexOf('<script type="module" src="js/app.js">'));
+});
+
+test('importmap steht vor dem ersten modulepreload (Firefox verwirft ihn sonst)', () => {
+  const html = read('index.html');
+  assert.ok(html.indexOf('type="importmap"') >= 0);
+  assert.ok(html.indexOf('type="importmap"') < html.indexOf('rel="modulepreload"'));
+});
+
+test('Fehler-Skript steht vor dem importmap', () => {
+  const html = read('index.html');
+  assert.ok(html.indexOf("addEventListener('error'") >= 0);
+  assert.ok(html.indexOf("addEventListener('error'") < html.indexOf('type="importmap"'));
+});
+
+test('Ladefehler-Hinweis erkennt auch Link-Fehler über __tlBooted', () => {
+  assert.match(read('js/app.js').trimEnd(), /window\.__tlBooted = true;$/);
+  const html = read('index.html');
+  assert.match(html, /e\.error instanceof SyntaxError && !window\.__tlBooted/);
+});

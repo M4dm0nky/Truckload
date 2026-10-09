@@ -543,13 +543,22 @@ export function openLoadWizard(dlg, opts = {}) {
     const onClose = async () => {
       if (suspended) {
         suspended = false;
-        const fresh = await opts.onOpenMaterial();
-        cases = refreshWizardCases(counts, fresh);
-        renderCompanyOptions();
-        if (steps[stepIdx] === 'cases') renderCaseList();
-        if (steps[stepIdx] === 'labels') renderGroups();
-        dlg.returnValue = '';
-        dlg.showModal();
+        let fresh = null;
+        try {
+          fresh = await opts.onOpenMaterial();
+        } catch (err) {
+          console.warn(err);
+        } finally {
+          try {
+            cases = refreshWizardCases(counts, fresh ?? cases);
+            renderCompanyOptions();
+            if (steps[stepIdx] === 'cases') renderCaseList();
+            if (steps[stepIdx] === 'labels') renderGroups();
+          } finally {
+            dlg.returnValue = '';
+            dlg.showModal();
+          }
+        }
         return;
       }
       dlg.removeEventListener('close', onClose);

@@ -67,6 +67,12 @@ test('Firma umbenennen, dann alles löschen: nach dem Neustart bleibt die Firma 
   assert.ok(!names.includes('CAB'), 'die mitgelieferte Firma kommt nicht zurück');
 });
 
+test('firmNameError: reservierte Platzhalternamen __…__ werden abgelehnt', () => {
+  assert.equal(firmNameError('__standard__'), 'Dieser Firmenname ist reserviert.');
+  assert.equal(firmNameError('  __nur-im-plan__ '), 'Dieser Firmenname ist reserviert.');
+  assert.equal(firmNameError('__a'), null);
+  assert.equal(firmNameError('a__b__'), null);
+});
 test('firmNameError: leer, zu lang, gültig', () => {
   assert.equal(firmNameError('   '), 'Firmenname fehlt.');
   assert.equal(firmNameError(''), 'Firmenname fehlt.');

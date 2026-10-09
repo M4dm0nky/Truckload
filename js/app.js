@@ -27,6 +27,19 @@ import { buildPrint, buildChecklist, buildLabels, pageRuleFor } from './ui/print
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
 
+// Globaler Auffangnetz-Hinweis (eigenes Element, damit er keinen wichtigeren Speicher-Hinweis in
+// #storage-warning überschreibt). Früh registriert, damit auch Startfehler vor dem ersten
+// await erfasst werden. Fehler, die schon per showAlert gemeldet werden, sind gefangen.
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unbehandelte Ablehnung', e.reason);
+  const el = document.getElementById('error-banner');
+  const text = document.getElementById('error-banner-text');
+  if (!el || !text) return;
+  el.hidden = false;
+  text.textContent = `Unerwarteter Fehler: ${e.reason?.message || String(e.reason)}`;
+});
+
+
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
 
@@ -111,7 +124,7 @@ export function edit(fn, history = true) {
 }
 export const select = id => store.update(s => (s.selectedId === id ? s : { ...s, selectedId: id }));
 
-// F2+F6 (Fix-Welle 2026-09-28): nach „Alles neu packen", „Rest einpacken" und dem Wizard-
+// F2+F6 (Fix-Welle 2026-09-28): nach „Alles neu packen“, „Rest einpacken“ und dem Wizard-
 // Autopack meldet sich die App, wenn danach noch Stücke in der Ablage liegen – sonst merkt der
 // Nutzer die Lücke nur, wenn er die Ablage zufällig aufklappt. `edit()` ist synchron, store.get()
 // liefert direkt danach den frischen Stand.
@@ -354,13 +367,36 @@ const material = mountMaterial(materialEl, {
     const firm = await pickFirm();
     if (firm != null) await saveCaseValue(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
   },
-  onRename: async (from, to) => { for (const c of renameCompany(store.get().cases, from, to)) await saveCaseValue(c); },
+  onRename: async (from, to) => {
+    const renamed = renameCompany(store.get().cases, from, to).map(stamp);
+    try {
+      await repo.saveCases(renamed);
+    } catch (err) {
+      await showAlert(`Firma konnte nicht umbenannt werden: ${err?.message ?? 'unbekannter Fehler'}`);
+      return false;
+    }
+    const ids = new Set(renamed.map(c => c.id));
+    store.update(st => ({ ...st, cases: [...st.cases.filter(x => !ids.has(x.id)), ...renamed] }));
+    return true;
+  },
   onDeleteCompany: async name => {
     const list = casesOf(store.get().cases, name);
     if (list.length && !await showConfirm(`Firma „${name}“ mit ${list.length} Einträgen löschen?`, { okLabel: 'Löschen', danger: true })) return false;
-    let ok = true;
-    for (const c of list) ok = await removeFromStock(c, { confirmed: true }) && ok;
-    return ok;
+    const ds = list.map(deletionFor);
+    if (ds.includes(null)) { await showAlert('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.'); return false; }
+    const saves = ds.filter(d => d.save).map(d => stamp(d.save));
+    const removes = ds.filter(d => d.remove).map(d => d.remove);
+    try {
+      // Überlagerungen gesammelt in einer Transaktion; das Entfernen läuft getrennt davon.
+      await repo.saveCases(saves);
+      for (const id of removes) await repo.deleteCase(id);
+    } catch (err) {
+      await showAlert(`Firma konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
+      return false;
+    }
+    const savedIds = new Set(saves.map(c => c.id)), gone = new Set(removes);
+    store.update(st => ({ ...st, cases: [...st.cases.filter(x => !savedIds.has(x.id) && !gone.has(x.id)), ...saves] }));
+    return true;
   },
 });
 
@@ -722,7 +758,7 @@ $('#plan-del').onclick = async () => {
   // LETZTE Plan, führt „Löschen“ jetzt zurück zum Startbildschirm (plan: null) statt
   // automatisch einen neuen leeren Plan zu erzeugen.
   const next = rest[0] ?? null;
-  if (next && rest.some(p => p.id === next.id)) autosave.markKnown(next); // sonst: neu, braucht sein erstes Speichern
+  if (next) autosave.markKnown(next);
   store.update(st => ({ ...st, plans: rest.filter(p => p.id !== next?.id), plan: next, selectedId: null }));
   store.resetHistory();
 };
@@ -761,7 +797,8 @@ async function editTruck(truck) {
         await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
       }
     }
-    if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }));
+    if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
+    store.resetHistory(); // Undo darf den gelöschten truckId nicht zurückholen
     return;
   }
   const value = stamp(res.value);
@@ -977,6 +1014,7 @@ if (storageError) {
 // Hinweis, unabhängig davon, wer zuerst da war.
 // Kleinigkeit aus der Review: ohne Schließen-Knopf steht der Hinweis den Rest der Sitzung
 // falsch da, sobald der andere Tab längst zu ist.
+$('#error-banner-close').onclick = () => { $('#error-banner').hidden = true; };
 $('#tab-warning-close').onclick = () => { $('#tab-warning').hidden = true; };
 
 if ('BroadcastChannel' in window) {
@@ -1009,3 +1047,6 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 
 scheduleRender();
+
+// Marker für den Ladefehler-Hinweis in index.html: ab hier ist das Modul-Skript vollständig gelaufen.
+window.__tlBooted = true;
