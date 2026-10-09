@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dollyStackCase } from '../js/model/audioDolly.js';
-import { parseDollyCount } from '../js/ui/dolly-wizard.js';
+import { parseDollyCount, buildDollyResult } from '../js/ui/dolly-wizard.js';
 import { mkCase } from './fixtures.js';
 
 // openDollyDialog() selbst ist ein DOM-Dialog (wie openTrussDialog()) und wird per Browser-
@@ -36,11 +36,14 @@ test('parseDollyCount: Kommazahl (keine Ganzzahl) → null', () => {
   assert.equal(parseDollyCount('2.5', 10), null);
 });
 
-import { buildDollyResult } from '../js/ui/dolly-wizard.js';
 test('buildDollyResult: „nur Load“ bekommt eigene UUID und verdeckt keinen Bestands-Stack', () => {
   const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
   const inStock = buildDollyResult(base, 2, {}, { inStock: true, company: 'CAB' }, 'uuid-1');
   const temp = buildDollyResult(base, 2, {}, { inStock: false, company: 'CAB' }, 'uuid-1');
   assert.equal(inStock.id, 'dolly-cab-k2-2');
   assert.equal(temp.id, 'uuid-1'); assert.equal(temp.onlyInPlan, true); assert.equal(temp.company, undefined);
+});
+test('buildDollyResult: Bestand ohne Firma behält die alte ID', () => {
+  const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
+  assert.equal(buildDollyResult(base, 2, {}, { inStock: true, company: '' }, 'u').id, 'dolly-k2-2');
 });

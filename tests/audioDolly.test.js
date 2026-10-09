@@ -211,3 +211,7 @@ test('dollyStackCase: Firma wird gesetzt', () => {
   const c = dollyStackCase(base, 2, {}, 'CAB');
   assert.equal(c.company, 'CAB'); assert.equal(c.id, 'dolly-cab-k2-2');
 });
+test('dollyStackId: dieselbe Box mit und ohne Firma ergibt verschiedene IDs', () => {
+  const k2 = { id: 'preset-k2' };
+  assert.notEqual(dollyStackId(k2, 2, 'CAB'), dollyStackId(k2, 2));
+});

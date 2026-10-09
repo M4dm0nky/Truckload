@@ -160,12 +160,13 @@ export function openTrussDialog(dlg, opts = {}) {
         try { wagons = splitWagons(Number(f.total.value), Number(f.perWagon.value)); }
         catch { return resolve(null); }
         const distinct = [...new Set(wagons)];
+        const target = readStockTarget(form, stock);
         const newCases = [];
         const additions = [];
         for (const n of distinct) {
           const caseType = applyStockTarget(
             buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, Number(f.wagonW.value)),
-            readStockTarget(form, stock));
+            target);
           const saved = await opts.onNewTruss?.(caseType);
           if (!saved) continue;
           newCases.push(saved);
