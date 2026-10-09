@@ -2,6 +2,8 @@ import { APP_VERSION } from './version.js';
 import * as repo from './store/repo.js';
 import { stamp } from './store/repo.js';
 import { createStore } from './store/state.js';
+import { screenOf, showScreen, renderStartScreen } from './app/screens.js';
+import { attachKeyboard } from './app/keyboard.js';
 import { ctxOf, deriveOf, allPlansOf, piecesOf, usage, truckUsage } from './app/core.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
@@ -102,7 +104,7 @@ export const store = createStore({
   cases: data.cases, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
   // layerLimit ist bewusst keine localStorage-Einstellung wie caseColors: die Lagen-Durchsicht
   // ist eine Momentaufnahme, kein dauerhafter Zustand.
-  plan: null, selectedId: null, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
+  plan: null, selectedId: null, materialOpen: false, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
 function ctx(s = store.get()) {
@@ -142,69 +144,38 @@ const startScreenEl = $('#start-screen');
 const headerEl = document.querySelector('header.topbar');
 const layoutEl = document.querySelector('main.layout');
 const materialEl = $('#material-screen');
-// Materialverwaltung: eigener Bildschirm, vom Startbildschirm und aus der Kopfleiste erreichbar.
-let materialOpen = false;
+// Materialverwaltung: eigener Bildschirm (store.materialOpen), vom Startbildschirm und aus der
+// Kopfleiste erreichbar.
 // Aus dem Lade-Wizard geöffnet: „Zurück“ gibt die frische Case-Liste an den Wizard zurück.
 let materialReturn = null;
 function openMaterialFromWizard() {
   return new Promise(resolve => { materialReturn = resolve; openMaterial(); });
 }
 function openMaterial() {
-  materialOpen = true;
-  if (store.get().plan) select(null);
-  scheduleRender();
+  store.update(s => ({ ...s, materialOpen: true, selectedId: s.plan ? null : s.selectedId }));
 }
-
-// Startbildschirm: kein Plan gewählt. Eigener, viel einfacherer Render-Pfad statt der
-// vollen Pipeline unten (renderHooks setzen durchgehend einen vorhandenen s.plan voraus).
-// Header und Hauptbereich bleiben `hidden`, solange kein Plan aktiv ist – dieselbe
-// Umschaltung, mit der render() unten wieder zurückwechselt.
-function renderStartScreen(s) {
-  headerEl.hidden = true;
-  layoutEl.hidden = true;
-  startScreenEl.hidden = false;
-
-  const plans = [...s.plans].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  const listHtml = plans.length
-    ? `<ul class="start-plans">${plans.map(p => `
-        <li><button class="start-plan-item" type="button" data-plan-id="${esc(p.id)}">${esc(p.name)}</button></li>
-      `).join('')}</ul>`
-    : `<p class="start-hint">Noch keine gespeicherten Ladepläne.</p>`;
-  $('#start-actions').innerHTML = `
-    <div class="start-main">
-      <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
-      <button id="start-material" class="primary" type="button" title="Materialverwaltung: Firmen, Cases, Lautsprecher, Traversen">Material</button>
-    </div>
-    ${listHtml}
-    <button id="start-import" type="button" title="JSON-Sicherung einlesen">Sicherung importieren</button>
-    <p class="start-version">V ${esc(APP_VERSION)}</p>
-  `;
-  $('#start-material').onclick = openMaterial;
-  $('#start-new').onclick = () => runLoadWizard('new');
-  // Dieselbe Eingabe wie #import-btn im (hier verborgenen) Header – Wiederherstellen auf
-  // einem frischen Rechner ohne gespeicherte Pläne war sonst nur über einen Umweg-Plan
-  // möglich (README: „Wiederherstellen … Importieren“).
-  $('#start-import').onclick = () => $('#import').click();
-  for (const btn of startScreenEl.querySelectorAll('.start-plan-item')) {
-    btn.onclick = () => {
-      const plan = store.get().plans.find(p => p.id === btn.dataset.planId);
-      if (plan) switchPlan(plan);
-    };
-  }
-}
+const screenEls = { start: startScreenEl, header: headerEl, layout: layoutEl, material: materialEl };
 
 function render() {
   const s = store.get();
-  if (materialOpen) {
-    startScreenEl.hidden = true; headerEl.hidden = true; layoutEl.hidden = true; materialEl.hidden = false;
-    material.update(s);
+  const screen = screenOf(s);
+  showScreen(screen, screenEls);
+  if (screen === 'material') { material.update(s); return; }
+  if (screen === 'start') {
+    renderStartScreen(startScreenEl, s, {
+      onMaterial: openMaterial,
+      onNew: () => runLoadWizard('new'),
+      // Dieselbe Eingabe wie #import-btn im (hier verborgenen) Header – Wiederherstellen auf
+      // einem frischen Rechner ohne gespeicherte Pläne war sonst nur über einen Umweg-Plan
+      // möglich (README: „Wiederherstellen … Importieren“).
+      onImport: () => $('#import').click(),
+      onPlan: id => {
+        const plan = store.get().plans.find(p => p.id === id);
+        if (plan) switchPlan(plan);
+      },
+    });
     return;
   }
-  materialEl.hidden = true;
-  if (!s.plan) { renderStartScreen(s); return; }
-  startScreenEl.hidden = true;
-  headerEl.hidden = false;
-  layoutEl.hidden = false;
 
   const d = derive(s);
   const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors, layerLimit: s.layerLimit };
@@ -315,8 +286,7 @@ const pickFirm = () => showPick('In welche Firma?', [{ value: '', label: 'Standa
 
 const material = mountMaterial(materialEl, {
   onBack: () => {
-    materialOpen = false;
-    scheduleRender();
+    store.update(s => ({ ...s, materialOpen: false }));
     if (materialReturn) { const back = materialReturn; materialReturn = null; back(store.get().cases); }
   },
   onNewCase: async company => {
@@ -502,10 +472,11 @@ const ACTIONS = {
     select(null);
   },
   'edit-case': id => editCase(findCaseIdForPiece(id)),
-  wheelFace: id => {
+  // Mit `face` setzt die Aktion genau diese Radseite (Inspector-Knopf), ohne reihum weiter.
+  'wheel-face': (id, face) => {
     const p = store.get().plan.placements.find(q => q.id === id);
     if (!p) return;
-    const next = WHEEL_FACES[(WHEEL_FACES.indexOf(wheelFace(p)) + 1) % WHEEL_FACES.length];
+    const next = face ?? WHEEL_FACES[(WHEEL_FACES.indexOf(wheelFace(p)) + 1) % WHEEL_FACES.length];
     edit((pl, c) => A.setWheelFace(pl, id, next, c));
   },
 };
@@ -514,10 +485,8 @@ const ACTIONS = {
 const invalidateInspector = () => { $('#inspector').__lastHtml = null; };
 $('#inspector').addEventListener('click', e => {
   invalidateInspector();
-  const wheelBtn = e.target.closest('[data-act="wheel-face"]');
-  if (wheelBtn) return withSel(id => edit((p, c) => A.setWheelFace(p, id, wheelBtn.dataset.face, c)));
-  const act = e.target.closest('[data-act]')?.dataset.act;
-  if (act) return withSel(ACTIONS[act]);
+  const actEl = e.target.closest('[data-act]');
+  if (actEl) return withSel(id => ACTIONS[actEl.dataset.act](id, actEl.dataset.face));
   const target = e.target.closest('[data-select]')?.dataset.select;
   if (target) select(target);
 });
@@ -546,23 +515,21 @@ $('#inspector').addEventListener('change', e => {
   }
 });
 
-// Tastatur
-document.addEventListener('keydown', e => {
-  if (materialOpen) return;
-  if (e.target.closest('input, textarea, select') || document.querySelector('dialog[open]')) return;
-  const mod = e.metaKey || e.ctrlKey;
-  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); return; }
-  if (e.key === 'Escape') return select(null);
-  const key = { r: 'rotate', t: 'tip', w: 'wheelFace', d: 'dup', Delete: 'delete', Backspace: 'delete' }[e.key.length === 1 ? e.key.toLowerCase() : e.key];
-  if (key && !mod) { e.preventDefault(); return withSel(ACTIONS[key]); }
-  const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
-  if (arrow) withSel(id => {
-    e.preventDefault();
-    const step = e.shiftKey ? 1 : 5;
-    const p = store.get().plan.placements.find(q => q.id === id);
-    if (!p) return; // Ablage-Stück ausgewählt: hat kein x/y, hier nichts zu verschieben
-    edit((pl, c) => A.moveGroup(pl, id, p.x + arrow[0] * step, p.y + arrow[1] * step, c, { grid: step, edges: false }));
-  });
+// Tastatur: die Zuordnung Taste -> Aktion steht in js/app/keyboard.js.
+attachKeyboard({
+  getState: store.get,
+  screenOf,
+  actions: {
+    ...ACTIONS,
+    undo: () => store.undo(),
+    redo: () => store.redo(),
+    deselect: () => select(null),
+    move: (id, dx, dy, step) => {
+      const p = store.get().plan.placements.find(q => q.id === id);
+      if (!p) return; // Ablage-Stück ausgewählt: hat kein x/y, hier nichts zu verschieben
+      edit((pl, c) => A.moveGroup(pl, id, p.x + dx * step, p.y + dy * step, c, { grid: step, edges: false }));
+    },
+  },
 });
 
 // Undo/Redo, Modus, Auto-Pack
@@ -660,11 +627,9 @@ renderHooks.push(s => {
 // jedem Frame neu“). Ein aufgeklapptes <select> mit Tastaturauswahl schließt sich dabei und die
 // Auswahl geht verloren. Die erzeugte Markup-Zeichenkette wird jetzt gemerkt und nur bei
 // tatsächlicher Änderung zugewiesen.
-const allPlans = s => allPlansOf(s)
-  .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 let lastPlanHtml = null, lastTruckHtml = null;
 renderHooks.push((s, d) => {
-  const planHtml = allPlans(s).map(p =>
+  const planHtml = allPlansOf(s).sort((a, b) => a.name.localeCompare(b.name, 'de')).map(p =>
     `<option value="${esc(p.id)}" ${p.id === s.plan.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
   if (planHtml !== lastPlanHtml) $('#plan-select').innerHTML = lastPlanHtml = planHtml;
   // Eigene Fahrzeuge kamen (wie eigene Cases, s. js/ui/caseGroups.js) sonst in

@@ -17,6 +17,8 @@ const ASSETS = [
   'css/print.css',
   'js/app.js',
   'js/app/core.js',
+  'js/app/keyboard.js',
+  'js/app/screens.js',
   'js/version.js',
   'js/data/case-library.js',
   'js/data/categories.js',
