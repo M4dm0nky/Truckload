@@ -35,6 +35,17 @@ export function deletePlanState(s) {
   return { ...s, plans: rest.filter(p => p.id !== next?.id), plan: next, selectedId: null };
 }
 
+// Löscht den Plan in der Datenbank. Zuerst `autosave.flush()`: eine ausstehende Änderung wird
+// fertig geschrieben, bevor gelöscht wird – sonst schriebe der Autosave-Timer sie danach wieder
+// hinein. Erst NACH dem erfolgreichen Löschen `forget` (schlüge deletePlan fehl, bliebe der Plan
+// bestehen und sein ausstehender Stand ginge verloren).
+export async function removePlanPersisted(planId, { autosave, repo, showAlert }) {
+  await autosave.flush();
+  const r = await guarded('Löschen fehlgeschlagen', () => repo.deletePlan(planId), { showAlert });
+  if (r.ok) autosave.forget(planId);
+  return r;
+}
+
 // deps: store, edit, ctx, autosave, repo, stamp, uid, showAlert/showConfirm/showPrompt,
 // warnIfUnplaced, saveCase, newCaseForWizard, openMaterialFromWizard.
 // Liefert { switchPlan, runLoadWizard }.
@@ -108,10 +119,7 @@ export function wirePlans(deps) {
   $('#plan-del').onclick = async () => {
     const s = store.get();
     if (!await showConfirm(`Ladeplan „${s.plan.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return;
-    if (!(await guarded('Löschen fehlgeschlagen', () => repo.deletePlan(s.plan.id), { showAlert })).ok) return;
-    // Erst NACH dem erfolgreichen Löschen die ausstehende Speicherung verwerfen: schlüge
-    // deletePlan fehl, bliebe der Plan bestehen und sein ausstehender Stand ginge verloren.
-    autosave.forget(s.plan.id);
+    if (!(await removePlanPersisted(s.plan.id, { autosave, repo, showAlert })).ok) return;
     // Nur plans/plan aus dem Schnappschuss vor dem await übernehmen; der übrige aktuelle Zustand bleibt.
     const after = deletePlanState(s);
     if (after.plan) autosave.markKnown(after.plan);
