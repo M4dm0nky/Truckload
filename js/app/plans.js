@@ -106,6 +106,7 @@ export function wirePlans(deps) {
     // Erst NACH dem erfolgreichen Löschen die ausstehende Speicherung verwerfen: schlüge
     // deletePlan fehl, bliebe der Plan bestehen und sein ausstehender Stand ginge verloren.
     autosave.forget(s.plan.id);
+    // Nur plans/plan aus dem Schnappschuss vor dem await übernehmen; der übrige aktuelle Zustand bleibt.
     const after = deletePlanState(s);
     if (after.plan) autosave.markKnown(after.plan);
     store.update(st => ({ ...st, plans: after.plans, plan: after.plan, selectedId: null }));

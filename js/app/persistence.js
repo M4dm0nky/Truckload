@@ -91,8 +91,8 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
 
   // Löscht das Fahrzeug und biegt alle ANDEREN Pläne (nicht den aktuellen – das macht der
-  // Aufrufer über edit()) auf den Standardtruck um (Befund Daten-22: sonst schöbe ctx() ihnen
-  // still den Sattelauflieger unter). Liefert false, wenn das Löschen selbst scheiterte.
+  // Aufrufer über edit()) auf den Standardtruck um, sonst schöbe ctx() ihnen
+  // still den Sattelauflieger unter. Liefert false, wenn das Löschen selbst scheiterte.
   async function deleteTruck(truckId) {
     const r = await run('Fahrzeug konnte nicht gelöscht werden', () => repo.deleteTruck(truckId));
     if (!r.ok) return false;
@@ -106,7 +106,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
         await Promise.all(changedOthers.map(repo.savePlan));
       } catch (err) {
         // Unbehandelt hätte das eine tote Rejection UND einen toten truckId-Verweis
-        // hinterlassen (Befund: „Löschzweige ohne Fehlerbehandlung“).
+        // hinterlassen.
         await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
       }
     }

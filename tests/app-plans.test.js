@@ -24,7 +24,7 @@ test('switchPlanState: ein neuer, unbekannter Plan wird nicht doppelt geführt',
   assert.deepEqual(next.plans.map(p => p.id), ['a', 'b']);
   assert.equal(next.plan.id, 'n');
 });
-test('switchPlanState: Wechsel auf den schon aktiven Plan lässt ihn (wie bisher) auch in der Liste stehen', () => {
+test('switchPlanState: Wechsel auf den schon aktiven Plan lässt ihn auch in der Liste stehen (bekannte Eigenheit, allPlansOf entdoppelt)', () => {
   const s = { plan: P('a'), plans: [P('b')], selectedId: 'x' };
   const next = switchPlanState(s, s.plan);
   assert.deepEqual(next.plans.map(p => p.id), ['a', 'b']);
