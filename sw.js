@@ -103,7 +103,9 @@ function networkFirst(request, cache, fetchFn = fetch, timeoutMs = NETWORK_TIMEO
         }
         return fallback().then(cached => cached ?? res);
       });
-    if (waitUntil) waitUntil(fromNet.then(() => putDone, () => {}).then(() => {}, () => {}));
+    if (waitUntil) {
+      try { waitUntil(fromNet.then(() => putDone, () => {}).then(() => {}, () => {})); } catch { /* Antwort darf daran nicht scheitern */ }
+    }
     return new Promise((resolve, reject) => {
       let done = false;
       const mine = clientId && pending ? (pending.get(clientId) ?? pending.set(clientId, new Set()).get(clientId)) : null;
@@ -143,5 +145,5 @@ self.addEventListener('fetch', event => {
   const clientId = event.resultingClientId || event.clientId || '';
   event.respondWith(caches.open(CACHE).then(cache =>
     networkFirst(request, cache, fetch, NETWORK_TIMEOUT_MS,
-      { degraded: degradedClients, pending: pendingByClient, clientId, waitUntil: p => event.waitUntil(p) })));
+      { degraded: degradedClients, pending: pendingByClient, clientId, waitUntil: p => { try { event.waitUntil(p); } catch { /* respondWith hält das Event bereits am Leben */ } } })));
 });

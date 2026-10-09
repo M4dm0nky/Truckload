@@ -144,3 +144,10 @@ test('Das Degradiert-Set ist auf 50 Clients begrenzt, der älteste fliegt raus',
   assert.ok(degraded.has('neu'));
   assert.ok(!degraded.has('c0'));
 });
+
+test('Wirft waitUntil, kommt die Antwort trotzdem an', async () => {
+  const { networkFirst } = loadSw();
+  const res = await networkFirst(req, fakeCache(), async () => new Response('neu'), 1000,
+    { waitUntil: () => { throw new Error('InvalidStateError'); } });
+  assert.equal(await body(res), 'neu');
+});

@@ -83,7 +83,10 @@
 </head>
 <body>
   <div id="storage-warning" class="banner banner-warn" hidden></div>
-  <div id="error-banner" class="banner banner-warn" role="alert" hidden></div>
+  <div id="error-banner" class="banner banner-warn" role="alert" hidden>
+    <span id="error-banner-text"></span>
+    <button id="error-banner-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>
+  </div>
   <div id="tab-warning" class="banner banner-warn" hidden>
     Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.
     <button id="tab-warning-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>

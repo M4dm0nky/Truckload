@@ -271,6 +271,10 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
 - Die Lagen-Auswahl endet bei „bis 3“. Für den vorgesehenen Bereich reicht das (ab Lage 5 warnt
   `validate.js`), aber in einem Load mit 5 Lagen – der gewarnt, nicht verhindert wird – lassen
   sich die Lagen 1–4 nicht gemeinsam freistellen.
+- Service-Worker, Versionsmix bei langsamem Netz: Dateien, die ein Seitenaufruf schon frisch vom
+  Netz bekommen hat, bleiben frisch, auch wenn spätere Dateien nach einem Timeout aus dem Cache
+  kommen. Ein Mix aus neuem und altem Stand ist dadurch nicht ganz ausgeschlossen; in dem Fall
+  zeigt index.html den „Bitte neu laden“-Hinweis. Bewusst akzeptiert.
 
 ## Ideen, die noch niemand beauftragt hat
 
@@ -282,8 +286,3 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   der Ablage (`piece.tipped:true` erzwingt tipLong/tipShort, `chooseOrientation` liefert dann
   `null`, obwohl „stehend“ gepasst hätte) — der Nutzer sieht nur, dass es nicht platziert
   wurde, nicht warum. Die Ablage könnte den Grund benennen.
-
-- Service-Worker, Versionsmix bei langsamem Netz: Dateien, die ein Seitenaufruf schon frisch vom
-  Netz bekommen hat, bleiben frisch, auch wenn spätere Dateien nach einem Timeout aus dem Cache
-  kommen. Ein Mix aus neuem und altem Stand ist dadurch nicht ganz ausgeschlossen; in dem Fall
-  zeigt index.html den „Bitte neu laden“-Hinweis. Bewusst akzeptiert.

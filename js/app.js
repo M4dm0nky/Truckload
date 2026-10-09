@@ -33,9 +33,10 @@ import { createAutosave } from './store/autosave.js';
 window.addEventListener('unhandledrejection', e => {
   console.error('Unbehandelte Ablehnung', e.reason);
   const el = document.getElementById('error-banner');
-  if (!el) return;
+  const text = document.getElementById('error-banner-text');
+  if (!el || !text) return;
   el.hidden = false;
-  el.textContent = `Unerwarteter Fehler: ${e.reason?.message ?? String(e.reason)}`;
+  text.textContent = `Unerwarteter Fehler: ${e.reason?.message || String(e.reason)}`;
 });
 
 
@@ -796,10 +797,8 @@ async function editTruck(truck) {
         await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
       }
     }
-    if (s1.plan.truckId === truck.id) {
-      edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
-      store.resetHistory(); // Undo darf den gelöschten truckId nicht zurückholen
-    }
+    if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
+    store.resetHistory(); // Undo darf den gelöschten truckId nicht zurückholen
     return;
   }
   const value = stamp(res.value);
@@ -1015,6 +1014,7 @@ if (storageError) {
 // Hinweis, unabhängig davon, wer zuerst da war.
 // Kleinigkeit aus der Review: ohne Schließen-Knopf steht der Hinweis den Rest der Sitzung
 // falsch da, sobald der andere Tab längst zu ist.
+$('#error-banner-close').onclick = () => { $('#error-banner').hidden = true; };
 $('#tab-warning-close').onclick = () => { $('#tab-warning').hidden = true; };
 
 if ('BroadcastChannel' in window) {
