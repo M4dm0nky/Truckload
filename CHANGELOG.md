@@ -2,6 +2,13 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.4 – 2026-10-09
+
+Neue Firma direkt beim Ablegen: In „Im Materialbestand ablegen“ (Boxen-Dolly, „+ Neues Case“,
+Sonderbau, „+ Traverse“ im Wizard) gibt es unter „Ablegen in“ die Option „+ Neue Firma …“ mit
+einem Namensfeld darunter (höchstens 80 Zeichen, leer lässt sich nicht speichern). Die Firma steht
+danach sofort unter „Suchen in“ und in der Materialverwaltung.
+
 ## V 0.13.3 – 2026-10-09
 
 Schnellere 2D-Ansicht mit Lautsprechern: Ein Klick auf ein Case dauerte mit vielen Boxen-Dollys
