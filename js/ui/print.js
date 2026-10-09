@@ -1,5 +1,5 @@
 import { APP_VERSION } from '../version.js';
-import { esc, swatch, fmtM, ORIENTATION_LABEL } from './dom.js';
+import { esc, safeColor, swatch, fmtM, ORIENTATION_LABEL } from './dom.js';
 import { renderView } from './view2d.js';
 
 // Angaben, die auf jeder Druckart im Kopf stehen – ein gemeinsamer Baustein statt doppelter
@@ -17,16 +17,6 @@ function headInfo({ plan, truck, result }) {
 }
 
 const sortedBySequence = result => [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
-
-// Farbbalken der Etiketten nutzt dieselbe Farbprüfung wie der Farbpunkt der Abhakliste
-// (SWATCH_COLOR_RE in dom.js) – statt sie zu duplizieren, wird sie über swatch() selbst
-// abgegriffen: swatch() liefert immer ein gültiges background:#RRGGBB oder den Grau-Fallback
-// #888, egal was `color` enthält (Task-4-Brief).
-// Der Rückfall auf #888 ist heute nicht erreichbar (SWATCH_COLOR_RE lässt nur #RGB/#RRGGBB
-// durch, sonst liefert swatch() selbst schon #888). Er steht trotzdem da: änderte dom.js das
-// Ausgabeformat (etwa `background: #fff` mit Leerzeichen), wäre match() null und der ganze
-// Etikettenbogen bliebe mit einem TypeError leer, statt nur die Farbe zu verlieren.
-const barColor = color => swatch(color).match(/background:\s*(#[0-9a-fA-F]{3,6})/)?.[1] ?? '#888';
 
 // Warnungen aus dem Packergebnis, gemeinsam für Ladeplan und Abhakliste.
 const issuesHTML = result => result.issues.length
@@ -55,7 +45,7 @@ export function printHTML({ plan, truck, result }) {
       <tbody>${rows.map(it => `<tr>
         <td>${result.sequence.get(it.id)}</td><td>${esc(it.label)}</td><td>${esc(it.c.name)}</td><td>${esc(it.c.content)}</td>
         <td>${ORIENTATION_LABEL[it.p.orientation]}</td><td>${fmtM(it.box.x0)}</td>
-        <td>${it.box.z0 > 0 ? `${Math.round(it.box.z0)} cm` : 'Boden'}</td><td>${result.layers.get(it.id)}</td><td>${it.c.weight}</td></tr>`).join('')}
+        <td>${it.box.z0 > 0 ? `${Math.round(it.box.z0)} cm` : 'Boden'}</td><td>${result.layers.get(it.id)}</td><td>${esc(it.c.weight)}</td></tr>`).join('')}
       </tbody>
     </table>`;
 }
@@ -126,7 +116,7 @@ export function buildLabels(root, { plan, result, size = 'large' }) {
       <div class="tl-label">
         <span class="seq">${n}</span>
         <span class="name">${esc(it.label)}</span>
-        <span class="bar" style="background:${barColor(it.color)}"></span>
+        <span class="bar" style="background:${safeColor(it.color)}"></span>
         <span class="meta"><span class="load">${planName}</span> <span class="count">${n} von ${total}</span></span>
       </div>`;
   }).join('')}</div>`;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor, refreshWizardCases } from '../js/ui/load-wizard.js';
+import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor, refreshWizardCases } from '../js/ui/wizard-items.js';
 import { caseKind, NEUTRAL_COMPANY } from '../js/ui/caseGroups.js';
 import { mkCase } from './fixtures.js';
 

@@ -6,7 +6,12 @@ import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, rul
 // über die Rückrufe von app.js und liefert { rules, mixTop, repack } oder null (Abbrechen/Esc).
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
 // Drag-Sonderfälle im <dialog>.
-export function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
+export async function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
+    const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
+    dlg.returnValue = 'cancel'; dlg.close();
+    await closed;
+  }
   let cur = [...rules];
   let sets = [...ruleSets];
 
@@ -74,9 +79,9 @@ export function openPackRules(dlg, { rules, mixTop = false, targets, caseById, r
       return `
         <li class="rule ${active ? '' : 'inactive'}" data-i="${i}">
           <span class="rule-text">${esc(describeRule(r, caseById))}${active ? '' : ' <small>(nicht in diesem Load)</small>'}</span>
-          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="Nach oben">↑</button>
-          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="Nach unten">↓</button>
-          <button type="button" data-act="remove" title="Regel entfernen">×</button>
+          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="Nach oben" aria-label="Nach oben">↑</button>
+          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="Nach unten" aria-label="Nach unten">↓</button>
+          <button type="button" data-act="remove" title="Regel entfernen" aria-label="Regel entfernen">×</button>
         </li>`;
     }).join('') || '<li class="hint">Keine Regel – dann entscheidet der Name.</li>';
   }

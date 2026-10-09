@@ -2,14 +2,15 @@ import { CATEGORIES, colorFor } from '../data/categories.js';
 import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims, isTruss } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims } from '../model/truss.js';
 import { CASE_LIMITS } from '../model/limits.js';
+import { QUICK_LENGTHS } from './caseInfo.js';
 import { showConfirm } from './confirmDialog.js';
+import { esc } from './dom.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
 const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
-export const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
 // Welche Herkunftsfelder ein gespeichertes Case aus dem Bearbeiten-Ausgangswert `v` übernimmt.
 // Neue Cases (auch Kopien einer Vorlage) behalten nur die Firma; `legacy` (ausgeblendete Vorlage)
@@ -25,13 +26,17 @@ export function retainedFields(v, { isNew, fromTemplate, overrideBuiltin }) {
   };
 }
 
-export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
+export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
   // Absicherung gegen einen zweiten Aufruf, bevor der `close`-Listener des vorigen gefeuert hat:
   // der ist an `dlg` selbst hängt (überlebt also das `dlg.innerHTML = …` unten) und würde beim
   // Schließen DIESES Dialogs sonst über sein eigenes, abgehängtes `f` die Werte des alten Formulars
   // lesen und die alte Promise auflösen (heute unerreichbar, da `#dlg-case` nur aus zwei sequentiellen
   // `await`-Pfaden bedient wird – docs/code-review-2026-09-21.md, „S7 — derselbe <dialog> zweimal offen“).
-  if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
+    const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
+    dlg.returnValue = 'cancel'; dlg.close();
+    await closed;
+  }
   const src = c ?? draft ?? null;
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
   if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';
@@ -46,7 +51,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false,
       <label>Name<input name="name" required maxlength="80" placeholder="z. B. Kabelcase Strom 1"></label>
       <label>Inhalt<textarea name="content" rows="3" placeholder="z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m"></textarea></label>
       <div class="row">
-        <label>Gewerk<select name="category">${CATEGORIES.map(k => `<option>${k.name}</option>`).join('')}</select></label>
+        <label>Gewerk<select name="category">${CATEGORIES.map(k => `<option>${esc(k.name)}</option>`).join('')}</select></label>
         <label>Farbe<input type="color" name="color"></label>
       </div>
       <div class="row kind-switch">
@@ -61,7 +66,7 @@ export function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false,
         <label class="check"><input type="checkbox" name="wheels"> mit Rollen</label>
         <div class="row">
           <label>Rollenhöhe<select name="wheelPreset">
-            ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${p.name} – ${p.h} cm</option>`).join('')}
+            ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${esc(p.name)} – ${p.h} cm</option>`).join('')}
             <option value="custom">eigene …</option>
           </select></label>
           <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="40" step="1"></label>

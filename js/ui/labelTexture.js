@@ -6,6 +6,7 @@
 // dem Korpus herausgeschnitten ist). `fitFontSize()` bestimmt Schriftgröße und Zeilenumbruch für
 // eine gegebene Fläche, mit einer groben Zeichenbreiten-Schätzung statt echter Font-Metrik (die gibt
 // es ohne Canvas/WebGL nicht).
+import { CHAR_ASPECT, estimateTextWidth } from './textMetrics.js';
 
 const OFFSET = 0.5; // cm Abstand der Beschriftungsebene vor der Korpusfläche
 
@@ -65,12 +66,9 @@ export function labelPlanes(box, face) {
 // Umbruch umzustellen wäre eine sichtbare Verhaltensänderung, keine reine Dopplung (Begründung
 // und Gegenkommentar an der Aufrufstelle: js/ui/view2d.js, LABEL_MIN/LABEL_MAX,
 // docs/code-review-2026-09-21.md, „S3 — eine Textmetrik für 2D und 3D“). Geteilt wird nur die
-// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, s. u.), die view2d.js als Rückfall importiert,
+// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, js/ui/textMetrics.js), die view2d.js als Rückfall importiert,
 // wenn kein Canvas zum Messen zur Verfügung steht.
-const CHAR_ASPECT = 0.56; // grobe Zeichenbreite je Schriftgröße (Sans-Serif-Schätzung, keine echte Font-Metrik)
 const LINE_HEIGHT = 1.15; // Zeilenabstand je Schriftgröße
-
-export const estimateTextWidth = (text, fontSize) => String(text).length * fontSize * CHAR_ASPECT;
 
 // Greedy Wortumbruch auf `maxChars` Zeichen je Zeile; einzelne Wörter, die länger als eine Zeile
 // sind, werden hart umbrochen (z. B. sehr lange zusammengeschriebene Bezeichnungen). `hardSplit`

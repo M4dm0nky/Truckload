@@ -1,6 +1,11 @@
 import { showConfirm } from './confirmDialog.js';
 
-export function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
+export async function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
+  if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
+    const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
+    dlg.returnValue = 'cancel'; dlg.close();
+    await closed;
+  }
   const isNew = !t || t.builtin;
   const arch = t?.wheelArches?.[0];
   dlg.innerHTML = `

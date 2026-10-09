@@ -1,5 +1,5 @@
 import { esc } from './dom.js';
-import { QUICK_LENGTHS } from './case-editor.js';
+import { QUICK_LENGTHS, trussProfileName } from './caseInfo.js';
 import { isTruss } from '../model/geometry.js';
 import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons } from '../model/truss.js';
 import { colorFor } from '../data/categories.js';
@@ -154,8 +154,7 @@ export function openTrussDialog(dlg, opts = {}) {
       const kind = kindInputs.find(r => r.checked)?.value ?? 'classic';
       if (kind === 'classic') {
         const width = Number(f.profile.value);
-        const profile = TRUSS_PROFILES.find(p => p.width === width);
-        const profileName = profile?.name?.split(' ')[0] ?? `${width} cm`;
+        const profileName = trussProfileName(width);
         const length = Number(f.trussLength.value);
         let wagons;
         try { wagons = splitWagons(Number(f.total.value), Number(f.perWagon.value)); }

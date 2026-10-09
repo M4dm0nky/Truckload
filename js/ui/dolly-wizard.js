@@ -49,7 +49,7 @@ export function openDollyDialog(dlg, opts = {}) {
         Schwerlastrollen – wie viele Boxen übereinander?</p>
       <label>Stückzahl auf diesem Dolly<input type="number" name="n" min="1" max="${maxN}" step="1" value="1" required></label>
       <div class="row">
-        <label>Wagen Breite (cm)<input type="number" name="wl" min="20" max="400" step="1" value="${base.l}" required></label>
+        <label>Wagen Breite (cm)<input type="number" name="wl" min="20" max="400" step="1" value="${esc(base.l)}" required></label>
         <label>Wagen Tiefe (cm)<input type="number" name="ww" min="20" max="250" step="1" value="${dollyDepth(base.w)}" required></label>
       </div>
       <p class="hint wagen-hint"></p>

@@ -1,5 +1,5 @@
 import { applyViewBox } from './zoom2d.js';
-import { svgEl } from './dom.js';
+import { caseIdAt, safeColor, svgEl, toSvg } from './dom.js';
 import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
 import { wheelFace, isTruss } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
@@ -7,7 +7,7 @@ import { caseColors, weightRange, weightColor } from './caseStyle.js';
 import { archBoxes } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { trussShape, TUBE_R_RATIO } from '../model/truss.js';
-import { estimateTextWidth } from './labelTexture.js';
+import { estimateTextWidth } from './textMetrics.js';
 
 // 2D ist die nüchterne Planungsansicht – „Tetris“: jedes Stück ist ein Rechteck im belegten
 // Außenmaß inkl. Rollen (`it.box`, siehe docs/architektur.md, „Rollen im Maß“). Die reale
@@ -27,7 +27,7 @@ const TRADE_EDGE = 3; // cm, Innenrahmen in Gewerkfarbe im Modus „Schwarz“
 // Absichtlich NICHT zusammengeführt: 2D auf Umbruch umzustellen wäre eine sichtbare
 // Verhaltensänderung (mehrzeiliger statt gekürzter Text), keine reine Dopplung, und damit
 // außerhalb dessen, was Task 6 zusammenführen soll. Was tatsächlich geteilt wird, ist nur die
-// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, aus labelTexture.js importiert) als Rückfall,
+// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, aus textMetrics.js importiert) als Rückfall,
 // wenn kein Canvas zum Messen da ist (s. `textMeasurer()`).
 const LABEL_MIN = 6;
 const LABEL_MAX = 16;
@@ -89,7 +89,7 @@ function drawTruss(g, it, mode, truck) {
   const r = project(box, mode, truck);
   svgEl('rect', {
     x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'body truss-box',
-    ...(it.color ? { style: `--mark:${it.color}` } : {}),
+    ...(it.color ? { style: `--mark:${safeColor(it.color)}` } : {}),
   }, g);
   const shape = trussShape(c, p, box);
   const profileWidth = shape.profileWidth ?? c.truss.width;
@@ -118,7 +118,7 @@ export function truncateToWidth(full, maxWidth, widthOf) {
 // schmalen Stacks waren das Hunderte Layouts je Klick (Nutzer-Feedback 2026-10-09: „bis man die
 // anklicken kann vergehen ein paar Sekunden“; gemessen 474 Messungen = 384 ms von 416 ms je
 // Auswahl in 2D). `measureText` löst kein Layout aus. Gleiche Schrift wie `.label` (fett, vom Body
-// geerbt); ohne Canvas (Node, sehr alte Browser) die grobe Schätzung aus labelTexture.js – sie
+// geerbt); ohne Canvas (Node, sehr alte Browser) die grobe Schätzung aus textMetrics.js – sie
 // greift auch für ein ungerendertes SVG wie `#print-root` nicht mehr, weil Canvas dort misst.
 let measureCtx;
 const widthCache = new Map();
@@ -170,13 +170,13 @@ function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure }
   } else {
     const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
     const colors = caseColors(it.c, colorMode, itemColor);
-    svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, fill: colors.body, class: 'body' }, g);
+    svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, fill: safeColor(colors.body), class: 'body' }, g);
     // Modus „Schwarz“: dunkle Kiste, die Gewerkfarbe als dünner Innenrahmen – ein eigenes
     // Rechteck, damit die Auswahlfarbe auf `rect.body` über CSS weiter greift.
     if (colors.stripe) svgEl('rect', {
       x: r.u0 + TRADE_EDGE, y: r.v0 + TRADE_EDGE,
       width: Math.max(0, r.u1 - r.u0 - 2 * TRADE_EDGE), height: Math.max(0, r.v1 - r.v0 - 2 * TRADE_EDGE),
-      stroke: colors.stripe, class: 'trade-edge',
+      stroke: safeColor(colors.stripe), class: 'trade-edge',
     }, g);
     // Rollenzone als Streifen in echter Tiefe – nur, wo man die Rollen von der Kante sieht.
     const bodyRect = project(caseShape(it.c, it.p, it.box).body, mode, truck);
@@ -238,20 +238,16 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
     .appendChild(svgEl('title')).textContent = 'Schwerpunkt';
 }
 
-function toSvg(svg, e) {
-  return new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
-}
-
 export function attachSelect(svg, onSelect) {
-  svg.addEventListener('pointerdown', e => onSelect(e.target.closest('g.case')?.dataset.id ?? null));
+  svg.addEventListener('pointerdown', e => onSelect(caseIdAt(e)));
 }
 
 export function attachTopInteractions(svg, h) {
   let drag = null;
-  const truckPt = e => { const p = toSvg(svg, e); return unproject(p.x, p.y, 'top', h.getTruck()); };
+  const truckPt = e => { const p = toSvg(svg, e.clientX, e.clientY); return unproject(p.x, p.y, 'top', h.getTruck()); };
 
   svg.addEventListener('pointerdown', e => {
-    const id = e.target.closest('g.case')?.dataset.id ?? null;
+    const id = caseIdAt(e);
     h.onSelect(id);
     if (!id) return;
     const it = h.getItem(id);
@@ -285,6 +281,8 @@ export function attachTopInteractions(svg, h) {
     const raw = e.dataTransfer.getData('text/x-case');
     if (!raw) return;
     const pt = truckPt(e);
-    h.onDropCase(JSON.parse(raw), pt.x, pt.y);
+    let data;
+    try { data = JSON.parse(raw); } catch { return; } // fremde Ablage mit demselben Typ, aber kaputtem Inhalt
+    h.onDropCase(data, pt.x, pt.y);
   });
 }
