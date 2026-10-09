@@ -89,7 +89,7 @@ export function bulkState(entries, key) {
   return vals.some(Boolean) ? 'mixed' : 'off';
 }
 
-function caseLine(c) {
+export function caseLine(c) {
   const company = c.company ? ` · ${c.company}` : '';
   if (isTruss(c)) {
     const wagen = c.truss.standing ? '' : ` · Wagen ${c.w} cm breit`;
