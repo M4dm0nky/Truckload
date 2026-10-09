@@ -15,7 +15,7 @@ export function companiesOf(cases) {
   return [...new Set(cases.filter(c => !c.legacy && !c.onlyInPlan).map(c => c.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
 }
 
-// Die 4 Reiter der Artikelauswahl (Materialverwaltung + Wizard-Case-Liste); Lautsprecher s. caseKind(). Traversen sind eigene
+// Die 4 Reiter der Artikelauswahl (Materialverwaltung + Wizard-Case-Liste); Lautsprecher s. caseKind().
 // Case-Typen (kind:'truss'), Sonderbau eigene Case-Typen mit category:'Sonderbau' – beide
 // Merkmale schließen sich gegenseitig aus (ein Sonderbau ist nie gleichzeitig eine Traverse),
 // alles andere landet im Cases-Reiter. Reine Klassifikation, kein Filtern nach Suche/Gewerk/
@@ -49,26 +49,20 @@ export function groupCases(cases, { q = '', cat = '', company = '', keep = new S
     && matchCompany(c)
     && (!needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle)));
   return {
-    // `.sort(...)`: eigene Cases kamen bis Task 8 in IndexedDB-Schlüsselreihenfolge an
-    // (crypto.randomUUID()), sprangen also bei jeder Bearbeitung zusätzlich um (js/app.js hängt
-    // das bearbeitete Case ans Ende des Arrays), weil weder repo.js noch hier sortiert wurde
-    // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge“). Hier
-    // sortiert statt in repo.js: damit ist die Reihenfolge unabhängig davon, woher die Liste kommt
-    // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
+    // `.sort(...)`: eigene Cases kämen sonst in IndexedDB-Schlüsselreihenfolge (UUID) an und sprängen
+    // bei jeder Bearbeitung um, weil app.js das bearbeitete Case ans Array-Ende hängt. Hier statt in
+    // repo.js sortiert, damit die Reihenfolge nicht davon abhängt, woher die Liste kommt.
     own: cases.filter(c => !c.builtin && !c.legacy && c.source !== 'liste' && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
     presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && match(c)),
-    // `!c.legacy`: ersetzte Listen-Einträge (Aufräumen V0.8.1) bleiben nur für alte Ladepläne.
+    // `!c.legacy`: ersetzte Listen-Einträge bleiben nur für alte Ladepläne.
     list: cases.filter(c => !c.legacy && c.source === 'liste' && match(c)),
   };
 }
 
-// Rendert die dreiteilige Case-Liste (Eigene Cases / Vorlagen / Cases aus deiner Liste), die
-// Bibliothek (library.js) und Lade-Wizard (load-wizard.js) bis Task 6 als je eigene Kopie
-// hielten — Überschriften mit Zählern und Leertexte identisch aufgebaut, nur `rowFn` und die
-// Leertexte selbst unterschieden sich zwischen beiden (docs/code-review-2026-09-21.md,
-// „S2 — die dreiteilige Case-Liste gemeinsam rendern“). `emptyTexts.presetsHeading` ist der
-// einzige zusätzliche Unterschied (Bibliothek hängt „ (Richtwerte)“ an die Vorlagen-Überschrift,
-// der Wizard nicht) und bleibt deshalb ein eigener, optionaler Parameter statt vereinheitlicht.
+// Rendert die dreiteilige Case-Liste (Eigene Cases / Vorlagen / Cases aus deiner Liste) für
+// Bibliothek und Lade-Wizard: Überschriften mit Zählern gleich aufgebaut, nur `rowFn` und die
+// Leertexte unterscheiden sich. `emptyTexts.presetsHeading` ist optional (die Bibliothek hängt
+// „ (Richtwerte)“ an die Vorlagen-Überschrift, der Wizard nicht).
 export function renderGroupList(target, groups, rowFn, emptyTexts) {
   const { own, presets, list } = groups;
   target.innerHTML = `

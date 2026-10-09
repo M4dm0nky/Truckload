@@ -5,8 +5,8 @@ import { companyList, casesOf, onlyInPlanCases, firmNameError } from '../model/m
 import { MAX_FIRM } from '../model/limits.js';
 import { showPrompt, showAlert } from './confirmDialog.js';
 
-// Materialverwaltung (V 0.12.5, Spec 2026-10-09-materialverwaltung-design.md): eigener Bildschirm,
-// immer erreichbar. Links Standardkatalog + Firmen, rechts deren Material. Löschen gibt es NUR hier.
+// Materialverwaltung: eigener Bildschirm, immer erreichbar. Links Standardkatalog + Firmen,
+// rechts deren Material. Löschen gibt es NUR hier.
 const STANDARD = '';
 const ONLY_IN_PLAN = '__onlyInPlan__';
 

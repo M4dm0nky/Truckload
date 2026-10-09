@@ -20,25 +20,20 @@ export function refreshWizardCases(counts, freshCases) {
   return freshCases;
 }
 
-// Kappt eine Addition auf den im Wizard verbleibenden Platz unter MAX_ITEMS – ausgelagert aus
-// addDollyStack() (Befund Final-Review Minor #8), damit die 500er-Grenze unabhängig vom DOM
-// getestet werden kann. Gleiche Regel wie addTruss() sie inline anwendet, hier nur als eigene,
-// benannte Funktion für den Dolly-Dialog-Pfad.
+// Kappt eine Addition auf den im Wizard verbleibenden Platz unter MAX_ITEMS – ausgelagert, damit
+// die 500er-Grenze ohne DOM testbar ist; dieselbe Regel wendet addTruss() inline an.
 export function capToRoom(n, total, max) {
   return Math.max(0, Math.min(n, max - total));
 }
 
 // Reduziert ein im Wizard bearbeitetes Stück auf die Felder, die tatsächlich eine bewusste
 // Einschränkung sind: `layers` nur, wenn das Stück eine ECHTE Teilmenge der vom Case-Typ
-// erlaubten Lagen trägt (nicht einfach alle angehakt lässt), `tipped` nur, wenn der Case-Typ
-// überhaupt tippbar ist (sonst wäre der Wert ohnehin ohne Wirkung). Ohne diese Reduktion würde
-// jedes Stück, das der Nutzer nie bewusst eingeschränkt hat, trotzdem `layers`/`tipped` als
-// feste Werte tragen — eine spätere Änderung am Case-Typ (z. B. eine neu erlaubte Lage) käme
-// dann bei diesen Stücken nie an. Nachträglich lassen sich beide Felder je Stück im Inspector
-// ändern (`A.setPieceLayers`/`A.setPieceTipped`, js/ui/inspector.js), mit derselben
-// Reduktionsregel. Die Vorbelegung/Anzeige der Checkboxen hier im Wizard bleibt davon
-// unberührt (s. defaultWizardLayers), nur das gespeicherte ERGEBNIS wird reduziert. Die Gruppe
-// (`group`) kommt ohne Vorbelegung nur, wenn der Nutzer sie getrimmt nicht leer ausgefüllt hat.
+// erlaubten Lagen trägt, `tipped` nur, wenn der Case-Typ überhaupt tippbar ist. Sonst trüge
+// jedes nie bewusst eingeschränkte Stück feste Werte, und eine spätere Änderung am Case-Typ
+// (z. B. eine neu erlaubte Lage) käme dort nie an. Im Inspector lassen sich beide Felder je Stück
+// mit derselben Reduktionsregel ändern (`A.setPieceLayers`/`A.setPieceTipped`). Die Anzeige der
+// Checkboxen im Wizard bleibt unberührt (s. defaultWizardLayers), nur das gespeicherte ERGEBNIS
+// wird reduziert. Die Gruppe (`group`) kommt nur, wenn der Nutzer sie getrimmt nicht leer ausfüllt.
 export function reduceWizardItem(it, c) {
   const allowed = layersOf(c);
   const sameLayers = it.layers.length === allowed.length && it.layers.every(n => allowed.includes(n));

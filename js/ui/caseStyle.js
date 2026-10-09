@@ -6,15 +6,8 @@ export const CASE_BLACK = '#1c1d20';
 // (Profile, Kugelecken, Deckelfuge, Griffe) statt eines einfachen Kastens.
 export const DETAIL_MIN = 40;
 export const COLOR_MODES = ['black', 'trade', 'weight'];
-// `itemColor ?? c.color` sieht wie die dritte Kopie derselben toten Rückfallkette aus, die N5
-// (docs/code-review-2026-09-21.md, Nachtrag Controller) an view2d.js/view3d.js bemängelt hat –
-// beide heutigen Aufrufer übergeben bereits `it.color`, das den Rückfall auf die Gewerkfarbe
-// über `buildItems()` (js/model/items.js: `p.color ?? c.color`) schon trägt. Anders als dort
-// ist der Rückfall HIER aber Teil der öffentlichen Signatur dieser Funktion, nicht eine
-// zusätzliche Kopie einer fremden Regel: `caseColors(c, mode)` ohne dritten Parameter ist ein
-// eigenständig getesteter, gültiger Aufruf (tests/caseStyle.test.js, „ohne itemColor bleibt es
-// beim bisherigen Verhalten“) – ein Entfernen würde diesen Vertrag brechen, nicht nur doppelten
-// Code beseitigen. Bewusst NICHT zusammengeführt.
+// `itemColor ?? c.color`: der Rückfall bleibt bewusst. Die Aufrufer übergeben schon `it.color`
+// (buildItems), aber `caseColors(c, mode)` ohne dritten Parameter ist ein getesteter, gültiger Aufruf.
 export function caseColors(c, mode, itemColor) {
   const color = itemColor ?? c.color;
   return mode === 'trade' || mode === 'weight' ? { body: color, stripe: null } : { body: CASE_BLACK, stripe: color };
@@ -28,12 +21,10 @@ const WEIGHT_HEAVY = [0xd8, 0x3b, 0x3b]; // Rot
 
 // Spanne der Gewichte EINMAL je Render berechnen, nicht je Stück (sonst O(n²) über die Items).
 // Nur Stücke MIT Gewicht (> 0) zählen – 0 kg heißt „unbekannt“, nicht „am leichtesten“, dieselbe
-// Regel wie bei der Deckschicht (V 0.8.6, docs/casemasse-gewichte.md).
-// Traversenwägen bleiben ebenfalls draußen: drawTruss/addTruss zeichnen sie bewusst in ihrer
-// Markenfarbe statt in der Gewichtsfarbe. Würden sie die Skala trotzdem aufspannen, drückte ein
-// 100-kg-Wagen neben Kabelcases von 10–30 kg alle Cases in das untere Drittel – sie sähen fast
-// gleich blau aus, während das Stück, das das Maximum setzt, gar nicht mitgefärbt wird. Was nicht
-// eingefärbt wird, darf die Skala nicht bestimmen.
+// Regel wie bei der Deckschicht (docs/casemasse-gewichte.md).
+// Traversenwagen bleiben draußen: drawTruss/addTruss zeichnen sie in ihrer Markenfarbe. Was nicht
+// eingefärbt wird, darf die Skala nicht bestimmen – ein 100-kg-Wagen drückte sonst alle Cases von
+// 10–30 kg ins untere Drittel.
 export function weightRange(items) {
   let min = Infinity, max = -Infinity;
   for (const it of items) {
@@ -45,7 +36,7 @@ export function weightRange(items) {
 }
 
 // kg -> Hex-Farbe. 0 kg oder keine Spanne (kein Stück im Load hat ein Gewicht): neutrales Grau,
-// damit „unbekannt“ nicht wie „am leichtesten“ aussieht (V 0.8.6-Regel, s. o.).
+// damit „unbekannt“ nicht wie „am leichtesten“ aussieht (Regel s. o.).
 export function weightColor(kg, range) {
   if (!(kg > 0) || range === null) return WEIGHT_UNKNOWN;
   const t = range.max === range.min ? 0.5 : (kg - range.min) / (range.max - range.min);
@@ -54,12 +45,10 @@ export function weightColor(kg, range) {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
-// Kugelecken, gemeinsam für 2D, 3D und Druck. Das gemessene Außenmaß eines Cases enthält die
-// Ecken schon – sie dürfen also nicht darüber hinausragen. Bis V0.8.1 saßen sie mittig auf der
-// Case-Ecke (2D r = 6 cm, 3D r = 4 cm) und standen als „richtige Bälle“ bis zu 6 cm über
-// (Nutzer-Feedback 2026-09-28: „in echt stehen die kaum raus“). Jetzt liegt der Mittelpunkt um r
-// nach innen versetzt, die Kugel berührt die Außenkante nur. Die Größe ist eine eigene, rein
-// optische Festlegung.
+// Kugelecken, gemeinsam für 2D, 3D und Druck. Das gemessene Außenmaß enthält die Ecken schon, sie
+// dürfen also nicht darüber hinausragen: Der Mittelpunkt liegt um r nach innen versetzt, die Kugel
+// berührt die Außenkante nur (Nutzer-Feedback 2026-09-28: „in echt stehen die kaum raus“). Die
+// Größe ist eine eigene, rein optische Festlegung.
 export const CORNER_R = 2;        // cm, Flightcase mit Details
 export const CORNER_R_SIMPLE = 1.5; // cm, einfacher Kasten (kleine Cases)
 

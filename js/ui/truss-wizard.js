@@ -10,7 +10,7 @@ import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-targe
 // F40-Traverse) – gleiches Schema wie die feste Vorlage T() in js/data/preset-cases.js, nur mit
 // `builtin: false`, weil hier ein vom Nutzer erzeugtes Case entsteht statt einer mitgelieferten
 // Vorlage. Rein funktional (keine DOM-/Store-Berührung), deshalb wie splitWagons()/wagonWeight()
-// (Task 2) unabhängig testbar.
+// unabhängig testbar.
 // `wagonW` (optional): Wagenbreite der Firma in cm, sonst die Automatik 60/80 (trussDims).
 export function buildWagonCaseType(id, profileName, length, width, count, wagonW) {
   const truss = { length, width, count, ...(wagonW != null ? { wagonW } : {}) };

@@ -21,10 +21,9 @@ export async function createView3d(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   // Ab hier bis zum `return` unten alles in einem try/catch: wirft irgendetwas beim Aufbau der
   // Szene (OrbitControls, Textur-/Material-Erzeugung, ResizeObserver, …), bliebe der WebGL-
-  // Kontext des schon erzeugten `renderer` sonst verwaist – niemand außerhalb dieser Funktion
-  // hält eine Referenz darauf, um ihn freizugeben (Befund I6, Fix-Runde 1). `createView3d` gibt
-  // in dem Fall kein Objekt zurück, der `catch` in app.js kann also kein `view3d?.dispose()`
-  // aufrufen; das Aufräumen muss deshalb hier passieren, nicht beim Aufrufer.
+  // Kontext des schon erzeugten `renderer` sonst verwaist – `createView3d` gibt in dem Fall kein
+  // Objekt zurück, der `catch` in app.js kann also kein `view3d?.dispose()` aufrufen; das Aufräumen
+  // muss deshalb hier passieren.
   // Außerhalb des try deklariert (auch wenn erst darin zugewiesen): der `catch` unten räumt sie
   // ggf. auf, und eine `const`/`let`, die im try-Block selbst erst später steht, wäre bei einem
   // Fehler VOR ihrer Zuweisung im catch noch in der Temporal Dead Zone – ein Zugriff dort würfe
@@ -36,11 +35,10 @@ export async function createView3d(container) {
   const scene = new THREE.Scene();
   const readBg = () => getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0f172a';
   scene.background = new THREE.Color(readBg());
-  // `--bg` wurde bisher nur einmal beim Erzeugen der Szene gelesen: wechselt das System
-  // zwischen hell/dunkel (css/app.css, `@media (prefers-color-scheme: light)`), ziehen
-  // Oberfläche und 2D sofort mit, der 3D-Hintergrund blieb stehen (docs/code-review-2026-09-21.md,
-  // „N10 — 3D-Hintergrund friert beim Erzeugen ein“). Ein `render()` ohne neuen `update()`-Aufruf
-  // ist nötig, weil sich sonst nichts an der Szene ändert, das einen Frame anstößt.
+  // `--bg` wird bei jedem Wechsel hell/dunkel (css/app.css, `@media (prefers-color-scheme: light)`)
+  // neu gelesen, sonst bliebe der 3D-Hintergrund stehen, während Oberfläche und 2D mitziehen. Ein
+  // `render()` ist nötig, weil sich ohne neuen `update()`-Aufruf sonst nichts an der Szene ändert,
+  // das einen Frame anstößt.
   themeQuery = window.matchMedia('(prefers-color-scheme: light)');
   onThemeChange = () => { scene.background = new THREE.Color(readBg()); render(); };
   themeQuery.addEventListener('change', onThemeChange);
@@ -133,7 +131,7 @@ export async function createView3d(container) {
   // Lautsprecher-Modell (kind: 'speaker', Nutzer-Foto L-Acoustics K2, 2026-10-08): jede Einzelbox
   // hat eine FRONT (helleres Grillefeld im Gehäuserahmen, Marken-Badge), SEITEN (Rigging-Platte +
   // Griffstange) und eine schlichte Rückseite – nicht sechs gleiche Flächen wie ein Case. Die
-  // Sichtbarkeit trägt der Helligkeitskontrast Grille ↔ Gehäuse (Lehre aus V 0.11.2: feine
+  // Sichtbarkeit trägt der Helligkeitskontrast Grille ↔ Gehäuse (feine
   // Texturen/Spalte verschwinden aus normaler Kamera-Distanz).
   const MAT_SPEAKER_GRILLE = shared(new THREE.MeshStandardMaterial({ color: 0x4c4f55, roughness: 0.95 }));
   const MAT_SPEAKER_MULLION = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.8 }));
@@ -179,10 +177,9 @@ export async function createView3d(container) {
   const LABEL_PAD = 0.85; // 15% Rand verhindert, dass Text bis an die Kante reicht.
   const LABEL_TEX_W = 256; // px, feste Basisbreite der Textur
   // Die Textur wird für die reale Fläche (`width`×`height`, cm) erzeugt statt für ein Quadrat –
-  // eine feste 40×40-Vorlage, über die tatsächliche (oft nicht-quadratische) Fläche gestreckt,
-  // verzerrt sowohl den Zeilenumbruch als auch die Buchstaben (s. Befund I1). Das Seitenverhältnis
-  // geht gerundet (auf 0,25) in den Cache-Schlüssel ein, damit nicht jede Case-Größe eine eigene
-  // Textur bekommt.
+  // eine feste 40×40-Vorlage, über die (oft nicht-quadratische) Fläche gestreckt, verzerrte sowohl
+  // den Zeilenumbruch als auch die Buchstaben. Das Seitenverhältnis geht gerundet (auf 0,25) in den
+  // Cache-Schlüssel ein, damit nicht jede Case-Größe eine eigene Textur bekommt.
   function labelTextureFor(text, color, width, height) {
     const ratio = Math.min(4, Math.max(0.25, Math.round((width / height) / 0.25) * 0.25));
     const key = JSON.stringify([text, color, ratio]);
@@ -231,11 +228,11 @@ export async function createView3d(container) {
 
   // Korpus-/Band-Materialien pro Farbe gecacht (Case-Farbe wechselt selten, über Updates hinweg
   // wiederverwendet – wie labelTexCache oben sind sie deshalb `userData.shared`, damit `clear()`
-  // sie nicht mit den Case-Meshes verwirft). Wuchsen bis Task 8 unbegrenzt: jede je benutzte
-  // Farbe/`bad`-Kombination blieb für die gesamte Sitzung im Speicher, jedes Material ist ein
-  // eigenes Shader-Programm, kein bloßes Byte-Paar (docs/code-review-2026-09-21.md, „S4 — Farb-
-  // Materialcaches begrenzen“). Selbes Muster wie beim Beschriftungs-Cache: die in diesem
-  // `update()` tatsächlich benutzten Schlüssel sammeln, am Ende nicht mehr benutzte disposen.
+  // sie nicht mit den Case-Meshes verwirft). Ohne Grenze bliebe jede je benutzte Farbe/`bad`-
+  // Kombination die ganze Sitzung als Material samt GPU-Ressourcen erhalten (Three.js teilt zwar
+  // Shader-Programme zwischen Materialien mit gleichen Parametern, nicht aber die Material-Objekte
+  // und ihre Uniforms). Selbes Muster wie beim Beschriftungs-Cache: die in diesem `update()`
+  // tatsächlich benutzten Schlüssel sammeln, am Ende nicht mehr benutzte disposen.
   const bodyMatCache = new Map();
   let usedBodyMatKeys = new Set();
   // `plain`: ohne Laminat-Körnung und matter – für Lautsprecher-Gehäuse (addSpeaker()), die
@@ -402,7 +399,7 @@ export async function createView3d(container) {
     return mesh;
   }
 
-  // Traversenwagen-Geometrie (Task 6): Gurtrohre (4 pro Traversenstück, über die volle Länge) +
+  // Traversenwagen-Geometrie: Gurtrohre (4 pro Traversenstück, über die volle Länge) +
   // Zickzack-Diagonalen auf allen 4 Seiten je Stück; Rollwagen als Alu-Rahmen + 4 Rollen (`wheelMesh`
   // mit face 'bottom', da Wagen nie gekippt werden). Sammelt Segmente für die geteilten
   // InstancedMeshes (`chordSegs`/`diagSegs`), gibt Nicht-Instanzierbares direkt an `content`.
@@ -419,10 +416,8 @@ export async function createView3d(container) {
     const railMat = shape.alu ? MAT_ALU : MAT_DOLLY_RAIL;
     shape.boards.forEach((b, i) => {
       content.add(boxMesh(b, boardMat), edges(b, MAT_EDGE_ALU));
-      // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in
-      // items.js: `color: p.color ?? c.color`) — ein zweites `?? c.color` hier kann nie
-      // mehr greifen (docs/code-review-2026-09-21.md, „N5 — it.color ?? c.color ist
-      // überflüssig und steht zweimal“).
+      // `it.color` trägt den Rückfall auf die Gewerkfarbe bereits (buildItems() in items.js:
+      // `color: p.color ?? c.color`) – ein zweites `?? c.color` hier könnte nie greifen.
       const dollyColor = it.color;
       if (dollyColor) {
         // Nur eine schmale Kennzeichnung an der nach außen zeigenden Stirnkante des Bretts (analog
@@ -442,8 +437,8 @@ export async function createView3d(container) {
       // Beschriftung nur auf dem jeweils nach außen zeigenden Wagenende (nicht ringsum wie beim Case).
       // Bezugsfläche bleibt das volle Wagenvolumen (shape.dollies), nicht nur die Platte.
       // Schriftfarbe aus dem tatsächlichen Hintergrund (Alu-Wagenende) ableiten, nicht aus der Stück-/Gewerkfarbe.
-      // Die Nummer steht immer da, auch ohne Label-Text (wie in 2D/Ausdruck, s. Befund I5,
-      // Fix-Runde 1) – ein Stück ohne Beschriftung soll in 3D nicht spurlos bleiben.
+      // Die Nummer steht immer da, auch ohne Label-Text (wie in 2D/Ausdruck) – ein Stück ohne
+      // Beschriftung soll in 3D nicht spurlos bleiben.
       {
         const d = shape.dollies[i];
         const endFace = `${lenAxis}${i}`;
@@ -473,16 +468,14 @@ export async function createView3d(container) {
     }
   }
 
-  // Eigener Render-Zweig für `kind: 'speaker'`. Nach mehreren Runden Nutzer-Feedback („es sind
-  // immer noch Cases“) jede Einzelbox als eigenes Lautsprecher-Gehäuse mit Front/Seiten/Rückseite
-  // (speakerUnitParts()) statt eines glatten Quaders mit umlaufenden Bändern; Array-Tops mit
-  // Keilprofil (GEO_WEDGE), Subs als Quader. Jede Box ist eine THREE.Group in lokalen Koordinaten,
-  // um p.rot gedreht – die Front zeigt also je nach Drehung in eine andere Richtung, der Nutzer
-  // dreht sie mit „R“ wie jedes Case. Gehäusefarbe aus `c.cabinetColor` (nicht aus dem
-  // Farbmodus); die Gewerk-/Stück-/Gewichtsfarbe sitzt als dünne Marke außen am Dolly-Rahmen
+  // Eigener Render-Zweig für `kind: 'speaker'`: jede Einzelbox als Lautsprecher-Gehäuse mit
+  // Front/Seiten/Rückseite (speakerUnitParts()) statt eines glatten Quaders mit Bändern;
+  // Array-Tops mit Keilprofil (GEO_WEDGE), Subs als Quader. Jede Box ist eine THREE.Group in
+  // lokalen Koordinaten, um p.rot gedreht – die Front zeigt also je nach Drehung in eine andere
+  // Richtung, der Nutzer dreht sie mit „R“ wie jedes Case. Gehäusefarbe aus `c.cabinetColor` (nicht
+  // aus dem Farbmodus); die Gewerk-/Stück-/Gewichtsfarbe sitzt als dünne Marke außen am Dolly-Rahmen
   // (wie die Marke am Traversen-Rollbrett). Beschriftung auf der Rückseite der untersten und der
-  // Oberseite der obersten Box – nicht auf der Grille und nicht auf den Seiten, wo Rigging-Platte
-  // und Griff sie verdecken würden.
+  // Oberseite der obersten Box – nicht auf Grille und Seiten, wo Rigging-Platte und Griff sie verdecken würden.
   function addSpeaker(it, bad, selected, colors, seq) {
     const { c, p, box } = it;
     const { body, wheels, face } = caseShape(c, p, box);
@@ -558,7 +551,7 @@ export async function createView3d(container) {
   // alle geteilten Geometrien/Materialien/Texturen (die `clear()` bewusst überspringt, weil sie
   // über Updates hinweg wiederverwendet werden) und die Farb-/Beschriftungs-Caches. Ohne das bleibt
   // bei jedem Neuaufbau nach einem Fehler (app.js, `catch`) ein WebGL-Kontext hängen – Chrome hält
-  // nur rund 16 davon (s. Befund I6).
+  // nur rund 16 davon.
   function dispose() {
     themeQuery.removeEventListener('change', onThemeChange);
     resizeObserver.disconnect();
@@ -663,7 +656,7 @@ export async function createView3d(container) {
 
       // Schriftfarbe aus dem tatsächlichen Korpus-Hintergrund ableiten, nicht aus der Stück-/Gewerkfarbe
       // (die im Modus „Schwarz“ nur als Farbstreifen erscheint, nicht als Korpusfarbe). Die Nummer
-      // steht immer da, auch ohne Label-Text (wie in 2D/Ausdruck, s. Befund I5, Fix-Runde 1).
+      // steht immer da, auch ohne Label-Text (wie in 2D/Ausdruck).
       const text = labelText(result.sequence.get(it.id), it.label);
       for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, text, colors.body));
     }
@@ -688,7 +681,7 @@ export async function createView3d(container) {
       entry.texture.dispose();
       labelTexCache.delete(key);
     }
-    // Dasselbe für die Korpus-/Band-Materialcaches (S4): nicht mehr verwendete Farben/`bad`-
+    // Dasselbe für die Korpus-/Band-Materialcaches: nicht mehr verwendete Farben/`bad`-
     // Kombinationen wieder freigeben, statt sie für die gesamte Sitzung zu behalten.
     for (const [key, m] of bodyMatCache) {
       if (usedBodyMatKeys.has(key)) continue;
