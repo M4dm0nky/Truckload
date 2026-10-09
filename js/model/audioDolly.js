@@ -50,6 +50,7 @@ export function maxDollyCount(baseCase) {
 // Trennlinien. 2D liest `kind` nicht.
 // `wagen` (optional): { l, w } = Wagengröße der Firma in cm; ohne gilt Boxbreite × Dolly-Stufe.
 // `company` (optional): Firma des Materialbestands, eigener ID-Raum je Firma.
+// Firmen-Stacks entstehen vollständig; upgradeDollyStack lässt sie unverändert.
 export function dollyStackCase(baseCase, n, wagen = {}, company = '') {
   return {
     id: dollyStackId(baseCase, n, company),

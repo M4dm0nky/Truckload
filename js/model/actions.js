@@ -323,6 +323,7 @@ export function packAll(plan, ctx) {
 // Rest einpacken: neue Sorten schließen sortenrein an die LETZTE REIHE der vorhandenen Ladung an
 // (startX = deren x0, nicht die Tür-Kante x1) und füllen so freie Spuren der letzten Reihe
 // (Nutzerregel „Lücke auffüllen“), ohne vor dieser Reihe in fremde Blöcke zu geraten.
+// Das Anschließen an die letzte Reihe ist eine eigene Entscheidung (Spec 2026-09-28).
 export function packRest(plan, ctx) {
   const { items } = buildItems(plan, ctx.caseById);
   const list = plan.unplaced.map(u => toPiece(u, ctx)).filter(Boolean);

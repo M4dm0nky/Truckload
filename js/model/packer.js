@@ -60,8 +60,9 @@ const belongsTogether = (a, ca, b, cb) =>
 
 // Passt das Stück als Deckschicht auf den Stapel `s` eines früheren Blocks? Liefert die (evtl. im
 // Grundriss um 90° gedrehte) Orientierung oder null. Grundfläche ganz auf dem obersten Stück
-// (100 % Auflage), Gewichte bekannt (> 0, 0 kg = unbekannt) und nicht schwerer als oben, keine
-// Traversen, sonst dieselben Grenzen wie beim Stapeln (canAddToStack, 4 Lagen, Lagen je Stück).
+// (100 % Auflage), Gewichte bekannt (> 0, 0 kg = unbekannt, eigene Entscheidung) und nicht
+// schwerer als oben, keine Traversen, sonst dieselben Grenzen wie beim Stapeln (canAddToStack,
+// 4 Lagen, Lagen je Stück).
 function capFits(s, it, c, o, truck) {
   const base = s.items[0], top = s.items.at(-1);
   // Nicht nur das Fundament prüfen: ein Traversenwagen kann per prevLast-Auffüllen mittig in einen
