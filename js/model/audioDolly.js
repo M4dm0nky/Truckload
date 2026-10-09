@@ -1,5 +1,6 @@
 import { colorFor } from '../data/categories.js';
 import { CASE_LIMITS } from './validate.js';
+import { slug } from '../data/case-library.js';
 
 // Recherche: Carvin DB521018 (81×75×20 cm, 18,3 kg, 4× 127-mm-Lenkrollen), SYNQ SQ-218 Dolly
 // (11 kg, 4× 100-mm-Schwerlastrollen), DAS PL-EV118S (~81×71×18 cm Versandmaß, ~11 kg) –
@@ -26,9 +27,10 @@ export const dollyDepth = boxDepth => DOLLY_DEPTHS.find(d => d >= boxDepth) ?? b
 // (js/ui/dolly-wizard.js) prüfen kann, ob dieselbe Kombination schon als Case existiert, OHNE
 // erst das volle Case-Objekt neu zu bauen (und damit eine vom Nutzer im Case-Editor bearbeitete
 // Zeile unbemerkt mit den Formel-Werten zu überschreiben, Befund Final-Review Important #2).
-export function dollyStackId(baseCase, n) {
+// Mit Firma (V 0.12.5): eigener ID-Raum je Firma, weil die Wagenmaße firmenabhängig sind.
+export function dollyStackId(baseCase, n, company = '') {
   const baseId = baseCase.id.replace(/^(preset-|lib-)/, '');
-  return `dolly-${baseId}-${n}`;
+  return company ? `dolly-${slug(company)}-${baseId}-${n}` : `dolly-${baseId}-${n}`;
 }
 
 // Größte Stückzahl, bei der sowohl Höhe als auch Gewicht der Dolly-Stack-Vorlage innerhalb der
@@ -60,9 +62,13 @@ export function maxDollyCount(baseCase) {
 // müssen. 2D (js/ui/view2d.js) liest `kind` nicht und bleibt unverändert.
 // `wagen` (optional, V 0.12.3): { l, w } = Wagengröße der Firma in cm (Breite × Tiefe). Ohne sie
 // gilt Boxbreite × Dolly-Stufe wie in 0.12.2. Die Höhe des Wagens ist fest (DOLLY_HEIGHT_CM).
-export function dollyStackCase(baseCase, n, wagen = {}) {
+// `company` (optional): Firma des Materialbestands; Wagenmaße sind firmenabhängig (V 0.12.3),
+// daher eigener ID-Raum je Firma. `upgradeDollyStack` erkennt die Firmenform nicht und muss es
+// nicht – solche Stacks entstehen erst ab V 0.12.5 mit allen Feldern.
+export function dollyStackCase(baseCase, n, wagen = {}, company = '') {
   return {
-    id: dollyStackId(baseCase, n),
+    id: dollyStackId(baseCase, n, company),
+    company: company || undefined,
     builtin: false,
     name: `${baseCase.name} ${n}er (auf Dolly)`,
     content: '',

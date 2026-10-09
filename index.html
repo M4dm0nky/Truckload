@@ -32,8 +32,9 @@
       <div id="start-actions"></div>
     </div>
   </section>
+  <section id="material-screen" class="material-screen" hidden></section>
   <header class="topbar" hidden>
-    <strong class="brand">Truckload <span id="app-version" class="version">V 0.12.4</span></strong>
+    <strong class="brand">Truckload <span id="app-version" class="version">V 0.13.0</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
       <select id="plan-select" title="Ladeplan"></select>
@@ -46,6 +47,7 @@
       <select id="truck-select" title="Fahrzeug"></select>
       <button id="truck-edit">Bearbeiten</button>
       <button id="truck-new">+ Fahrzeug</button>
+      <button id="material-open" type="button" title="Materialverwaltung">Material</button>
     </div>
     <div class="group">
       <button id="pack-all" class="primary">Alles neu packen</button>
@@ -109,6 +111,7 @@
   <dialog id="dlg-dolly"></dialog>
   <dialog id="dlg-rules"></dialog>
   <dialog id="dlg-confirm"></dialog>
+  <dialog id="dlg-pick"></dialog>
   <section id="print-root" class="print-root" aria-hidden="true"></section>
   <script type="module" src="js/app.js"></script>
 </body>

@@ -56,6 +56,7 @@ export function mountLibrary(el, h) {
     renderContent();
   });
 
+  // Löschen nur in der Materialverwaltung (Nutzerwunsch 2026-10-09)
   function groupHeading(c, caseId, count) {
     const name = c?.name ?? 'Unbekanntes Case';
     return `
@@ -63,7 +64,6 @@ export function mountLibrary(el, h) {
         ${swatch(c?.color)}
         <span class="lib-text"><b>${esc(name)}</b><small>${count}× ${esc(c ? caseDetail(c) : '')}</small></span>
         <button data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">${icon('pencil-simple')}</button>
-        ${c?.builtin ? '' : `<button data-act="delete" data-case="${esc(caseId)}" class="danger" title="Löschen">${icon('trash')}</button>`}
       </div>`;
   }
 
@@ -108,7 +108,7 @@ export function mountLibrary(el, h) {
     if (!btn) return;
     const caseId = btn.dataset.case ?? btn.closest('[data-case]')?.dataset.case;
     const unplacedId = btn.closest('[data-unplaced]')?.dataset.unplaced;
-    ({ edit: () => h.onEdit(caseId), delete: () => h.onDelete(caseId),
+    ({ edit: () => h.onEdit(caseId),
        load: () => h.onAddLoad(), 'tray-remove': () => h.onTrayRemove(unplacedId) })[btn.dataset.act]?.();
   });
   content.addEventListener('click', e => {

@@ -2,6 +2,8 @@ import { esc } from './dom.js';
 import { QUICK_LENGTHS } from './case-editor.js';
 import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons, isTruss } from '../model/truss.js';
 import { colorFor } from '../data/categories.js';
+import { applyStockTarget } from '../model/material.js';
+import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 
 // Baut einen neuen Traversenwagen-Case-Typ für eine Stückzahl auf einem Wagen (klassische F34/
 // F40-Traverse) – gleiches Schema wie die feste Vorlage T() in js/data/preset-cases.js, nur mit
@@ -46,6 +48,7 @@ export function openTrussDialog(dlg, opts = {}) {
   // Gleiche Absicherung wie in case-editor.js: ein noch offener Dialog darf nicht durch
   // `innerHTML = …` unter dem eigenen `close`-Listener weggezogen werden.
   if (dlg.open) { dlg.returnValue = 'cancel'; dlg.close(); }
+  const stock = opts.stock ?? { mode: 'fixed', company: '' };
   const prerigCases = (opts.cases ?? []).filter(c => isTruss(c) && c.truss.standing === true);
   const groups = groupPrerigCases(prerigCases);
   const presetOptionsHtml = [...groups.entries()].map(([label, list]) =>
@@ -70,6 +73,7 @@ export function openTrussDialog(dlg, opts = {}) {
           <label>Stück pro Wagen<input type="number" name="perWagon" min="1" max="12" step="1" required></label>
         </div>
         <p class="hint wagons-hint"></p>
+        ${stockTargetHtml(stock)}
       </fieldset>
       <fieldset class="prerig-only" hidden><legend>Pre-Rig-Traverse</legend>
         ${prerigCases.length
@@ -88,6 +92,7 @@ export function openTrussDialog(dlg, opts = {}) {
 
   const form = dlg.querySelector('form');
   const f = form.elements;
+  wireStockTarget(form);
   const kindInputs = [...dlg.querySelectorAll('input[name="kind"]')];
   const classicOnly = dlg.querySelector('.classic-only');
   const prerigOnly = dlg.querySelector('.prerig-only');
@@ -155,10 +160,13 @@ export function openTrussDialog(dlg, opts = {}) {
         try { wagons = splitWagons(Number(f.total.value), Number(f.perWagon.value)); }
         catch { return resolve(null); }
         const distinct = [...new Set(wagons)];
+        const target = readStockTarget(form, stock);
         const newCases = [];
         const additions = [];
         for (const n of distinct) {
-          const caseType = buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, Number(f.wagonW.value));
+          const caseType = applyStockTarget(
+            buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, Number(f.wagonW.value)),
+            target);
           const saved = await opts.onNewTruss?.(caseType);
           if (!saved) continue;
           newCases.push(saved);

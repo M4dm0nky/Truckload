@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { buildWagonCaseType } from '../js/ui/truss-wizard.js';
 import { trussDims, wagonWeight } from '../js/model/truss.js';
 import { checkCase } from '../js/store/io.js';
+import { applyStockTarget } from '../js/model/material.js';
 
 // buildWagonCaseType() ist der pure Baustein hinter dem „Truss hinzufügen“-Dialog (Task 3,
 // klassischer Zweig): baut denselben Case-Typ, den T() in js/data/preset-cases.js für die festen
@@ -55,4 +56,10 @@ test('buildWagonCaseType: eigene Wagenbreite landet in truss.wagonW und in der B
 test('buildWagonCaseType: ohne Wagenbreite kein wagonW-Feld', () => {
   const c = buildWagonCaseType('id-x', '34er', 300, 29, 4);
   assert.ok(!('wagonW' in c.truss));
+});
+
+test('Traversenwagen + Ablageziel: Firma landet am Case, checkCase akzeptiert es', () => {
+  const c = applyStockTarget(buildWagonCaseType('id-f', '34er', 300, 29, 4), { inStock: true, company: 'CAB' });
+  assert.equal(c.company, 'CAB');
+  assert.equal(checkCase(c), undefined);
 });

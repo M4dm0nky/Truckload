@@ -5,6 +5,8 @@ import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
 import { DOLLY_H, trussDims } from '../js/model/truss.js';
+import { exportBundle, parseBundle } from '../js/store/io.js';
+import { isInStock } from '../js/model/material.js';
 
 // js/ui/library.js baut aus dem Ergebnis von loadAll() eine `new Map(cases.map(c =>
 // [c.id, c]))`, wo bei doppelten IDs der letzte Array-Eintrag gewinnt. Legt der Nutzer
@@ -325,4 +327,45 @@ test('buildImportWinnerItems: Regelsets landen im Store ruleSets', () => {
 
 test('loadAllFallback: liefert leere Regelsets', () => {
   assert.deepEqual(loadAllFallback().ruleSets, []);
+});
+
+// Final-Review CRITICAL 2: eine Sicherung mit `lib-`-Überlagerungen (bearbeitete oder
+// ausgeblendete Firmen-Vorlage) muss beim Wiederherstellen gegen den mitgelieferten Eintrag
+// gewinnen – der lokale Vorlagen-Eintrag hat kein updatedAt und hätte sonst immer behalten.
+test('Sicherung wiederherstellen: lib-Überlagerung gewinnt gegen die mitgelieferte Vorlage', () => {
+  const lib = CASE_LIBRARY.find(c => c.company === 'CAB' && !c.legacy);
+  const lib2 = CASE_LIBRARY.find(c => c.company === 'CAB' && !c.legacy && c.id !== lib.id);
+  const overlay = { ...lib, builtin: false, name: 'Bearbeitet', company: 'CAB Berlin', updatedAt: '2026-10-09T10:00:00.000Z' };
+  const hidden = { ...lib2, builtin: false, legacy: true, updatedAt: '2026-10-09T10:00:00.000Z' };
+  const text = exportBundle({ cases: [overlay, hidden, lib], trucks: [], plans: [], ruleSets: [] });
+  const bundle = parseBundle(text);
+  const existing = mergeOwnWithBuiltins([], [...PRESET_CASES, ...CASE_LIBRARY]);
+  const r = mergeImportedBundle({ cases: existing, trucks: [], plans: [], plan: null }, bundle);
+  const got = r.cases.find(c => c.id === lib.id);
+  assert.equal(got.name, 'Bearbeitet');
+  assert.equal(got.company, 'CAB Berlin');
+  assert.equal(got.builtin, false);
+  assert.equal(r.cases.find(c => c.id === lib2.id).legacy, true);
+  assert.deepEqual(r.winners.cases.map(c => c.id).sort(), [lib.id, lib2.id].sort());
+  assert.equal(new Set(r.cases.map(c => c.id)).size, r.cases.length, 'keine doppelten IDs');
+});
+
+// Final-Review IMPORTANT 4: bis V 0.12.4 kopierte der Editor `legacy: true` in neue UUID-Kopien
+// ausgeblendeter Vorlagen. Seit der Materialverwaltung blendet das solche eigenen Cases überall
+// aus. `legacy` gilt nur für lib-Überlagerungen – bei anderen eigenen Cases fällt es weg.
+test('normalizeOwnCases: altes eigenes Case mit legacy (keine lib-ID) wird wieder sichtbar', () => {
+  const old = { id: '3f2a9c1e-uuid', builtin: false, legacy: true, name: 'Kopie', l: 1, w: 1, h: 1, weight: 0 };
+  const [c] = normalizeOwnCases([old]);
+  assert.equal(c.legacy, undefined);
+  assert.equal(isInStock(c), true);
+  assert.equal(c.name, 'Kopie'); assert.equal(c.l, 1);
+});
+test('normalizeOwnCases: ausgeblendete lib-Überlagerung bleibt ausgeblendet', () => {
+  const [c] = normalizeOwnCases([{ id: 'lib-x', builtin: false, legacy: true, name: 'X', l: 1, w: 1, h: 1, weight: 0 }]);
+  assert.equal(c.legacy, true);
+});
+test('parseBundle: altes eigenes Case mit legacy (keine lib-ID) kommt sichtbar an', () => {
+  const text = JSON.stringify({ format: 'truckload', version: 1, cases: [{ id: '3f2a9c1e-uuid', legacy: true, name: 'Kopie', l: 1, w: 1, h: 1, weight: 0 }], trucks: [], plans: [] });
+  const { cases } = parseBundle(text);
+  assert.equal(cases[0].legacy, undefined);
 });

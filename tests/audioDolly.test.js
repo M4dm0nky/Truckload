@@ -200,3 +200,18 @@ test('dollyStackCase: ohne Wagenmaße gilt der Stand von 0.12.2', () => {
   assert.equal(c.l, 138);
   assert.equal(c.w, dollyDepth(40));
 });
+
+test('dollyStackId: mit Firma eigener Namensraum, ohne Firma unverändert (alte IDs)', () => {
+  const k2 = { id: 'preset-k2' };
+  assert.equal(dollyStackId(k2, 2), 'dolly-k2-2');
+  assert.equal(dollyStackId(k2, 2, 'CAB Berlin'), 'dolly-cab-berlin-k2-2');
+});
+test('dollyStackCase: Firma wird gesetzt', () => {
+  const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
+  const c = dollyStackCase(base, 2, {}, 'CAB');
+  assert.equal(c.company, 'CAB'); assert.equal(c.id, 'dolly-cab-k2-2');
+});
+test('dollyStackId: dieselbe Box mit und ohne Firma ergibt verschiedene IDs', () => {
+  const k2 = { id: 'preset-k2' };
+  assert.notEqual(dollyStackId(k2, 2, 'CAB'), dollyStackId(k2, 2));
+});

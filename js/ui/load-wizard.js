@@ -9,6 +9,14 @@ import { openDollyDialog } from './dolly-wizard.js';
 
 const MAX_ITEMS = 500;
 
+// Optionen der Auswahl „Suchen in“: Standardkatalog (Vorgabe), kompletter Bestand, je Firma.
+export function searchInOptionsHtml(companies, selected) {
+  const opt = (v, label) => `<option value="${esc(v)}"${v === selected ? ' selected' : ''}>${esc(label)}</option>`;
+  return opt(NEUTRAL_COMPANY, 'Standardkatalog') + opt('', 'Kompletter Bestand') + companies.map(n => opt(n, `nur ${n}`)).join('');
+}
+// Vorgabe-Ablageziel für neue Cases: die gewählte Firma, sonst keine.
+export const stockDefaultFor = v => (v && v !== NEUTRAL_COMPANY ? v : '');
+
 // Kappt eine Addition auf den im Wizard verbleibenden Platz unter MAX_ITEMS – ausgelagert aus
 // addDollyStack() (Befund Final-Review Minor #8), damit die 500er-Grenze unabhängig vom DOM
 // getestet werden kann. Gleiche Regel wie addTruss() sie inline anwendet, hier nur als eigene,
@@ -81,7 +89,7 @@ export function bulkState(entries, key) {
   return vals.some(Boolean) ? 'mixed' : 'off';
 }
 
-function caseLine(c) {
+export function caseLine(c) {
   const company = c.company ? ` · ${c.company}` : '';
   if (isTruss(c)) {
     const wagen = c.truss.standing ? '' : ` · Wagen ${c.w} cm breit`;
@@ -107,6 +115,7 @@ export function openLoadWizard(dlg, opts = {}) {
   let cases = [...(opts.cases ?? [])];
   const counts = new Map(); // caseId -> Anzahl
   let activeTab = CASE_TABS[0].id; // 'cases' — Reiter der Artikelauswahl, s. caseKind() (caseGroups.js)
+  const created = new Set(); // im Wizard neu angelegte Cases bleiben trotz Filter sichtbar
   const itemsState = new Map(); // caseId -> [{ label, color, layers, tipped }]
   const total = () => [...counts.values()].reduce((a, b) => a + b, 0);
 
@@ -126,7 +135,7 @@ export function openLoadWizard(dlg, opts = {}) {
         <div class="wiz-cases-head">
           <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
-          <select class="wiz-filter-company" title="„Neutral“ zeigt nur Vorlagen und eigene Cases – firmen-gebrandete Cases erst nach gezielter Firmenwahl"><option value="${NEUTRAL_COMPANY}" selected>Neutral (Standard)</option><option value="">Alle Firmen</option>${companiesOf(cases).map(name => `<option>${esc(name)}</option>`).join('')}</select>
+          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt nur Vorlagen und eigene Cases – firmen-gebrandete Cases erst nach gezielter Wahl des Kompletten Bestands oder einer Firma">${searchInOptionsHtml(companiesOf(cases), NEUTRAL_COMPANY)}</select></label>
         </div>
         <p class="hint wiz-totals">0 Stück · 0 kg</p>
         <div class="wiz-case-list"></div>
@@ -214,14 +223,14 @@ export function openLoadWizard(dlg, opts = {}) {
 
   function renderCaseList() {
     const tabCases = cases.filter(c => caseKind(c) === activeTab);
-    const groups = groupCases(tabCases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value });
+    const groups = groupCases(tabCases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value, keep: created });
     renderGroupList(list, groups, caseRow, {
       // Vorher „Keine Treffer.“ auch ganz ohne gesetzten Filter — für einen neuen Nutzer, dessen
       // erster Blick auf die eigenen Cases oft genau der Wizard ist, klang das nach einer
       // Fehlbedienung statt nach einer leeren, aber gültigen Bibliothek. js/ui/library.js sagt an
       // derselben Stelle bereits das Richtige (docs/code-review-2026-09-21.md, „N8 — leere Liste
       // ohne Erklärung im Wizard“); dieselbe Formulierung hier übernommen.
-      own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ oder eine Vorlage kopieren.</p>',
+      own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ legt eins an.</p>',
       presets: '<p class="hint">Keine Treffer für diese Filter.</p>',
       list: '<p class="hint">Keine Treffer für diese Filter.</p>',
     });
@@ -233,18 +242,14 @@ export function openLoadWizard(dlg, opts = {}) {
   // dieselbe Hilfsfunktion bereits richtig (renderCompanyOptions) und merkt sich zusätzlich die
   // bisherige Auswahl.
   //
-  // Heute ohne beobachtbare Wirkung, bewusst als Vorsorge stehen gelassen (Fix-Runde 1, Reviewer):
-  // `js/ui/case-editor.js` hat kein Formularfeld für `company` und setzt es beim Speichern explizit
-  // auf `undefined` (Zeile „builtin: false, note: undefined, company: undefined, …“) – ein über
-  // „+ Neues Case“/„Sonderbau“ angelegtes Case kann also nie eine neue Firma mitbringen, `company`
-  // kommt heute ausschließlich aus der mitgelieferten Bibliothek (`js/data/case-library.js`).
-  // Der Fall tritt erst ein, wenn der Case-Editor je ein Firmenfeld bekommt – dann greift dieser
-  // Aufruf ohne weitere Änderung.
+  // Vorsorge (Fix-Runde 1, Reviewer):
+  // Ein im Case-Editor neu angelegtes Case kann über den Ablageziel-Block eine neue Firma mitbringen;
+  // dann greift dieser Aufruf ohne weitere Änderung.
   function renderCompanyOptions() {
     const prev = companyFilterSel.value;
     const companies = companiesOf(cases);
-    companyFilterSel.innerHTML = `<option value="${NEUTRAL_COMPANY}"${prev === NEUTRAL_COMPANY ? ' selected' : ''}>Neutral (Standard)</option><option value=""${prev === '' ? ' selected' : ''}>Alle Firmen</option>${companies.map(name => `<option${name === prev ? ' selected' : ''}>${esc(name)}</option>`).join('')}`;
-    // Rückfall auf „Neutral“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
+    companyFilterSel.innerHTML = searchInOptionsHtml(companies, prev);
+    // Rückfall auf „Standardkatalog“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
     // Liste (letztes Case dieser Firma gelöscht), soll der Filter wieder scharf stehen statt
     // auf einmal firmen-gebrandete Cases zu zeigen, die der Nutzer nie gewählt hat.
     if (prev !== NEUTRAL_COMPANY && prev !== '' && !companies.includes(prev)) companyFilterSel.value = NEUTRAL_COMPANY;
@@ -284,9 +289,12 @@ export function openLoadWizard(dlg, opts = {}) {
   filterSel.addEventListener('change', renderCaseList);
   companyFilterSel.addEventListener('change', renderCaseList);
 
+  const stockOpt = () => ({ mode: 'choose', companies: companiesOf(cases), defaultCompany: stockDefaultFor(companyFilterSel.value) });
+
   async function addNewCase(draft) {
-    const c = await opts.onNewCase?.(draft);
+    const c = await opts.onNewCase?.(draft, stockOpt());
     if (!c) return;
+    created.add(c.id);
     cases = [...cases.filter(x => x.id !== c.id), c];
     // Dieselbe MAX_ITEMS-Grenze wie der „+“-Stepper (Zeile 141) — vorher umging „+ Neues Case“/
     // „Sonderbau“ sie, „Weiter“ blockierte danach mit „Maximal 500 Stück je Wizard-Durchlauf“, ohne
@@ -306,8 +314,9 @@ export function openLoadWizard(dlg, opts = {}) {
   // `opts.onNewCase`, damit load-wizard.js weiterhin store-unwissend bleibt); Pre-Rig-Presets
   // existieren schon in `cases` (kommen über `opts.cases` aus dem bereits gemergten Bestand).
   async function addTruss() {
-    const res = await openTrussDialog(opts.trussDlg, { cases, onNewTruss: opts.onNewTruss });
+    const res = await openTrussDialog(opts.trussDlg, { cases, onNewTruss: opts.onNewTruss, stock: stockOpt() });
     if (!res) return;
+    for (const nc of res.newCases) created.add(nc.id);
     if (res.newCases.length) cases = [...cases.filter(c => !res.newCases.some(nc => nc.id === c.id)), ...res.newCases];
     // Dieselbe MAX_ITEMS-Grenze wie addNewCase() oben — anders als dort kann eine einzelne
     // Addition hier aber weit mehr als 1 Stück auf einmal bringen (z. B. alle gleich
@@ -334,8 +343,9 @@ export function openLoadWizard(dlg, opts = {}) {
   // dollyPrompt auf dem Ergebnis von dollyStackCase()), weitere gleiche Stacks lassen sich also
   // ganz normal per „+“ ergänzen, ohne den Dialog erneut zu öffnen.
   async function addDollyStack(baseCase) {
-    const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack });
+    const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack, stock: stockOpt() });
     if (!res) return;
+    created.add(res.newCase.id);
     cases = [...cases.filter(c => c.id !== res.newCase.id), res.newCase];
     const add = capToRoom(res.addition.n, total(), MAX_ITEMS);
     if (add > 0) counts.set(res.addition.caseId, (counts.get(res.addition.caseId) ?? 0) + add);

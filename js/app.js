@@ -9,6 +9,10 @@ import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js'
 import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
 import { openLoadWizard } from './ui/load-wizard.js';
+import { mountMaterial } from './ui/material.js';
+import { openTrussDialog } from './ui/truss-wizard.js';
+import { openDollyDialog } from './ui/dolly-wizard.js';
+import { companyList, casesOf, deletionFor, isInStock, copyToCompany, applyStockTarget, renameCompany } from './model/material.js';
 import { openPackRules } from './ui/pack-rules.js';
 import { rulesFor, ruleTargets, describeRule, mixTopFor } from './model/packRules.js';
 import { stamp } from './store/repo.js';
@@ -129,6 +133,14 @@ export function scheduleRender() {
 const startScreenEl = $('#start-screen');
 const headerEl = document.querySelector('header.topbar');
 const layoutEl = document.querySelector('main.layout');
+const materialEl = $('#material-screen');
+// Materialverwaltung: eigener Bildschirm, vom Startbildschirm und aus der Kopfleiste erreichbar.
+let materialOpen = false;
+function openMaterial() {
+  materialOpen = true;
+  if (store.get().plan) select(null);
+  scheduleRender();
+}
 
 // Startbildschirm: kein Plan gewählt. Eigener, viel einfacherer Render-Pfad statt der
 // vollen Pipeline unten (renderHooks setzen durchgehend einen vorhandenen s.plan voraus).
@@ -149,7 +161,9 @@ function renderStartScreen(s) {
     <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
     ${listHtml}
     <button id="start-import" type="button" title="JSON-Sicherung einlesen">Sicherung importieren</button>
+    <button id="start-material" type="button" title="Materialverwaltung">Material</button>
   `;
+  $('#start-material').onclick = openMaterial;
   $('#start-new').onclick = () => runLoadWizard('new');
   // Dieselbe Eingabe wie #import-btn im (hier verborgenen) Header – Wiederherstellen auf
   // einem frischen Rechner ohne gespeicherte Pläne war sonst nur über einen Umweg-Plan
@@ -165,6 +179,12 @@ function renderStartScreen(s) {
 
 function render() {
   const s = store.get();
+  if (materialOpen) {
+    startScreenEl.hidden = true; headerEl.hidden = true; layoutEl.hidden = true; materialEl.hidden = false;
+    material.update(s);
+    return;
+  }
+  materialEl.hidden = true;
   if (!s.plan) { renderStartScreen(s); return; }
   startScreenEl.hidden = true;
   headerEl.hidden = false;
@@ -223,7 +243,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') autosave.flush();
 });
 
-const usage = (s, caseId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan.id)]
+const usage = (s, caseId) => [s.plan, ...s.plans.filter(p => p.id !== s.plan?.id)].filter(Boolean)
   .filter(p => [...p.placements, ...p.unplaced].some(x => x.caseId === caseId)).length;
 
 // Bug F (nit, Fix-Runde 2): dieselbe Klasse wie die schon behobenen Löschzweige - eine
@@ -246,41 +266,96 @@ async function editCase(caseId) {
   const c = caseId ? s.cases.find(x => x.id === caseId) : null;
   const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId ? usage(s, caseId) : 0 });
   if (!res) return;
-  if (res.action === 'delete') {
-    try {
-      await repo.deleteCase(caseId);
-    } catch (err) {
-      await showAlert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-      return;
-    }
-    store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
-  } else {
-    await saveCaseValue(res.value);
-  }
+  await saveCaseValue(res.value);
 }
 
-// Direkt-Löschen aus der Bibliotheksliste (ohne den Umweg über „Bearbeiten“ → Löschen im
-// Editor-Dialog) – gleiche Logik wie der Löschzweig in editCase() oben, nur ohne Dialog-Öffnen.
-async function deleteCaseDirect(caseId) {
-  const s = store.get();
-  const c = s.cases.find(x => x.id === caseId);
-  if (!c) return;
-  const used = usage(s, caseId);
-  const msg = used ? `„${c.name}“ wird in ${used} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${c.name}“ löschen?`;
-  if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return;
+// Löschen aus dem Materialbestand (nur Materialseite): Standardvorlagen (`preset-`) sind nur
+// lesbar, Firmen-Vorlagen werden ausgeblendet (legacy), alles andere wirklich entfernt.
+// `confirmed`: die Rückfrage kam schon (Editor bzw. Firma-löschen-Dialog).
+async function removeFromStock(c, { confirmed = false } = {}) {
+  if (!c) return false;
+  const d = deletionFor(c);
+  if (!d) { await showAlert('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.'); return false; }
+  if (!confirmed) {
+    const used = usage(store.get(), c.id);
+    const msg = used ? `„${c.name}“ wird in ${used} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${c.name}“ löschen?`;
+    if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return false;
+  }
+  if (d.save) return !!await saveCaseValue(d.save);
   try {
-    await repo.deleteCase(caseId);
+    await repo.deleteCase(d.remove);
   } catch (err) {
     await showAlert(`Case konnte nicht gelöscht werden: ${err?.message ?? 'unbekannter Fehler'}`);
-    return;
+    return false;
   }
-  store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== caseId) }));
+  store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== d.remove) }));
+  return true;
 }
+
+// Kleiner Auswahldialog (<select> in #dlg-pick); null bei Abbruch.
+function pickOption(title, options) {
+  const d = $('#dlg-pick');
+  d.innerHTML = `<form method="dialog" class="editor"><label>${esc(title)}<select name="v">${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></label>
+    <menu><span class="grow"></span><button value="cancel" formnovalidate>Abbrechen</button><button value="ok" class="primary">OK</button></menu></form>`;
+  const sel = d.querySelector('select');
+  d.returnValue = '';
+  d.showModal();
+  return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? sel.value : null), { once: true }));
+}
+async function pickCase(title, cases) {
+  if (!cases.length) { await showAlert('Keine passende Box vorhanden.'); return null; }
+  const id = await pickOption(title, cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })));
+  return id == null ? null : cases.find(c => c.id === id);
+}
+// Zielfirma: '' = Standardliste (Wert ''), sonst Firmenname; null = abgebrochen.
+const pickFirm = () => pickOption('In welche Firma?', [{ value: '', label: 'Standardliste' }, ...companyList(store.get().cases).map(f => ({ value: f.name, label: f.name }))]);
+
+const material = mountMaterial(materialEl, {
+  onBack: () => { materialOpen = false; scheduleRender(); },
+  onNewCase: async company => {
+    const res = await openCaseEditor($('#dlg-case'), null, { stock: { mode: 'fixed', company } });
+    if (res?.action === 'save') await saveCaseValue(res.value);
+  },
+  onEdit: async id => {
+    const s = store.get();
+    const c = s.cases.find(x => x.id === id);
+    if (!c) return;
+    const res = await openCaseEditor($('#dlg-case'), c, {
+      usedIn: usage(s, id), allowDelete: true, overrideBuiltin: c.builtin,
+      stock: c.onlyInPlan ? undefined : { mode: 'fixed', company: c.company ?? '' },
+    });
+    if (!res) return;
+    if (res.action === 'delete') return removeFromStock(c, { confirmed: true });
+    await saveCaseValue(res.value);
+  },
+  onDelete: id => removeFromStock(store.get().cases.find(x => x.id === id)),
+  onNewTruss: company => openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCaseValue, stock: { mode: 'fixed', company } }),
+  onNewDolly: async company => {
+    const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
+    if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, onNewDollyStack: saveCaseValue, stock: { mode: 'fixed', company } });
+  },
+  onCopy: async id => {
+    const firm = await pickFirm();
+    if (firm != null) await saveCaseValue(copyToCompany(store.get().cases.find(c => c.id === id), firm, uid()));
+  },
+  onAdopt: async id => {
+    const firm = await pickFirm();
+    if (firm != null) await saveCaseValue(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
+  },
+  onRename: async (from, to) => { for (const c of renameCompany(store.get().cases, from, to)) await saveCaseValue(c); },
+  onDeleteCompany: async name => {
+    const list = casesOf(store.get().cases, name);
+    if (list.length && !await showConfirm(`Firma „${name}“ mit ${list.length} Einträgen löschen?`, { okLabel: 'Löschen', danger: true })) return false;
+    let ok = true;
+    for (const c of list) ok = await removeFromStock(c, { confirmed: true }) && ok;
+    return ok;
+  },
+});
 
 // Für den Load-Wizard: legt ein neues Case über den Case-Editor an (optional mit Vorbelegung,
 // z. B. für den „Sonderbau“-Schnellentwurf) und liefert es zurück, ohne den Wizard zu schließen.
-async function newCaseForWizard(draft) {
-  const res = await openCaseEditor($('#dlg-case'), null, { draft });
+async function newCaseForWizard(draft, stock) {
+  const res = await openCaseEditor($('#dlg-case'), null, { draft, stock });
   return res?.action === 'save' ? saveCaseValue(res.value) : null;
 }
 
@@ -323,7 +398,6 @@ async function runLoadWizard(mode) {
 
 const library = mountLibrary($('#library'), {
   onEdit: id => editCase(id),
-  onDelete: id => deleteCaseDirect(id),
   onAddLoad: () => runLoadWizard('add'),
   onTrayRemove: id => {
     edit(p => A.removeUnplaced(p, id));
@@ -438,6 +512,7 @@ $('#inspector').addEventListener('change', e => {
 
 // Tastatur
 document.addEventListener('keydown', e => {
+  if (materialOpen) return;
   if (e.target.closest('input, textarea, select') || document.querySelector('dialog[open]')) return;
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? store.redo() : store.undo(); return; }
@@ -456,6 +531,7 @@ document.addEventListener('keydown', e => {
 
 // Undo/Redo, Modus, Auto-Pack
 $('#undo').onclick = () => store.undo();
+$('#material-open').onclick = openMaterial;
 $('#redo').onclick = () => store.redo();
 $('#pack-all').onclick = async () => {
   const s = store.get();

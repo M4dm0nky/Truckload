@@ -2,6 +2,24 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.0 – 2026-10-09
+
+Neuer Bereich **„Material“**: dein Materialbestand je Firma, immer erreichbar über den
+Startbildschirm und die Kopfleiste.
+
+- **Firmen** anlegen, umbenennen und löschen; darin Cases, Traversenwagen und Boxen-Dollys anlegen
+  und bearbeiten. Die mitgelieferten Firmenlisten (CAB, BBM, …) sind jetzt editierbar – alte
+  Ladepläne laden unverändert weiter.
+- **Standardkatalog** nur lesbar, „Kopieren“ übernimmt ein Case in eine Firma.
+- **Löschen nur noch in der Materialverwaltung.** Eine gelöschte Firmen-Vorlage wird ausgeblendet;
+  Ladepläne, die sie nutzen, behalten ihre Stücke.
+- **Lade-Wizard:** „Suchen in“ Standardkatalog, kompletter Bestand oder nur eine Firma. Neue Cases,
+  Traversen und Dollys mit Häkchen „Im Materialbestand ablegen“ (Standardliste oder Firma); ohne
+  Häkchen gilt das Case nur für diesen Load und steht in der Materialverwaltung unter „Nur in
+  Ladeplänen“, von wo es sich in den Bestand übernehmen lässt.
+- Bearbeitete und gelöschte Firmen-Cases überstehen Sicherung und Wiederherstellen.
+- Case-Editor: Maße und Gewicht ohne Raster – Vorlagen wie 76,9 cm lassen sich wieder speichern.
+
 ## V 0.12.4 – 2026-10-09
 
 Fahrzeugliste nach den Begriffen aus der Praxis: Sprinter kurz/lang, 3,5-t-, 7,5-t-, 12-t- und
