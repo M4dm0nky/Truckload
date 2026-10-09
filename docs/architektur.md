@@ -334,8 +334,8 @@ Export und Import laufen über ein JSON-Bundle (`js/store/io.js`). Mitgelieferte
 Plan und einen String-Zeitstempel bei `updatedAt`. IDs, die mit `preset-` beginnen, werden
 aus fremden Dateien immer verworfen, um einen mitgelieferten Katalog zu schützen. IDs mit
 `lib-` und `builtin: true` werden ebenso verworfen, während eigene Überlagerungen derselben
-`lib-`-ID mit `builtin: false` überleben und ermöglichen, dass Teams Firmenmuster anpassen
-(Materialverwaltung). Beim Zusammenführen gewinnt der neuere `updatedAt`-Stand (`mergeById`),
+`lib-`-ID mit `builtin: false` überleben, damit bearbeitete Firmen-Vorlagen Sicherung und
+Import überleben (Materialverwaltung). Beim Zusammenführen gewinnt der neuere `updatedAt`-Stand (`mergeById`),
 aber nur wenn **beide** Seiten einen String-Zeitstempel tragen — ein kaputter oder fehlender
 Zeitstempel verliert immer gegen einen gültigen.
 

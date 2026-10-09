@@ -621,6 +621,8 @@ test('Materialbestand: bearbeitete Firmen-Vorlage (lib-ID, builtin:false) überl
   const text = exportBundle({ cases: [over], trucks: [], plans: [] });
   const { cases } = parseBundle(text);
   assert.equal(cases.length, 1);
+  assert.equal(cases[0].id, 'lib-k1-cab');
+  assert.equal(cases[0].name, 'K1 geändert');
   assert.equal(cases[0].company, 'CAB');
 });
 test('Materialbestand: mitgelieferte Einträge (builtin:true) bleiben beim Import ausgefiltert', () => {
