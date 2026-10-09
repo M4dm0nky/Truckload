@@ -1,4 +1,5 @@
 import { boxOf } from './geometry.js';
+import { pickPieceFields } from './pieceFields.js';
 
 // Lagen-Durchsicht: liegt dieses Stück oberhalb der gewählten Lage? `limit === null` heißt
 // „alle“ und damit nie. Das AUSGEWÄHLTE Stück ist immer ausgenommen — in 3D verschwände es
@@ -14,8 +15,9 @@ export function buildItems(plan, caseById) {
     const c = caseById.get(p.caseId);
     if (!c) { missing.push(p); continue; }
     items.push({
-      id: p.id, p, c, box: boxOf(c, p), label: p.label ?? c.name, color: p.color ?? c.color,
-      layers: p.layers, tipped: p.tipped,
+      id: p.id, p, c, box: boxOf(c, p), ...pickPieceFields(p),
+      // Anders als beim Kopieren fällt ein fehlendes Label/Farbe auf Case-Name/Gewerkfarbe zurück.
+      label: p.label ?? c.name, color: p.color ?? c.color,
     });
   }
   return { items, missing };

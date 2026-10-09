@@ -1,16 +1,13 @@
 import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, archBoxes, nextTip, layersOf } from './geometry.js';
 import { MAX_LABEL, layersValid } from './limits.js';
 import { buildItems } from './items.js';
+import { pickPieceFields, cleanGroup } from './pieceFields.js';
 import { autoPack } from './packer.js';
 import { PACK_ORDERS } from './packRules.js';
 import { rulesFor, normalizeRules, mixTopFor } from './packRules.js';
 import { canTip } from './truss.js';
 
 const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
-
-// Gruppenname eines Stücks (Pack-Regeln, Spec 2026-09-30): getrimmt, auf MAX_LABEL gekürzt, leer = kein Feld.
-const cleanGroup = g => (typeof g === 'string' ? g.trim().slice(0, MAX_LABEL) : '');
-const groupField = g => { const v = cleanGroup(g); return v ? { group: v } : {}; };
 
 export const emptyPlan = (id, name, truckId) =>
   touch({ id, name, truckId, placements: [], unplaced: [], notes: '' });
@@ -30,11 +27,8 @@ function settle(p, c, others) {
 export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null, layers = null, tipped = null, group = null } = {}) {
   const extra = Array.from({ length: n }, (_, i) => ({
     id: newId(), caseId,
-    ...(labels[i] ? { label: labels[i].slice(0, MAX_LABEL) } : {}),
-    ...(color ? { color } : {}),
-    ...(layers ? { layers } : {}),
-    ...(tipped != null ? { tipped } : {}),
-    ...groupField(group),
+    // Das Label kommt gekürzt aus der Namensliste, der Rest aus den Sammelvorgaben.
+    ...pickPieceFields({ label: labels[i] ? labels[i].slice(0, MAX_LABEL) : undefined, color, layers, tipped, group }),
   }));
   return touch({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
@@ -70,13 +64,8 @@ export function placeCase(plan, caseId, { x, y }, ctx, { fromUnplacedId = null }
   // tragen (io.js verbietet in `unplaced` keine Zusatzfelder) und würde die gerade gewählte
   // Mausposition sonst stillschweigend überschreiben (docs/code-review-2026-09-21.md,
   // „actions.js:38-39 — srcExtra überschreibt x/y/z/orientation/rot“.
-  const { label, color, layers, tipped, group } = src ?? {};
-  const srcExtra = {
-    ...(label ? { label } : {}), ...(color ? { color } : {}),
-    ...(layers ? { layers } : {}), ...(tipped != null ? { tipped } : {}),
-    ...groupField(group),
-  };
-  const orientation = tipped === true && canTip(c) ? 'tipLong' : 'standing';
+  const srcExtra = pickPieceFields(src);
+  const orientation = srcExtra.tipped === true && canTip(c) ? 'tipLong' : 'standing';
   // Vorher nur snap() aufs 5-cm-Raster: ein 62 cm breiter MLT-Wagen landete neben einem anderen
   // bei y = 60 statt 62, ragte 2 cm hinein und wurde von settle() obendrauf gestellt – 4 Wagen
   // passten so beim Hineinziehen nicht nebeneinander in 248 cm (Nutzer-Befund 2026-09-26).
@@ -189,9 +178,7 @@ export function duplicate(plan, id, ctx) {
     return touch({ ...plan, placements: [...plan.placements, copy] });
   }
   const trayEntry = {
-    id: ctx.newId(), caseId: p.caseId, ...(label ? { label } : {}), ...(p.color ? { color: p.color } : {}),
-    ...(p.layers ? { layers: p.layers } : {}), ...(p.tipped != null ? { tipped: p.tipped } : {}),
-    ...groupField(p.group),
+    id: ctx.newId(), caseId: p.caseId, ...pickPieceFields({ ...p, label }),
   };
   return touch({ ...plan, unplaced: [...plan.unplaced, trayEntry] });
 }
@@ -314,9 +301,7 @@ export const removePlacement = (plan, id) =>
 
 // Placement -> Ablage-Eintrag (nur id/caseId/label?/color?/layers?/tipped?/group?, keine Positions-/Orientierungsfelder).
 const placementToUnplaced = p =>
-  ({ id: p.id, caseId: p.caseId, ...(p.label ? { label: p.label } : {}), ...(p.color ? { color: p.color } : {}),
-    ...(p.layers ? { layers: p.layers } : {}), ...(p.tipped != null ? { tipped: p.tipped } : {}),
-    ...groupField(p.group) });
+  ({ id: p.id, caseId: p.caseId, ...pickPieceFields(p) });
 
 export function toTray(plan, id) {
   const p = plan.placements.find(q => q.id === id);
@@ -341,9 +326,7 @@ function toPiece(x, ctx) {
   const c = ctx.caseById.get(x.caseId);
   if (!c) return null;
   return {
-    id: x.id, caseId: x.caseId, c, ...(x.label ? { label: x.label } : {}), ...(x.color ? { color: x.color } : {}),
-    ...(x.layers ? { layers: x.layers } : {}), ...(x.tipped != null ? { tipped: x.tipped } : {}),
-    ...groupField(x.group),
+    id: x.id, caseId: x.caseId, c, ...pickPieceFields(x),
   };
 }
 

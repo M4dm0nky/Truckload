@@ -28,6 +28,7 @@ const ASSETS = [
   'js/model/geometry.js',
   'js/model/items.js',
   'js/model/limits.js',
+  'js/model/pieceFields.js',
   'js/model/material.js',
   'js/model/memo.js',
   'js/model/packer.js',

@@ -1,5 +1,6 @@
 import { ROTATIONS, archBoxes, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations, outerDims } from './geometry.js';
 import { isTruss } from './truss.js';
+import { pickPieceFields } from './pieceFields.js';
 import { legacyRules, blockComparator, volumeOf, sameSelectorRank } from './packRules.js';
 
 export function chooseOrientation(c, truck, piece = {}) {
@@ -275,10 +276,8 @@ export function autoPack(items, truck, { obstacles = [], order = 'volume', rules
         // swap (Stapel im Grundriss um 90° platziert, siehe placeStacks) dreht rot
         // mit — die Rollenrichtung ist dann nicht mehr garantiert zur Tür.
         orientation: o.orientation, rot: swap ? (o.rot + 90) % 360 : o.rot,
-        ...(it.label ? { label: it.label } : {}),
-        ...(it.color ? { color: it.color } : {}),
-        ...(it.layers ? { layers: it.layers } : {}),
-        ...(it.tipped != null ? { tipped: it.tipped } : {}),
+        ...pickPieceFields(it),
+        // Die Gruppe bleibt hier unverändert (Stücke aus toPiece() haben sie schon bereinigt).
         ...(it.group ? { group: it.group } : {}),
       });
     }

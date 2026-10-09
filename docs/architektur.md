@@ -58,10 +58,10 @@ laden also unverändert):
   `tipped === true && canTip(c)` über die Startausrichtung (`tipLong` statt `standing`).
 - `group` — ein freier, getrimmter Gruppenname (höchstens `MAX_LABEL` Zeichen), gesetzt über
   `addUnplaced({ group })` (Wizard-Schritt „Beschriften“, `js/app.js`) oder `A.setPieceGroup`
-  (Inspector). Er wandert wie `tipped` an
-  jeder Stelle mit, an der ein Stück kopiert oder umgebaut wird: `toPiece`,
-  `placementToUnplaced`, `duplicate`, `placeCase` (über `addUnplaced`) und `autoPack`
-  (Placements tragen `group` wie `layers`/`tipped` weiter). Fehlt es, bildet ein Stück beim
+  (Inspector). Er wandert wie die übrigen
+  Stückfelder mit: `PIECE_FIELDS` und `pickPieceFields` (`js/model/pieceFields.js`) sind die
+  einzige Stelle, die diese Felder aufzählt; `addUnplaced`, `placeCase`, `duplicate`,
+  `placementToUnplaced`, `toPiece`, `autoPack` und `buildItems` benutzen sie. Fehlt es, bildet ein Stück beim
   sortenreinen Packen keinen eigenen Gruppenblock, sondern läuft mit den übrigen Stücken
   seines Case-Typs (Abschnitt „Sortenrein“ unten).
 
