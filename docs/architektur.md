@@ -312,6 +312,44 @@ die Einseitigkeitswarnung greift, sobald **eine** der beiden Schätzungen (nach 
 nach Volumen) einseitig ausfällt — eine Warnung darf durch zusätzliche Information nie
 verschwinden.
 
+## Materialbestand
+
+Die Materialverwaltung (V 0.12.5) hat keine eigene Tabelle und keinen `DB_VERSION`-Sprung.
+Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/material.js`.
+
+- **Firma = `company`-String am Case.** Die Firmenliste ist `companyList()` (zählt nur Cases im
+  Bestand). Eine neu angelegte, noch leere Firma lebt nur im UI-Zustand der Materialseite, bis
+  ihr erstes Case gespeichert ist. Cases ohne `company` bilden die „Standardliste“.
+- **Zwei Flags.** `legacy` = ausgeblendet (gelöschte Firmen-Vorlage; alte Ladepläne behalten
+  das Stück, `groupCases` blendet es in jeder Auswahl aus). `onlyInPlan` = im Wizard ohne
+  „Im Materialbestand ablegen“ angelegt, gilt nur für den Load. `isInStock` = weder noch.
+  Fehlen beide Felder (alte Daten), liegt das Case im Bestand.
+- **Bearbeiten einer `lib-`-Vorlage** speichert ein eigenes Case mit **derselben ID** und
+  `builtin: false`; `mergeOwnWithBuiltins` lässt die eigene Version gewinnen. Pläne verweisen
+  weiter per `caseId`. Dasselbe gilt für „Firma umbenennen“ (`renameCompany`).
+- **Löschen** entscheidet `deletionFor(c)`: eigenes Case → `repo.deleteCase`; `lib-`-Vorlage →
+  Überlagerung mit `legacy: true` (sonst käme sie beim nächsten Start zurück); `preset-` →
+  nicht löschbar (`null`), nur „Kopieren“ (`copyToCompany`, neue ID, ohne `legacy`/`onlyInPlan`).
+- **Import-Regel** (`isPreset` in `js/store/io.js`): `preset-`-IDs und alles mit
+  `builtin: true` werden verworfen; eigene Überlagerungen einer `lib-`-ID (`builtin: false`)
+  laufen also durch Sicherung und Import.
+- **Dolly-IDs je Firma**: `dolly-<slug(firma)>-<basis>-<n>`, weil die Wagenmaße
+  firmenabhängig sind. Ohne Firma bleibt es bei `dolly-<basis>-<n>`; bestehende IDs ändern
+  sich nie. Traversenwagen tragen `company` nur mit (ihre IDs sind UUIDs).
+- **Ablageziel** (`js/ui/stock-target.js`, `applyStockTarget`): Case-Editor, Traversen- und
+  Dolly-Dialog teilen den Block „Im Materialbestand ablegen“. Im Wizard (`mode: 'choose'`)
+  Häkchen plus Ziel, auf der Materialseite (`mode: 'fixed'`) die vorgegebene Firma. Ohne
+  Häkchen wird `onlyInPlan: true` gesetzt.
+- **`groupCases` und `keep`**: Das Set `keep` enthält die IDs, die in diesem Wizard-Durchlauf
+  angelegt wurden; sie umgehen alle Filter (Suche, Gewerk, Firma, `onlyInPlan`), sonst
+  verschwände ein eben angelegtes Case sofort wieder aus der Liste.
+- **Materialseite als eigenes Modul**: `mountMaterial` in `js/ui/material.js` bekommt nur
+  Callbacks (`onEdit`, `onNewCase`, …) aus `js/app.js`, das Speichern und Löschen
+  (`saveCaseValue`, `removeFromStock`) bleibt dort. Die Seite ist ein eigener Bildschirm
+  (`#material-screen`, Schalter `materialOpen`). Solange er offen ist, kehrt der
+  `keydown`-Handler von `js/app.js` sofort zurück, damit Entf, Pfeile oder Rückgängig nicht
+  den dahinterliegenden Plan verändern.
+
 ## Speicherung und Austausch
 
 Alles liegt in IndexedDB im Browser. `loadAll()` mischt eigene Cases mit den mitgelieferten:
@@ -334,8 +372,8 @@ Export und Import laufen über ein JSON-Bundle (`js/store/io.js`). Mitgelieferte
 Plan und einen String-Zeitstempel bei `updatedAt`. IDs, die mit `preset-` beginnen, werden
 aus fremden Dateien immer verworfen, um einen mitgelieferten Katalog zu schützen. IDs mit
 `lib-` und `builtin: true` werden ebenso verworfen, während eigene Überlagerungen derselben
-`lib-`-ID mit `builtin: false` überleben, damit bearbeitete Firmen-Vorlagen Sicherung und
-Import überleben (Materialverwaltung). Beim Zusammenführen gewinnt der neuere `updatedAt`-Stand (`mergeById`),
+`lib-`-ID mit `builtin: false` laufen durch, damit bearbeitete Firmen-Vorlagen Sicherung und
+Import nicht verlieren (Materialverwaltung). Beim Zusammenführen gewinnt der neuere `updatedAt`-Stand (`mergeById`),
 aber nur wenn **beide** Seiten einen String-Zeitstempel tragen — ein kaputter oder fehlender
 Zeitstempel verliert immer gegen einen gültigen.
 
