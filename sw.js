@@ -57,10 +57,13 @@ const ASSETS = [
   'js/ui/print.js',
   'js/ui/projection.js',
   'js/ui/stock-target.js',
+  'js/ui/textMetrics.js',
   'js/ui/truck-editor.js',
   'js/ui/truss-wizard.js',
   'js/ui/view2d.js',
+  'js/ui/wizard-items.js',
   'js/ui/zoom2d.js',
+  'js/ui/view3d-parts.js',
   'js/ui/view3d.js',
   'vendor/three.module.min.js',
   'vendor/addons/controls/OrbitControls.js'

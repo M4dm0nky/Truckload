@@ -5,6 +5,10 @@ import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R,
 import { trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
+import { edgeBars, latchBoxes, speakerUnits, speakerDollyFrame, speakerUnitParts, faceZigzag, trussPoint, textColorFor } from './view3d-parts.js';
+
+// Etikett-Text auf Case, Traverse und Lautsprecher: Nummer immer, Beschriftung wenn vorhanden.
+const labelText = (seq, label) => (label ? `${seq}. ${label}` : `${seq}.`);
 
 const DOLLY_MARK_W = 4; // cm, Breite der Gewerk-/Stückfarb-Markierung auf dem Traversen-Rollbrett
 
@@ -90,7 +94,6 @@ export async function createView3d(container) {
   // Kugelecken, Deckelfuge/Butterfly-Verschlüsse, Schalengriffe.
   const MAT_PROFILE = shared(new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.25, roughness: 0.45 }));
   const MAT_CHROME = shared(new THREE.MeshStandardMaterial({ color: 0xe6e9ec, metalness: 0.4, roughness: 0.25 }));
-  const MAT_SEAM_BAND = shared(new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 0.25, roughness: 0.45 }));
   const MAT_HANDLE_SHELL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.85 }));
   // Traversen-Rollbrett: Kunststoff-Platte (schwarz) mit etwas helleren Auflageleisten obenauf.
   const MAT_DOLLY_BOARD = shared(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, roughness: 0.85 }));
@@ -101,6 +104,9 @@ export async function createView3d(container) {
   const COL_PROFILE_N = new THREE.Color(0xc9ced4);
   const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
   const COL_PROFILE_BAD = new THREE.Color(0xe5484d);
+  // Auswahl hat Vorrang vor Fehler, sonst Normalfarbe.
+  const edgeMaterial = (selected, bad) => (selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU);
+  const profileColor = (selected, bad) => (selected ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N);
 
   // Feine Körnung für den Laminat-Korpus – einmal prozedural erzeugt, geteilt über alle Cases.
   function makeLaminateTexture() {
@@ -132,6 +138,7 @@ export async function createView3d(container) {
   const MAT_SPEAKER_MULLION = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.8 }));
   const MAT_SPEAKER_RIG = shared(new THREE.MeshStandardMaterial({ color: 0x2b2d31, metalness: 0.4, roughness: 0.5 }));
   const MAT_SPEAKER_BADGE = shared(new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: 0.5, roughness: 0.4 }));
+  const speakerMats = { grille: MAT_SPEAKER_GRILLE, mullion: MAT_SPEAKER_MULLION, rig: MAT_SPEAKER_RIG, badge: MAT_SPEAKER_BADGE };
 
   // Keilprofil der Array-Tops (Seitenansicht): Rückseite auf SPEAKER_BACK_RATIO der Fronthöhe
   // verjüngt, mittig. Kalibriert an der K2-Zeichnung (Rigging Manual, Appendix C: 286 / 354 mm
@@ -168,13 +175,6 @@ export async function createView3d(container) {
   // disposed (siehe `usedLabelKeys`).
   const labelTexCache = new Map(); // JSON.stringify([text, farbe, ratioBucket]) -> { material, texture }
   let usedLabelKeys = new Set();
-  function textColorFor(hex) {
-    const s = String(hex || CASE_BLACK).replace('#', '');
-    const full = s.length === 3 ? s.split('').map(ch => ch + ch).join('') : s.padStart(6, '0').slice(0, 6);
-    const r = parseInt(full.slice(0, 2), 16) || 0, g = parseInt(full.slice(2, 4), 16) || 0, b = parseInt(full.slice(4, 6), 16) || 0;
-    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return lum > 0.55 ? '#111214' : '#f5f5f5';
-  }
   const LABEL_PAD = 0.85; // 15% Rand verhindert, dass Text bis an die Kante reicht.
   const LABEL_TEX_W = 256; // px, feste Basisbreite der Textur
   // Die Textur wird für die reale Fläche (`width`×`height`, cm) erzeugt statt für ein Quadrat –
@@ -280,60 +280,6 @@ export async function createView3d(container) {
     return s;
   });
 
-  // Zerlegt den Korpus eines Lautsprecher-Stacks (kind: 'speaker') in `unitH`-hohe Einzelboxen
-  // (z-Bereiche) – Grundlage für die Trennlinien und die Grille-Andeutung je Einzelbox. Ohne
-  // `unitH` (z. B. eine einzelne Box ohne Dolly, falls ein alter Ladeplan sie noch lose
-  // referenziert) bleibt es bei einer einzigen Einheit über die volle Höhe.
-  function speakerUnits(body, unitH) {
-    const total = body.z1 - body.z0;
-    const n = unitH > 0 ? Math.max(1, Math.round(total / unitH)) : 1;
-    const h = total / n;
-    return Array.from({ length: n }, (_, i) => ({ z0: body.z0 + i * h, z1: body.z0 + (i + 1) * h }));
-  }
-  // Offener Rahmen im Dolly-Bereich (zwischen Boden und Korpus-Unterkante `dollyZ1`) – echtes
-  // Vorbild: L-Acoustics K2-CHARIOT (offizielles Produktfoto), ein offener Rechteckrahmen aus
-  // Vierkantrohr, keine durchgehende Platte. Reicht über den vollen Fußabdruck `box` (nicht nur
-  // `body`), damit er unter dem Korpus sichtbar hervorsteht wie beim echten Dolly.
-  function speakerDollyFrame(box, dollyZ1) {
-    const t = 2.2;
-    const z1 = Math.max(box.z0 + 0.1, dollyZ1 - 1);
-    const z0 = Math.max(box.z0, z1 - t);
-    return [
-      { x0: box.x0, x1: box.x1, y0: box.y0, y1: box.y0 + t, z0, z1 },
-      { x0: box.x0, x1: box.x1, y0: box.y1 - t, y1: box.y1, z0, z1 },
-      { x0: box.x0, x1: box.x0 + t, y0: box.y0, y1: box.y1, z0, z1 },
-      { x0: box.x1 - t, x1: box.x1, y0: box.y0, y1: box.y1, z0, z1 },
-    ];
-  }
-  // Anbauteile EINER Lautsprecher-Box in lokalen cm-Koordinaten (Breite W entlang x, Tiefe D
-  // entlang y mit der Front bei y = −D/2, Höhe H entlang z, alles um den Nullpunkt). Vorbild:
-  // Nutzer-Foto L-Acoustics K2. Alles bleibt (bis auf wenige mm) innerhalb der Bounding-Box.
-  // - Front: helleres Grillefeld, eingerückt im Gehäuserahmen; ab 100 cm Breite zwei Felder mit
-  //   dunklem Mittelsteg (K2/KS28) und je ein Marken-Badge auf dem unteren Rahmen.
-  // - Seiten: Rigging-Platte im vorderen Bereich + waagrechte Griffstange.
-  function speakerUnitParts(W, D, H) {
-    const out = [];
-    const mX = Math.min(4, W * 0.06), mZ = Math.min(3, H * 0.12);
-    const fy = -D / 2;
-    out.push({ b: { x0: -W / 2 + mX, x1: W / 2 - mX, y0: fy - 0.3, y1: fy + 0.3, z0: -H / 2 + mZ, z1: H / 2 - mZ }, mat: MAT_SPEAKER_GRILLE });
-    const wide = W >= 100;
-    if (wide) {
-      const mw = Math.min(8, W * 0.06);
-      out.push({ b: { x0: -mw / 2, x1: mw / 2, y0: fy - 0.6, y1: fy + 0.2, z0: -H / 2 + mZ, z1: H / 2 - mZ }, mat: MAT_SPEAKER_MULLION });
-    }
-    const bw = Math.min(3, W * 0.04), bh = Math.min(1.6, mZ * 0.7);
-    for (const bx of wide ? [-W / 4, W / 4] : [0]) {
-      out.push({ b: { x0: bx - bw / 2, x1: bx + bw / 2, y0: fy - 0.5, y1: fy + 0.1, z0: -H / 2 + mZ / 2 - bh / 2, z1: -H / 2 + mZ / 2 + bh / 2 }, mat: MAT_SPEAKER_BADGE });
-    }
-    const hz = Math.min(1.2, H * 0.06);
-    for (const sx of [-1, 1]) {
-      const edge = sx * W / 2;
-      out.push({ b: { x0: Math.min(edge - sx * 1.2, edge + sx * 0.2), x1: Math.max(edge - sx * 1.2, edge + sx * 0.2), y0: fy, y1: fy + D * 0.55, z0: -H * 0.42, z1: H * 0.42 }, mat: MAT_SPEAKER_RIG });
-      out.push({ b: { x0: Math.min(edge + sx * 0.2, edge + sx * 1.1), x1: Math.max(edge + sx * 0.2, edge + sx * 1.1), y0: -D * 0.05, y1: D * 0.3, z0: -hz, z1: hz }, mat: MAT_SPEAKER_MULLION });
-    }
-    return out;
-  }
-
   // Rolle im Rollenschacht w (Höhe wh entlang der Normalen n, Fußabdruck d×d in a1/a2):
   // Schwenkplatte an der Karosserieseite, Gabel (2 Bleche) hinunter zur Achse, Rad + Nabe.
   // `wheelMat` (Vorgabe: die case-übliche dunkle MAT_WHEEL) tauscht nur die Lauffläche selbst
@@ -376,31 +322,6 @@ export async function createView3d(container) {
     hubCyl.position.copy(wheelCyl.position);
 
     return [boxMesh(plate, MAT_ALU), boxMesh(forkA, MAT_ALU), boxMesh(forkB, MAT_ALU), wheelCyl, hubCyl];
-  }
-
-  // Die 12 Kanten eines Korpus als Alu-Profilstäbe (3×3 cm, leicht über die Flächen hinausstehend).
-  function edgeBars(b, out) {
-    const t = 1.5, ext = 0.3;
-    for (const y of [b.y0, b.y1]) for (const z of [b.z0, b.z1])
-      out.push({ x0: b.x0 - ext, x1: b.x1 + ext, y0: y - t, y1: y + t, z0: z - t, z1: z + t });
-    for (const x of [b.x0, b.x1]) for (const z of [b.z0, b.z1])
-      out.push({ x0: x - t, x1: x + t, y0: b.y0 - ext, y1: b.y1 + ext, z0: z - t, z1: z + t });
-    for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1])
-      out.push({ x0: x - t, x1: x + t, y0: y - t, y1: y + t, z0: b.z0 - ext, z1: b.z1 + ext });
-  }
-
-  // Butterfly-Verschlüsse auf dem Deckelfuge-Band: 2 auf den Längsseiten (y0/y1), 1 auf jeder
-  // Stirnseite (x0/x1) – analog zur 2D-Darstellung (Ansicht 'side'/'rear').
-  function latchBoxes(b, zSeam, out) {
-    const hw = 2, d = 0.9, hh = 1.5;
-    for (const fx of [0.25, 0.75]) {
-      const cx = b.x0 + (b.x1 - b.x0) * fx;
-      out.push({ x0: cx - hw, x1: cx + hw, y0: b.y0 - d, y1: b.y0 + 0.3, z0: zSeam - hh, z1: zSeam + hh });
-      out.push({ x0: cx - hw, x1: cx + hw, y0: b.y1 - 0.3, y1: b.y1 + d, z0: zSeam - hh, z1: zSeam + hh });
-    }
-    const cy = (b.y0 + b.y1) / 2;
-    out.push({ x0: b.x0 - d, x1: b.x0 + 0.3, y0: cy - hw, y1: cy + hw, z0: zSeam - hh, z1: zSeam + hh });
-    out.push({ x0: b.x1 - 0.3, x1: b.x1 + d, y0: cy - hw, y1: cy + hw, z0: zSeam - hh, z1: zSeam + hh });
   }
 
   // Versenkte Schalengriffe mittig auf den Stirnseiten (x0/x1): dunkle, leicht vertiefte Schale
@@ -484,29 +405,12 @@ export async function createView3d(container) {
   // Zickzack-Diagonalen auf allen 4 Seiten je Stück; Rollwagen als Alu-Rahmen + 4 Rollen (`wheelMesh`
   // mit face 'bottom', da Wagen nie gekippt werden). Sammelt Segmente für die geteilten
   // InstancedMeshes (`chordSegs`/`diagSegs`), gibt Nicht-Instanzierbares direkt an `content`.
-  function trussPoint(lenAxis, widAxis, lenVal, widVal, z) {
-    const p = { x: 0, y: 0, z };
-    p[lenAxis] = lenVal;
-    p[widAxis] = widVal;
-    return p;
-  }
-  function faceZigzag(lenAxis, widAxis, len0, len1, cornerA, cornerB, profileWidth, r, out) {
-    const length = len1 - len0;
-    const segs = Math.max(1, Math.round(length / Math.max(profileWidth, 1)));
-    const step = length / segs;
-    const at = (chord, i) => trussPoint(lenAxis, widAxis, len0 + i * step, chord.w, chord.z);
-    for (let i = 0; i < segs; i++) {
-      const [from, to] = i % 2 === 0 ? [cornerA, cornerB] : [cornerB, cornerA];
-      out.push({ p1: at(from, i), p2: at(to, i + 1), r });
-    }
-  }
   function addTruss(it, bad, selected, chordSegs, chordColors, diagSegs, seq) {
     const { c, p, box } = it;
     const shape = trussShape(c, p, box);
     const { lenAxis, widAxis } = shape;
 
-    const edgeMat = selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
-    content.add(edges(box, edgeMat));
+    content.add(edges(box, edgeMaterial(selected, bad)));
 
     // Geschlossener Alu-Rahmen (ab MLT TWO/Prolyte, s. standingTrussShape) silbern statt der dunklen
     // Rollbrett-/Holm-Optik – Holme, Querholme und Beine einheitlich.
@@ -543,7 +447,7 @@ export async function createView3d(container) {
         const d = shape.dollies[i];
         const endFace = `${lenAxis}${i}`;
         const pl = labelPlanes(d, 'bottom').find(p => p.face === endFace);
-        if (pl) content.add(labelMesh(pl, it.label ? `${seq}. ${it.label}` : `${seq}.`, ALU_HEX));
+        if (pl) content.add(labelMesh(pl, labelText(seq, it.label), ALU_HEX));
       }
     });
     for (const r of shape.rails) content.add(boxMesh(r, railMat));
@@ -551,7 +455,7 @@ export async function createView3d(container) {
 
     const profileWidth = shape.profileWidth ?? c.truss.width;
     const chordR = profileWidth * TUBE_R_RATIO, diagR = profileWidth * DIAG_R_RATIO;
-    const col = selected ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N;
+    const col = profileColor(selected, bad);
     for (const pc of shape.pieces) {
       const len0 = pc[`${lenAxis}0`], len1 = pc[`${lenAxis}1`];
       const w0 = pc[`${widAxis}0`], w1 = pc[`${widAxis}1`];
@@ -607,7 +511,7 @@ export async function createView3d(container) {
       const shell = new THREE.Mesh(isTop ? GEO_WEDGE : GEO_BOX, cabinet);
       shell.scale.set(W, Db, H);
       inner.add(shell);
-      for (const { b, mat } of speakerUnitParts(W, Db, H)) inner.add(boxMesh(b, mat));
+      for (const { b, matKey } of speakerUnitParts(W, Db, H)) inner.add(boxMesh(b, speakerMats[matKey]));
       g.add(inner);
       g.rotation.z = deg * Math.PI / 180;
       g.position.set(cx, cy, (u.z0 + u.z1) / 2);
@@ -625,17 +529,17 @@ export async function createView3d(container) {
     for (const w of wheels) content.add(...wheelMesh(w, face, MAT_WHEEL_SPEAKER));
 
     const bg = c.cabinetColor ?? CASE_BLACK;
-    const labelText = it.label ? `${seq}. ${it.label}` : `${seq}.`;
+    const text = labelText(seq, it.label);
     const backFace = { 0: 'y1', 90: 'x0', 180: 'y0', 270: 'x1' }[deg] ?? 'y1';
     const first = units[0], last = units[units.length - 1];
     const mid = (first.z0 + first.z1) / 2, half = ((first.z1 - first.z0) / 2) * (isTop ? SPEAKER_BACK_RATIO : 1);
     for (const pl of labelPlanes({ ...boxArea, z0: mid - half, z1: mid + half }, face)) {
-      if (pl.face === backFace) content.add(labelMesh(pl, labelText, bg));
+      if (pl.face === backFace) content.add(labelMesh(pl, text, bg));
     }
     // Oberseite: nur ein kleines Feld statt der ganzen Fläche – eine flächige Beschriftung oben
     // drauf liest sich aus der erhöhten Standard-Kamera wie ein Case-Aufkleber.
     for (const pl of labelPlanes({ ...boxArea, z0: last.z0, z1: last.z1 }, face)) {
-      if (pl.face === 'z1') content.add(labelMesh({ ...pl, width: pl.width * 0.5, height: pl.height * 0.45 }, labelText, bg));
+      if (pl.face === 'z1') content.add(labelMesh({ ...pl, width: pl.width * 0.5, height: pl.height * 0.45 }, text, bg));
     }
   }
 
@@ -663,7 +567,7 @@ export async function createView3d(container) {
     LAM_TEX.dispose();
     for (const m of [
       MAT_FLOOR, MAT_ROOM_EDGE, MAT_FRONT, MAT_ARCH, MAT_ALU, MAT_CORNER, MAT_WHEEL, MAT_HUB,
-      MAT_EDGE_ALU, MAT_EDGE_SEL, MAT_EDGE_ERR, MAT_PROFILE, MAT_CHROME, MAT_SEAM_BAND,
+      MAT_EDGE_ALU, MAT_EDGE_SEL, MAT_EDGE_ERR, MAT_PROFILE, MAT_CHROME,
       MAT_HANDLE_SHELL, MAT_DOLLY_BOARD, MAT_DOLLY_RAIL, MAT_WHEEL_SPEAKER,
       MAT_SPEAKER_GRILLE, MAT_SPEAKER_MULLION, MAT_SPEAKER_RIG, MAT_SPEAKER_BADGE,
     ]) m.dispose();
@@ -721,18 +625,16 @@ export async function createView3d(container) {
 
       const { body, wheels, face } = caseShape(it.c, it.p, it.box);
 
-      const bodyMesh = boxMesh(body, bodyMaterial(colors.body, bad));
-      content.add(bodyMesh);
+      content.add(boxMesh(body, bodyMaterial(colors.body, bad)));
 
       const bw = body.x1 - body.x0, bd = body.y1 - body.y0, bh = body.z1 - body.z0;
       const detailed = Math.min(bw, bd, bh) >= DETAIL_MIN;
 
       if (!detailed) {
-        const edgeMat = it.id === selectedId ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU;
-        content.add(edges(body, edgeMat), ...cornerSpheres(body));
+        content.add(edges(body, edgeMaterial(it.id === selectedId, bad)), ...cornerSpheres(body));
       } else {
         edgeBars(body, profileBoxes);
-        const col = it.id === selectedId ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N;
+        const col = profileColor(it.id === selectedId, bad);
         for (let i = 0; i < 12; i++) profileColors.push(col);
         cornerPositions.push(...cornerCenters3d(body, CORNER_R));
 
@@ -741,7 +643,7 @@ export async function createView3d(container) {
           content.add(boxMesh({
             x0: body.x0 - 0.3, x1: body.x1 + 0.3, y0: body.y0 - 0.3, y1: body.y1 + 0.3,
             z0: zSeam - 1, z1: zSeam + 1,
-          }, MAT_SEAM_BAND));
+          }, MAT_ALU));
           latchBoxes(body, zSeam, latchBoxesAll);
           content.add(...handleMeshes(body));
         }
@@ -760,11 +662,8 @@ export async function createView3d(container) {
       // Schriftfarbe aus dem tatsächlichen Korpus-Hintergrund ableiten, nicht aus der Stück-/Gewerkfarbe
       // (die im Modus „Schwarz“ nur als Farbstreifen erscheint, nicht als Korpusfarbe). Die Nummer
       // steht immer da, auch ohne Label-Text (wie in 2D/Ausdruck, s. Befund I5, Fix-Runde 1).
-      {
-        const seq = result.sequence.get(it.id);
-        const labelText = it.label ? `${seq}. ${it.label}` : `${seq}.`;
-        for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, labelText, colors.body));
-      }
+      const text = labelText(result.sequence.get(it.id), it.label);
+      for (const pl of labelPlanes(body, face)) content.add(labelMesh(pl, text, colors.body));
     }
 
     const profileMesh = buildInstanced(GEO_BOX, MAT_PROFILE, profileBoxes, profileColors);

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { labelPlanes, fitFontSize, estimateTextWidth } from '../js/ui/labelTexture.js';
+import { labelPlanes, fitFontSize } from '../js/ui/labelTexture.js';
+import { estimateTextWidth } from '../js/ui/textMetrics.js';
 
 const BOX = { x0: 0, x1: 100, y0: 0, y1: 50, z0: 16, z1: 120 }; // stehendes Case, Rollen schon aus z0 herausgeschnitten
 

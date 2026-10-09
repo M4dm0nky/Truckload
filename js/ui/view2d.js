@@ -7,7 +7,7 @@ import { caseColors, weightRange, weightColor } from './caseStyle.js';
 import { archBoxes } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { trussShape, TUBE_R_RATIO } from '../model/truss.js';
-import { estimateTextWidth } from './labelTexture.js';
+import { estimateTextWidth } from './textMetrics.js';
 
 // 2D ist die nüchterne Planungsansicht – „Tetris“: jedes Stück ist ein Rechteck im belegten
 // Außenmaß inkl. Rollen (`it.box`, siehe docs/architektur.md, „Rollen im Maß“). Die reale
@@ -27,7 +27,7 @@ const TRADE_EDGE = 3; // cm, Innenrahmen in Gewerkfarbe im Modus „Schwarz“
 // Absichtlich NICHT zusammengeführt: 2D auf Umbruch umzustellen wäre eine sichtbare
 // Verhaltensänderung (mehrzeiliger statt gekürzter Text), keine reine Dopplung, und damit
 // außerhalb dessen, was Task 6 zusammenführen soll. Was tatsächlich geteilt wird, ist nur die
-// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, aus labelTexture.js importiert) als Rückfall,
+// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, aus textMetrics.js importiert) als Rückfall,
 // wenn kein Canvas zum Messen da ist (s. `textMeasurer()`).
 const LABEL_MIN = 6;
 const LABEL_MAX = 16;
@@ -118,7 +118,7 @@ export function truncateToWidth(full, maxWidth, widthOf) {
 // schmalen Stacks waren das Hunderte Layouts je Klick (Nutzer-Feedback 2026-10-09: „bis man die
 // anklicken kann vergehen ein paar Sekunden“; gemessen 474 Messungen = 384 ms von 416 ms je
 // Auswahl in 2D). `measureText` löst kein Layout aus. Gleiche Schrift wie `.label` (fett, vom Body
-// geerbt); ohne Canvas (Node, sehr alte Browser) die grobe Schätzung aus labelTexture.js – sie
+// geerbt); ohne Canvas (Node, sehr alte Browser) die grobe Schätzung aus textMetrics.js – sie
 // greift auch für ein ungerendertes SVG wie `#print-root` nicht mehr, weil Canvas dort misst.
 let measureCtx;
 const widthCache = new Map();
