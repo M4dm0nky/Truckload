@@ -1,7 +1,8 @@
 import { esc, swatch } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
-import { outerDims, layersOf, isTruss, canTip } from '../model/geometry.js';
+import { layersOf, canTip } from '../model/geometry.js';
 import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
+import { caseLine } from './caseInfo.js';
 import { MAX_LABEL } from '../model/limits.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
@@ -95,17 +96,6 @@ export function bulkState(entries, key) {
   if (!vals.length) return 'none';
   if (vals.every(Boolean)) return 'on';
   return vals.some(Boolean) ? 'mixed' : 'off';
-}
-
-export function caseLine(c) {
-  const company = c.company ? ` · ${c.company}` : '';
-  if (isTruss(c)) {
-    const wagen = c.truss.standing ? '' : ` · Wagen ${c.w} cm breit`;
-    return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück${wagen}${company}`;
-  }
-  if (c.kind === 'speaker' && c.unitH > 0) return `Dolly ${c.l} × ${c.w} cm (B × T) · ${c.h + (c.wheelH ?? 0)} cm hoch · ${c.weight} kg${company}`;
-  const { l, w, h } = outerDims(c);
-  return `${l}×${w}×${h} cm · ${c.weight} kg${company}`;
 }
 
 // opts: { mode: 'new'|'add', cases, trucks, defaultTruckId, defaultName, onNewCase(draft),

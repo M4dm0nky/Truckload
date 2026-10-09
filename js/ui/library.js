@@ -1,28 +1,5 @@
 import { esc, swatch, icon } from './dom.js';
-import { layersOf, outerDims, isTruss, canTip } from '../model/geometry.js';
-import { TRUSS_PROFILES } from '../model/truss.js';
-
-function trussProfileLabel(width) {
-  const p = TRUSS_PROFILES.find(p => p.width === width);
-  return p ? p.name.split(' ')[0] : `${width} cm`;
-}
-function trussLabel(c) {
-  const lengthM = (c.truss.length / 100).toFixed(2).replace('.', ',');
-  return `Traverse ${trussProfileLabel(c.truss.width)} · ${lengthM} m · ${c.truss.count} Stück · Wagen ${c.w}er`;
-}
-function layerLabel(c) {
-  const layers = [...layersOf(c)].sort((a, b) => a - b);
-  if (layers.length === 4) return '';
-  if (layers.length === 1) return `nur Lage ${layers[0]}`;
-  const contiguous = layers.every((n, i) => i === 0 || n === layers[i - 1] + 1);
-  return contiguous ? `Lage ${layers[0]}–${layers.at(-1)}` : `Lage ${layers.join(', ')}`;
-}
-function caseDetail(c) {
-  const { l, w, h } = outerDims(c);
-  return isTruss(c)
-    ? trussLabel(c)
-    : `${l}×${w}×${h} cm · ${c.weight} kg${canTip(c) ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${layerLabel(c)}` : ''}`;
-}
+import { caseDetail } from './caseInfo.js';
 
 // Was muss die Seitenleiste bei einer Zustandsänderung tun? 'full' = Inhalt neu bauen,
 // 'sel' = nur die Auswahl-Klasse umschalten, 'none' = nichts. In „Noch nicht geladen“ zählt nur

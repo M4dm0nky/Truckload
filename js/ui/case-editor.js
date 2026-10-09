@@ -2,6 +2,7 @@ import { CATEGORIES, colorFor } from '../data/categories.js';
 import { hasWheels, layersOf, DEFAULT_WHEEL_H, NEW_CASE_WHEEL_H, WHEEL_PRESETS, outerDims, isTruss } from '../model/geometry.js';
 import { TRUSS_PROFILES, trussDims } from '../model/truss.js';
 import { CASE_LIMITS } from '../model/limits.js';
+import { QUICK_LENGTHS } from './caseInfo.js';
 import { showConfirm } from './confirmDialog.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
@@ -9,7 +10,6 @@ import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-targe
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
 const TRUSS_DEFAULTS = { length: 300, width: 29, count: 4 };
-export const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
 // Welche Herkunftsfelder ein gespeichertes Case aus dem Bearbeiten-Ausgangswert `v` übernimmt.
 // Neue Cases (auch Kopien einer Vorlage) behalten nur die Firma; `legacy` (ausgeblendete Vorlage)

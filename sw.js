@@ -42,6 +42,7 @@ const ASSETS = [
   'js/store/state.js',
   'js/ui/case-editor.js',
   'js/ui/caseGroups.js',
+  'js/ui/caseInfo.js',
   'js/ui/caseStyle.js',
   'js/ui/confirmDialog.js',
   'js/ui/dolly-wizard.js',

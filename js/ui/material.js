@@ -1,6 +1,6 @@
 import { esc, swatch, icon } from './dom.js';
 import { CASE_TABS, caseKind } from './caseGroups.js';
-import { caseLine } from './load-wizard.js';
+import { caseLine } from './caseInfo.js';
 import { companyList, casesOf, onlyInPlanCases, firmNameError } from '../model/material.js';
 import { MAX_FIRM } from '../model/limits.js';
 import { showPrompt, showAlert } from './confirmDialog.js';
