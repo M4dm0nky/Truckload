@@ -60,18 +60,36 @@ export function pickLatestPlan(plans) {
   return [...plans].sort((a, b) => ts(b).localeCompare(ts(a)))[0];
 }
 
+// Bereinigt alle vier Stores (sanitizeUpdatedAt) und schreibt die dabei geänderten Datensätze in
+// EINEM putMany zurück nach IndexedDB; sonst bliebe der Altwert dort stehen und würde bei jedem
+// Start erneut bereinigt (und landete unbereinigt in Sicherungen). Ein Schreibfehler wird nur
+// geloggt – das Laden darf daran nicht scheitern. `write` ist die Testnaht (db.putMany).
+export async function sanitizeAndWriteBack(raw, write = db.putMany) {
+  const clean = {};
+  const items = [];
+  for (const [storeName, records] of Object.entries(raw)) {
+    clean[storeName] = sanitizeUpdatedAt(records);
+    clean[storeName].forEach((r, i) => { if (r !== records[i]) items.push({ store: storeName, value: r }); });
+  }
+  if (items.length > 0) {
+    try { await write(items); } catch (err) { console.error('Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', err); }
+  }
+  return clean;
+}
+
 export async function loadAll() {
   await db.persist();
   const [cases, trucks, plans, ruleSets] = await Promise.all([
     db.getAll('cases'), db.getAll('trucks'), db.getAll('plans'), db.getAll('ruleSets'),
   ]);
-  const ownCases = normalizeOwnCases(sanitizeUpdatedAt(cases));
+  const clean = await sanitizeAndWriteBack({ cases, trucks, plans, ruleSets });
+  const ownCases = normalizeOwnCases(clean.cases);
   const mergedCases = mergeOwnWithBuiltins(ownCases, [...PRESET_CASES, ...CASE_LIBRARY]);
   return {
     cases: mergedCases,
-    trucks: [...PRESET_TRUCKS, ...sanitizeUpdatedAt(trucks)],
-    plans: sanitizeUpdatedAt(plans),
-    ruleSets: sanitizeUpdatedAt(ruleSets),
+    trucks: [...PRESET_TRUCKS, ...clean.trucks],
+    plans: clean.plans,
+    ruleSets: clean.ruleSets,
   };
 }
 

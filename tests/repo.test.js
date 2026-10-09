@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, buildCaseItems, saveCases, sanitizeUpdatedAt, pickLatestPlan } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, buildCaseItems, saveCases, sanitizeUpdatedAt, pickLatestPlan, sanitizeAndWriteBack } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
@@ -378,4 +378,46 @@ test('buildCaseItems: jeder Eintrag geht in den Object Store „cases“', () =>
 });
 test('saveCases: leere Liste schreibt nichts und löst auf', async () => {
   await saveCases([]);
+});
+
+// --- 1.4: bereinigte Datensätze werden zusätzlich zurück in die Datenbank geschrieben ---
+
+test('sanitizeAndWriteBack: schreibt NUR bereinigte Datensätze, in einem putMany über alle Stores', async () => {
+  const writes = [];
+  const raw = {
+    cases: [{ id: 'c1', name: 'K', updatedAt: 5 }, { id: 'c2', name: 'Ok', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    trucks: [{ id: 't1', name: 'T', updatedAt: new Date() }],
+    plans: [{ id: 'p1', name: 'P', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    ruleSets: [{ id: 'r1', name: 'R', updatedAt: 7 }],
+  };
+  const clean = await sanitizeAndWriteBack(raw, async items => { writes.push(items); });
+  assert.equal(writes.length, 1, 'genau ein putMany');
+  assert.deepEqual(writes[0], [
+    { store: 'cases', value: { id: 'c1', name: 'K' } },
+    { store: 'trucks', value: { id: 't1', name: 'T' } },
+    { store: 'ruleSets', value: { id: 'r1', name: 'R' } },
+  ]);
+  assert.equal('updatedAt' in clean.cases[0], false);
+  assert.equal(clean.cases[1], raw.cases[1]);
+  assert.equal(clean.plans[0], raw.plans[0]);
+});
+
+test('sanitizeAndWriteBack: ohne kaputte Datensätze wird nichts geschrieben', async () => {
+  let called = false;
+  const raw = { cases: [], trucks: [], plans: [{ id: 'p', updatedAt: '2026-01-01T00:00:00.000Z' }], ruleSets: [] };
+  await sanitizeAndWriteBack(raw, async () => { called = true; });
+  assert.equal(called, false);
+});
+
+test('sanitizeAndWriteBack: ein Schreibfehler wird nur geloggt, das bereinigte Ergebnis kommt trotzdem', async () => {
+  const logged = [];
+  const orig = console.error;
+  console.error = (...a) => logged.push(a);
+  try {
+    const raw = { cases: [{ id: 'c1', updatedAt: 5 }], trucks: [], plans: [], ruleSets: [] };
+    const clean = await sanitizeAndWriteBack(raw, async () => { throw new Error('Quota'); });
+    assert.equal('updatedAt' in clean.cases[0], false);
+    assert.equal(logged.length, 1);
+    assert.match(String(logged[0][1]?.message ?? logged[0][0]), /Quota|bereinigt/);
+  } finally { console.error = orig; }
 });
