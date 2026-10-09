@@ -44,3 +44,38 @@ test('open(): onblocked lehnt NICHT ab, wartet weiter; onsuccess löst danach au
   assert.equal(versionChangeCalls, 1, 'onVersionChange-Rückruf wurde aufgerufen');
   assert.deepEqual(closes, ['close'], 'db.close() wird bei onversionchange aufgerufen');
 });
+
+// 1.5: Eine abgelehnte open()-Promise darf nicht für die ganze Sitzung kleben bleiben. Frische
+// Modulinstanz (Query-String), weil der Test oben dbPromise schon aufgelöst im Cache hat.
+test('open(): nach einem Fehler wird beim nächsten Zugriff neu versucht', async () => {
+  const fresh = await import('../js/store/db.js?retry');
+  const fakeDb = { onversionchange: null, close() {} };
+  const reqs = [];
+  globalThis.indexedDB = { open() { const r = makeFakeRequest(fakeDb); reqs.push(r); return r; } };
+
+  const first = fresh.open();
+  reqs[0].error = new Error('Speicher gesperrt');
+  reqs[0].onerror();
+  await assert.rejects(first, /Speicher gesperrt/);
+
+  const second = fresh.open();
+  assert.equal(reqs.length, 2, 'indexedDB.open wurde erneut aufgerufen');
+  reqs[1].onsuccess();
+  assert.equal(await second, fakeDb);
+  assert.equal(fresh.open(), second, 'ein Erfolg bleibt zwischengespeichert');
+  assert.equal(reqs.length, 2);
+});
+
+test('open(): während onblocked-Wartezeit wird NICHT neu geöffnet', async () => {
+  const fresh = await import('../js/store/db.js?blocked');
+  const fakeDb = { onversionchange: null, close() {} };
+  const reqs = [];
+  globalThis.indexedDB = { open() { const r = makeFakeRequest(fakeDb); reqs.push(r); return r; } };
+  const p1 = fresh.open();
+  reqs[0].onblocked();
+  const p2 = fresh.open();
+  assert.equal(p1, p2);
+  assert.equal(reqs.length, 1);
+  reqs[0].onsuccess();
+  await p1;
+});

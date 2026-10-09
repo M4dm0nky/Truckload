@@ -21,10 +21,14 @@ export const setBlockedHandler = fn => { blockedHandler = fn; };
 export const setUnblockedHandler = fn => { unblockedHandler = fn; };
 export const setVersionChangeHandler = fn => { versionChangeHandler = fn; };
 
-// Exportiert als kleinste Testnaht: `dbPromise` ist Modulebene und einmalig gespritzt (`??=`),
-// ein Test kann open() aber direkt mit einem Fake-`indexedDB` aufrufen.
+// Exportiert als kleinste Testnaht: `dbPromise` ist Modulebene und zwischengespeichert, ein Test
+// kann open() aber direkt mit einem Fake-`indexedDB` aufrufen. Eine ABGELEHNTE Promise wird
+// verworfen (`onerror`, auch ein synchron werfendes `indexedDB.open`), damit der nächste Zugriff
+// neu versucht, statt die Sitzung lang denselben Fehler zu liefern. `onblocked` lehnt nie ab; die
+// wartende Promise bleibt stehen.
 export function open() {
-  return (dbPromise ??= new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  const attempt = dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       for (const s of STORES) if (!req.result.objectStoreNames.contains(s))
@@ -38,7 +42,9 @@ export function open() {
       resolve(database);
     };
     req.onerror = () => reject(req.error);
-  }));
+  });
+  attempt.catch(() => { if (dbPromise === attempt) dbPromise = undefined; });
+  return attempt;
 }
 
 // Ein abgelehntes/abgebrochenes `tx.error` ist nicht verlässlich gefüllt (in Chrome bei einem
