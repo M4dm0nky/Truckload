@@ -118,20 +118,19 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
 }
 
 // Fokus über den Neuaufbau retten: Das Element wird durch ein gleichartiges neues ersetzt, das
-// per name / data-layer / data-act(+data-face) wiedergefunden wird. Nur wenn der Fokus vorher
-// im Inspector lag – sonst wird nichts angefasst.
+// per name wiedergefunden wird. Nur wenn der Fokus vorher
+// in einem Textfeld des Inspectors lag – sonst wird nichts angefasst.
 function focusSelector(node) {
-  if (node.name) return `[name="${CSS.escape(node.name)}"]`;
-  if (node.dataset.layer) return `[data-layer="${CSS.escape(node.dataset.layer)}"]`;
-  if (node.dataset.act) {
-    const face = node.dataset.face ? `[data-face="${CSS.escape(node.dataset.face)}"]` : '';
-    return `[data-act="${CSS.escape(node.dataset.act)}"]${face}`;
-  }
-  return null;
+  return node.name ? `[name="${CSS.escape(node.name)}"]` : null;
 }
 function captureFocus(el) {
   const node = document.activeElement;
   if (!node || node === el || !el.contains(node)) return null;
+  // Nur Textfelder: bei Häkchen und Knöpfen fiele der Fokus sonst auf das neue Element, und die
+  // globalen Tastenkürzel (R, T, Pfeile …) ignorieren Eingaben, solange ein Input den Fokus hat.
+  const textLike = node.tagName === 'TEXTAREA'
+    || (node.tagName === 'INPUT' && ['text', 'color', 'number', 'search'].includes(node.type));
+  if (!textLike) return null;
   const selector = focusSelector(node);
   if (!selector) return null;
   let start = null, end = null;
