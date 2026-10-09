@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dollyStackCase, dollyStackId, maxDollyCount, upgradeDollyStack, dollyDepth, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
+import { NAME_MAX } from '../js/model/limits.js';
+import { dollyStackCase, dollyName, dollyStackId, maxDollyCount, upgradeDollyStack, dollyDepth, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
 import { checkCase, exportBundle, parseBundle } from '../js/store/io.js';
 import { outerDims } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
@@ -214,4 +215,15 @@ test('dollyStackCase: Firma wird gesetzt', () => {
 test('dollyStackId: dieselbe Box mit und ohne Firma ergibt verschiedene IDs', () => {
   const k2 = { id: 'preset-k2' };
   assert.notEqual(dollyStackId(k2, 2, 'CAB'), dollyStackId(k2, 2));
+});
+
+test('dollyName: kurzer Name unverändert, langer Basisname wird mit „…“ auf NAME_MAX gekürzt, Zusatz bleibt', () => {
+  assert.equal(dollyName('K2', 4), 'K2 4er (auf Dolly)');
+  const exact = 'B'.repeat(NAME_MAX - ' 2er (auf Dolly)'.length);
+  assert.equal(dollyName(exact, 2), `${exact} 2er (auf Dolly)`);
+  const long = dollyName('B'.repeat(200), 12);
+  assert.equal(long.length, NAME_MAX);
+  assert.ok(long.endsWith('… 12er (auf Dolly)'));
+  const base = { ...mkCase('preset-x', 80, 60, 20, { name: 'N'.repeat(150), weight: 10 }) };
+  assert.equal(dollyStackCase(base, 3).name.length, NAME_MAX);
 });

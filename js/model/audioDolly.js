@@ -1,5 +1,5 @@
 import { colorFor } from '../data/categories.js';
-import { CASE_LIMITS } from './limits.js';
+import { CASE_LIMITS, NAME_MAX } from './limits.js';
 import { slug } from './slug.js';
 
 // Recherche: Carvin DB521018 (81×75×20 cm, 18,3 kg, 4× 127-mm-Lenkrollen), SYNQ SQ-218 Dolly
@@ -51,12 +51,20 @@ export function maxDollyCount(baseCase) {
 // `wagen` (optional): { l, w } = Wagengröße der Firma in cm; ohne gilt Boxbreite × Dolly-Stufe.
 // `company` (optional): Firma des Materialbestands, eigener ID-Raum je Firma.
 // Firmen-Stacks entstehen vollständig; upgradeDollyStack lässt sie unverändert.
+// „<Basis> N er (auf Dolly)“ höchstens NAME_MAX lang: ein zu langer Basisname wird mit „…“
+// gekürzt, der Zusatz bleibt vollständig (sonst lehnte der Import das Case ab).
+export function dollyName(baseName, n) {
+  const suffix = ` ${n}er (auf Dolly)`;
+  const room = NAME_MAX - suffix.length;
+  return `${baseName.length > room ? `${baseName.slice(0, room - 1)}…` : baseName}${suffix}`;
+}
+
 export function dollyStackCase(baseCase, n, wagen = {}, company = '') {
   return {
     id: dollyStackId(baseCase, n, company),
     company: company || undefined,
     builtin: false,
-    name: `${baseCase.name} ${n}er (auf Dolly)`,
+    name: dollyName(baseCase.name, n),
     content: '',
     category: baseCase.category,
     color: colorFor(baseCase.category),
