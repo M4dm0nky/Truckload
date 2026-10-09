@@ -10,8 +10,9 @@ import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.j
 // js/model/limits.js), keine engere Grenze darüber hinaus (Nutzer-Entscheidung: die bestehende
 // Höhen-/Gewichtsprüfung reicht).
 //
-// Existiert für dieselbe Basisbox+Stückzahl schon ein Case, wird er neu berechnet und
-// überschrieben, nicht wiederverwendet: Eine „nicht überschreiben“-Regel hätte verhindert, dass
+// Eigene Entscheidung 2026-10-08 nach Nutzer-Feedback (ein bereits angelegter „K2 2er“ behielt die
+// alte Darstellung): Existiert für dieselbe Basisbox+Stückzahl schon ein Case, wird er neu berechnet
+// und überschrieben, nicht wiederverwendet. Eine „nicht überschreiben“-Regel hätte verhindert, dass
 // bereits erzeugte Dolly-Stacks neue Felder/Optik späterer Versionen bekommen. Betroffen sind
 // praktisch nur automatisch erzeugte, nie von Hand bearbeitete Zeilen – wie die mitgelieferten
 // Vorlagen, die bei jedem Release aktualisiert werden.
