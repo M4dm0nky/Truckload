@@ -34,8 +34,12 @@ export function mountMaterial(el, h) {
     const companies = companyList(last.cases, [...extra]);
     const items = sel === ONLY_IN_PLAN ? onlyInPlanCases(last.cases) : casesOf(last.cases, sel);
     const needle = q.trim().toLowerCase();
-    const shown = items.filter(c => caseKind(c) === tab && (!needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle)))
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    const matches = items.filter(c => !needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
+    const shown = matches.filter(c => caseKind(c) === tab).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    // Zähler links zählen alle Reiter – ist dieser Reiter leer, aber ein anderer nicht, sagen wir das.
+    const empty = matches.length
+      ? '<p class="hint">In diesem Reiter nichts – andere Reiter prüfen.</p>'
+      : '<p class="hint">Hier ist noch nichts – „+ Neues Case“ legt etwas an.</p>';
     const isFirm = sel !== STANDARD && sel !== ONLY_IN_PLAN;
     el.innerHTML = `
       <div class="mat-head"><h1>Material</h1><button data-act="back">Zurück</button></div>
@@ -57,7 +61,7 @@ export function mountMaterial(el, h) {
             <button data-act="new-dolly">+ Boxen-Dolly</button>
             ${isFirm ? '<span class="grow"></span><button data-act="rename-firm">Firma umbenennen</button><button data-act="delete-firm" class="danger">Firma löschen</button>' : ''}
           </div>`}
-          ${shown.map(rowHtml).join('') || '<p class="hint">Hier ist noch nichts – „+ Neues Case“ legt etwas an.</p>'}
+          ${shown.map(rowHtml).join('') || empty}
         </section>
       </div>`;
   }

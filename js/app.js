@@ -304,7 +304,7 @@ function pickOption(title, options) {
 }
 async function pickCase(title, cases) {
   if (!cases.length) { await showAlert('Keine passende Box vorhanden.'); return null; }
-  const id = await pickOption(title, cases.map(c => ({ value: c.id, label: c.name })));
+  const id = await pickOption(title, cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })));
   return id == null ? null : cases.find(c => c.id === id);
 }
 // Zielfirma: '' = Standardliste (Wert ''), sonst Firmenname; null = abgebrochen.
