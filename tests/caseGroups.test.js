@@ -137,3 +137,10 @@ test('keep: im Wizard angelegtes Case umgeht alle Filter', () => {
   assert.equal(inOwn(groupCases([n], { company: NEUTRAL_COMPANY, q: 'xyz', keep: new Set(['n']) })), true);
   assert.equal(inOwn(groupCases([n], { company: NEUTRAL_COMPANY, q: 'xyz' })), false);
 });
+
+test('groupCases blendet legacy-Cases auch aus „Eigene Cases“ aus', () => {
+  const x = { id: 'x', builtin: false, name: 'X', category: 'Ton', legacy: true };
+  const y = { id: 'lib-y', builtin: false, source: 'liste', name: 'Y', category: 'Ton', legacy: true };
+  const g = groupCases([x, y]);
+  assert.deepEqual([g.own, g.presets, g.list].map(a => a.length), [0, 0, 0]);
+});

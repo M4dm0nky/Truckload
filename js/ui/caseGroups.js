@@ -51,7 +51,7 @@ export function groupCases(cases, { q = '', cat = '', company = '', keep = new S
     // (docs/code-review-2026-09-21.md, „9. Eigene Cases erscheinen in UUID-Reihenfolge“). Hier
     // sortiert statt in repo.js: damit ist die Reihenfolge unabhängig davon, woher die Liste kommt
     // (Neuladen vs. innerhalb der Sitzung bearbeitet), mit einem einzigen Aufrufer für beide Fälle.
-    own: cases.filter(c => !c.builtin && c.source !== 'liste' && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    own: cases.filter(c => !c.builtin && !c.legacy && c.source !== 'liste' && match(c)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
     presets: cases.filter(c => c.builtin && !c.legacy && c.source !== 'liste' && match(c)),
     // `!c.legacy`: ersetzte Listen-Einträge (Aufräumen V0.8.1) bleiben nur für alte Ladepläne.
     list: cases.filter(c => !c.legacy && c.source === 'liste' && match(c)),
