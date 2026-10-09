@@ -1,6 +1,8 @@
-// Service-Worker: hält die App offline vor. Strategie: sofort aus dem Cache antworten,
-// im Hintergrund die neue Version holen (Updates wirken beim nächsten Öffnen).
-const CACHE = 'truckload-v0.13.0';
+// Service-Worker: hält die App offline vor. Strategie seit V 0.13.1 (Nutzerwunsch 2026-10-09:
+// „immer den aktuellen Stand laden“): Netz zuerst, am HTTP-Cache des Browsers vorbei. Der
+// Offline-Cache springt nur ein, wenn das Netz fehlt, mit einem Fehler antwortet oder länger als
+// NETWORK_TIMEOUT_MS braucht – dann läuft der Abruf im Hintergrund weiter und frischt den Cache auf.
+const CACHE = 'truckload-v0.13.1';
 const ASSETS = [
   './',
   'index.html',
@@ -66,14 +68,37 @@ self.addEventListener('activate', event => {
     .then(() => self.clients.claim()));
 });
 
+const NETWORK_TIMEOUT_MS = 3000;
+
+// Eigene Funktion (statt inline im fetch-Handler), damit tests/sw.test.js sie ohne Browser prüfen
+// kann. `cache: 'no-cache'` lässt den Browser beim Server nachfragen statt seine eigene HTTP-Kopie
+// zu nehmen (GitHub Pages schickt max-age=600). Neuer Request aus der URL, weil sich ein
+// Navigations-Request nicht mit geänderten Optionen kopieren lässt.
+function networkFirst(request, cache, fetchFn = fetch, timeoutMs = NETWORK_TIMEOUT_MS) {
+  const fromNet = fetchFn(new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' }))
+    .then(res => {
+      if (res.ok) { cache.put(request, res.clone()); return res; }
+      return cache.match(request, { ignoreSearch: true }).then(cached => cached ?? res);
+    });
+  const fallback = () => cache.match(request, { ignoreSearch: true });
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const finish = r => { if (!done) { done = true; resolve(r); } };
+    const timer = setTimeout(async () => {
+      const cached = await fallback();
+      if (cached) finish(cached);
+    }, timeoutMs);
+    fromNet.then(res => { clearTimeout(timer); finish(res); }, async err => {
+      clearTimeout(timer);
+      const cached = await fallback();
+      if (done) return;
+      if (cached) finish(cached); else { done = true; reject(err); }
+    });
+  });
+}
+
 self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
-  event.respondWith(caches.open(CACHE).then(async cache => {
-    const cached = await cache.match(request, { ignoreSearch: true });
-    const fresh = fetch(request)
-      .then(res => { if (res.ok) cache.put(request, res.clone()); return res; })
-      .catch(() => cached);
-    return cached ?? fresh;
-  }));
+  event.respondWith(caches.open(CACHE).then(cache => networkFirst(request, cache)));
 });
