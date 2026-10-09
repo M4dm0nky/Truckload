@@ -24,6 +24,29 @@ Ziel (Nutzerangaben 2026-10-09):
 Pfad: architektonisch (neuer Bereich). Ablauf laut CLAUDE.md: Spec → `superpowers:writing-plans`
 → `superpowers:subagent-driven-development`.
 
+## Nachtrag 2026-10-09 (Nutzerangaben nach Spec-Durchsicht)
+
+1. **Eigenes Modul, immer erreichbar.** `js/ui/material.js` ist ein eigenständiger Bereich; der
+   Knopf „Material“ steht dauerhaft sichtbar auf dem Startbildschirm **und** in der Kopfleiste
+   (auch bei offenem Ladeplan). „Zurück“ führt dorthin, woher man kam (Plan oder Start).
+2. **Löschen nur in der Materialverwaltung.** Der Löschen-Knopf im Case-Editor erscheint nur,
+   wenn der Editor aus der Materialverwaltung geöffnet wird (Option `allowDelete`). Das direkte
+   Löschen aus der Seitenleiste (`onDelete` → `deleteCaseDirect`, `js/app.js`) entfällt.
+3. **Anlegen geht überall**, auch im Lade-Wizard (Neues Case, Sonderbau, Traverse, Boxen-Dolly).
+   Dort sitzt ein Häkchen **„Im Materialbestand ablegen“** mit Ziel-Auswahl „Standardliste“ oder
+   eine Firma (vorbelegt mit der aktuellen „Suchen in“-Wahl; Standardliste, wenn dort
+   „Standardkatalog“ oder „Kompletter Bestand“ steht).
+   - Häkchen an, Ziel Standardliste → eigenes Case ohne `company` (erscheint im Standardkatalog
+     unter „Eigene Cases“; der mitgelieferte Teil bleibt nur lesbar).
+   - Häkchen an, Ziel Firma → eigenes Case mit `company`.
+   - Häkchen aus → **Annahme (eigene Entscheidung, vom Nutzer nicht festgelegt):** das Case gilt
+     nur für diesen Load. Es wird gespeichert (der Plan braucht die `caseId`), trägt aber
+     `onlyInPlan: true` und taucht in keiner Auswahl und nicht in der Materialverwaltung auf
+     (`groupCases`/`companiesOf` filtern es wie `legacy`). In der Materialverwaltung gibt es
+     unten eine Sammelansicht „Nur in Ladeplänen“, von wo man es nachträglich in den Bestand
+     übernehmen oder löschen kann.
+   - Vorgabe des Häkchens: an.
+
 ## Datenmodell (keine neue IndexedDB-Tabelle, kein DB_VERSION-Sprung)
 
 - **Firma = `company`-String am Case**, wie heute. Firmenliste = `companiesOf()`
@@ -39,7 +62,7 @@ Pfad: architektonisch (neuer Bereich). Ablauf laut CLAUDE.md: Spec → `superpow
 - **Firma umbenennen**: alle Cases der Firma mit neuem `company` speichern (für `lib-`-Einträge
   entstehen dabei Überlagerungen). **Firma löschen**: nur wenn leer oder nach Rückfrage alle ihre
   Cases löschen (wie oben).
-- **Case-Editor**: bekommt ein Feld „Firma“ (Auswahl aus vorhandenen Firmen + „Standard/keine“),
+- **Case-Editor**: bekommt den Block „Im Materialbestand ablegen“ (Häkchen + Ziel) bzw. in der Materialverwaltung ein Feld „Firma“ (Auswahl aus vorhandenen Firmen + „Standard/keine“),
   behält `company` statt es zu leeren; `source: 'liste'` bleibt bei bearbeiteten `lib-`-Einträgen
   erhalten, damit sie in derselben Gruppe bleiben.
 - **Import/Export** (`js/store/io.js`): `isPreset()` filtert `lib-`-IDs nur noch, wenn der
