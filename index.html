@@ -19,7 +19,8 @@
       const isPreload = t && t.tagName === 'LINK' && t.rel === 'modulepreload';
       // Versionsmix: ein fehlender Export meldet sich als SyntaxError am window, nicht am Skript.
       const isLinkError = t === window && e.error instanceof SyntaxError && !window.__tlBooted;
-      if ((!isModule && !isPreload && !isLinkError) || document.getElementById('load-error')) return;
+      if ((!isModule && !isPreload && !isLinkError) || window.__tlLoadErr) return;
+      window.__tlLoadErr = true;
       const box = document.createElement('div');
       box.id = 'load-error';
       box.className = 'banner banner-warn';
@@ -82,6 +83,7 @@
 </head>
 <body>
   <div id="storage-warning" class="banner banner-warn" hidden></div>
+  <div id="error-banner" class="banner banner-warn" role="alert" hidden></div>
   <div id="tab-warning" class="banner banner-warn" hidden>
     Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.
     <button id="tab-warning-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>

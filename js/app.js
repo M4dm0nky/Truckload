@@ -27,6 +27,18 @@ import { buildPrint, buildChecklist, buildLabels, pageRuleFor } from './ui/print
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from './store/io.js';
 import { createAutosave } from './store/autosave.js';
 
+// Globaler Auffangnetz-Hinweis (eigenes Element, damit er keinen wichtigeren Speicher-Hinweis in
+// #storage-warning überschreibt). Früh registriert, damit auch Startfehler vor dem ersten
+// await erfasst werden. Fehler, die schon per showAlert gemeldet werden, sind gefangen.
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unbehandelte Ablehnung', e.reason);
+  const el = document.getElementById('error-banner');
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = `Unerwarteter Fehler: ${e.reason?.message ?? String(e.reason)}`;
+});
+
+
 const $ = sel => document.querySelector(sel);
 const uid = () => crypto.randomUUID();
 
@@ -784,7 +796,10 @@ async function editTruck(truck) {
         await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
       }
     }
-    if (s1.plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
+    if (s1.plan.truckId === truck.id) {
+      edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
+      store.resetHistory(); // Undo darf den gelöschten truckId nicht zurückholen
+    }
     return;
   }
   const value = stamp(res.value);
@@ -1032,15 +1047,6 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 
 scheduleRender();
-
-// Globaler Auffangnetz-Hinweis: Fehler, die schon per showAlert gemeldet werden, sind gefangen
-// und erreichen diesen Handler nicht.
-window.addEventListener('unhandledrejection', e => {
-  console.error('Unbehandelte Ablehnung', e.reason);
-  const el = $('#storage-warning');
-  el.hidden = false;
-  el.textContent = `Unerwarteter Fehler: ${e.reason?.message ?? String(e.reason)}`;
-});
 
 // Marker für den Ladefehler-Hinweis in index.html: ab hier ist das Modul-Skript vollständig gelaufen.
 window.__tlBooted = true;
