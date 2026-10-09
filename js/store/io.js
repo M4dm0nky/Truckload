@@ -66,6 +66,15 @@ export function checkCase(c) {
     if (!trussOk) throw new Error(`Case „${c.name}“ hat ungültige Traversenwagen-Werte.`);
   }
 }
+// `legacy` (ausgeblendet) gilt nur für Überlagerungen von Firmen-Vorlagen (`lib-`). Bis V 0.12.4
+// kopierte der Case-Editor das Feld in neue Kopien ausgeblendeter Vorlagen (eigene UUID) – solche
+// eigenen Cases wären seit der Materialverwaltung nirgends mehr zu finden. Beim Laden und beim
+// Import fällt das Feld dort deshalb weg; Maße und alle anderen Felder bleiben unverändert.
+export function dropStrayLegacy(c) {
+  if (c?.builtin || !('legacy' in (c ?? {})) || (typeof c.id === 'string' && c.id.startsWith('lib-'))) return c;
+  const { legacy, ...rest } = c;
+  return rest;
+}
 export function normalizeCase(c) {
   // Dolly-Stacks aus früheren Versionen bekommen ihre Darstellungsfelder nach (s.
   // upgradeDollyStack() in js/model/audioDolly.js) – beim Laden UND beim Datei-Import.
@@ -223,16 +232,21 @@ export function parseBundle(text) {
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
-  return { cases: cases.map(normalizeCase), trucks, plans, ruleSets, warnings, repairs };
+  return { cases: cases.map(c => normalizeCase(dropStrayLegacy(c))), trucks, plans, ruleSets, warnings, repairs };
 }
 
+// Ein lokaler mitgelieferter Eintrag (`builtin: true`) verliert immer: Mitgeliefertes kommt nie
+// aus einer Datei (parseBundle verwirft es), ein Datensatz mit derselben ID ist also eine eigene
+// Überlagerung – bei Cases eine bearbeitete/ausgeblendete Firmen-Vorlage (`lib-`). Ohne diese
+// Regel behielte der Vorlagen-Eintrag (ohne updatedAt) die Oberhand und die Überlagerung ginge
+// beim Wiederherstellen verloren. Pläne und Regelsets haben kein `builtin` – für sie unverändert.
 export function mergeById(existing, incoming) {
   const ts = x => (typeof x?.updatedAt === 'string' ? x.updatedAt : null);
   const map = new Map(existing.map(x => [x.id, x]));
   for (const x of incoming) {
     const cur = map.get(x.id);
     const bothStamped = ts(x) !== null && ts(cur) !== null;
-    if (!cur || (bothStamped && ts(x) >= ts(cur))) map.set(x.id, x);
+    if (!cur || cur.builtin === true || (bothStamped && ts(x) >= ts(cur))) map.set(x.id, x);
   }
   return [...map.values()];
 }

@@ -13,7 +13,7 @@ test('Kopie einer ausgeblendeten Vorlage: legacy und source weg, Firma bleibt', 
   assert.equal(r.company, 'CAB');
 });
 test('Überlagerung (overrideBuiltin): Quelle und Firma bleiben, legacy unverändert', () => {
-  const r = retainedFields({ company: 'CAB', source: 'liste', legacy: true }, { isNew: true, fromTemplate: false, overrideBuiltin: true });
+  const r = retainedFields({ company: 'CAB', source: 'liste', legacy: true }, { isNew: false, fromTemplate: false, overrideBuiltin: true });
   assert.equal(r.source, 'liste');
   assert.equal(r.company, 'CAB');
   assert.equal(r.legacy, true);

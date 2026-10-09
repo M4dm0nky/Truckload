@@ -2,7 +2,7 @@ import * as db from './db.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
-import { normalizeCase, mergeById } from './io.js';
+import { normalizeCase, mergeById, dropStrayLegacy } from './io.js';
 
 export const stamp = obj => ({ ...obj, updatedAt: new Date().toISOString() });
 
@@ -36,7 +36,9 @@ export function mergeOwnWithBuiltins(ownCases, builtinCases) {
 // (Fix-Runde 1, [blocking]). normalizeCase() selbst wirft für die häufigste bekannte
 // Ursache (Traversenbreite über der Grenze) inzwischen ohnehin nicht mehr; dieser Fang ist
 // die zusätzliche Absicherung gegen unbekannte künftige Fälle.
-export const normalizeOwnCases = cases => cases.map(c => {
+// Zusätzlich fällt ein verirrtes `legacy` an eigenen Nicht-`lib-`-Cases weg (dropStrayLegacy, io.js).
+export const normalizeOwnCases = cases => cases.map(raw => {
+  const c = dropStrayLegacy(raw);
   try { return normalizeCase(c); } catch { return c; }
 });
 
