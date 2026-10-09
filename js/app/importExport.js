@@ -5,6 +5,23 @@ import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } fr
 
 const $ = sel => document.querySelector(sel);
 
+// Warntexte für Verweise, die auch NACH dem Zusammenführen ins Leere zeigen. parseBundle kennt nur
+// die Datei (plus Vorlagen), nicht die eigenen lokalen Cases/Fahrzeuge; deshalb filtert diese
+// Funktion `unknownRefs` gegen den lokalen Zustand nach dem Mischen (`{ cases, trucks }`).
+export function importWarnings(unknownRefs, { cases, trucks }) {
+  const caseIds = new Set(cases.map(c => c.id));
+  const truckIds = new Set(trucks.map(t => t.id));
+  const warnings = [];
+  for (const r of unknownRefs) {
+    const missing = r.cases.filter(id => !caseIds.has(id)).length;
+    if (missing > 0)
+      warnings.push(`Ladeplan „${r.plan}“: ${missing} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.`);
+    if (r.truck !== null && !truckIds.has(r.truck))
+      warnings.push(`Ladeplan „${r.plan}“ verweist auf ein unbekanntes Fahrzeug.`);
+  }
+  return warnings;
+}
+
 function downloadJSON(filename, text) {
   const blob = new Blob([text], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
@@ -92,6 +109,9 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
     if (merge.planChanged) store.resetHistory();
     // Reparaturen an Altwerten werden gemeldet, damit der Nutzer sieht, was angepasst wurde.
     const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
-    await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets (neuere lokale Stände behalten).${repairNote}`);
+    // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
+    const warnings = importWarnings(bundle.unknownRefs, store.get());
+    const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';
+    await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets (neuere lokale Stände behalten).${repairNote}${warnNote}`);
   };
 }

@@ -207,14 +207,15 @@ export function parseBundle(text) {
 
   const knownCaseIds = new Set([...cases.map(c => c.id), ...CASE_LIBRARY.map(c => c.id), ...PRESET_CASES.map(c => c.id)]);
   const knownTruckIds = new Set([...trucks.map(t => t.id), ...PRESET_TRUCKS.map(t => t.id)]);
-  const warnings = [];
+  // Unbekannte Verweise nur als IDs liefern: ob ein Case oder Fahrzeug wirklich fehlt, zeigt erst
+  // der Abgleich mit dem lokalen Bestand nach dem Zusammenführen (js/app/importExport.js, dort
+  // entsteht auch der Warntext). Ein Plan, der auf ein eigenes lokales Case verweist, das nicht
+  // in der Datei steht, ist kein Fehler. `cases` führt eine ID je betroffenem Stück.
+  const unknownRefs = [];
   for (const p of plans) {
-    const refs = [...p.placements, ...p.unplaced].map(x => x.caseId);
-    const unknown = refs.filter(id => !knownCaseIds.has(id)).length;
-    if (unknown > 0)
-      warnings.push(`Ladeplan „${p.name}“: ${unknown} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.`);
-    if (!knownTruckIds.has(p.truckId))
-      warnings.push(`Ladeplan „${p.name}“ verweist auf ein unbekanntes Fahrzeug.`);
+    const missingCases = [...p.placements, ...p.unplaced].map(x => x.caseId).filter(id => !knownCaseIds.has(id));
+    const truck = knownTruckIds.has(p.truckId) ? null : p.truckId;
+    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck });
   }
 
   const repairs = [];
@@ -223,7 +224,7 @@ export function parseBundle(text) {
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
-  return { cases: cases.map(c => normalizeCase(dropStrayLegacy(c))), trucks, plans, ruleSets, warnings, repairs };
+  return { cases: cases.map(c => normalizeCase(dropStrayLegacy(c))), trucks, plans, ruleSets, unknownRefs, repairs };
 }
 
 // Ein lokaler mitgelieferter Eintrag (`builtin: true`) verliert immer: Mitgeliefertes kommt nie

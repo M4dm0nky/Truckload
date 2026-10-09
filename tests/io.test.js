@@ -435,45 +435,43 @@ test('Ein Case mit lib-…-ID und builtin:true wird beim Import verworfen (verde
   assert.deepEqual(res.cases.map(c => c.id), ['own']);
 });
 
-// --- Daten-21: Verweise auf unbekannte Cases/Fahrzeuge werden gemeldet ---
+// --- Daten-21: Verweise auf unbekannte Cases/Fahrzeuge werden strukturiert gemeldet ---
+// parseBundle liefert nur die IDs (`unknownRefs`); den Warntext und den Abgleich gegen den
+// lokalen Bestand erledigt js/app/importExport.js (tests/app-importexport.test.js).
 
 test('Ladeplan mit Verweis auf unbekanntes Case wird gemeldet, aber importiert', () => {
   const p = plan([P('pl1', 'geist-case-123', 0, 0, 0)]);
-  const ok = bundleWith({ cases: [], trucks: [], plans: [p] });
-  const res = parseBundle(ok);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
   assert.equal(res.plans.length, 1);
-  assert.ok(res.warnings.some(w => /unbekannt|weder in der Datei/.test(w)));
+  assert.equal('warnings' in res, false);
+  assert.deepEqual(res.unknownRefs, [{ planId: p.id, plan: p.name, cases: ['geist-case-123'], truck: null }]);
 });
-test('Ladeplan mit Verweis auf ein Standard-Case (preset-) erzeugt keine Warnung', () => {
+test('Ladeplan mit Verweis auf ein Standard-Case (preset-) erzeugt keinen Eintrag', () => {
   const p = plan([P('pl1', 'preset-k2', 0, 0, 0)]);
-  const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
   assert.equal(res.plans.length, 1);
-  assert.deepEqual(res.warnings.filter(w => /weder in der Datei/.test(w)), []);
+  assert.deepEqual(res.unknownRefs, []);
 });
-test('Ladeplan mit Verweis auf ein Standard-Case und ein unbekanntes meldet nur das unbekannte', () => {
-  const p = plan([P('pl1', 'preset-k2', 0, 0, 0), P('pl2', 'gibt-es-nicht', 0, 0, 0)]);
+test('Ladeplan mit Verweis auf ein Standard-Case und ein unbekanntes nennt nur das unbekannte (je Stück)', () => {
+  const p = plan([P('pl1', 'preset-k2', 0, 0, 0), P('pl2', 'gibt-es-nicht', 0, 0, 0), P('pl3', 'gibt-es-nicht', 0, 0, 0)]);
   const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
-  assert.equal(res.warnings.filter(w => /weder in der Datei/.test(w)).length, 1);
-  assert.match(res.warnings.find(w => /weder in der Datei/.test(w)), /1 Stück/);
+  assert.deepEqual(res.unknownRefs[0].cases, ['gibt-es-nicht', 'gibt-es-nicht']);
 });
 test('Ladeplan mit Verweis auf unbekanntes Fahrzeug wird gemeldet, aber importiert', () => {
   const p = { ...plan([]), truckId: 'geist-truck-123' };
-  const ok = bundleWith({ cases: [], trucks: [], plans: [p] });
-  const res = parseBundle(ok);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
   assert.equal(res.plans.length, 1);
-  assert.ok(res.warnings.some(w => /unbekanntes Fahrzeug/.test(w)));
+  assert.deepEqual(res.unknownRefs, [{ planId: p.id, plan: p.name, cases: [], truck: 'geist-truck-123' }]);
 });
-test('Ladeplan ohne fremde Verweise erzeugt keine Warnung', () => {
+test('Ladeplan ohne fremde Verweise erzeugt keinen Eintrag', () => {
   const p = plan([P('pl1', 'own', 0, 0, 0)]);
-  const ok = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] });
-  const res = parseBundle(ok);
-  assert.deepEqual(res.warnings, []);
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] }));
+  assert.deepEqual(res.unknownRefs, []);
 });
-test('Verweis auf ein Bibliotheks-Case (lib-…) gilt als bekannt, keine Warnung', () => {
+test('Verweis auf ein Bibliotheks-Case (lib-…) gilt als bekannt, kein Eintrag', () => {
   const p = plan([P('pl1', 'lib-lakabaum-flach-bbm', 0, 0, 0)]);
-  const ok = bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] });
-  const res = parseBundle(ok);
-  assert.deepEqual(res.warnings, []);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
+  assert.deepEqual(res.unknownRefs, []);
 });
 
 // --- Daten-15: kaputte Felder werden gemeldet statt zu leerem Import zu werden ---
