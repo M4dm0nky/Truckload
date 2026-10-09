@@ -2,6 +2,18 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.6 – 2026-10-09
+
+Aufräumen Teil 2 – weniger unnötiges Neuzeichnen:
+
+- **Seitenleiste:** Ein Klick auf ein Stück markiert es nur noch, statt die ganze Liste neu
+  aufzubauen. In „Noch nicht geladen“ löst Verschieben im Truck keinen Neuaufbau mehr aus.
+- **Materialverwaltung:** Tippen in der Suche baut nur noch die Trefferliste neu – Cursor und
+  Scrollposition bleiben stehen.
+- **Inspector:** Nach einer Eingabe bleibt der Cursor im nächsten Feld, statt verloren zu gehen.
+- Intern: Prüfergebnis und Case-Verzeichnis werden wiederverwendet, solange sich Plan, Cases und
+  Fahrzeuge nicht ändern (spart Arbeit vor allem beim Ziehen).
+
 ## V 0.13.5 – 2026-10-09
 
 Aufräumen Teil 1 – Fehler und Robustheit (aus einer Durchsicht des ganzen Codes):
