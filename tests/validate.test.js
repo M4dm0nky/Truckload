@@ -389,3 +389,14 @@ test('aboveLayer: das ausgewählte Stück ist nie oberhalb', () => {
 test('aboveLayer: ein Stück ohne bekannte Lage gilt als Lage 1', () => {
   assert.equal(aboveLayer(new Map(), 'unbekannt', 1, null), false);
 });
+
+test('layerMap: ein hauchdünnes Auflager im Toleranzfenster (z0 knapp über dem Stück) bricht die Lage nicht zu NaN', () => {
+  // Y steht auf F; X (0,2 cm hoch, z0 = 10,2) endet bei z1 = 10,4 und gilt innerhalb EPS ebenfalls als
+  // Auflager von Y, wird in der nach z0 sortierten Schleife aber erst NACH Y eingetragen.
+  // Dann greift der Rückfall `?? 1` (eigene Entscheidung, s. validate.js): Y bekommt Lage 2.
+  const F = mkCase('f', 100, 100, 10), Y = mkCase('y', 100, 100, 10), X = mkCase('x', 100, 100, 0.2);
+  const r = validatePlan(plan([P('F','f',0,0,0), P('Y','y',0,0,10), P('X','x',0,0,10.2)]), byId(F, Y, X), mkTruck());
+  assert.equal(r.layers.get('F'), 1);
+  assert.equal(r.layers.get('Y'), 2);
+  assert.ok([...r.layers.values()].every(Number.isFinite));
+});
