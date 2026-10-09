@@ -5,7 +5,7 @@ import { createStore } from './store/state.js';
 import { screenOf, showScreen, renderStartScreen } from './app/screens.js';
 import { attachKeyboard } from './app/keyboard.js';
 import { createPersistence } from './app/persistence.js';
-import { guarded } from './app/guarded.js';
+import { wirePlans } from './app/plans.js';
 import { ctxOf, deriveOf, allPlansOf, piecesOf, usage, truckUsage } from './app/core.js';
 import * as A from './model/actions.js';
 import { DEFAULT_TRUCK_ID } from './data/preset-trucks.js';
@@ -13,7 +13,6 @@ import { WHEEL_FACES, wheelFace } from './model/geometry.js';
 import { renderView, attachTopInteractions, attachSelect } from './ui/view2d.js';
 import { mountLibrary } from './ui/library.js';
 import { openCaseEditor } from './ui/case-editor.js';
-import { openLoadWizard } from './ui/load-wizard.js';
 import { mountMaterial } from './ui/material.js';
 import { openTrussDialog } from './ui/truss-wizard.js';
 import { openDollyDialog } from './ui/dolly-wizard.js';
@@ -298,43 +297,10 @@ async function newCaseForWizard(draft, stock) {
   return res?.action === 'save' ? saveCaseValue(res.value) : null;
 }
 
-async function runLoadWizard(mode) {
-  const s = store.get();
-  // ctx() setzt einen aktiven Plan voraus (s.plan.truckId) – im Startbildschirm (mode
-  // 'new', noch kein Plan gewählt) fehlt der, deshalb hier auf das Standardfahrzeug
-  // ausweichen statt ctx() blind aufzurufen.
-  const res = await openLoadWizard($('#dlg-wizard'), {
-    mode,
-    cases: s.cases,
-    trucks: s.trucks,
-    defaultTruckId: s.plan ? ctx().truck.id : DEFAULT_TRUCK_ID,
-    defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
-    onNewCase: newCaseForWizard,
-    onOpenMaterial: openMaterialFromWizard,
-    trussDlg: $('#dlg-truss'),
-    onNewTruss: saveCaseValue,
-    dollyDlg: $('#dlg-dolly'),
-    onNewDollyStack: saveCaseValue,
-    // Bei mode 'new' gehört noch kein Plan zum Startbildschirm — Gruppenvorschläge aus dem
-    // gerade geöffneten Load gehören nicht zu einem neuen Load (Befund F5).
-    groups: mode === 'add' && s.plan ? ruleTargets(piecesOf(s.plan), ctx().caseById).groups : [],
-  });
-  if (!res) return;
-  if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));
-  edit((p, c) => {
-    let next = res.items.reduce((pl, it) =>
-      A.addUnplaced(pl, it.caseId, 1, uid, {
-        labels: it.label ? [it.label] : [],
-        color: it.color ?? null,
-        layers: it.layers,
-        tipped: it.tipped,
-        group: it.group,
-      }), p);
-    if (res.autoPack) next = A.packRest(next, c);
-    return next;
-  });
-  if (res.autoPack) await warnIfUnplaced();
-}
+const { switchPlan, runLoadWizard } = wirePlans({
+  store, edit, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,
+  warnIfUnplaced, saveCase: saveCaseValue, newCaseForWizard, openMaterialFromWizard,
+});
 
 const library = mountLibrary($('#library'), {
   onEdit: id => editCase(id),
@@ -563,69 +529,6 @@ renderHooks.push((s, d) => {
   $('#unload-all').disabled = !s.plan.placements.length;
   $('#pack-rules').title = `Reihenfolge beim automatischen Packen: ${rulesFor(s.plan).map(r => describeRule(r, d.caseById)).join(' · ') || 'nach Name'}${mixTopFor(s.plan) ? ' · Deckschicht an' : ''}`;
 });
-
-// Ladepläne
-// Ein reiner Wechsel zu einem schon bekannten Plan ist keine Änderung AN ihm:
-// autosave.markKnown() wird deshalb VOR dem store.update() aufgerufen, damit die
-// Änderungserkennung im subscribe-Hook den Wechsel nicht selbst als "geändert" wertet.
-// Ohne das schreibt der Autosave 400 ms später den lokal zwischengespeicherten (u. U.
-// veralteten) Plan zurück – mit einem zweiten Tab wird daraus echter Datenverlust: Tab 2
-// speichert eine Änderung, Tab 1 wechselt nur auf denselben Plan aus seinem eigenen,
-// älteren `s.plans`-Cache und überschreibt sie wieder (Befund: „ein reiner Planwechsel
-// überschreibt den neueren Stand eines zweiten Tabs“).
-// Ein wirklich NEUER, nie gespeicherter Plan (Duplikat, Wizard „Neu“, Ersatzplan nach dem
-// Löschen des letzten) ist dagegen nicht bekannt – markKnown() bleibt dann aus, und er
-// bekommt sein erstes Speichern automatisch über den normalen Mechanismus (Befund: „ein
-// nie geschriebener Plan gilt sonst fälschlich als sauber, solange dirty nicht explizit an
-// jeder Aufrufstelle gesetzt wird“).
-// `plan` kann jetzt auch dann übergeben werden, wenn store.get().plan noch null ist (Wechsel
-// aus dem Startbildschirm heraus, sowohl „Neuen Load erstellen“ als auch das Öffnen eines
-// vorhandenen Plans aus der Liste) – der bisherige Plan wird dann einfach nicht mit in
-// `plans` zurückgelegt, statt fälschlich `null` dort einzutragen.
-function switchPlan(plan) {
-  autosave.flush(); // ausstehende Änderungen des bisherigen Plans sofort sichern (auch mehrfach ausstehende)
-  const cur = store.get().plan;
-  const known = cur?.id === plan.id || store.get().plans.some(p => p.id === plan.id);
-  if (known) autosave.markKnown(plan);
-  store.update(s => ({
-    ...s,
-    plans: [...(s.plan ? [s.plan] : []), ...s.plans.filter(p => p.id !== s.plan?.id && p.id !== plan.id)],
-    plan,
-    selectedId: null,
-  }));
-  store.resetHistory();
-}
-$('#plan-select').onchange = e => {
-  const next = store.get().plans.find(p => p.id === e.target.value);
-  if (next) switchPlan(next);
-};
-$('#plan-new').onclick = () => runLoadWizard('new');
-$('#plan-rename').onclick = async () => {
-  const name = await showPrompt('Neuer Name:', store.get().plan.name);
-  if (name?.trim()) edit(p => stamp({ ...p, name: name.trim() }));
-};
-$('#plan-dup').onclick = () => {
-  const p = store.get().plan;
-  switchPlan(stamp({ ...structuredClone(p), id: uid(), name: `${p.name} (Kopie)` }));
-};
-$('#plan-del').onclick = async () => {
-  const s = store.get();
-  if (!await showConfirm(`Ladeplan „${s.plan.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return;
-  if (!(await guarded('Löschen fehlgeschlagen', () => repo.deletePlan(s.plan.id), { showAlert })).ok) return;
-  // Erst NACH dem erfolgreichen Löschen die ausstehende Speicherung dieses Plans
-  // verwerfen (Befund: vorher hätte ein fehlgeschlagenes deletePlan einen echten
-  // ausstehenden Stand ersatzlos verworfen, obwohl der Plan weiter existiert).
-  autosave.forget(s.plan.id);
-  const rest = s.plans.filter(p => p.id !== s.plan.id);
-  // Bleiben noch andere Pläne übrig, wechselt die Oberfläche wie bisher direkt zu einem davon
-  // (Plankontinuität während der Arbeit – ein eigenes, bestehendes Verhalten). Ist das der
-  // LETZTE Plan, führt „Löschen“ jetzt zurück zum Startbildschirm (plan: null) statt
-  // automatisch einen neuen leeren Plan zu erzeugen.
-  const next = rest[0] ?? null;
-  if (next) autosave.markKnown(next);
-  store.update(st => ({ ...st, plans: rest.filter(p => p.id !== next?.id), plan: next, selectedId: null }));
-  store.resetHistory();
-};
 
 // Fahrzeuge
 $('#truck-select').onchange = e => edit(p => stamp({ ...p, truckId: e.target.value }));

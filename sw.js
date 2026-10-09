@@ -20,6 +20,7 @@ const ASSETS = [
   'js/app/guarded.js',
   'js/app/keyboard.js',
   'js/app/persistence.js',
+  'js/app/plans.js',
   'js/app/screens.js',
   'js/version.js',
   'js/data/case-library.js',
