@@ -1,10 +1,8 @@
 // Reine Matrix-Komposition (Position, Rotation als Quaternion, Skalierung) für InstancedMesh-
 // Transformationen – ohne geteiltes/mutierbares Objekt (Object3D „dummy“). Jeder Aufruf schreibt
-// alle 16 Elemente vollständig neu, sodass aufeinanderfolgende Aufrufe (z. B. erst ein rotierter
-// Zylinder, danach ein achsenparalleler Balken ohne Rotation) sich nicht gegenseitig beeinflussen
-// können – Fix für: eine im dummy „übrig gebliebene“ Zylinder-Rotation hat andere InstancedMesh-
-// Sorten (Profilstäbe, Verschlüsse, Kugelecken) im nächsten update() verzerrt.
-// Formel identisch zu THREE.Matrix4.prototype.compose (spaltenweises Elemente-Array).
+// alle 16 Elemente neu, damit sich aufeinanderfolgende Aufrufe (z. B. erst ein rotierter Zylinder,
+// danach ein achsenparalleler Balken) nicht beeinflussen. Formel identisch zu
+// THREE.Matrix4.prototype.compose (spaltenweises Elemente-Array).
 export function composeMatrix(px, py, pz, qx, qy, qz, qw, sx, sy, sz, out = new Array(16)) {
   const x2 = qx + qx, y2 = qy + qy, z2 = qz + qz;
   const xx = qx * x2, xy = qx * y2, xz = qx * z2;

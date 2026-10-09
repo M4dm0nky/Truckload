@@ -1,10 +1,10 @@
-// Service-Worker: hält die App offline vor. Strategie seit V 0.13.1: Netz zuerst, am HTTP-Cache des
+// Service-Worker: hält die App offline vor. Strategie: Netz zuerst, am HTTP-Cache des
 // Browsers vorbei (Nutzerwunsch: „immer den aktuellen Stand laden“). Der Offline-Cache springt nur ein,
 // wenn das Netz fehlt, mit einem Fehler antwortet oder länger als NETWORK_TIMEOUT_MS braucht – dann
 // läuft der Abruf im Hintergrund weiter und frischt den Cache auf.
 // Ein Stand pro Seitenaufruf: Lief bei einem Client ein Abruf in den Timeout, kommen alle weiteren
 // Dateien dieses Clients sofort aus dem Cache – sonst mischen sich alte und neue Module.
-const CACHE = 'truckload-v0.13.9';
+const CACHE = 'truckload-v0.13.10';
 const ASSETS = [
   './',
   'index.html',

@@ -315,7 +315,7 @@ test('Vorlagen (builtin/preset-*) werden beim Import verworfen', () => {
 
 // --- Daten-1 (blocking): updatedAt muss, falls vorhanden, ein String sein ---
 
-test('Ladeplan mit numerischem updatedAt wird abgelehnt (Absturzpfad app.js:30)', () => {
+test('Ladeplan mit numerischem updatedAt wird abgelehnt (Absturzpfad beim Laden)', () => {
   const p = { ...plan([]), updatedAt: 5 };
   const bad = bundleWith({ cases: [], trucks: [], plans: [p] });
   assert.throws(() => parseBundle(bad), /ungültigen Zeitstempel/);

@@ -1,39 +1,29 @@
-// Reine Speicher-Buchhaltung für Ladepläne, ohne DOM und ohne IndexedDB. `js/app.js` bleibt
-// der einzige Ort mit Store-Wissen – dieses Modul kennt weder `store` noch `repo`, nur die
-// Funktionen, die `createAutosave()` gespritzt bekommt (`savePlan`, eine Uhr, ein Timer).
-// Genau das macht die Buchhaltung mit `node --test` deterministisch prüfbar: die erste und
-// zweite Fassung dieser Logik lagen in `js/app.js`, das ein Top-Level-`await
-// repo.loadAll()` und direkten `document`-Zugriff hat und sich deshalb nicht importieren
-// lässt, ohne einen Browser zu simulieren – sechs gezielte Rückbauten blieben dadurch bei
-// 275/275 grün.
+// Reine Speicher-Buchhaltung für Ladepläne, ohne DOM und ohne IndexedDB. Das Modul kennt weder
+// `store` noch `repo`, nur die Funktionen, die `createAutosave()` gespritzt bekommt (`savePlan`,
+// eine Uhr, ein Timer) – so ist die Buchhaltung mit `node --test` deterministisch prüfbar, ohne
+// den Browser-Einstieg `js/app.js` (Top-Level-`await`, `document`-Zugriff) zu importieren.
 //
-// Was dieses Modul verspricht, unabhängig davon, wie `app.js` es benutzt:
-//
+// Zusagen:
 //  - `noticeChange(plan)`: ein Plan gilt erst als geändert, wenn seine Objekt-Referenz sich
 //    gegenüber dem letzten `noticeChange`/`markKnown`-Aufruf unterscheidet. Reine
 //    Auswahl-/Modus-Änderungen (derselbe Plan-Verweis) lösen nichts aus.
-//  - Debounce mit Obergrenze: normal `debounceMs` seit der letzten frischen Änderung, aber
-//    nie länger als `maxWaitMs` seit der ERSTEN frischen ausstehenden Änderung EINES Plans.
-//    Ein Plan, der gerade über einen eigenen Fehlschlag-Timer erneut versucht wird, zählt
-//    dabei nicht als "frisch" – er darf die Obergrenzen-Rechnung für andere, unbeteiligte
-//    Pläne nicht auf 0 ziehen.
+//  - Debounce mit Obergrenze: normal `debounceMs` seit der letzten frischen Änderung, aber nie
+//    länger als `maxWaitMs` seit der ERSTEN frischen ausstehenden Änderung EINES Plans. Ein Plan,
+//    der über seinen Fehlschlag-Timer erneut versucht wird, zählt nicht als „frisch“ und darf die
+//    Obergrenzen-Rechnung anderer Pläne nicht auf 0 ziehen.
 //  - Jeder Plan wird unabhängig nachverfolgt (`Map planId -> Plan`): ein fehlgeschlagener
-//    Schreibvorgang für Plan A bleibt bestehen, auch wenn Plan B währenddessen erfolgreich
-//    schreibt. `onStatus('error', …)` bleibt entsprechend bestehen.
-//  - Ein Fehlschlag löst eine eigene, von der Debounce-Obergrenze entkoppelte Wiederholung
-//    im Abstand `retryMs` aus, statt den normalen Debounce für alle anderen Pläne
-//    kaputtzumachen.
-//  - Trifft während eines Schreibvorgangs (auch eines erfolgreichen) eine weitere Änderung
-//    ein, bleibt der Status "speichert" – es wird kein Fehler vorgetäuscht, nur weil danach
-//    wieder etwas aussteht.
-//  - `exclude(id)`/`include(id, { restore })`: ein Plan, dessen Schreiben gerade außerhalb
-//    dieses Moduls läuft (Import), wird für die Dauer davon vollständig aus der
-//    Buchhaltung herausgenommen (nicht nur vor NEUEN Änderungen geschützt) – ein schon
-//    wartender Eintrag samt Timer/Fehlschlag-Zustand wird "geparkt", statt weiter in
-//    `pending` zu stehen. `include(id)` verwirft den geparkten Stand (er wurde ja gerade
-//    erfolgreich geschrieben oder ist durch den Import überholt); `include(id, { restore:
-//    true })` legt ihn zurück (Import fehlgeschlagen oder der lokale Stand hat gewonnen und
-//    wurde NICHT mitgeschrieben – er ist weiterhin ungesichert).
+//    Schreibvorgang für Plan A bleibt bestehen, auch wenn Plan B erfolgreich schreibt; ebenso
+//    `onStatus('error', …)`.
+//  - Ein Fehlschlag löst eine eigene, von der Debounce-Obergrenze entkoppelte Wiederholung im
+//    Abstand `retryMs` aus.
+//  - Trifft während eines Schreibvorgangs (auch eines erfolgreichen) eine weitere Änderung ein,
+//    bleibt der Status „speichert“ – es wird kein Fehler vorgetäuscht.
+//  - `exclude(id)`/`include(id, { restore })`: ein Plan, dessen Schreiben gerade außerhalb dieses
+//    Moduls läuft (Import), wird für die Dauer vollständig aus der Buchhaltung genommen; ein
+//    schon wartender Eintrag samt Timer/Fehlschlag-Zustand wird „geparkt“. `include(id)` verwirft
+//    den geparkten Stand (gerade geschrieben oder vom Import überholt); `include(id, { restore:
+//    true })` legt ihn zurück (Import fehlgeschlagen oder lokaler Stand gewann und wurde NICHT
+//    mitgeschrieben – er ist weiterhin ungesichert).
 //
 // createAutosave({ savePlan, now, setTimer, clearTimer, debounceMs, maxWaitMs, retryMs, onStatus })
 export function createAutosave({
@@ -76,11 +66,9 @@ export function createAutosave({
     retryTimer = setTimer(() => { retryTimer = null; flush(); }, retryMs);
   }
 
-  // Unbedingt als ausstehend eintragen, ohne die Referenzgleichheits-Abkürzung von
-  // noticeChange() – für den Fall, dass ein schon als „bekannt“ vermerkter Plan (z. B. weil
-  // exclude() während seines Schreibens lief) nach einem Fehlschlag wieder als ausstehend
-  // gelten muss, obwohl sich seine Objekt-Referenz gegenüber dem letzten Blick gar nicht
-  // geändert hat.
+  // Unbedingt als ausstehend eintragen, ohne die Referenzgleichheits-Abkürzung von noticeChange():
+  // für einen als „bekannt“ vermerkten Plan (z. B. weil exclude() während seines Schreibens lief),
+  // der nach einem Fehlschlag wieder ausstehen muss, obwohl sich seine Referenz nicht geändert hat.
   function markDirty(plan) {
     lastKnownPlan = plan;
     if (excluded.has(plan.id)) return;
@@ -101,13 +89,10 @@ export function createAutosave({
   // Änderung werten und den (u. U. veralteten) Plan zurückschreiben.
   function markKnown(plan) { lastKnownPlan = plan; }
 
-  // Nimmt einen Plan vollständig aus der Buchhaltung heraus – auch einen, der GERADE
-  // wartet oder gerade fehlschlägt –, statt nur künftige noticeChange()/markDirty()-Aufrufe
-  // abzuweisen. Ohne das bliebe ein schon vor dem Import ausstehender oder gerade an der
-  // Quota scheiternder Plan in `pending`/`retrying` stehen: sein Timer liefe während des
-  // Imports weiter (auch pagehide/visibilitychange rufen flush() auf) und könnte den
-  // importierten Stand mit dem alten, noch ungesicherten überschreiben (Befund: „exclude()
-  // legt den Autosave nur für NEUE Änderungen still, nicht für eine bereits wartende“).
+  // Nimmt einen Plan vollständig aus der Buchhaltung, auch einen, der GERADE wartet oder
+  // fehlschlägt, statt nur künftige noticeChange()/markDirty()-Aufrufe abzuweisen. Sonst liefe sein
+  // Timer während des Imports weiter (auch pagehide/visibilitychange rufen flush() auf) und könnte
+  // den importierten Stand mit dem alten, ungesicherten überschreiben.
   function exclude(id) {
     excluded.add(id);
     if (!pending.has(id)) return;

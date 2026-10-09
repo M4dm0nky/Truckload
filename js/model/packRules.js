@@ -23,12 +23,12 @@ export const RULE_KINDS = [
 
 export const volumeOf = c => { const { l, w, h } = outerDims(c); return l * w * h; };
 
-// Die bis V 0.8.4 festen Pack-Reihenfolgen ('volume'/'count'). Seit V 0.8.5 nur noch für Altdaten;
-// neue Loads tragen `packRules`.
+// Die älteren festen Pack-Reihenfolgen ('volume'/'count'); nur noch für Altdaten, neue Loads
+// tragen `packRules`.
 export const PACK_ORDERS = ['volume', 'count'];
 
-// Die bis V 0.8.4 festen Reihenfolgen, als Regeln ausgedrückt – liefert exakt dieselbe Ordnung wie
-// die früheren Komparatoren in orderSorts (Regressionstest in tests/packer.test.js).
+// Die alten festen Reihenfolgen als Regeln ausgedrückt (ergibt dieselbe Ordnung wie früher,
+// Regressionstest in tests/packer.test.js).
 export function legacyRules(order) {
   return order === 'count'
     ? [{ by: 'count' }, { by: 'volume' }]
@@ -100,7 +100,7 @@ export const mixTopFor = plan => plan?.mixTop === true;
 
 // Ein Block = Array von Stücken { caseId, c, group? } desselben Case-Typs und derselben Gruppe.
 // Schlusskriterien: Name, dann Gruppe (ohne Gruppe zuerst). Bei völligem Gleichstand bleibt die
-// Eingabereihenfolge (Array.prototype.sort ist stabil) – wie bisher in orderSorts.
+// Eingabereihenfolge (Array.prototype.sort ist stabil).
 export function blockComparator(rules) {
   const cmps = normalizeRules(rules).map(r => {
     if (r.by === 'volume') return (a, b) => volumeOf(b[0].c) - volumeOf(a[0].c);

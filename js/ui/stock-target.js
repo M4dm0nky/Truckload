@@ -13,7 +13,7 @@ export const resolveStockCompany = (selectValue, newName) =>
 export const newCompanyError = (selectValue, newName, inStock = true) =>
   (inStock && selectValue === NEW_FIRM ? firmNameError(newName) : null);
 
-// Block „Im Materialbestand ablegen“ (Spec-Nachtrag 2026-10-09) – gemeinsam für Case-Editor,
+// Block „Im Materialbestand ablegen“ – gemeinsam für Case-Editor,
 // Traversen- und Dolly-Dialog. 'choose' = Wizard (Häkchen + Ziel), 'fixed' = Materialseite.
 export function stockTargetHtml(stock) {
   if (stock.mode === 'fixed') {

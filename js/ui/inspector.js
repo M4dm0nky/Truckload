@@ -113,9 +113,8 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
   restoreFocus(el, focus);
 }
 
-// Fokus über den Neuaufbau retten: Das Element wird durch ein gleichartiges neues ersetzt, das
-// per name wiedergefunden wird. Nur wenn der Fokus vorher
-// in einem Textfeld des Inspectors lag – sonst wird nichts angefasst.
+// Fokus über den Neuaufbau retten: Das Element wird durch ein gleichartiges neues ersetzt, das per
+// name wiedergefunden wird. Nur wenn der Fokus vorher in einem Textfeld des Inspectors lag.
 function focusSelector(node) {
   return node.name ? `[name="${CSS.escape(node.name)}"]` : null;
 }

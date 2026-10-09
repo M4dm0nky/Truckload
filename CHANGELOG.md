@@ -2,6 +2,12 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.10 – 2026-10-09
+
+Aufräumen Teil 6 (Abschluss) – Kommentare im Code gekürzt (der Verlauf steht in der
+Versionsgeschichte), Dokumentation auf den aktuellen Stand gebracht (u. a. falsche Zahlen zu
+Vorlagen korrigiert), Tests entrümpelt. Am Programm ändert sich nichts.
+
 ## V 0.13.9 – 2026-10-09
 
 Aufräumen Teil 5 – die Steuerzentrale der App (`app.js`, über 1.000 Zeilen) ist in kleine,

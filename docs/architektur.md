@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.8.6. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.13.10. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -30,7 +30,10 @@ Daten als Argumente und liefern reine Ergebnisobjekte zurück (`openCaseEditor`,
 ### js/app/ — die Verdrahtung
 
 - `core.js` — reine Zustandshelfer (`ctxOf`, `deriveOf`, `allPlansOf`, `piecesOf`, Nutzungszähler).
-- `screens.js` — Bildschirmwahl (`screenOf`: Start, Plan oder Material) und Startbildschirm.
+- `screens.js` — Bildschirmwahl (`screenOf`: Material hat Vorrang, ohne gewählten Plan ist Start, sonst Plan) und Startbildschirm.
+  Der Startbildschirm (`renderStartScreen`) zeigt „Neuen Load erstellen“, „Material“, die gespeicherten
+  Ladepläne nach Name sortiert (oder „Noch keine gespeicherten Ladepläne.“), „Sicherung importieren“ und
+  die Versionsnummer. Beim Start ist `plan` immer `null`; ein Plan wird erst durch Auswahl oder Anlegen geöffnet.
 - `keyboard.js` — Tastenzuordnung (`keyFor`, rein) und der Dokument-Handler dafür.
 - `guarded.js` — führt eine Speicheraktion mit genau einer Fehlermeldung aus.
 - `persistence.js` — Speicherpfade für Case, Firma, Regelset und Fahrzeug: erst schreiben, dann den Store nachziehen.
@@ -52,6 +55,26 @@ kann einen Plan für die Dauer eines Imports aus der automatischen Buchhaltung h
 (`exclude`/`include`), ohne einen schon wartenden Schreibvorgang zu verlieren. Nur dadurch
 ist die Speicher-Logik mit `node --test` prüfbar, obwohl `js/app.js` selbst ein
 Top-Level-`await`-Modul mit DOM-Zugriff ist.
+
+## Service Worker und Ladefehler
+
+`sw.js` hält die App offline vor (Asset-Liste `ASSETS`, Cache-Name `truckload-v<Version>`):
+
+- **Netz zuerst**, am HTTP-Cache des Browsers vorbei (`cache: 'no-cache'`); der Offline-Cache springt
+  nur ein, wenn das Netz fehlt, mit einem Fehler antwortet oder länger als `NETWORK_TIMEOUT_MS` (3 s)
+  braucht. Der Abruf läuft dann im Hintergrund weiter und frischt den Cache auf.
+- **Ein Stand pro Seitenaufruf:** Ist bei einem Client (Seitenaufruf) ein Abruf in den Timeout gelaufen,
+  kommen alle weiteren Dateien dieses Clients sofort aus dem Cache, damit sich alte und neue Module nicht
+  mischen. Das ist ein Zusatzschutz, kein Ausschluss: Was der Seitenaufruf vorher schon frisch bekommen hat,
+  bleibt frisch (Restrisiko in `docs/offene-punkte.md`).
+- **Neue Version:** `registerServiceWorker` (`js/app/chrome.js`) lädt die Seite einmal neu, wenn ein neuer
+  Service Worker übernimmt (nicht beim allerersten Besuch).
+- **Ladefehler-Hinweis:** Schlägt ein Modul oder sein Preload fehl, oder meldet ein fehlender Export einen
+  `SyntaxError` vor dem Start der App, blendet ein Skript im `<head>` von `index.html` den Hinweis „Die App
+  konnte nicht vollständig geladen werden. Bitte neu laden.“ mit Knopf „Neu laden“ ein, statt eine weiße
+  Seite zu lassen.
+
+Jede neue Datei unter `js/` oder `css/` gehört in `ASSETS`; `tests/pwa.test.js` prüft das.
 
 ## Zwei Datenebenen: Case-Typ und Stück
 
@@ -429,26 +452,27 @@ lautlos den einen oder anderen Stand verliert.
 
 | Datei | Inhalt |
 |---|---|
-| `js/data/preset-cases.js` | 53 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 3 Traversenwagen, 24 Pre-Rig-Traversen (MLT/S36PR) und 13 Audio-Einzelboxen im Gewerk „Ton“ (seit V 0.10.0, `dollyPrompt`-Dolly-Dialog seit V 0.11.0, docs/casemasse-gewichte.md); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren (die 8 früheren festen Audio-Dolly-Stacks aus V 0.10.0 sind seit V 0.12.1 ganz entfernt) |
-| `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, `source: 'liste'` plus `company`; davon 9 `legacy` (seit V 0.8.1 ausgeblendet: leere Pack-/Transflex-Cases und die Traversen der Liste), 128 sichtbar |
+| `js/data/preset-cases.js` | 50 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 24 Pre-Rig-Traversen (MLT/S36PR) und 13 Audio-Einzelboxen im Gewerk „Ton“ (`dollyPrompt`, docs/casemasse-gewichte.md); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren. Feste Traversenwagen-Vorlagen gibt es nicht mehr: Wagen entstehen im Traversen-Dialog als eigene Case-Typen, Dolly-Stacks im Dolly-Dialog |
+| `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, alle mit `source: 'liste'` und `company`; davon 15 `legacy` (ausgeblendet, u. a. Transflex-/Pack-Cases, Traversen und Rigging-Pakete der Liste), 122 sichtbar |
+| `js/data/categories.js` | Gewerke und ihre Farben |
+| `js/data/preset-trucks.js` | Fahrzeugvorlagen |
 
 `legacy: true` heißt: in keiner Auswahl mehr (`groupCases`, `companiesOf` in
 `js/ui/caseGroups.js`), aber weiter vorhanden, damit bestehende Ladepläne ihre Stücke mit
 unverändertem Namen, Maß und Gewicht behalten. Ersetzte Einträge werden deshalb nie gelöscht,
 nur ausgeblendet.
 
-Der Firmen-Filter im Lade-Wizard (`js/ui/load-wizard.js`) steht standardmäßig auf
-„Neutral (Standard)“, nicht auf „Alle Firmen“ (Nutzerwunsch 2026-10-06: firmen-gebrandete
+Der Firmen-Filter im Lade-Wizard (`js/ui/load-wizard.js`, Auswahl „Suchen in“) steht standardmäßig
+auf „Standardkatalog“, nicht auf „Kompletter Bestand“ (Nutzerwunsch 2026-10-06: firmen-gebrandete
 Cases wie die „-CAB“-Geräte sollen nie von selbst auftauchen). `NEUTRAL_COMPANY` in
 `js/ui/caseGroups.js` ist der Sentinel-Wert dafür; `groupCases()` lässt damit nur Cases ohne
 `company` durch — „Eigene Cases“ und alle `preset-cases.js`-Vorlagen haben nie ein
 `company`-Feld und bleiben sichtbar, die ganze Gruppe „Cases aus deiner Liste“ (ausnahmslos
-mit `company`) verschwindet, bis der Nutzer gezielt eine Firma wählt.
-| `js/data/categories.js` | Gewerke und ihre Farben |
-| `js/data/preset-trucks.js` | Fahrzeugvorlagen |
+mit `company`) verschwindet, bis der Nutzer gezielt eine Firma oder den kompletten Bestand wählt.
+Verschwindet die gewählte Firma aus den Daten, fällt der Filter auf „Standardkatalog“ zurück.
 
 Die 7 Packcases tragen seit V 0.8.6 ein Standardgewicht statt 0 kg: `PACK(l, w, h)` in
-`js/data/preset-cases.js` rechnet `Math.round(100 * l * w * h / PACK_REF_VOLUME)` mit
+`js/data/preset-cases.js` rechnet `Math.round(PACK_REF_KG * l * w * h / PACK_REF_VOLUME)` mit `PACK_REF_KG = 100` und
 `PACK_REF_VOLUME = 120 * 60 * 80` (Referenz: das Standard-Packcase 120×60×60 ohne Rollen, also
 120×60×80 inkl. Rollen, wiegt 100 kg – Nutzerangabe, keine Recherche, dokumentiert in
 `docs/casemasse-gewichte.md`). Alle anderen Packcase-Maße werden danach nach Volumen ab- bzw.
@@ -513,8 +537,9 @@ von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 g
   `preset-<basis>-dolly-<n>`) bekommen die fehlenden Felder über `upgradeDollyStack()`
   (`js/model/audioDolly.js`), aufgerufen aus `normalizeCase()` beim Laden und beim Import;
   Maße, Gewicht und ID bleiben unverändert. `openDollyDialog()` berechnet den Case-Typ bei jedem
-  Dialog-Lauf neu (Ruling 2026-10-08, ersetzt die frühere „nicht überschreiben“-Regel aus dem
-  Final-Review, die verhinderte, dass bestehende Stacks neue Darstellungsfelder bekamen).
+  Dialog-Lauf neu und überschreibt einen vorhandenen Stack gleicher ID, damit bestehende Stacks
+  neue Darstellungsfelder bekommen (eigene Entscheidung 2026-10-08 nach Nutzer-Feedback: ein
+  bereits angelegter „K2 2er“ behielt sonst die alte Darstellung).
 
   2D (`js/ui/view2d.js`) liest `kind` nicht und bleibt bei der nüchternen Tetris-Darstellung.
 

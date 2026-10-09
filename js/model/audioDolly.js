@@ -18,53 +18,39 @@ export const DOLLY_WEIGHT_KG = 15; // Dolly-Eigengewicht, gerundet gewählt
 export const DOLLY_DEPTHS = [60, 80, 120];
 export const dollyDepth = boxDepth => DOLLY_DEPTHS.find(d => d >= boxDepth) ?? boxDepth;
 
-// Die ID darf NICHT mit „preset-“ oder „lib-“ beginnen: `js/store/io.js`s `isPreset()` filtert
-// jede ID mit diesem Präfix beim Datei-Import heraus, unabhängig vom `builtin`-Feld – ein
-// Dolly-Stack, dessen ID direkt aus `baseCase.id` (z. B. `preset-k2`) gebildet würde, wäre nach
-// jedem Backup-Export/-Import verschwunden (Befund Final-Review Critical #1). Deshalb das
-// Präfix der Basisbox-ID abschneiden und durch „dolly-“ ersetzen. Deterministische ID aus
-// Basisbox + Stückzahl – getrennt exportiert, damit der Dolly-Dialog
-// (js/ui/dolly-wizard.js) prüfen kann, ob dieselbe Kombination schon als Case existiert, OHNE
-// erst das volle Case-Objekt neu zu bauen (und damit eine vom Nutzer im Case-Editor bearbeitete
-// Zeile unbemerkt mit den Formel-Werten zu überschreiben, Befund Final-Review Important #2).
-// Mit Firma (V 0.12.5): eigener ID-Raum je Firma, weil die Wagenmaße firmenabhängig sind.
+// Die ID darf NICHT mit „preset-“ beginnen: `isPreset()` in js/store/io.js filtert solche IDs beim
+// Datei-Import heraus – ein Dolly-Stack mit ID aus `baseCase.id` (z. B. `preset-k2`) wäre nach
+// einem Backup-Export/-Import weg. Daher werden „preset-“ und „lib-“ abgeschnitten und „dolly-“
+// vorangestellt. Deterministisch aus Basisbox + Stückzahl (+ Firma: eigener ID-Raum je Firma,
+// weil die Wagenmaße firmenabhängig sind); getrennt exportiert, damit der Dolly-Dialog prüfen
+// kann, ob die Kombination schon existiert, ohne das Case neu zu bauen und eine im Case-Editor
+// bearbeitete Zeile zu überschreiben.
 export function dollyStackId(baseCase, n, company = '') {
   const baseId = baseCase.id.replace(/^(preset-|lib-)/, '');
   return company ? `dolly-${slug(company)}-${baseId}-${n}` : `dolly-${baseId}-${n}`;
 }
 
-// Größte Stückzahl, bei der sowohl Höhe als auch Gewicht der Dolly-Stack-Vorlage innerhalb der
-// CASE_LIMITS bleiben (js/model/limits.js) – für das „max“-Attribut im Dolly-Dialog, nach
-// demselben Muster wie case-editor.js es für seine eigenen Zahlenfelder schon tut (Befund
-// Final-Review Important #3: ohne Grenze hätte ein Tippfehler ein Case erzeugt, das beim
-// nächsten Export/Import an checkCase() scheitert, ohne dass der Nutzer das beim Anlegen merkt).
+// Größte Stückzahl, bei der Höhe und Gewicht der Vorlage innerhalb der CASE_LIMITS bleiben
+// (js/model/limits.js) – für das „max“-Attribut im Dolly-Dialog; sonst könnte ein Tippfehler ein
+// Case erzeugen, das beim nächsten Import an checkCase() scheitert.
 export function maxDollyCount(baseCase) {
   const byHeight = Math.floor(CASE_LIMITS.h / baseCase.h);
   const byWeight = Math.floor((CASE_LIMITS.weight - DOLLY_WEIGHT_KG) / baseCase.weight);
   return Math.max(1, Math.min(byHeight, byWeight));
 }
 
-// Baut den Case-Typ für „<Basisbox> N er (auf Dolly)“ – Länge = Boxbreite, Tiefe = Dolly-Tiefe
-// (dollyDepth(), seit V 0.12.2 Teil der Stellfläche), echte Boxentiefe in `unitD` für die
-// 3D-Darstellung (s. docs/casemasse-gewichte.md). Die Dolly-Höhe steckt
-// in `wheelH`/`dimsInclWheels: false`, nicht in `h` – dadurch zeichnet die bereits vorhandene
-// 4-Rollen-Zeichnung in js/model/caseShape.js den Dolly automatisch mit, ohne neuen Zeichencode
-// (bei 18 cm Rollenhöhe sichtbar größer/wuchtiger als die case-üblichen 12–16-cm-Blue-Wheels).
-// `h` ist reine Stückzahl × Boxhöhe (Boxen stehen direkt aufeinander). `layers: [1]` heißt nur:
-// ein zweiter solcher Stack darf nicht automatisch oben auf diesen gestapelt werden, der Turm
-// selbst ist schon die volle Höhe. `stackable: true` bleibt trotzdem stehen (wie bei den alten
-// Presets) – andere, leichtere Cases dürfen weiterhin oben drauf, dafür gibt es `maxTopLoad`.
-// `kind: 'speaker'` gibt js/ui/view3d.js einen eigenen Render-Zweig (wie `kind: 'truss'` für
-// Traversenwagen) – Nutzer-Feedback 2026-10-08: ohne den Zweig sieht ein Dolly-Stack in 3D wie
-// ein normales Flightcase aus (Kugelecken, Deckelfuge, Griffe), nicht wie PA-Lautsprecher.
-// `unitH` ist die Höhe einer einzelnen Box im Stack, damit dieser Zweig die Trennlinien
-// zwischen den gestapelten Boxen zeichnen kann, ohne sie aus `h`/Stückzahl zurückrechnen zu
-// müssen. 2D (js/ui/view2d.js) liest `kind` nicht und bleibt unverändert.
-// `wagen` (optional, V 0.12.3): { l, w } = Wagengröße der Firma in cm (Breite × Tiefe). Ohne sie
-// gilt Boxbreite × Dolly-Stufe wie in 0.12.2. Die Höhe des Wagens ist fest (DOLLY_HEIGHT_CM).
-// `company` (optional): Firma des Materialbestands; Wagenmaße sind firmenabhängig (V 0.12.3),
-// daher eigener ID-Raum je Firma. `upgradeDollyStack` erkennt die Firmenform nicht und muss es
-// nicht – solche Stacks entstehen erst ab V 0.12.5 mit allen Feldern.
+// Baut den Case-Typ für „<Basisbox> N er (auf Dolly)“: Länge = Boxbreite, Tiefe = Dolly-Tiefe
+// (dollyDepth()), echte Boxentiefe in `unitD` für die 3D-Darstellung (docs/casemasse-gewichte.md).
+// Die Dolly-Höhe steckt in `wheelH`/`dimsInclWheels: false`, nicht in `h`, damit die vorhandene
+// 4-Rollen-Zeichnung in js/model/caseShape.js den Dolly mitzeichnet. `h` = Stückzahl × Boxhöhe.
+// `layers: [1]`: der Turm ist schon volle Höhe, ein zweiter Stack wird nicht automatisch obenauf
+// gestapelt; `stackable: true` bleibt, leichtere Cases dürfen drauf (`maxTopLoad`).
+// `kind: 'speaker'` gibt view3d.js einen eigenen Render-Zweig (Nutzer-Feedback 2026-10-08: sonst
+// sieht ein Dolly-Stack wie ein normales Flightcase aus); `unitH` ist die Höhe einer Box für die
+// Trennlinien. 2D liest `kind` nicht.
+// `wagen` (optional): { l, w } = Wagengröße der Firma in cm; ohne gilt Boxbreite × Dolly-Stufe.
+// `company` (optional): Firma des Materialbestands, eigener ID-Raum je Firma.
+// Firmen-Stacks entstehen vollständig; upgradeDollyStack lässt sie unverändert.
 export function dollyStackCase(baseCase, n, wagen = {}, company = '') {
   return {
     id: dollyStackId(baseCase, n, company),
@@ -92,15 +78,12 @@ export function dollyStackCase(baseCase, n, wagen = {}, company = '') {
   };
 }
 
-// Ergänzt einen in einer früheren Version gespeicherten Dolly-Stack um die Darstellungsfelder,
-// die er damals noch nicht hatte (Nutzer-Screenshot 2026-10-08: K2-2er-Stacks aus der eigenen
-// Bibliothek liefen ohne `kind` weiter durch die Flightcase-Darstellung). Erkennt die aktuelle ID
-// `dolly-<basis>-<n>` und die alte Form `preset-<basis>-dolly-<n>` (vor dem ID-Fix – die trifft ein
-// erneuter Dialog-Lauf nie, weil der die neue ID erzeugt). Nur fehlende Felder werden ergänzt;
-// Länge, Höhe, Gewicht, Rollenhöhe und ID bleiben, wie sie sind (CLAUDE.md: Cases dürfen ihre
-// Maße nicht unbemerkt ändern, Platzierungen verweisen auf die ID). Einzige Ausnahme ist die Tiefe
-// (s. unten, ausdrücklicher Nutzerwunsch). `unitH` aus der gespeicherten Höhe statt
-// aus der Vorlage, damit die Einheiten zur tatsächlich gespeicherten Gesamthöhe passen.
+// Ergänzt einen früher gespeicherten Dolly-Stack um die Darstellungsfelder, die er noch nicht
+// hatte (Nutzer-Screenshot 2026-10-08: K2-2er-Stacks liefen ohne `kind` durch die Flightcase-
+// Darstellung). Erkennt `dolly-<basis>-<n>` und die alte Form `preset-<basis>-dolly-<n>`. Nur
+// fehlende Felder werden ergänzt; Länge, Höhe, Gewicht, Rollenhöhe und ID bleiben (Platzierungen
+// verweisen auf die ID), einzige Ausnahme ist die Tiefe (s. unten). `unitH` aus der gespeicherten
+// Höhe, damit die Einheiten zur gespeicherten Gesamthöhe passen.
 export function upgradeDollyStack(c, presets) {
   if (c.kind === 'speaker' && c.unitH > 0 && c.unitD > 0 && c.speakerType && c.cabinetColor) return c;
   const m = /^dolly-(.+)-(\d+)$/.exec(c.id) ?? /^preset-(.+)-dolly-(\d+)$/.exec(c.id);

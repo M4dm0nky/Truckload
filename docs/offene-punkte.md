@@ -1,12 +1,9 @@
 # Offene Punkte
 
-Stand V 0.8.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
-Änderungen bis 0.8.0 und aus Hinweisen des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine
-Einschätzung der Nützlichkeit. Erledigtes ist raus — der vollständige Abgleich aller 97
-markierten Befunde aus der Meilenstein-Review V 0.6.0 (die Kopfzeile des Berichts nennt
-fälschlich 75 — spätere Abschnitte waren in der Zählung nicht enthalten) steht im Bericht
-zu Task 9 (`.superpowers/sdd/2026-09-21-review-fixes-v0.7/task-9-report.md`), dazu die
-Befunde der abschließenden Gesamt-Review in `final-fix-report.md` desselben Ordners.
+Stand V 0.13.10. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10 und aus Hinweisen des Nutzers. Nichts davon
+blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der Nützlichkeit. Erledigtes ist raus.
+Die Befunde der Meilenstein-Review V 0.6.0 stehen in `docs/code-review-2026-09-21.md`.
 
 ## Daten aus der Casemaße-Tabelle
 
@@ -33,9 +30,8 @@ offengelegt, aber für kleine Cases zu konservativ.
 
 ## Aus der Meilenstein-Review V 0.6.0 (2026-09-21) bewusst offen gelassen
 
-Die 75 Befunde aus `docs/code-review-2026-09-21.md` sind über die Tasks 1 bis 8 der Reihe
-nach abgearbeitet; der vollständige Befund-für-Befund-Abgleich (erledigt/begründet offen)
-steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründung:
+Die Befunde aus `docs/code-review-2026-09-21.md` sind abgearbeitet. Was davon bewusst offen
+geblieben ist, mit Begründung:
 
 - **2D/3D: Schriftfarbe der Beschriftung** (UI-N1). 2D ist fest weiß mit schwarzer Kontur
   (`css/app.css`), 3D leitet sie aus dem Hintergrund ab (`textColorFor` in `view3d.js`). Auf
@@ -65,23 +61,16 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   verarbeitet Items nach `z0` aufsteigend sortiert, und ein Unterstützer liegt per Definition
   (`supportersOf`) immer bei einem `z1`, das dem `z0` des gestützten Items entspricht – er
   wurde also schon verarbeitet, bevor das gestützte Item an der Reihe ist, und trägt bereits
-  einen Eintrag in der Map. `layerMap` ist bewusst nicht mehr exportiert; ihn nur für diesen
-  Test zu exportieren widerspräche genau dieser vorigen Aufräumarbeit.
-- **N7 (Firmenfilter im Wizard veraltet nach „+ Neues Case“) ist behoben, aber heute
-  wirkungslos.** `js/ui/case-editor.js` hat kein Formularfeld für `company` und setzt es beim
-  Speichern ausdrücklich auf `undefined` — ein über „+ Neues Case“/„Sonderbau“ angelegtes Case
-  kann also nie eine neue Firma mitbringen, `company` kommt heute ausschließlich aus der
-  mitgelieferten Bibliothek. Der Fix (`renderCompanyOptions()` nach `addNewCase`) ist als
-  Vorsorge stehen geblieben, mit Kommentar im Code — er greift automatisch, sobald der
-  Case-Editor je ein Firmenfeld bekommt.
+  einen Eintrag in der Map. `layerMap` ist bewusst nicht exportiert; ihn nur für diesen Test
+  zu exportieren widerspräche dem.
 - **Import: Verweisprüfung kennt nur die eingebauten Vorlagen, nicht den lokalen
   Zustand** (Daten-21). `parseBundle` (`js/store/io.js`) meldet in `warnings`, wenn ein Plan
   auf ein Case oder Fahrzeug verweist, das weder im Bundle noch unter `CASE_LIBRARY`/
   `PRESET_TRUCKS` bekannt ist. Ein Plan, der auf ein eigenes (nicht mitgeliefertes) Case
   verweist, das lokal existiert, aber nicht im Bundle enthalten ist, erzeugt dadurch eine
   falsch-positive Warnung. `io.js` hat keinen Zugriff auf den App-Zustand; eine Prüfung nach
-  dem Mischen (in `js/app.js`) wäre die genauere Lösung, ist aber nicht Teil des behobenen
-  Befunds. `warnings` wird von `app.js` aktuell noch nicht gelesen (rein additiv).
+  dem Mischen (in `js/app/importExport.js`) wäre die genauere Lösung. `warnings` wird dort
+  aktuell nicht gelesen (rein additiv).
 - **Keine Obergrenzen für `name`-Textlängen und Platzierungskoordinaten (`x`/`y`/`z`), keine
   Prüfung doppelter IDs innerhalb derselben Liste** über die bereits vorhandene planweite
   Eindeutigkeitsprüfung hinaus. Keiner der drei Punkte ist ein Absturz- oder
@@ -98,9 +87,8 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   selten (derselbe Plan müsste im selben Moment geändert und gelöscht werden), aber nicht
   ausgeschlossen.
 - **`touch()` (`js/model/actions.js`) und `stamp()` (`js/store/repo.js`) sind dieselbe
-  Ein-Zeiler-Funktion in zwei Modulen.** `js/app.js` benutzt konsequent `stamp()`, `actions.js`
-  intern `touch()` — beide sind heute vollständig getestet (kein stiller Zeitstempel-Verlust
-  mehr), die Dopplung selbst ist nur noch Politur.
+  Ein-Zeiler-Funktion in zwei Modulen.** `js/app.js` und `js/app/` benutzen `stamp()`,
+  `actions.js` intern `touch()`. Die Dopplung ist nur Politur.
 - **Modellschicht — mehrfach berechnete Auflage (`supportersOf`).** `layerMap`, `validatePlan`
   und `stackAbove` rufen `supportersOf` je für sich noch einmal über alle Items auf (dreimal
   O(n²) statt einmal). Bei den heutigen Plangrößen (einstellige bis niedrige zweistellige
@@ -121,7 +109,8 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   `outerDims(c)` könnte für `isTruss(c)` stattdessen direkt `trussDims(c.truss)` liefern und
   `l/w/h` für Traversenwagen gar nicht persistieren — das ist ein Umbau am Datenmodell mit
   Migrationsbedarf für bestehende eigene Traversenwagen, nicht für diese Version.
-- **Modellschicht — `app.js` ruft `validatePlan` komplett bei jeder Zustandsänderung.** Bei
+- **Modellschicht — `validatePlan` läuft komplett bei jeder Planänderung** (`deriveOf` in
+  `js/app/core.js`, nur für denselben Zustand zwischengespeichert). Bei
   den heutigen Plangrößen unkritisch; falls die Placement-Zahl dreistellig wird, ist die
   Kollisionsprüfung (O(n²)) die Stelle, die zuerst spürbar wird. Kein Gitter/Index gebaut,
   solange kein realer Plan das braucht.
@@ -147,10 +136,6 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   Reparatur `wheels` auf `false` setzt — `checkCase` würde ein solches Case sonst verwerfen.
   Es wird nichts eingeschleust, aber die Reparatur greift weiter als die Meldung an den
   Nutzer sagt (die nennt nur die Rollenhöhe).
-- **Die stille Sicherung vor einem Import enthält den aktuellen Plan doppelt** (einmal aus
-  `s0.plan`, einmal weil er zu diesem Zeitpunkt auch schon in `s0.plans` steht). Folgenlos
-  beim Wiedereinlesen (`mergeById` dedupliziert über die ID), aber die Datei selbst ist
-  inkonsistent zur regulären Sicherung über „Sichern“.
 - **Ein kaputtes `updatedAt` wird beim Laden nur in der Kopie im Store bereinigt, nicht in
   IndexedDB selbst.** Weil die Bereinigung bei jedem Start erneut läuft, kehrt das Symptom
   nicht zurück – der Datensatz in der Datenbank bleibt aber technisch weiterhin fehlerhaft,
@@ -167,9 +152,6 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
   (`js/ui/truss-wizard.js`). Heute nicht erreichbar, weil die nativen `required`/`min="1"`-
   Formularprüfungen vorher greifen — falls diese Grenzen je gelockert werden, sähe der
   blockierte Knopf ohne Meldung wie ein Fehler aus.
-- **`QUICK_LENGTHS` wird aus `js/ui/case-editor.js` exportiert, nur damit
-  `js/ui/truss-wizard.js` sie importieren kann** — eine UI→UI-Abhängigkeit ohne fachlichen
-  Grund. Gehört eher neben `TRUSS_PROFILES` nach `js/model/truss.js`.
 - **Traversenwagen-Case-Typen aus dem Truss-Dialog werden nicht dedupliziert.** Zweimal
   identisch angelegt (gleiches Profil/Länge/Stückzahl je Wagen) erzeugt zwei separate
   Case-Typen mit demselben Namen in „Eigene Cases“ — auch ein abgebrochener Durchlauf
@@ -223,9 +205,33 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
 - **Ein Regelset löschen passiert ohne Rückfrage und lässt sich nicht rückgängig machen**
   (eigene Entscheidung).
 
+## Aus dem Aufräumen vor V 0.13.10 bewusst offen gelassen
+
+- **Packer bei überfüllter Ladung.** Passen sehr viele Stücke nicht in den Truck (gemessen in der
+  Code-Review vom 2026-10-09 mit einem Wegwerfskript, nicht per Test im Repo: 1.000 kleine Stücke
+  aus 20 Typen, davon 399 platziert), braucht „Alles neu packen“ rund 0,7 s statt ~35 ms. Ursache:
+  jeder nicht passende Stapel durchsucht alle Positionen erneut. Mögliche Abhilfe: gescheiterte
+  Grundfläche je Sortierung merken und Punkte nur einmal sortieren. Für normale Ladungen ohne
+  Bedeutung.
+- **Slug-Kollision bei Firmennamen.** Die Dolly-ID trägt `slug(firma)` (`dolly-<slug>-<basis>-<n>`,
+  `js/model/audioDolly.js`). Zwei verschiedene Firmennamen mit gleichem Slug (z. B. „Müller“ und
+  „Mueller“, oder „A B“ und „A-B“) führen bei gleicher Basis und Stückzahl zur selben ID; es gibt
+  keine Prüfung darauf.
+- **„Firma löschen“ läuft nicht in einer Transaktion.** `deleteCompany` (`js/app/persistence.js`)
+  schreibt die Überlagerungen gesammelt per `repo.saveCases`, entfernt eigene Cases aber einzeln per
+  `repo.deleteCase`. Schlägt ein Löschen mittendrin fehl, meldet die App „Firma konnte nicht gelöscht werden“
+  und zieht den Store nicht nach, die Datenbank kann aber schon teilweise gelöscht sein.
+- **Restrisiko Service-Worker-Mischstand.** Siehe unter „Kleinigkeiten“ (Versionsmix bei langsamem
+  Netz); der Schutz „ein Stand pro Seitenaufruf“ (`docs/architektur.md`, „Service Worker und
+  Ladefehler“) schließt ihn nicht aus. Bewusst akzeptiert, der Ladefehler-Hinweis fängt den Rest.
+- **Zahlenformate in Case-Texten.** `caseLine` (Wizard, Materialseite) und `caseDetail` (Seitenleiste)
+  in `js/ui/caseInfo.js` geben Zahlen unformatiert aus (kein Runden, Punkt als Dezimaltrennzeichen), `trussLabel` schreibt die Länge dagegen mit Komma („2,40 m“). Auch inhaltlich weichen die
+  beiden Zeilen für dasselbe Case ab (Traverse: `kg/Stück` und Wagenbreite hier, Profil und Länge dort).
+  Vereinheitlichen wäre eine sichtbare Textänderung.
+
 ## Kleinigkeiten
 
-- Der Firmenfilter springt still auf „Alle Firmen“, wenn die gewählte Firma aus den Daten
+- Der Firmenfilter springt still auf „Standardkatalog“, wenn die gewählte Firma aus den Daten
   verschwindet. Praktisch nur erreichbar, wenn man das letzte eigene Case einer Firma
   löscht.
 - Der Wizard schreibt jedem Stück eine ausdrückliche Farbe, auch wenn sie der Gewerkfarbe
@@ -257,8 +263,8 @@ steht im Bericht zu Task 9. Was davon bewusst offen geblieben ist, mit Begründu
 - Die 3D-Beschriftung rundet das Seitenverhältnis auf 0,25-Schritte (Cache-Schlüssel), damit
   bleibt eine Restverzerrung von bis zu 33 % auf schmalen Flächen.
 - Der 3D-Ansicht fehlt ein `disposed`-Flag; ein doppelter `dispose()`-Aufruf ist nicht
-  gesondert abgesichert (heute nicht erreichbar, weil `app.js` `view3d` nach dem Abbau sofort
-  auf `null` setzt).
+  gesondert abgesichert (heute nicht erreichbar, weil unter `js/app/` nichts `dispose()` der
+  3D-Ansicht aufruft).
 - Der senkrechte Rand der Avery-Bögen 3425 und 3474 ist nicht aus Herstellerangaben belegt —
   die öffentlich auffindbaren Quellen nennen ihn nicht, und die eine mit Zahlen widerspricht
   sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es

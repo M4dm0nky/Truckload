@@ -1,7 +1,7 @@
 import { esc } from './dom.js';
 import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, ruleActive } from '../model/packRules.js';
 
-// Dialog „Pack-Regeln“ (Spec 2026-09-30). Store-unwissend wie openCaseEditor/openLoadWizard: bekommt
+// Dialog „Pack-Regeln“. Store-unwissend wie openCaseEditor/openLoadWizard: bekommt
 // Regeln, Deckschicht-Schalter, Ziele des Loads und Regelsets als Argumente, speichert Regelsets
 // über die Rückrufe von app.js und liefert { rules, mixTop, repack } oder null (Abbrechen/Esc).
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
@@ -98,11 +98,10 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
   f.mixTop.checked = mixTop === true;
 
   f.by.addEventListener('change', syncAddRow);
-  // Enter im Namensfeld sendet sonst das <form method="dialog"> mit dem ERSTEN Button im
-  // Dokument als Submitter – das ist „Abbrechen“ (menu-Leiste), nicht „Als Regelset
-  // speichern“: der Dialog schließt kommentarlos, alle ungespeicherten Regeländerungen sind
-  // weg (Befund F2). Deshalb hier abfangen und stattdessen denselben Klick auslösen wie der
-  // Speichern-Button.
+  // Enter im Namensfeld sendet sonst das <form method="dialog"> mit dem ERSTEN Button im Dokument
+  // als Submitter – das ist „Abbrechen“ (menu-Leiste), nicht „Als Regelset speichern“: der Dialog
+  // schlösse kommentarlos und alle ungespeicherten Regeländerungen wären weg. Deshalb hier
+  // abfangen und denselben Klick wie der Speichern-Button auslösen.
   f.setName.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
     e.preventDefault();

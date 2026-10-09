@@ -6,24 +6,19 @@ import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.j
 // Ergebnis: { newCase, addition: { caseId, n } } oder null bei Abbruch/ungültiger Eingabe.
 // Analog openTrussDialog() (js/ui/truss-wizard.js) – fragt NUR die Stückzahl ab, keine „ohne
 // Dolly“-Option (Nutzer-Entscheidung: Line-Array-Tops/Subs stehen in der Praxis immer auf
-// einem Dolly). Die Stückzahl ist auf maxDollyCount(base) begrenzt (CASE_LIMITS in js/model/limits.js, Befund
-// Final-Review Important #3) – keine eigene, engere Grenze darüber hinaus (Nutzer-Entscheidung:
-// die bestehende Höhen-/Gewichtsprüfung reicht).
+// einem Dolly). Die Stückzahl ist auf maxDollyCount(base) begrenzt (CASE_LIMITS in
+// js/model/limits.js), keine engere Grenze darüber hinaus (Nutzer-Entscheidung: die bestehende
+// Höhen-/Gewichtsprüfung reicht).
 //
-// Ruling 2026-10-08 (ersetzt Befund Final-Review Important #2): existiert für dieselbe Basis-
-// box+Stückzahl schon ein Case, wird er trotzdem NEU berechnet und überschrieben, nicht mehr
-// unverändert wiederverwendet. Die frühere „nicht überschreiben“-Regel sollte eine vom Nutzer
-// im Case-Editor bearbeitete Zeile schützen – hat in der Praxis aber verhindert, dass bereits
-// erzeugte Dolly-Stacks jemals neue Felder/Optik aus einer späteren Version bekommen (Nutzer
-// hatte dadurch nach der 3D-Lautsprecher-Überarbeitung weiter die alte Flightcase-Darstellung
-// auf einem schon vorher angelegten „K2 2er“). Das betrifft praktisch nur automatisch erzeugte,
-// nie von Hand bearbeitete Zeilen – genau wie die mitgelieferten Basis-Vorlagen (preset-k2 &
-// Co.) schon immer bei jedem Release aktualisiert werden, ohne eine Schutzregel dafür.
+// Eigene Entscheidung 2026-10-08 nach Nutzer-Feedback (ein bereits angelegter „K2 2er“ behielt die
+// alte Darstellung): Existiert für dieselbe Basisbox+Stückzahl schon ein Case, wird er neu berechnet
+// und überschrieben, nicht wiederverwendet. Eine „nicht überschreiben“-Regel hätte verhindert, dass
+// bereits erzeugte Dolly-Stacks neue Felder/Optik späterer Versionen bekommen. Betroffen sind
+// praktisch nur automatisch erzeugte, nie von Hand bearbeitete Zeilen – wie die mitgelieferten
+// Vorlagen, die bei jedem Release aktualisiert werden.
 
-// Prüft eine rohe Formular-Eingabe gegen 1..maxN – ausgelagert aus openDollyDialog() (Befund
-// Final-Review Minor #8), damit eine ungültige Stückzahl (0, negativ, leer, nicht-numerisch,
-// über maxN) ohne DOM unabhängig getestet werden kann, statt nur implizit über eine einzelne
-// Browser-Probe mit einer gültigen Zahl.
+// Prüft eine rohe Formular-Eingabe gegen 1..maxN, ohne DOM testbar (0, negativ, leer,
+// nicht-numerisch, über maxN).
 export function parseDollyCount(raw, maxN) {
   const n = Number(raw);
   return (n > 0 && Number.isInteger(n) && n <= maxN) ? n : null;

@@ -12,23 +12,17 @@ import { estimateTextWidth } from './textMetrics.js';
 // 2D ist die nüchterne Planungsansicht – „Tetris“: jedes Stück ist ein Rechteck im belegten
 // Außenmaß inkl. Rollen (`it.box`, siehe docs/architektur.md, „Rollen im Maß“). Die reale
 // Darstellung mit Alu-Profil, Kugelecken, Verschlüssen, Griffen und Rollen gibt es nur in 3D
-// (view3d.js). Bis V 0.9.1 zeichnete 2D dieselben Details und die Rollen als Kreise mit Gabel
-// AUSSERHALB des Korpus – hübsch, aber die sichtbare Form deckte sich nicht mit der Fläche, die
-// das Case wirklich belegt.
+// (view3d.js), damit die sichtbare Form mit der belegten Fläche übereinstimmt.
 const PAD = 30;
 const TRADE_EDGE = 3; // cm, Innenrahmen in Gewerkfarbe im Modus „Schwarz“
 
 // Beschriftung: Schriftgröße aus der kleineren Korpus-Rechteckseite abgeleitet, auf 6–16 cm begrenzt.
 //
 // 2D kürzt zu lange Beschriftungen einzeilig mit „…“ (truncateToWidth() unten), 3D bricht sie
-// stattdessen mehrzeilig um und verkleinert die Schrift (labelTexture.js, fitFontSize()/
-// wrapText()) — zwei verschiedene Lösungen für dieselbe Aufgabe, mit unterschiedlichem Ergebnis
-// auf demselben Case (docs/code-review-2026-09-21.md, „S3 — eine Textmetrik für 2D und 3D“).
-// Absichtlich NICHT zusammengeführt: 2D auf Umbruch umzustellen wäre eine sichtbare
-// Verhaltensänderung (mehrzeiliger statt gekürzter Text), keine reine Dopplung, und damit
-// außerhalb dessen, was Task 6 zusammenführen soll. Was tatsächlich geteilt wird, ist nur die
-// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, aus textMetrics.js importiert) als Rückfall,
-// wenn kein Canvas zum Messen da ist (s. `textMeasurer()`).
+// mehrzeilig um und verkleinert die Schrift (labelTexture.js). Absichtlich nicht zusammengeführt:
+// 2D auf Umbruch umzustellen wäre eine sichtbare Verhaltensänderung. Geteilt wird nur die
+// Zeichenbreiten-SCHÄTZUNG (`estimateTextWidth`, textMetrics.js) als Rückfall, wenn kein Canvas
+// zum Messen da ist (s. `textMeasurer()`).
 const LABEL_MIN = 6;
 const LABEL_MAX = 16;
 const LABEL_RATIO = 0.32;
@@ -75,10 +69,10 @@ function drawEndSquare(g, pr, profileWidth) {
 }
 
 // Traversenwagen als Kasten im Außenmaß (Rollbretter, Rollen und Traversenstück zusammen), mit
-// der Gitterstruktur über den ganzen Kasten. Keine Rollbretter, Leisten oder Rollen mehr – die
-// gibt es nur in 3D. Die Markenfarbe bleibt wie bisher unabhängig vom Farbmodus und färbt die
-// Kontur; sie läuft über eine CSS-Variable statt über `stroke`, damit die Auswahlfarbe
-// (`.case.sel rect.body` in css/app.css) weiter greift.
+// der Gitterstruktur über den ganzen Kasten. Rollbretter, Leisten und Rollen gibt es nur in 3D.
+// Die Markenfarbe ist unabhängig vom Farbmodus und färbt die Kontur; sie läuft über eine
+// CSS-Variable statt über `stroke`, damit die Auswahlfarbe (`.case.sel rect.body` in css/app.css)
+// weiter greift.
 // Welche Achse die Traversenlänge ist, sagt trussShape() (`lenAxis`, aus der Drehung `p.rot`) –
 // nicht das Außenmaß: bei quadratischer Grundfläche (z. B. 80 cm Stück auf 80er-Wagen, oder ein
 // Pre-Rig mit 62 cm Länge auf 62 cm Standfläche) wäre die „längere Seite“ unentschieden und das
@@ -118,8 +112,8 @@ export function truncateToWidth(full, maxWidth, widthOf) {
 // schmalen Stacks waren das Hunderte Layouts je Klick (Nutzer-Feedback 2026-10-09: „bis man die
 // anklicken kann vergehen ein paar Sekunden“; gemessen 474 Messungen = 384 ms von 416 ms je
 // Auswahl in 2D). `measureText` löst kein Layout aus. Gleiche Schrift wie `.label` (fett, vom Body
-// geerbt); ohne Canvas (Node, sehr alte Browser) die grobe Schätzung aus textMetrics.js – sie
-// greift auch für ein ungerendertes SVG wie `#print-root` nicht mehr, weil Canvas dort misst.
+// geerbt). Da das Canvas unabhängig vom DOM misst, geht es auch für ein ungerendertes SVG wie
+// `#print-root`; nur ohne Canvas (Node, sehr alte Browser) greift die grobe Schätzung aus textMetrics.js.
 let measureCtx;
 const widthCache = new Map();
 let fontFamily; // einmal je Seite gelesen

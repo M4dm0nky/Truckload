@@ -3,7 +3,7 @@ import { esc, safeColor, swatch, fmtM, ORIENTATION_LABEL } from './dom.js';
 import { renderView } from './view2d.js';
 
 // Angaben, die auf jeder Druckart im Kopf stehen – ein gemeinsamer Baustein statt doppelter
-// esc()/toLocaleString()-Aufrufe in buildPrint und buildChecklist (Task-3-Brief).
+// esc()/toLocaleString()-Aufrufe in buildPrint und buildChecklist.
 function headInfo({ plan, truck, result }) {
   const t = result.totals;
   return {
@@ -60,7 +60,7 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
 // Zweite Druckart: eine Abhakliste für die Rampe – je Stück eine Zeile mit Ladenummer,
 // Farbpunkt, Beschriftung und einem leeren Kästchen statt der Draufsicht/Seitenansicht/Tabelle
 // aus buildPrint. Bewusst ohne <input type="checkbox">: gedruckte Formularelemente sehen je
-// nach Browser verschieden aus und drucken teils gar nicht (Task-3-Brief).
+// nach Browser verschieden aus und drucken teils gar nicht.
 //
 // Die Liste zählt nur die GELADENEN Stücke – sie kommt aus `result.items`, also aus
 // `plan.placements`. Was in „Noch nicht geladen“ liegt, hat keine Ladenummer und kann nicht
@@ -94,11 +94,11 @@ export function buildChecklist(root, { plan, truck, result }) {
 
 // Dritte Druckart: ein Bogen Etiketten, je Stück eines, zum Ausschneiden. Bewusst OHNE
 // headInfo()-Kopfzeile auf der Seite selbst – ein Seitenkopf würde das Raster auf jeder Seite
-// anders verschieben, sobald die letzte Zeile einer Seite nicht voll ist (Task-4-Brief). Der
-// Planname kommt stattdessen klein auf jedes einzelne Etikett (`meta`).
+// anders verschieben, sobald die letzte Zeile einer Seite nicht voll ist. Der Planname kommt
+// stattdessen klein auf jedes einzelne Etikett (`meta`).
 // Etiketten drucken auf A4 HOCH und randlos (Avery-Zweckform-Bögen); Ladeplan und Abhakliste
 // bleiben A4 quer. Benannte Seiten (`@page x { … }` + `page:`) wären der direktere Weg, werden
-// aber von Browsern uneinheitlich unterstützt — js/app.js hängt deshalb diese Regel nur für den
+// aber von Browsern uneinheitlich unterstützt – js/app.js hängt deshalb diese Regel nur für den
 // Etikettendruck ein und nimmt sie danach wieder weg.
 export const pageRuleFor = doc =>
   doc === 'labels' ? '@page { size: A4 portrait; margin: 0; }' : null;

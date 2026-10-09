@@ -10,10 +10,8 @@ const touch = plan => ({ ...plan, updatedAt: new Date().toISOString() });
 export const emptyPlan = (id, name, truckId) =>
   touch({ id, name, truckId, placements: [], unplaced: [], notes: '' });
 
-// Nimmt schon aufgelöste `items` statt (plan, ctx) entgegen: moveGroup und reorient bauen die
-// Items für die eigene Stapel-/Gruppenlogik ohnehin schon selbst und riefen otherBoxes bisher mit
-// (plan, ctx) auf, das intern ein zweites Mal buildItems() über alle Placements laufen ließ — bei
-// jeder Maus-Bewegung eines Stapels doppelt (docs/code-review-2026-09-21.md, „actions.js:10-13“).
+// Nimmt schon aufgelöste `items` statt (plan, ctx): Aufrufer haben sie meist bereits gebaut,
+// ein erneutes buildItems() pro Maus-Bewegung wäre doppelte Arbeit.
 function otherBoxes(items, truck, excludeIds) {
   return [...items.filter(it => !excludeIds.includes(it.id)).map(it => it.box), ...archBoxes(truck)];
 }
@@ -31,11 +29,8 @@ export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null,
   return touch({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
 
-// Entfernt EIN bestimmtes Stück aus der Ablage, exakt über seine eigene `id` – nicht mehr über
-// `caseId` (der nur den Case-Typ trifft, nicht ein bestimmtes Exemplar). Vorher traf das erste
-// Vorkommen dieses Typs, unabhängig davon, welche Beschriftung der Nutzer eigentlich anklickte
-// (docs/code-review-2026-09-21.md, „actions.js:28-32“) – seit die Ablage die einzelnen
-// Beschriftungen zeigt, muss „−“ gezielt das angeklickte Stück treffen, nicht irgendeins seines Typs.
+// Entfernt genau EIN Stück aus der Ablage, über seine eigene `id` (nicht `caseId`, der nur den
+// Typ trifft): „−“ muss die angeklickte Beschriftung treffen, nicht irgendein Stück des Typs.
 export function removeUnplaced(plan, id) {
   const next = plan.unplaced.filter(u => u.id !== id);
   if (next.length === plan.unplaced.length) return plan;
@@ -57,17 +52,13 @@ export function placeCase(plan, caseId, { x, y }, ctx, { fromUnplacedId = null }
   const c = ctx.caseById.get(caseId);
   if (!c) return plan;
   const src = fromUnplacedId ? plan.unplaced.find(u => u.id === fromUnplacedId) : null;
-  // Nur die bekannten Stück-Felder aus der Ablage übernehmen (label/color), nicht das ganze
-  // Objekt spreaden: ein Ablage-Eintrag aus einer fremden Importdatei könnte ein eigenes x/y/z
-  // tragen (io.js verbietet in `unplaced` keine Zusatzfelder) und würde die gerade gewählte
-  // Mausposition sonst stillschweigend überschreiben (docs/code-review-2026-09-21.md,
-  // „actions.js:38-39 — srcExtra überschreibt x/y/z/orientation/rot“.
+  // Nur die bekannten Stück-Felder übernehmen, nicht das Objekt spreaden: ein Ablage-Eintrag aus
+  // einer fremden Importdatei könnte x/y/z tragen und die Mausposition überschreiben.
   const srcExtra = pickPieceFields(src);
   const orientation = srcExtra.tipped === true && canTip(c) ? 'tipLong' : 'standing';
-  // Vorher nur snap() aufs 5-cm-Raster: ein 62 cm breiter MLT-Wagen landete neben einem anderen
-  // bei y = 60 statt 62, ragte 2 cm hinein und wurde von settle() obendrauf gestellt – 4 Wagen
-  // passten so beim Hineinziehen nicht nebeneinander in 248 cm (Nutzer-Befund 2026-09-26).
-  // Jetzt dasselbe Kanten-Einrasten wie beim Verschieben (moveGroup).
+  // Kanten-Einrasten wie beim Verschieben (moveGroup), nicht nur Raster: sonst landet z. B. ein
+  // 62 cm breiter Wagen bei y = 60, ragt 2 cm hinein und wird von settle() obenauf gestellt
+  // (Nutzer-Befund 2026-09-26: vier MLT-Wagen passten nicht nebeneinander in 248 cm).
   const others = otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []);
   const draft = { id: fromUnplacedId ?? ctx.newId(), caseId, x, y, z: 0, orientation, rot: 0, ...srcExtra };
   const fb = boxOf(c, draft);
@@ -98,15 +89,10 @@ export function moveGroup(plan, id, x, y, ctx, { grid = 5, edges = true } = {}) 
   });
 }
 
-// Bewusst entschieden (docs/code-review-2026-09-21.md, „actions.js:70-79 — reorient lässt den
-// Stapel über dem gedrehten Case stehen“): `stackAbove(id, items)` wird nur berechnet, um den
-// eigenen Stapel aus den Hindernissen auszuschließen (sonst kollidiert das Case beim Drehen mit
-// sich selbst). Er wird NICHT nachgezogen, wenn sich dadurch die Höhe des Cases ändert (z. B.
-// beim Tippen) – ein „unsupported“ erscheint dann sofort in der Warnliste, und der Nutzer sieht
-// unmittelbar, dass er den Stapel selbst nachziehen muss. Automatisches Nachziehen (wie es
-// `moveGroup` für den bewegten Stapel selbst tut) würde hier zusätzlich JEDES Case über dem
-// gedrehten mitbewegen, ohne dass der Nutzer das angestoßen hat – eine Nebenwirkung, die beim
-// bloßen Drehen/Tippen eines einzelnen Cases nicht erwartbar ist.
+// Der Stapel über dem gedrehten Case wird bewusst NICHT nachgezogen: `stackAbove` dient nur dazu,
+// ihn aus den Hindernissen auszuschließen (sonst kollidiert das Case mit sich selbst). Ändert sich
+// die Höhe (z. B. beim Tippen), meldet die Warnliste sofort „unsupported“; automatisches
+// Mitbewegen wäre eine nicht angestoßene Nebenwirkung.
 function reorient(plan, id, ctx, change) {
   const p = plan.placements.find(q => q.id === id);
   const c = p && ctx.caseById.get(p.caseId);
@@ -137,15 +123,9 @@ export const setWheelFace = (plan, id, face, ctx) =>
     return rot == null ? {} : { rot };
   });
 
-// Zählt die letzte Zahl im Label hoch (z. B. für "duplicate()"). Nur wenn die Zahl ganz am Ende
-// steht wird hochgezählt ("Case 3 von 8" -> "Case 3 von 9", so wie es in der Praxis benutzt wird,
-// docs/code-review-2026-09-21.md, „actions.js:104-108“) – steht danach noch Text, greift die
-// Regex nicht und das Label bleibt unverändert. `padStart` erhält dabei die Stellenzahl der
-// ursprünglichen Zahl ("Case 09" -> "Case 10", nicht "Case 010"; "Case 9" -> "Case 10" bleibt vom
-// Auffüllen unberührt) – ohne das würde eine führende Null beim Hochzählen stillschweigend
-// verschwinden. Die hochgezählte Zahl kann trotzdem ein Zeichen länger sein als die ursprüngliche
-// (9 -> 10) – ohne Kürzung entstünde so aus einem legalen 40-Zeichen-Label eins mit 41 Zeichen,
-// das der eigene Import ablehnt (Befund B4).
+// Zählt die letzte Zahl im Label hoch (für duplicate()), nur wenn sie ganz am Ende steht
+// („Case 3 von 8“ -> „Case 3 von 9“). `padStart` erhält führende Nullen („Case 09“ -> „Case 10“).
+// Gekürzt wird auf MAX_LABEL, weil 9 -> 10 ein Zeichen länger ist und der Import sonst ablehnt.
 function nextLabel(label) {
   const m = /^(.*?)(\d+)$/.exec(label);
   if (!m) return label.slice(0, MAX_LABEL);
@@ -159,12 +139,9 @@ export function duplicate(plan, id, ctx) {
   if (!c) return plan;
   const { dx, dy } = effectiveDims(c, p);
   const label = p.label ? nextLabel(p.label) : undefined;
-  // Die Kopie zuerst hinter dem Original versuchen (wie bisher), bei Überstand über die
-  // Heckkante stattdessen davor, sonst seitlich daneben (y) – erst wenn auch das nicht in den
-  // Laderaum passt, landet die Kopie in der Ablage statt an einer Position, die sofort zwei
-  // "outOfBounds"-Meldungen erzeugt (docs/code-review-2026-09-21.md, „actions.js:110-118“).
-  // Kollisionen MIT ANDEREN Cases prüft das bewusst nicht (das behandelt `validatePlan` wie bei
-  // jeder Platzierung) – hier geht es nur um den Fall, dass der Truck an der Stelle zu Ende ist.
+  // Die Kopie zuerst hinter das Original, bei Überstand über die Heckkante davor, sonst seitlich;
+  // passt auch das nicht in den Laderaum, kommt sie in die Ablage. Kollisionen mit anderen Cases
+  // prüft das bewusst nicht (das macht `validatePlan`), nur das Ende des Trucks.
   const candidates = [
     { x: p.x + dx, y: p.y }, { x: p.x - dx, y: p.y },
     { x: p.x, y: p.y + dy }, { x: p.x, y: p.y - dy },
@@ -255,9 +232,8 @@ export function setPieceTipped(plan, id, tipped, ctx) {
   const p = found.item;
   const isTippedNow = p.orientation !== 'standing';
   if (tipped && !isTippedNow) return cycleTip(plan, id, ctx);
-  // Aufstellen NICHT über cycleTip: das ist ein gerichteter „einmal weiter tippen“-Schritt
-  // (nextTip() in geometry.js), der von tipLong/tipShort aus je nach rot auch in einer ANDEREN
-  // getippten Lage landen kann statt auf standing (Fix-Runde 1) – hier ist "standing" verlangt.
+  // Aufstellen NICHT über cycleTip: das tippt gerichtet „einmal weiter“ (nextTip() in geometry.js)
+  // und kann je nach rot in einer ANDEREN getippten Lage landen statt auf standing.
   if (!tipped && isTippedNow) return reorient(plan, id, ctx, () => ({ orientation: 'standing', tipped: false }));
   if (p.tipped === tipped) return plan;
   const patch = it => (it.id === id ? { ...it, tipped } : it);
@@ -328,13 +304,10 @@ function toPiece(x, ctx) {
   };
 }
 
-// Placements, deren Case-Typ nicht mehr in der Bibliothek steht. Sie haben keine bekannten
-// Maße (ein Placement speichert nur x/y/z, keine l/w/h – die kommen ausschließlich vom
-// Case-Typ) und können deshalb nicht als Box-Hindernis an autoPack übergeben werden. Statt
-// sie unverändert an ihrer alten Position zu belassen – wo ein frisch gepacktes Case sie
-// geometrisch überdecken könnte, ohne dass das irgendwo sichtbar würde (Befund „packAll
-// packt in sie hinein“) – werden sie beim Neupacken sichtbar in die Ablage verschoben. Der
-// Nutzer sieht sie dort (statt zweier Cases im selben Raum) und kann reagieren.
+// Placements, deren Case-Typ nicht mehr in der Bibliothek steht, haben keine bekannten Maße (ein
+// Placement speichert nur x/y/z) und können nicht als Hindernis an autoPack gehen. Statt sie
+// unsichtbar unter frisch gepackten Cases liegen zu lassen, wandern sie beim Neupacken in die
+// Ablage, wo der Nutzer sie sieht.
 const missingCasePlacements = (plan, ctx) => plan.placements.filter(p => !ctx.caseById.has(p.caseId));
 
 export function packAll(plan, ctx) {
@@ -348,9 +321,9 @@ export function packAll(plan, ctx) {
 }
 
 // Rest einpacken: neue Sorten schließen sortenrein an die LETZTE REIHE der vorhandenen Ladung an
-// (startX = deren x0, Ruling F3) statt an deren Tür-Kante (x1) – so füllen sie freie Spuren der
-// letzten Reihe (Nutzerregel „Lücke auffüllen“), landen aber nie vor dieser Reihe, mitten in
-// fremden Blöcken (eigene Entscheidung, Spec 2026-09-28).
+// (startX = deren x0, nicht die Tür-Kante x1) und füllen so freie Spuren der letzten Reihe
+// (Nutzerregel „Lücke auffüllen“), ohne vor dieser Reihe in fremde Blöcke zu geraten.
+// Das Anschließen an die letzte Reihe ist eine eigene Entscheidung (Spec 2026-09-28).
 export function packRest(plan, ctx) {
   const { items } = buildItems(plan, ctx.caseById);
   const list = plan.unplaced.map(u => toPiece(u, ctx)).filter(Boolean);

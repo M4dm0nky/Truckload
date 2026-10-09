@@ -14,7 +14,7 @@ const MAX_ITEMS = 500;
 //   trussDlg (<dialog> für „Traverse hinzufügen“, optional – ohne wird der Knopf ausgeblendet),
 //   onNewTruss(caseType) (speichert einen neu gebauten Traversenwagen-Case-Typ, s. truss-wizard.js),
 //   dollyDlg (<dialog> für „… auf Dolly laden“, optional – ohne fügt „+“ bei dollyPrompt-Cases
-//   die Box direkt lose hinzu, wie vor V 0.11.0), onNewDollyStack(caseType) (speichert einen
+//   die Box direkt lose hinzu), onNewDollyStack(caseType) (speichert einen
 //   neuen Dolly-Stack-Case-Typ, s. dolly-wizard.js),
 //   groups: string[] (vorhandene Gruppen des Loads, für die Vorschlagsliste im Gruppenfeld) }
 // Ergebnis: { name, truckId, items: [{ caseId, label, color, layers?, tipped?, group? }], autoPack }
@@ -141,26 +141,18 @@ export async function openLoadWizard(dlg, opts = {}) {
     const tabCases = cases.filter(c => caseKind(c) === activeTab);
     const groups = groupCases(tabCases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value, keep: created });
     renderGroupList(list, groups, caseRow, {
-      // Vorher „Keine Treffer.“ auch ganz ohne gesetzten Filter — für einen neuen Nutzer, dessen
-      // erster Blick auf die eigenen Cases oft genau der Wizard ist, klang das nach einer
-      // Fehlbedienung statt nach einer leeren, aber gültigen Bibliothek. js/ui/library.js sagt an
-      // derselben Stelle bereits das Richtige (docs/code-review-2026-09-21.md, „N8 — leere Liste
-      // ohne Erklärung im Wizard“); dieselbe Formulierung hier übernommen.
+      // Ohne gesetzten Filter kein „Keine Treffer.“: für einen neuen Nutzer klänge das nach
+      // Fehlbedienung statt nach einer leeren, aber gültigen Bibliothek (Formulierung wie in library.js).
       own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ legt eins an.</p>',
       presets: '<p class="hint">Keine Treffer für diese Filter.</p>',
       list: '<p class="hint">Keine Treffer für diese Filter.</p>',
     });
     updateTotals();
   }
-  // Firmenfilter neu aufbauen, wenn sich die Case-Liste ändert (nach „+ Neues Case“/„Sonderbau“) –
-  // vorher blieb er auf dem Stand beim Öffnen des Wizards stehen (docs/code-review-2026-09-21.md,
-  // „N7 — Firmenfilter im Wizard veraltet nach + Neues Case“). js/ui/library.js macht es für
-  // dieselbe Hilfsfunktion bereits richtig (renderCompanyOptions) und merkt sich zusätzlich die
-  // bisherige Auswahl.
-  //
-  // Vorsorge (Fix-Runde 1, Reviewer):
-  // Ein im Case-Editor neu angelegtes Case kann über den Ablageziel-Block eine neue Firma mitbringen;
-  // dann greift dieser Aufruf ohne weitere Änderung.
+  // Firmenfilter neu aufbauen, wenn sich die Case-Liste ändert (nach „+ Neues Case“/„Sonderbau“),
+  // sonst bliebe er auf dem Stand beim Öffnen. Das deckt auch eine im Case-Editor über den
+  // Ablageziel-Block neu angelegte Firma ab. library.js macht es analog (renderCompanyOptions)
+  // und merkt sich zusätzlich die bisherige Auswahl.
   function renderCompanyOptions() {
     const prev = companyFilterSel.value;
     const companies = companiesOf(cases);
@@ -212,10 +204,8 @@ export async function openLoadWizard(dlg, opts = {}) {
     if (!c) return;
     created.add(c.id);
     cases = [...cases.filter(x => x.id !== c.id), c];
-    // Dieselbe MAX_ITEMS-Grenze wie der „+“-Stepper (Zeile 141) — vorher umging „+ Neues Case“/
-    // „Sonderbau“ sie, „Weiter“ blockierte danach mit „Maximal 500 Stück je Wizard-Durchlauf“, ohne
-    // dass der Nutzer verstehen konnte, warum ein einzelnes neu angelegtes Case das auslöst
-    // (docs/code-review-2026-09-21.md, „N9 — + Neues Case umgeht die 500er-Grenze“).
+    // Dieselbe MAX_ITEMS-Grenze wie der „+“-Stepper: sonst blockierte „Weiter“ später mit „Maximal
+    // 500 Stück je Wizard-Durchlauf“, ohne dass erkennbar wäre, warum ein einzelnes neues Case das auslöst.
     if (total() < MAX_ITEMS) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
     renderCompanyOptions();
     renderCaseList();
@@ -224,23 +214,19 @@ export async function openLoadWizard(dlg, opts = {}) {
   sonderbauBtn.addEventListener('click', () =>
     addNewCase({ category: 'Sonderbau', wheels: true, dimsInclWheels: false }));
 
-  // „Truss hinzufügen“ (Task 3): eigener, mengenbasierter Dialog statt Stepper-Klicks – ergänzt
-  // Cases und Stückzahlen direkt in `counts`/`cases`, genau wie addNewCase() oben. Neue klassische
-  // Wagen-Case-Typen werden über `opts.onNewTruss` gespeichert (derselbe Store-Zugriffspfad wie
-  // `opts.onNewCase`, damit load-wizard.js weiterhin store-unwissend bleibt); Pre-Rig-Presets
-  // existieren schon in `cases` (kommen über `opts.cases` aus dem bereits gemergten Bestand).
+  // „Truss hinzufügen“: eigener, mengenbasierter Dialog statt Stepper-Klicks – ergänzt Cases und
+  // Stückzahlen direkt in `counts`/`cases`, genau wie addNewCase() oben. Neue klassische Wagen-
+  // Case-Typen werden über `opts.onNewTruss` gespeichert (wie `opts.onNewCase`, damit
+  // load-wizard.js store-unwissend bleibt); Pre-Rig-Presets liegen schon in `cases`.
   async function addTruss() {
     const res = await openTrussDialog(opts.trussDlg, { cases, onNewTruss: opts.onNewTruss, stock: stockOpt() });
     if (!res) return;
     for (const nc of res.newCases) created.add(nc.id);
     if (res.newCases.length) cases = [...cases.filter(c => !res.newCases.some(nc => nc.id === c.id)), ...res.newCases];
-    // Dieselbe MAX_ITEMS-Grenze wie addNewCase() oben — anders als dort kann eine einzelne
-    // Addition hier aber weit mehr als 1 Stück auf einmal bringen (z. B. alle gleich
-    // besetzten Wagen eines "Gesamtstückzahl"-Laufs landen als eine Addition mit großem n),
-    // ein einfaches Vorher-Gate wie bei addNewCase würde die Grenze also selbst noch
-    // überspringen können. Deshalb wird n auf den verbleibenden Platz gekappt, statt nur
-    // ja/nein zu entscheiden (Befund der Abschlussprüfung: „addTruss umgeht die
-    // 500er-Grenze“).
+    // Dieselbe MAX_ITEMS-Grenze wie addNewCase() oben – anders als dort kann eine einzelne Addition
+    // aber weit mehr als 1 Stück bringen (z. B. alle gleich besetzten Wagen eines „Gesamtstückzahl“-
+    // Laufs als eine Addition mit großem n). Deshalb wird n auf den verbleibenden Platz gekappt, statt
+    // nur ja/nein zu entscheiden.
     for (const { caseId, n } of res.additions) {
       const room = MAX_ITEMS - total();
       if (room <= 0) break;
@@ -252,12 +238,10 @@ export async function openLoadWizard(dlg, opts = {}) {
   }
   if (opts.trussDlg) newTrussBtn.addEventListener('click', addTruss);
 
-  // „<Box> auf Dolly laden“ (Task 5): öffnet sich automatisch, wenn „+“ bei einer
-  // dollyPrompt-Vorlage geklickt wird (s. Listen-Click-Handler oben) – dieselbe Mechanik wie
-  // addTruss(), nur ausgelöst durch den Stepper statt einen eigenen Button. Der erzeugte
-  // Dolly-Stack-Case-Typ erscheint danach als eigene Zeile mit normalem +/−-Stepper (kein
-  // dollyPrompt auf dem Ergebnis von dollyStackCase()), weitere gleiche Stacks lassen sich also
-  // ganz normal per „+“ ergänzen, ohne den Dialog erneut zu öffnen.
+  // „<Box> auf Dolly laden“: öffnet sich automatisch, wenn „+“ bei einer dollyPrompt-Vorlage
+  // geklickt wird (s. Listen-Click-Handler oben) – dieselbe Mechanik wie addTruss(), nur durch den
+  // Stepper ausgelöst. Der erzeugte Dolly-Stack-Case-Typ erscheint als eigene Zeile mit normalem
+  // +/−-Stepper (kein dollyPrompt), weitere gleiche Stacks kommen also per „+“ ohne neuen Dialog.
   async function addDollyStack(baseCase) {
     const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack, stock: stockOpt() });
     if (!res) return;
