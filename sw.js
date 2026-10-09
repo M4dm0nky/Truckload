@@ -23,6 +23,7 @@ const ASSETS = [
   'js/app/keyboard.js',
   'js/app/materialScreen.js',
   'js/app/persistence.js',
+  'js/app/planView.js',
   'js/app/plans.js',
   'js/app/screens.js',
   'js/version.js',
