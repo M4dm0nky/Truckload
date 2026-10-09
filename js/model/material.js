@@ -1,6 +1,6 @@
 import { MAX_FIRM } from './limits.js';
 
-// Materialbestand (V 0.12.5, docs/superpowers/specs/2026-10-09-materialverwaltung-design.md):
+// Materialbestand (docs/superpowers/specs/2026-10-09-materialverwaltung-design.md):
 // Firma = `company`-String am Case, keine eigene Tabelle. Reine Funktionen, kein DOM, kein Store.
 // `legacy` = ausgeblendet (gelöschte Firmen-Vorlage, alte Ladepläne behalten das Stück),
 // `onlyInPlan` = im Wizard ohne „Im Materialbestand ablegen“ angelegt, gilt nur für den Load.
@@ -17,7 +17,7 @@ export const casesOf = (cases, company) =>
 
 export const onlyInPlanCases = cases => cases.filter(c => c.onlyInPlan && !c.legacy);
 
-// Firmen-Vorlagen (`lib-`) werden dabei zu eigenen Überlagerungen mit gleicher ID
+// Beim Umbenennen werden Firmen-Vorlagen (`lib-`) zu eigenen Überlagerungen mit gleicher ID
 // (mergeOwnWithBuiltins, js/store/repo.js) – Pläne verweisen weiter per caseId.
 export const renameCompany = (cases, from, to) =>
   cases.filter(c => c.company === from).map(c => ({ ...c, builtin: false, company: to }));

@@ -28,10 +28,9 @@ export function validatePlan(plan, caseById, truck) {
   const add = (placementId, code, message) => issues.push({ placementId, code, message });
   const arches = archBoxes(truck);
 
-  // Fehlende Case-Typen haben keine bekannten Maße mehr (das Placement speichert nur x/y/z,
-  // keine l/w/h) und können deshalb geometrisch nicht in die Kollisionsprüfung einbezogen
-  // werden. Die Meldung macht das offen, statt eine geprüfte Position vorzutäuschen
-  // (docs/code-review-2026-09-21.md, „validate.js:52,63-67“).
+  // Fehlende Case-Typen haben keine bekannten Maße (das Placement speichert nur x/y/z) und können
+  // nicht in die Kollisionsprüfung. Die Meldung macht das offen, statt eine geprüfte Position
+  // vorzutäuschen.
   for (const p of missing)
     add(p.id, 'missingCase',
       `„${p.label ?? p.caseId}“ hat keinen bekannten Case-Typ mehr – die Position wird nicht auf Kollisionen geprüft.`);
@@ -99,24 +98,17 @@ export function validatePlan(plan, caseById, truck) {
   if (weight > truck.payload)
     add(null, 'tooHeavy', `Gesamtgewicht ${Math.round(weight)} kg überschreitet die Nutzlast von ${truck.payload} kg.`);
 
-  // Cases ohne recherchiertes Gewicht tragen 0 kg ein (bewusst, statt geraten – siehe
-  // CLAUDE.md „Haltung“). Der ANGEZEIGTE Schwerpunkt schaltet für die ganze Ladung auf eine
-  // Volumen-Näherung um, sobald mindestens ein Stück ohne Gewicht dabei ist – ein
-  // gewichtsbasierter Schwerpunkt würde solche Stücke sonst mit 0 gewichten und aussehen wie
-  // ein echter, vollständiger Wert.
+  // Cases ohne recherchiertes Gewicht tragen 0 kg ein (bewusst, statt geraten – CLAUDE.md
+  // „Haltung“). Der ANGEZEIGTE Schwerpunkt schaltet für die ganze Ladung auf eine Volumen-Näherung
+  // um, sobald ein Stück ohne Gewicht dabei ist; sonst sähe ein gewichtsbasierter Wert, der solche
+  // Stücke mit 0 zählt, wie ein vollständiger aus.
   //
-  // Die EINSEITIGKEITSPRÜFUNG ist davon getrennt zu betrachten (Fix-Runde 1, Befund
-  // Koordinator): Ein aus den bekannten Gewichten bereits nachweisbares Ungleichgewicht darf
-  // nicht dadurch verschwinden, dass irgendwo ein zusätzliches, gewichtsloses Case dazukommt
-  // – dessen Volumen würde die Volumen-Schätzung sonst unbemerkt Richtung Mitte ziehen, obwohl
-  // die echte Masse weiterhin einseitig steht (reales Beispiel: 1000 kg auf einer Seite, dazu
-  // ein 210×220×190-Case ohne Gewicht auf der anderen – die alte Volumen-Ersatzrechnung allein
-  // hätte hier geschwiegen). Deshalb laufen beide Prüfungen unabhängig nebeneinander, sobald
-  // Gewichte fehlen, und es reicht, wenn eine von beiden anschlägt. Kosten, falls das im
-  // Einzelfall zu vorsichtig ist: Bei wenig bekanntem Gewicht, das zufällig einseitig liegt,
-  // kann eine Warnung erscheinen, die sich nach dem Nachtragen der fehlenden Gewichte als
-  // unbegründet erweist – das ist bewusst in Kauf genommen, das Gegenteil (eine verschwiegene
-  // echte Schieflage) wiegt schwerer.
+  // Die EINSEITIGKEITSPRÜFUNG läuft davon unabhängig: ein aus den bekannten Gewichten bereits
+  // nachweisbares Ungleichgewicht darf nicht verschwinden, weil ein gewichtsloses Case auf der
+  // anderen Seite die Volumen-Schätzung Richtung Mitte zieht (Beispiel: 1000 kg auf einer Seite,
+  // dazu ein 210×220×190-Case ohne Gewicht gegenüber). Fehlen Gewichte, genügt, dass eine der
+  // beiden Prüfungen anschlägt. Bewusst in Kauf genommen: eine Warnung, die sich nach dem
+  // Nachtragen der Gewichte als unbegründet erweist – eine verschwiegene Schieflage wiegt schwerer.
   const withoutWeight = items.filter(it => !it.c.weight).length;
   const vol = b => (b.x1 - b.x0) * (b.y1 - b.y0) * (b.z1 - b.z0);
   const volume = items.reduce((s, { box: b }) => s + vol(b), 0);
@@ -133,13 +125,10 @@ export function validatePlan(plan, caseById, truck) {
     : (cogVolume ? { ...cogVolume, source: 'volume' } : null);
 
   // Geprüft wird bewusst nur die Seitenlage (y), nicht die Verteilung in Fahrtrichtung (x), obwohl
-  // `cog.x` oben bereits mitberechnet wird (docs/code-review-2026-09-21.md, „validate.js:112-117
-  // — der Schwerpunkt wird in x berechnet, aber nur in y geprüft“). Eine Stützlast-/Achslast-
-  // Prüfung in x bräuchte den Radstand bzw. Achsabstand des Trucks – ein Feld, das es am
-  // Fahrzeug-Datenmodell heute nicht gibt (`js/data/preset-trucks.js` kennt nur l/w/h/payload).
-  // `cog.x` steht dem Inspector trotzdem zur Anzeige zur Verfügung ("… ab Stirnwand"); eine
-  // Warnung ohne belastbare Referenzgröße wäre geraten statt geprüft, und genau das lehnt
-  // `CLAUDE.md` unter „Haltung“ ab.
+  // `cog.x` mitberechnet wird. Eine Stütz-/Achslastprüfung in x bräuchte den Achsabstand des
+  // Trucks, den das Fahrzeug-Datenmodell (`js/data/preset-trucks.js`: l/w/h/payload) nicht kennt;
+  // eine Warnung ohne belastbare Referenz wäre geraten statt geprüft (CLAUDE.md „Haltung“).
+  // `cog.x` dient dem Inspector nur zur Anzeige.
   const deviation = c => Math.abs(c.y - truck.w / 2);
   const isImbalanced = c => !!c && deviation(c) > IMBALANCE_RATIO * truck.w;
 
@@ -158,11 +147,9 @@ export function validatePlan(plan, caseById, truck) {
   }
 
   const byPlacement = new Map();
-  // `!= null` statt eines reinen Truthy-Checks: eine leere Zeichenkette als Placement-ID (aus
-  // einer Fremddatei – io.js prüft für Placements nur `typeof === 'string'`, nicht die Länge)
-  // fiele sonst stillschweigend aus dieser Map heraus, und die zugehörige Meldung verschwände im
-  // Inspector (docs/code-review-2026-09-21.md, „validate.js:122 — if (is.placementId) filtert
-  // statt auf null zu prüfen“).
+  // `!= null` statt Truthy-Check: eine leere Zeichenkette als Placement-ID (aus einer Fremddatei,
+  // io.js prüft nur `typeof === 'string'`) fiele sonst aus der Map, und die Meldung verschwände
+  // im Inspector.
   for (const is of issues) if (is.placementId != null) {
     if (!byPlacement.has(is.placementId)) byPlacement.set(is.placementId, []);
     byPlacement.get(is.placementId).push(is);

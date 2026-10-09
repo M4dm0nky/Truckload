@@ -8,9 +8,8 @@ export function chooseOrientation(c, truck, piece = {}) {
     for (const rot of ROTATIONS) {
       const d = effectiveDims(c, { orientation, rot });
       if (d.dx > truck.l || d.dy > truck.w || d.dz > truck.h) continue;
-      // Score-Lagenzahl auf die 4er-Grenze deckeln, die buildStacks selbst einhält
-      // (stacks.items.length < 4), und auf pieceLayers(piece, c) — sonst bewertet der Score
-      // flache Cases mit einer Lagenzahl, die nie zustande kommt (Befund „packer.js:10-12“).
+      // Score-Lagenzahl auf die 4er-Grenze von buildStacks und auf pieceLayers(piece, c) deckeln,
+      // sonst bewertet der Score flache Cases mit einer Lagenzahl, die nie zustande kommt.
       const cap = Math.max(...pieceLayers(piece, c));
       const layers = c.stackable ? Math.min(cap, Math.floor(truck.h / d.dz)) : 1;
       const cols = Math.floor(truck.w / d.dy);
@@ -61,20 +60,18 @@ const belongsTogether = (a, ca, b, cb) =>
 
 // Passt das Stück als Deckschicht auf den Stapel `s` eines früheren Blocks? Liefert die (evtl. im
 // Grundriss um 90° gedrehte) Orientierung oder null. Grundfläche ganz auf dem obersten Stück
-// (100 % Auflage), Gewichte bekannt (> 0, 0 kg = unbekannt, eigene Entscheidung) und nicht schwerer
-// als oben, keine Traversen, sonst dieselben Grenzen wie beim Stapeln (canAddToStack, 4 Lagen,
-// Lagen je Stück).
+// (100 % Auflage), Gewichte bekannt (> 0, 0 kg = unbekannt) und nicht schwerer als oben, keine
+// Traversen, sonst dieselben Grenzen wie beim Stapeln (canAddToStack, 4 Lagen, Lagen je Stück).
 function capFits(s, it, c, o, truck) {
   const base = s.items[0], top = s.items.at(-1);
-  // F1 (Review 2026-09-30): nicht nur das Fundament prüfen – ein Traversenwagen kann per prevLast-
-  // Auffüllen mittig in einen fremden Stapel geraten (gleiche Grundfläche); dann trägt keiner der
-  // Blöcke im Stapel etwas Fremdes, auch nicht der, der oben liegt.
+  // Nicht nur das Fundament prüfen: ein Traversenwagen kann per prevLast-Auffüllen mittig in einen
+  // fremden Stapel geraten (gleiche Grundfläche); dann trägt der Stapel nichts Fremdes.
   if (isTruss(c) || s.items.some(x => isTruss(x.c))) return null;
   if (!(c.weight > 0) || !s.items.every(x => x.c.weight > 0)) return null;
   if (!belongsTogether(it, c, base.it, base.c)) return null;
   if (s.items.length >= 4 || !pieceLayers(it, c).includes(s.items.length + 1)) return null;
-  // F5 (Review 2026-09-30): wie beim Stapel-Swap in placeStacks – ein um 90° gedrehter Deckel
-  // kann die Rollenrichtung zur Tür verlieren; hier geht Grundfläche vor Rollenrichtung.
+  // Wie beim Stapel-Swap in placeStacks: ein um 90° gedrehter Deckel kann die Rollenrichtung zur
+  // Tür verlieren; hier geht Grundfläche vor Rollenrichtung.
   const swapped = { ...o, rot: (o.rot + 90) % 360, d: { dx: o.d.dy, dy: o.d.dx, dz: o.d.dz } };
   for (const cand of [o, swapped]) {
     if (cand.d.dx > top.o.d.dx + 1e-6 || cand.d.dy > top.o.d.dy + 1e-6) continue;
@@ -110,11 +107,10 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
   const minLayer = (it, c) => Math.min(...pieceLayers(it, c));
   const fits = (s, it, c, o) => !s.capped && s.key === `${o.d.dx}x${o.d.dy}` && s.items.length < 4
     && pieceLayers(it, c).includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck);
-  // `weight` bleibt das Gesamtgewicht des Stapels (für canAddToStack/maxTopLoad), `ownWeight`
-  // zählt NUR das Gewicht der Stücke der Sorte, die den Stapel begonnen hat (Ruling F1) – so
-  // sortiert placeStacks Stapel einer Sorte nicht fälschlich nach dem Gewicht, das eine SPÄTERE
-  // Sorte beim Auffüllen obendrauf gesetzt hat. `mixed` markiert einen Stapel, der Stücke einer
-  // späteren Sorte trägt; ein solcher Stapel steht innerhalb seiner Sorte immer zuletzt.
+  // `weight` ist das Gesamtgewicht des Stapels (für canAddToStack/maxTopLoad), `ownWeight` nur das
+  // der Stücke der Sorte, die ihn begonnen hat – damit placeStacks nicht nach dem Gewicht sortiert,
+  // das eine SPÄTERE Sorte obendrauf gesetzt hat. `mixed` markiert einen Stapel mit Stücken einer
+  // späteren Sorte; er steht innerhalb seiner Sorte immer zuletzt.
   const push = (s, it, c, o, own) => {
     s.items.push({ it, c, o, z: s.height });
     s.height += o.d.dz;
@@ -161,13 +157,9 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
       last = s;
     });
     addTo(withoutFloor, ({ it }) => unplaced.push(it));
-    // Ruling F4: prevLast ist wörtlich der Stapel, den DIESE Sorte begonnen oder zuletzt
-    // aufgefüllt hat – nur wenn `last` tatsächlich von dieser Sorte begonnen wurde
-    // (`stack.sort === sort`), darf die nächste Sorte ihn weiter auffüllen. Eine Sorte, die
-    // komplett in der Ablage landet (last bleibt null) oder nur den Stapel der VORIGEN Sorte
-    // aufgefüllt hat (last.sort !== sort), lässt prevLast verfallen statt es unverändert
-    // weiterzureichen – sonst könnte eine übernächste Sorte eine dazwischenliegende
-    // überspringen.
+    // prevLast ist der Stapel, den DIESE Sorte begonnen oder zuletzt aufgefüllt hat. Nur wenn `last`
+    // von dieser Sorte begonnen wurde (`stack.sort === sort`), darf die nächste Sorte ihn auffüllen;
+    // sonst verfällt prevLast, damit eine übernächste Sorte keine dazwischenliegende überspringt.
     prevLast = (last && last.sort === sort) ? last : null;
   });
   return { stacks, unplaced };
@@ -178,11 +170,11 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
 // `startX` (0 bzw. hinter einer vorhandenen Ladung), für jede weitere das x0 der letzten Reihe der
 // vorigen Sorte – so füllt sie deren freie Spuren (Nutzerregel „Lücke auffüllen“), kommt aber nie
 // weiter nach vorn. Innerhalb einer Sorte stehen die nach `ownWeight` schwereren Stapel weiter
-// vorn, ein von der nächsten Sorte aufgefüllter (`mixed`) Stapel immer zuletzt (Ruling F1).
+// vorn, ein von der nächsten Sorte aufgefüllter (`mixed`) Stapel immer zuletzt.
 export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) {
   const blocked = [...archBoxes(truck), ...obstacles];
-  // Kein eigener Seed { x: 0, y: 0 } mehr (Ruling F5): { x: startX, y: 0 } reicht als Startpunkt,
-  // ein zusätzlicher Nullpunkt war bei startX > 0 ohnehin nie ein gültiger Kandidat.
+  // Startpunkt { x: startX, y: 0 } genügt; ein zusätzlicher Nullpunkt wäre bei startX > 0 nie
+  // ein gültiger Kandidat.
   const points = [{ x: startX, y: 0 }, ...blocked.flatMap(b => [
     { x: b.x1, y: b.y0 }, { x: b.x0, y: b.y1 }, { x: b.x1, y: 0 }, { x: 0, y: b.y1 },
   ])];
@@ -190,10 +182,8 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
   let minX = startX;
   const sorts = [...new Set(stacks.map(s => s.sort ?? 0))];
   for (const sort of sorts) {
-    // Ruling F1: NUR nach `ownWeight` (Gewicht der eigenen Sorte) sortieren, nicht nach dem
-    // Gesamtgewicht – sonst würde ein von der NÄCHSTEN Sorte aufgefüllter Stapel durch das
-    // zusätzliche Gewicht fälschlich nach vorn rutschen. Ein aufgefüllter (`mixed`) Stapel
-    // steht innerhalb seiner Sorte außerdem immer zuletzt, unabhängig vom Gewicht.
+    // NUR nach `ownWeight` sortieren, nicht nach dem Gesamtgewicht, sonst rutschte ein von der
+    // NÄCHSTEN Sorte aufgefüllter Stapel nach vorn; ein `mixed` Stapel steht zuletzt.
     const group = stacks.filter(s => (s.sort ?? 0) === sort)
       .sort((a, b) => (a.mixed ? 1 : 0) - (b.mixed ? 1 : 0) || (b.ownWeight ?? b.weight) - (a.ownWeight ?? a.weight));
     const boxesHere = [];
@@ -223,10 +213,9 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
       }
       // Rückfall, wenn im Raster nichts passt (z. B. Radkästen im Transporter): freie Eckensuche.
       if (!hit) for (const rawPt of points) {
-        // Ruling F5: ein Punkt mit x < minX wird nicht verworfen, sondern auf minX geklemmt
-        // geprüft – seine y-Koordinate (z. B. die Ecke eines weiter vorn liegenden Hindernisses)
-        // bleibt so als Kandidat für eine freie Spur der aktuellen Reihe erhalten. Duplikate
-        // durch die Klemmung sind unschädlich.
+        // Ein Punkt mit x < minX wird auf minX geklemmt geprüft statt verworfen: seine y-Koordinate
+        // (z. B. Ecke eines weiter vorn liegenden Hindernisses) bleibt als Kandidat für eine freie
+        // Spur der aktuellen Reihe erhalten. Duplikate durch die Klemmung sind unschädlich.
         const pt = rawPt.x < minX - 1e-6 ? { x: minX, y: rawPt.y } : rawPt;
         // swap dreht den Stapel im Grundriss um 90°, wenn er sonst nirgends passt.
         // Das gibt eine zuvor gewählte Rollenrichtung bewusst auf — Platz geht vor

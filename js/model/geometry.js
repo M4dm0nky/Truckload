@@ -1,7 +1,6 @@
 export const EPS = 0.5;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
-// Die vier gültigen Rotationen. Stand vorher doppelt als Literal in packer.js und io.js
-// (docs/code-review-2026-09-21.md, „packer.js:7 / io.js:7“); beide benutzen jetzt diese Quelle.
+// Die vier gültigen Rotationen; einzige Quelle für packer.js und io.js.
 export const ROTATIONS = [0, 90, 180, 270];
 export const DEFAULT_WHEEL_H = 12;   // Altdaten ohne Angabe
 export const NEW_CASE_WHEEL_H = 16;  // Blue Wheel Ø125 mm + Rollenbrett
@@ -21,10 +20,9 @@ export const DEFAULT_LAYERS = [1, 2, 3, 4];
 export const layersOf = c => (Array.isArray(c.layers) && c.layers.length ? c.layers : DEFAULT_LAYERS);
 
 // Lagen eines einzelnen STÜCKS (nicht des Case-Typs): Schnittmenge aus piece.layers und
-// layersOf(c) — ein Stück darf die Case-Typ-Lagen nur einschränken, nie erweitern. Fehlt
-// piece.layers oder ist die Schnittmenge leer (z. B. weil ein Import das Case seither auf
-// weniger Lagen begrenzt hat), gilt layersOf(c) unverändert — Altdaten ohne das neue Feld
-// packen dadurch exakt wie vorher.
+// layersOf(c) – ein Stück darf die Case-Typ-Lagen nur einschränken, nie erweitern. Fehlt
+// piece.layers oder ist die Schnittmenge leer (z. B. weil der Case-Typ seither weniger Lagen
+// erlaubt), gilt layersOf(c); Altdaten ohne das Feld packen dadurch unverändert.
 export function pieceLayers(piece, c) {
   const base = layersOf(c);
   if (!Array.isArray(piece?.layers) || !piece.layers.length) return base;
@@ -37,9 +35,9 @@ export const isTruss = c => c.kind === 'truss';
 export const canTip = c => c.tippable === true && !isTruss(c);
 
 // Erlaubte Ausrichtungen eines einzelnen STÜCKS. Ein nicht tippbarer Case-Typ lässt sich vom
-// Stück nicht überstimmen (immer nur „standing“). Ist der Case-Typ tippbar, entscheidet
-// piece.tipped: true zwingt aufs Tippen, false verbietet es, fehlt es (Altdaten), bleibt die
-// Wahl wie bisher beim Packer (ORIENTATIONS, aus denen chooseOrientation selbst wählt).
+// Stück nicht überstimmen (immer „standing“). Bei tippbarem Typ entscheidet piece.tipped: true
+// zwingt aufs Tippen, false verbietet es, fehlt es (Altdaten), wählt der Packer frei
+// (ORIENTATIONS, chooseOrientation).
 export function pieceOrientations(piece, c) {
   if (!canTip(c)) return ['standing'];
   if (piece?.tipped === true) return ['tipLong', 'tipShort'];
@@ -69,12 +67,11 @@ const ORIENT_AXES = { standing: ['l', 'w'], tipLong: ['l', 'h'], tipShort: ['h',
 // Dimension oben.
 const ORIENT_BY_VERTICAL = { h: 'standing', w: 'tipLong', l: 'tipShort' };
 
-// Kippt relativ zur aktuellen Lage „nach vorn/hinten“: die Case-Kante, die gerade in
-// Fahrtrichtung (x-Achse) liegt, kippt nach oben bzw. unten; die Seitenkante (y-Achse) bleibt
-// unverändert. Ersetzt für das manuelle Tippen die frühere absolute „Rollen immer zur Tür“-Regel
-// (die drehte unabhängig von der Ausgangslage — stand die lange Seite in Fahrtrichtung, kippte
-// das Case dadurch seitlich statt nach vorn, s. Nutzer-Feedback 2026-09-23). Die eigene
-// Türseiten-Präferenz des Packers beim Auto-Packen (`packer.js`) ist davon unberührt.
+// Tippt relativ zur aktuellen Lage „nach vorn/hinten“: die Case-Kante, die gerade in
+// Fahrtrichtung (x-Achse) liegt, geht nach oben bzw. unten; die Seitenkante (y-Achse) bleibt.
+// Eine absolute „Rollen immer zur Tür“-Regel würde ein Case mit der langen Seite in Fahrtrichtung
+// seitlich statt nach vorn tippen (Nutzer-Feedback 2026-09-23). Die Türseiten-Präferenz des
+// Packers beim Auto-Packen (`packer.js`) ist davon unabhängig.
 export function nextTip(orientation, rot) {
   const [aDim, bDim] = ORIENT_AXES[orientation];
   const rot90 = ((rot ?? 0) % 180) === 90;
@@ -168,13 +165,9 @@ export function stackAbove(rootId, items) {
 
 // Vier quadratische Boxen (Kantenlänge `size`) an den Ecken einer Fläche `faceBox`, in der
 // Ebene der Achsen `a1`×`a2`, mit Randabstand `inset` und erstreckt entlang der Normalenachse
-// `n` über `nRange` ([n0, n1]). Gemeinsamer Kern von `caseShape()` (js/model/caseShape.js,
-// vier Rollen je Case) und `trussShape()` (js/model/truss.js, vier Rollen je Rollwagen) —
-// beide setzten bis Task 6 dieselbe Ecken-Platzierung als eigene Kopie um
-// (docs/code-review-2026-09-21.md, „truss.js:59-69 vs. caseShape.js:17-30“). `size` und
-// `inset` bleiben Sache der Aufrufer: Beide begrenzen sie unterschiedlich (`trussShape` auf
-// einen festen Wert gedeckelt, `caseShape` mit `d` skaliert) — das ist der bewusste
-// fachliche Unterschied, der bestehen bleibt, nur die Geometrie darunter ist identisch.
+// `n` über `nRange` ([n0, n1]). Gemeinsamer Kern von `caseShape()` und `trussShape()`; `size`
+// und `inset` bestimmen die Aufrufer (trussShape deckelt auf einen festen Wert, caseShape
+// skaliert mit `d`).
 export function cornerBoxes(faceBox, [a1, a2, n], size, inset, nRange) {
   const pos = (axis, end) => (end ? faceBox[`${axis}1`] - inset - size : faceBox[`${axis}0`] + inset);
   const boxes = [];
