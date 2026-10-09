@@ -249,7 +249,7 @@ export function openLoadWizard(dlg, opts = {}) {
     const prev = companyFilterSel.value;
     const companies = companiesOf(cases);
     companyFilterSel.innerHTML = searchInOptionsHtml(companies, prev);
-    // Rückfall auf „Neutral“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
+    // Rückfall auf „Standardkatalog“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
     // Liste (letztes Case dieser Firma gelöscht), soll der Filter wieder scharf stehen statt
     // auf einmal firmen-gebrandete Cases zu zeigen, die der Nutzer nie gewählt hat.
     if (prev !== NEUTRAL_COMPANY && prev !== '' && !companies.includes(prev)) companyFilterSel.value = NEUTRAL_COMPANY;

@@ -130,3 +130,10 @@ test('groupCases: bearbeitete Listen-Einträge bleiben in „Cases aus deiner Li
   const g = groupCases([over]);
   assert.equal(g.own.length, 0); assert.equal(g.list.length, 1);
 });
+
+test('keep: im Wizard angelegtes Case umgeht alle Filter', () => {
+  const n = { id: 'n', builtin: false, name: 'Neu', company: 'CAB', category: 'Ton' };
+  const inOwn = g => g.own.some(c => c.id === 'n');
+  assert.equal(inOwn(groupCases([n], { company: NEUTRAL_COMPANY, q: 'xyz', keep: new Set(['n']) })), true);
+  assert.equal(inOwn(groupCases([n], { company: NEUTRAL_COMPANY, q: 'xyz' })), false);
+});

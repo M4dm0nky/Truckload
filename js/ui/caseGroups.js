@@ -34,15 +34,16 @@ export function caseKind(c) {
 // Teilt Cases nach Suche/Gewerk/Firma gefiltert in „Eigene Cases“, „Vorlagen“
 // und „Cases aus deiner Liste“ (c.source === 'liste'). Cases ohne `company`
 // verschwinden, sobald eine Firma gewählt ist. Mit NEUTRAL_COMPANY ist es
-// umgekehrt: nur Cases OHNE `company` bleiben durch. `keep: Set<id>` zeigt
-// `onlyInPlan`-Cases trotzdem in der „Eigene Cases“-Gruppe.
+// umgekehrt: nur Cases OHNE `company` bleiben durch. `keep: Set<id>` = in diesem Wizard-Durchlauf
+// angelegte Cases: sie umgehen alle Filter (Suche, Gewerk, Firma, onlyInPlan) und landen nach
+// ihren übrigen Eigenschaften in der passenden Gruppe.
 export function groupCases(cases, { q = '', cat = '', company = '', keep = new Set() } = {}) {
   const needle = q.trim().toLowerCase();
   const matchCompany = c => company === NEUTRAL_COMPANY ? !c.company : (!company || c.company === company);
-  const match = c => (!c.onlyInPlan || keep.has(c.id))
+  const match = c => keep.has(c.id) || (!c.onlyInPlan
     && (!cat || c.category === cat)
     && matchCompany(c)
-    && (!needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
+    && (!needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle)));
   return {
     // `.sort(...)`: eigene Cases kamen bis Task 8 in IndexedDB-Schlüsselreihenfolge an
     // (crypto.randomUUID()), sprangen also bei jeder Bearbeitung zusätzlich um (js/app.js hängt
