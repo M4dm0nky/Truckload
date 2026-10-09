@@ -323,12 +323,18 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
 - **Zwei Flags.** `legacy` = ausgeblendet (gelöschte Firmen-Vorlage; alte Ladepläne behalten
   das Stück, `groupCases` blendet es in jeder Auswahl aus). `onlyInPlan` = im Wizard ohne
   „Im Materialbestand ablegen“ angelegt, gilt nur für den Load. `isInStock` = weder noch.
-  Fehlen beide Felder (alte Daten), liegt das Case im Bestand.
+  Fehlen beide Felder (alte Daten), liegt das Case im Bestand. `legacy` gilt nur für `lib-`-IDs:
+  an anderen eigenen Cases (alte Editor-Kopien ausgeblendeter Vorlagen) entfernt
+  `io.dropStrayLegacy` es beim Laden und beim Import.
 - **Bearbeiten einer `lib-`-Vorlage** speichert ein eigenes Case mit **derselben ID** und
   `builtin: false`; `mergeOwnWithBuiltins` lässt die eigene Version gewinnen. Pläne verweisen
-  weiter per `caseId`. Dasselbe gilt für „Firma umbenennen“ (`renameCompany`).
-- **Löschen** entscheidet `deletionFor(c)`: eigenes Case → `repo.deleteCase`; `lib-`-Vorlage →
-  Überlagerung mit `legacy: true` (sonst käme sie beim nächsten Start zurück); `preset-` →
+  weiter per `caseId`. Dasselbe gilt für „Firma umbenennen“ (`renameCompany`). Beim
+  Wiederherstellen einer Sicherung verliert ein lokaler mitgelieferter Eintrag in `mergeById`
+  immer gegen den Datensatz aus der Datei, damit Überlagerungen ankommen. Firmennamen sind auf
+  80 Zeichen begrenzt (`firmNameError`, dieselbe Grenze wie `checkCase`).
+- **Löschen** entscheidet `deletionFor(c)`: jede `lib-`-ID (auch eine schon gespeicherte
+  Überlagerung) → Überlagerung mit `legacy: true` (sonst käme die Vorlage beim nächsten Start
+  zurück); sonstiges eigenes Case → `repo.deleteCase`; `preset-` →
   nicht löschbar (`null`), nur „Kopieren“ (`copyToCompany`, neue ID, ohne `legacy`/`onlyInPlan`).
 - **Import-Regel** (`isPreset` in `js/store/io.js`): `preset-`-IDs und alles mit
   `builtin: true` werden verworfen; eigene Überlagerungen einer `lib-`-ID (`builtin: false`)
