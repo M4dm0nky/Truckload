@@ -225,6 +225,43 @@ werden lesbar, der Zusammenhang bleibt aber sichtbar, weil nichts verschwindet. 
 ergibt das einen sauberen Schnitt durch die Ladung. Das ausgewählte Case bleibt in beiden
 Fällen sichtbar. Der Ausdruck zeigt immer alle Lagen.
 
+## Mehrere LKW in einem Plan
+
+Reicht ein Fahrzeug nicht, kann ein Plan mehrere LKW tragen. Ein bestehender Plan bleibt ein
+normaler Ein-LKW-Plan, bis du ihn umstellst.
+
+- **Umstellen:** In der Kopfleiste „Mehrere LKW“. Es öffnet sich „Neuer LKW“; erst beim Speichern
+  wird der Plan umgewandelt: Der bisherige Inhalt bildet „LKW 1“ (mit dem bisherigen Fahrzeug), dein
+  neuer LKW kommt dazu. Abbrechen ändert nichts. Danach gibt es „+ LKW“ in der Reiterleiste.
+- **Reiter:** Über den Ansichten steht je LKW ein Reiter „Name · Fahrzeug“. Alles darunter –
+  2D, 3D, Ablage, Fahrzeugwahl, „Rest einpacken“, „Truck entladen“, Ziehen, Tastatur – wirkt auf den
+  gewählten LKW. Eine Summenzeile zeigt Gesamtzahl, Gesamtgewicht (Stücke ohne Gewicht werden
+  genannt, nicht mitgeschätzt) und was keinem LKW zugeordnet ist.
+- **Gewerke zuweisen:** „LKW bearbeiten“ (Name, Fahrzeug, Gewerke-Haken, Löschen). Ein LKW **ohne**
+  Haken ist der **Rest-LKW**: Er nimmt alles, was kein anderer LKW annimmt. Gibt es keinen
+  Rest-LKW, bleiben Stücke ohne passenden LKW nicht zugeordnet; es erscheint der Reiter „Ohne LKW“
+  und ein Hinweis, z. B. „12 Stücke ohne LKW (Strom)“. Höchstens 12 LKW; der letzte LKW lässt sich
+  nicht löschen. Löschst du einen anderen, werden seine Stücke keinem LKW mehr zugeordnet.
+- **Verteilen:** Das passiert **nur bei „Alles neu packen“** (ab zwei LKW), nicht beim Anlegen
+  eines LKW und nicht von allein bei manuellen Änderungen. Je Gewerk wird gleichmäßig verteilt:
+  die größten Stücke zuerst, jedes auf den zulässigen LKW mit der geringsten Auslastung (Bodenfläche
+  oder Nutzlast, je nachdem, was mehr belegt ist; Gewicht 0 zählt 0). Das ist eine Heuristik, keine
+  optimale Aufteilung. Was in „seinem“ LKW nicht mehr passt, wird einmal an die übrigen
+  zulässigen LKW des Gewerks weitergegeben, sonst bleibt es in der Ablage. Die Pack-Regeln des Plans
+  und „Deckschicht mischen“ gelten für jeden LKW.
+- **Von Hand zuordnen:** Im Inspector steht je Stück das Feld „LKW“; dort verschiebst du ein
+  Stück auf einen anderen LKW (eine Platzierung wandert in dessen Ablage) oder auf „Ohne LKW“.
+- **Reiter „Ohne LKW“:** Zeigt nur die nicht zugeordneten Stücke, ohne 2D-/3D-Ansicht. „Alles neu
+  packen“ verteilt sie, oder du weist sie im Inspector zu.
+- **Neues Material (Lade-Wizard):** Bei einem Mehr-LKW-Plan kommt es **nicht zugeordnet** in den
+  Plan und wird nicht automatisch gepackt; ein Hinweis sagt das. „Alles neu packen“ verteilt es.
+- **Drucken:** Neben der Dokumentenauswahl steht dann „dieser LKW / alle LKW“. „Alle LKW“ druckt
+  je LKW einen Abschnitt (neue Seite, LKW-Name im Kopf) und zuletzt „Ohne LKW“, falls es solche
+  Stücke gibt. Im Reiter „Ohne LKW“ druckt „dieser LKW“ nur diese Stücke.
+- **Fahrzeug löschen:** Alle LKW aller Pläne, die darauf zeigten, wechseln auf das Standardfahrzeug.
+- **Alte Daten:** Pläne und Sicherungen ohne LKW-Liste laden unverändert. Beim Import werden
+  Verweise auf unbekannte LKW repariert und gemeldet.
+
 ## Drucken: Ladeplan, Abhakliste, Ausladeliste, Etiketten
 
 Neben dem Knopf „Drucken“ steht, was gedruckt wird:
