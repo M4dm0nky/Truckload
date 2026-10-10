@@ -51,6 +51,40 @@ Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab.
   Open-Source-Liste auf. Wer Three.js aktualisiert, ersetzt auch diese Datei aus dem passenden
   Tag.
 
+## Gestaltung
+
+NYX passt Truckload im Tab an sein Erscheinungsbild an. Truckload legt dafür fest, was sich
+gestalten lässt, NYX liefert die Werte.
+
+- **Tokens:** die Liste in `js/ui/themeTokens.js` (`THEME_TOKENS`, `THEME_VERSION`). Die
+  Standardwerte stehen in `css/app.css` und sind das Aussehen der Web-App. NYX setzt eigene
+  Werte mit dem Selektor `:root:root[data-theme]`.
+- **hell/dunkel:** `:root[data-theme="light"|"dark"]` überstimmt die Systemeinstellung. NYX
+  setzt das Attribut, die Web-App nie.
+- **Wechsel zur Laufzeit:** Nach jedem Setzen löst NYX `tl-theme` an `window` aus. Wer Farben
+  einmalig liest (die 3D-Ansicht über `js/ui/themeColors.js`), liest sie dann neu.
+- **Neue Tokens:** in `THEME_TOKENS` anhängen, `THEME_VERSION` und `--tl-theme-version` erhöhen,
+  in alle vier Blöcke von `css/app.css` und hier eintragen. NYX befüllt nur Tokens, die es für
+  die gemeldete Version kennt. Umbenennen oder Entfernen bricht NYX, eine Drift-Sperre dort
+  meldet es.
+- **Nicht gestaltbar:** Gegenstandsfarben (Case-Schwarz, Alu, Räder, Griffe), die
+  Beschriftungskontur und das Layout.
+
+## Drucken
+
+In NYX druckt Truckload nicht mit `window.print()` (Electron zeigt dabei keine Vorschau),
+sondern über den Host (`js/app/hostPrint.js`):
+
+1. Ladeplan und Checkliste: `truckloadHost.druckRahmen({ doc, titel })` liefert
+   `{ kopf, abschluss, randUntenMm }`. Truckload setzt `kopf` vor und `abschluss` hinter den
+   Druckbereich und nimmt `randUntenMm` als unteren Seitenrand, Platz für NYX' Fußzeile.
+   Scheitert der Aufruf, wird ohne Rahmen gedruckt.
+2. `truckloadHost.print({ doc, titel })`: NYX erzeugt die PDF aus Truckloads Druckansicht und
+   öffnet sie.
+3. Danach räumt Truckload Seitenregel und Rahmen wieder ab.
+
+Etiketten (`doc: 'labels'`) bekommen keinen Rahmen und keinen geänderten Rand.
+
 ## Neue Version in NYX übernehmen
 
 Auf NYX-Seite: `git submodule update --remote truckload`, Tests, Handtest, Commit. NYX übernimmt
