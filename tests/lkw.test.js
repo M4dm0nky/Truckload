@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   lkwsOf, isMultiLkw, lkwView, unassignedView, mergeLkwView,
-  convertToMulti, addLkw, updateLkw, removeLkw, moveToLkw,
+  convertToMulti, addLkw, resolveLkwId, updateLkw, removeLkw, moveToLkw,
 } from '../js/model/lkw.js';
 import { MAX_LKW, NAME_MAX } from '../js/model/limits.js';
 import { checkPlan } from '../js/store/io.js';
@@ -40,7 +40,6 @@ test('lkwView: normaler Ein-LKW-Plan mit Fahrzeug des LKW, nur dessen Stücke, o
   assert.deepEqual(v.unplaced.map(u => u.id), ['u2']);
   assert.ok(v.placements.concat(v.unplaced).every(x => !('lkw' in x)));
   assert.equal(v.id, 'plan');
-  assert.throws(() => lkwView(multi(), 'nix'), /LKW/);
 });
 
 test('unassignedView: Ablage-Stücke ohne gültigen lkw, Platzierungen ohne lkw wandern in die Ablage', () => {
@@ -93,9 +92,32 @@ test('mergeLkwView: Reihenfolge deterministisch – Plätze des LKW werden in An
   assert.deepEqual(mergeLkwView(p, 'L1', more).placements.map(x => x.id), ['p1', 'p2', 'p3', 'p9']);
 });
 
-test('mergeLkwView mit unbekannter LKW-ID liefert den Plan unverändert', () => {
+test('resolveLkwId: bekannte ID, sonst erster LKW, sonst null', () => {
+  assert.equal(resolveLkwId(multi(), 'L2'), 'L2');
+  assert.equal(resolveLkwId(multi(), 'nix'), 'L1');
+  assert.equal(resolveLkwId(multi(), undefined), 'L1');
+  assert.equal(resolveLkwId(plan([]), 'L1'), null);
+});
+
+test('veraltete LKW-ID (Reiter nach Rückgängig/Löschen): fällt auf den ersten LKW, nichts stürzt oder geht verloren', () => {
   const p = multi();
-  assert.equal(mergeLkwView(p, 'nix', lkwView(p, 'L1')), p);
+  assert.deepEqual(lkwView(p, 'nix'), lkwView(p, 'L1'));
+  const v = lkwView(p, 'nix');
+  const edited = { ...v, unplaced: [...v.unplaced, { id: 'neu', caseId: 'a' }] };
+  const m = mergeLkwView(p, 'nix', edited);
+  assert.equal(m.unplaced.find(u => u.id === 'neu').lkw, 'L1');
+  assert.deepEqual(noStamp(mergeLkwView(p, 'nix', v)), noStamp(p));
+  assert.equal(updateLkw(p, 'nix', { name: 'Z' }).lkws[0].name, 'Z');
+  assert.equal(moveToLkw(p, 'p2', 'nix').unplaced.find(u => u.id === 'p2').lkw, 'L1');
+  assert.deepEqual(removeLkw(p, 'nix').lkws.map(l => l.id), ['L2']);
+  // Ein-LKW-Plan: Ansicht ist der Plan selbst, Zurückschreiben liefert die Ansicht.
+  const single = plan([P('p1', 'a', 0, 0, 0)]);
+  assert.equal(lkwView(single, 'x'), single);
+  const edit = { ...single, notes: 'n' };
+  assert.equal(mergeLkwView(single, 'x', edit), edit);
+  assert.equal(updateLkw(single, 'x', { name: 'a' }), single);
+  assert.equal(removeLkw(single, 'x'), single);
+  assert.equal(moveToLkw(single, 'p1', 'x'), single);
 });
 
 test('convertToMulti: ein LKW „LKW 1“ mit dem bisherigen Fahrzeug, alle Stücke zugeordnet', () => {
@@ -134,7 +156,6 @@ test('updateLkw: ändert Name/Fahrzeug/Gewerke, hält plan.truckId am ersten LKW
   assert.equal(a.truckId, 'tX');
   const b = updateLkw(p, 'L2', { truckId: 'tY' });
   assert.equal(b.truckId, 't1');
-  assert.equal(updateLkw(p, 'nix', { name: 'x' }), p);
   assert.equal(a.lkws[0].id, 'L1', 'id nicht änderbar');
   assert.equal(updateLkw(p, 'L1', { id: 'Z' }).lkws[0].id, 'L1');
 });
@@ -150,7 +171,6 @@ test('removeLkw: Stücke werden nicht zugeordnet, Platzierungen wandern in die A
   assert.equal(moved.length, 3);
   assert.ok(moved.every(u => !('lkw' in u)));
   assert.ok(m.unplaced.every(u => !('x' in u) && !('orientation' in u)));
-  assert.equal(removeLkw(p, 'nix'), p);
 });
 
 test('removeLkw des letzten LKW: Ein-LKW-Plan ohne lkws, kein lkw-Feld, Fahrzeug bleibt', () => {
@@ -176,7 +196,6 @@ test('moveToLkw: Platzierung -> Ablage des Ziels, Ablage-Zeile -> Ziel, null = o
   const d = moveToLkw(p, 'p2', null);
   assert.ok(!('lkw' in d.unplaced.find(u => u.id === 'p2')));
   assert.equal(moveToLkw(p, 'nix', 'L2'), p);
-  assert.equal(moveToLkw(p, 'u1', 'nix'), p);
   assert.equal(moveToLkw(p, 'p1', 'L1'), p, 'gleicher LKW: unverändert');
   assert.equal(moveToLkw(plan([]), 'x', null).lkws, undefined);
 });

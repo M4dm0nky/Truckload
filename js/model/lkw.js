@@ -21,6 +21,14 @@ export const isMultiLkw = plan => lkwsOf(plan).length > 0;
 
 const knownIds = plan => new Set(lkwsOf(plan).map(l => l.id));
 const findLkw = (plan, id) => lkwsOf(plan).find(l => l.id === id);
+// Auflösung einer LKW-ID für Aufrufer mit einer möglicherweise veralteten ID (gewählter Reiter nach
+// Rückgängig oder Löschen): bekannte ID bleibt, sonst der ERSTE LKW, ohne LKW null. So stürzt nichts
+// ab und keine Bearbeitung geht still verloren; sie landet im ersten LKW. Gilt für lkwView,
+// mergeLkwView, updateLkw, removeLkw und das Ziel von moveToLkw.
+export function resolveLkwId(plan, id) {
+  const list = lkwsOf(plan);
+  return list.some(l => l.id === id) ? id : (list[0]?.id ?? null);
+}
 const withLkw = (x, id) => ({ ...x, lkw: id });
 const withoutLkw = x => { const { lkw: _drop, ...rest } = x; return rest; };
 const validTruck = t => typeof t === 'string' && t !== '';
@@ -43,14 +51,15 @@ const syncTruck = plan => (isMultiLkw(plan) ? { ...plan, truckId: plan.lkws[0].t
 // Normaler Ein-LKW-Plan dieses LKW: Fahrzeug des LKW, nur seine Stücke, ohne `lkws` und ohne
 // `lkw`-Felder. Alle bestehenden Funktionen arbeiten darauf unverändert.
 export function lkwView(plan, lkwId) {
-  const lkw = findLkw(plan, lkwId);
-  if (!lkw) throw new Error(`Unbekannter LKW „${lkwId}“.`);
+  const id = resolveLkwId(plan, lkwId);
+  if (id === null) return plan; // Ein-LKW-Plan: die Ansicht ist der Plan selbst
+  const lkw = findLkw(plan, id);
   const { lkws: _l, ...rest } = plan;
   return {
     ...rest,
     truckId: lkw.truckId,
-    placements: plan.placements.filter(p => p.lkw === lkwId).map(withoutLkw),
-    unplaced: plan.unplaced.filter(u => u.lkw === lkwId).map(withoutLkw),
+    placements: plan.placements.filter(p => p.lkw === id).map(withoutLkw),
+    unplaced: plan.unplaced.filter(u => u.lkw === id).map(withoutLkw),
   };
 }
 
@@ -89,15 +98,16 @@ function spliceOwn(list, lkwId, viewItems) {
 
 // Schreibt das Ergebnis einer Ansicht zurück. Plan-Felder der Ansicht (Notizen, Pack-Regeln …)
 // gelten; `lkws` und `truckId` bleiben die des Plans – ein Fahrzeugwechsel im LKW läuft über
-// updateLkw. Unbekannte LKW-ID: Plan unverändert.
+// updateLkw. Veraltete LKW-ID: erster LKW (resolveLkwId). Ein-LKW-Plan: die Ansicht ist das Ergebnis.
 export function mergeLkwView(plan, lkwId, view) {
-  if (!findLkw(plan, lkwId)) return plan;
+  const id = resolveLkwId(plan, lkwId);
+  if (id === null) return view;
   return stamp({
     ...view,
     truckId: plan.truckId,
     lkws: plan.lkws,
-    placements: spliceOwn(plan.placements, lkwId, view.placements),
-    unplaced: spliceOwn(plan.unplaced, lkwId, view.unplaced),
+    placements: spliceOwn(plan.placements, id, view.placements),
+    unplaced: spliceOwn(plan.unplaced, id, view.unplaced),
   });
 }
 
@@ -131,9 +141,10 @@ export function addLkw(plan, { name, truckId, categories } = {}, newId = default
 }
 
 // Ändert Name, Fahrzeug oder Gewerke; die ID bleibt.
-export function updateLkw(plan, id, patch = {}) {
+export function updateLkw(plan, lkwId, patch = {}) {
+  const id = resolveLkwId(plan, lkwId);
+  if (id === null) return plan;
   const cur = findLkw(plan, id);
-  if (!cur) return plan;
   const next = {
     ...cur,
     ...(patch.name !== undefined ? { name: cleanName(patch.name, cur.name) } : {}),
@@ -147,8 +158,9 @@ export function updateLkw(plan, id, patch = {}) {
 // Platzierungen wandern in die Ablage. Der letzte LKW verschwindet samt `lkws` – der Plan ist dann
 // wieder ein Ein-LKW-Plan (mit dem Fahrzeug des gelöschten LKW in `truckId`, alle Stücke ohne
 // Feld `lkw`, Platzierungen in der Ablage).
-export function removeLkw(plan, id) {
-  if (!findLkw(plan, id)) return plan;
+export function removeLkw(plan, lkwId) {
+  const id = resolveLkwId(plan, lkwId);
+  if (id === null) return plan;
   const rest = plan.lkws.filter(l => l.id !== id);
   const mineP = p => p.lkw === id;
   const base = {
@@ -169,12 +181,11 @@ export function removeLkw(plan, id) {
 }
 
 // Verschiebt ein Stück zu einem LKW (oder mit `null` zu „ohne LKW“). Eine Platzierung wandert in
-// die Ablage des Ziels, eine Ablage-Zeile bleibt in der Ablage. Gleicher LKW, unbekanntes Ziel oder
-// unbekanntes Stück: Plan unverändert.
+// die Ablage des Ziels, eine Ablage-Zeile bleibt in der Ablage. Gleicher LKW oder unbekanntes Stück:
+// Plan unverändert; ein veraltetes Ziel fällt auf den ersten LKW (resolveLkwId).
 export function moveToLkw(plan, pieceId, lkwIdOrNull) {
   if (!isMultiLkw(plan)) return plan;
-  const target = lkwIdOrNull ?? null;
-  if (target !== null && !findLkw(plan, target)) return plan;
+  const target = lkwIdOrNull == null ? null : resolveLkwId(plan, lkwIdOrNull);
   const place = plan.placements.find(p => p.id === pieceId);
   const tray = place ? null : plan.unplaced.find(u => u.id === pieceId);
   const piece = place ?? tray;
