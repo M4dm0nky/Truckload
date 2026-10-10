@@ -240,5 +240,5 @@ test('addLkw/updateLkw: truckId bleibt ein nichtleerer String (Rückfall: erster
   }
   assert.equal(updateLkw(multi(), 'L2', { truckId: 'tZ' }).lkws[1].truckId, 'tZ');
   assert.doesNotThrow(() => checkPlan(m));
-  assert.doesNotThrow(() => checkPlan(addLkw(plan([]), {}, nid)));
+  assert.doesNotThrow(() => checkPlan(addLkw(plan([]), {}, counter('Q'))));
 });
