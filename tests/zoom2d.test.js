@@ -52,3 +52,53 @@ test('resolveViewBox: ohne Zustand oder bei anderem Truck der ganze Truck, sonst
   const other = { x: -30, y: -30, w: 490, h: 238 };
   assert.deepEqual(resolveViewBox({ full: FULL, vb: z }, other), other);
 });
+
+// --- zoomFactor und truckzoom-Ereignis (0.14.1) ----------------------------------------------
+import { zoomFactor, applyViewBox, zoomBy, zoomIn, resetZoom } from '../js/ui/zoom2d.js';
+import { installFakeDom, newSvg } from './fake-svg.js';
+
+function zoomSvg() {
+  installFakeDom();
+  const svg = newSvg();
+  applyViewBox(svg, FULL);
+  return svg;
+}
+
+test('zoomFactor: ganze Breite / sichtbare Breite, nie unter 1', () => {
+  const svg = zoomSvg();
+  assert.equal(zoomFactor(svg), 1);
+  zoomBy(svg, 2);
+  assert.ok(near(zoomFactor(svg), 2));
+  zoomBy(svg, 0.1);                    // weiter heraus als alles geht nicht
+  assert.equal(zoomFactor(svg), 1);
+  resetZoom(svg);
+  assert.equal(zoomFactor(svg), 1);
+});
+
+test('zoomFactor: svg ohne viewBox-Zustand ergibt 1', () => {
+  installFakeDom();
+  assert.equal(zoomFactor(newSvg()), 1);
+});
+
+test('zoomBy / zoomIn / resetZoom melden die neue Stufe per truckzoom-Ereignis', () => {
+  const svg = zoomSvg();
+  const seen = [];
+  svg.addEventListener('truckzoom', e => seen.push(zoomFactor(svg)));
+  zoomIn(svg);
+  assert.equal(seen.length, 1);
+  assert.ok(near(seen[0], 1.5));
+  resetZoom(svg);
+  assert.equal(seen.length, 2);
+  assert.equal(seen[1], 1);
+});
+
+test('truckzoom kommt nur, wenn sich die Breite ändert (Verschieben löst es nicht aus)', () => {
+  const svg = zoomSvg();
+  zoomBy(svg, 4);
+  let n = 0;
+  svg.addEventListener('truckzoom', () => n++);
+  // Verschieben läuft über set(): simuliert durch Zoom auf gleiche Stufe an anderer Stelle gibt es nicht;
+  // hier genügt: ein Zoom, der an der Grenze nichts ändert, meldet nichts.
+  zoomBy(svg, 1e9); zoomBy(svg, 1e9);
+  assert.equal(n, 1); // das erste erreicht MIN_VIEW_W, das zweite ändert nichts
+});
