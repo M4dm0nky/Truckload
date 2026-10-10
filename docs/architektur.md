@@ -253,11 +253,12 @@ beginnt an der letzten Reihe der vorhandenen Ladung (`startX` = größtes x0 der
 0.8.4 stellt `placeStacks` jeden Stapel zuerst im Spurraster seiner Sorte ab der linken Wand (y = k
 · Stapelbreite) und fällt nur, wenn dort nichts passt (Radkästen), auf die freie Eckensuche zurück –
 sonst übernahm eine Sorte die Spurlage der vorigen, und 62er-Wagen passten neben 60er-Spuren nur zu
-dritt statt zu viert. Bei überfüllter Ladung merkt sich `placeStacks` je Sorte die gescheiterten
-Grundflächen samt Höhe und lehnt einen gleich großen oder größeren Stapel ohne neue Suche ab (die
-Merkliste verfällt nach jeder Platzierung); die Punkte werden nur nach einer Platzierung neu
-sortiert. Die Ausgabe ist dadurch unverändert (`tests/packer-golden.test.js`,
-`tests/packer-property.test.js`). Spec:
+dritt statt zu viert. Bei überfüllter Ladung merkt sich `placeStacks` je Sorte die gescheiterten Grundflächen samt Höhe
+und lehnt einen Stapel mit identischer Grundfläche (auch um 90° getauscht) und mindestens gleicher
+Höhe ohne neue Suche ab; die Merkliste verfällt nach jeder Platzierung. Eine bloß größere Grundfläche
+genügt nicht, weil das Spurraster von der Stapelbreite abhängt. Die Punkte werden nur nach einer
+Platzierung neu sortiert. Die Ausgabe bleibt unverändert (Vergleich mit dem alten Packer,
+`tests/packer-golden.test.js`, `tests/packer-property.test.js`). Spec:
 `docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md`.
 
 **Deckschicht (seit V 0.8.6):** optionaler Schalter `plan.mixTop` (`mixTopFor(plan)`,

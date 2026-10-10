@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FIXTURES, snapshot } from './packer-golden.fixtures.js';
+import { placeStacks } from '../js/model/packer.js';
 
 const EXPECTED = {
   light: {
@@ -105,6 +106,27 @@ const EXPECTED = {
     ],
     unplaced: ['c22', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 'a13', 'a14', 'a15', 'a16', 'a17', 'a18', 'a19', 'a20', 'a21', 'a22', 'a23', 'a24', 'a25', 'a26', 'a27', 'a28', 'a29', 'a30'],
   },
+  tippedMix: {
+    placements: [
+      't2@70,0,0/0/standing',
+      't3@70,0,40/0/standing',
+      't5@70,0,80/0/standing',
+      't6@70,55,0/0/standing',
+      't8@70,55,40/0/standing',
+      't9@70,55,80/0/standing',
+      't11@160,0,0/0/standing',
+      't12@160,0,40/0/standing',
+      't14@160,0,80/0/standing',
+      't15@160,55,0/0/standing',
+      't17@160,55,40/0/standing',
+      't18@160,55,80/0/standing',
+      't1@70,110,0/0/tipLong',
+      't4@70,110,55/0/tipLong',
+      't7@160,110,0/0/tipLong',
+      't10@160,110,55/0/tipLong',
+    ],
+    unplaced: ['t20', 't21', 't23', 't24', 't26', 't27', 't29', 't30', 't32', 't33', 't35', 't36', 't13', 't16', 't19', 't22', 't25', 't28', 't31', 't34'],
+  },
   truss: {
     placements: [
       'b1@0,0,0/0/standing',
@@ -199,4 +221,23 @@ for (const [name, expected] of Object.entries(EXPECTED)) {
 test('Packer-Ausgabe: die Fixtures decken Ablage und Platzierungen ab', () => {
   assert.ok(EXPECTED.overfull.unplaced.length > 0 && EXPECTED.overfullSmall.unplaced.length > 0);
   assert.equal(EXPECTED.light.unplaced.length, 0);
+});
+
+// Regression Rasterstelle: Ein größerer Stapel (L, 60×45) trifft im Spurraster y = k · 45 eine Stelle
+// (y = 45), die dem kleineren, zuvor gescheiterten (S, 60×35, Raster y = k · 35) und allen
+// Eckpunkten verschlossen blieb. Eine Ablehnung „größer als ein gescheiterter“ wäre falsch; abgelehnt
+// wird nur bei identischer Grundfläche. Erwartung aus dem Packer vor 2.3 (da2c2f7).
+test('Regression Rasterstelle: ein größerer Stapel darf eine Stelle treffen, an der ein kleinerer scheiterte', () => {
+  const truck = { l: 120, w: 100, h: 300, wheelArches: [] };
+  const obstacles = [
+    { x0: 0, y0: 0, z0: 0, x1: 120, y1: 40, z1: 100 },
+    { x0: 0, y0: 40, z0: 0, x1: 50, y1: 95, z1: 100 },
+    { x0: 0, y0: 95, z0: 0, x1: 120, y1: 100, z1: 100 },
+    { x0: 100, y0: 40, z0: 0, x1: 110, y1: 45, z1: 100 },
+  ];
+  const S = { id: 'S', dx: 60, dy: 35, height: 50, ownWeight: 100, sort: 0 };
+  const L = { id: 'L', dx: 60, dy: 45, height: 50, ownWeight: 50, sort: 0 };
+  const r = placeStacks([S, L], truck, obstacles);
+  assert.deepEqual(r.placed.map(p => [p.stack.id, p.box.x0, p.box.y0, p.swap]), [['L', 50, 45, false]]);
+  assert.deepEqual(r.failed.map(s => s.id), ['S']);
 });

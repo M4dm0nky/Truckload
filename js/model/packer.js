@@ -188,16 +188,16 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
     const group = stacks.filter(s => (s.sort ?? 0) === sort)
       .sort((a, b) => (a.mixed ? 1 : 0) - (b.mixed ? 1 : 0) || (b.ownWeight ?? b.weight) - (a.ownWeight ?? a.weight));
     const boxesHere = [];
-    // Überfüllung (2.3): Scheitert ein Stapel, scheitert bei UNVERÄNDERTER Belegung jeder, der in
-    // Grundfläche (auch um 90° gedreht) und Höhe mindestens so groß ist – die Suche entfällt dann.
-    // Nach jeder erfolgreichen Platzierung verfällt die Merkliste, denn neue Punkte und Hindernisse
-    // ändern die Lage. Eigene Entscheidung: Das Spurraster hängt von der Stapelbreite ab; ein
-    // größerer Stapel könnte theoretisch in SEINEM Raster eine Stelle treffen, die dem kleineren
-    // verschlossen blieb. Die goldenen Ausgaben (tests/packer-golden.test.js) und der Eigenschafts-
-    // test halten das Verhalten fest.
+    // Überfüllung (2.3): Scheitert ein Stapel, scheitert bei UNVERÄNDERTER Belegung jeder weitere mit
+    // GLEICHER Grundfläche (gleiches dx × dy oder genau um 90° getauscht) und mindestens gleicher
+    // Höhe – die Suche entfällt dann. Nur bei identischer Grundfläche stimmen Spurraster (y = k · Breite)
+    // und Eckensuche überein; bei bloß „größerer“ Grundfläche könnte der größere Stapel eine Rasterstelle
+    // treffen, die dem kleineren verschlossen blieb (Gegenbeispiel: tests/packer-golden.test.js,
+    // „Regression Rasterstelle“). Nach jeder erfolgreichen Platzierung verfällt die Merkliste, denn
+    // neue Punkte und Hindernisse ändern die Lage.
     let failedShapes = [];
     const knownToFail = (a, b, h) => failedShapes.some(f => f.h <= h + 1e-6
-      && ((f.dx <= a + 1e-6 && f.dy <= b + 1e-6) || (f.dy <= a + 1e-6 && f.dx <= b + 1e-6)));
+      && ((Math.abs(f.dx - a) < 1e-6 && Math.abs(f.dy - b) < 1e-6) || (Math.abs(f.dy - a) < 1e-6 && Math.abs(f.dx - b) < 1e-6)));
     let sorted = false;   // Punkte sind nur nach einer Platzierung neu zu sortieren
     let xs = null;        // Kandidaten-x der Spurraster-Suche; hängt nur von den Punkten ab
     for (const s of group) {
@@ -245,7 +245,8 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
       }
       if (!hit) {
         failed.push(s);
-        failedShapes = failedShapes.filter(f => !(s.height <= f.h + 1e-6 && s.dx <= f.dx + 1e-6 && s.dy <= f.dy + 1e-6));
+        // Je Grundfläche zählt die kleinste gescheiterte Höhe.
+        failedShapes = failedShapes.filter(f => !(s.height <= f.h + 1e-6 && Math.abs(f.dx - s.dx) < 1e-6 && Math.abs(f.dy - s.dy) < 1e-6));
         failedShapes.push({ dx: s.dx, dy: s.dy, h: s.height });
         continue;
       }

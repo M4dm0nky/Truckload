@@ -41,6 +41,14 @@ export const FIXTURES = {
     const c = mkCase('c', 50, 50, 50, { weight: 18 });
     return { items: [...many(a, 30, 'a'), ...many(b, 25, 'b'), ...many(c, 22, 'c')], truck: mkTruck({ l: 300, w: 178, h: 150 }) };
   },
+  // Eine Sorte (ein Case-Typ), aber Stapel mit verschiedenen Grundflächen: das Feld `tipped` je Stück
+  // erzwingt stehend bzw. getippt. Überfüllt, mit Hindernis.
+  tippedMix() {
+    const t = mkCase('t', 90, 55, 40, { weight: 30, tippable: true });
+    const items = Array.from({ length: 36 }, (_, i) => piece(t, `t${i + 1}`, i % 3 === 0 ? { tipped: true } : i % 3 === 1 ? { tipped: false } : {}));
+    const obstacle = { x0: 0, y0: 30, z0: 0, x1: 70, y1: 100, z1: 60 };
+    return { items, truck: mkTruck({ l: 260, w: 150, h: 120 }), opts: { obstacles: [obstacle] } };
+  },
   truss() {
     const wagon = trussCase('wagon', 240, 62, 60, { weight: 120, stackable: true, category: 'Rigging' });
     const stand = trussCase('stand', 300, 62, 115, { weight: 150, stackable: false, category: 'Rigging' });
