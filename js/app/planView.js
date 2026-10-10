@@ -15,7 +15,10 @@ import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
 import { createView3d } from '../ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom } from '../ui/zoom2d.js';
-import { allPlansOf, piecesOf, truckUsage } from './core.js';
+import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, repointTruck, distributionNotices } from './core.js';
+import { lkwsOf, isMultiLkw, addLkw, updateLkw, removeLkw, moveToLkw } from '../model/lkw.js';
+import { mountLkwTabs, lkwTabsModel } from '../ui/lkw-tabs.js';
+import { openLkwEditor } from '../ui/lkw-editor.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -32,18 +35,70 @@ export function loadCaseColors() {
 
 // Zeichnet die 2D-Ansichten (nur im 2D-Modus). Der Rest hängt als renderHooks an.
 export function renderPlanViews(s, d) {
-  if (s.mode !== '2d') return;
+  if (s.mode !== '2d' || d.activeLkw === NO_LKW) return;
   const opts = { truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors, layerLimit: s.layerLimit };
   renderView($('#svg-top'), 'top', opts);
   renderView($('#svg-side'), 'side', opts);
   renderView($('#svg-rear'), 'rear', opts);
 }
 
-// deps: store, edit, select, ctx, derive, renderHooks, persistence, stamp, showConfirm,
-// editCase, runLoadWizard, warnIfUnplaced. Liefert { ACTIONS } (für die Tastatur).
+// deps: store, edit, editWhole, select, ctx, derive, renderHooks, persistence, stamp, uid, showAlert,
+// showConfirm, editCase, runLoadWizard, warnIfUnplaced. Liefert { ACTIONS } (für die Tastatur).
 export function mountPlanView(deps) {
-  const { store, edit, select, ctx, derive, renderHooks, persistence, stamp, showConfirm,
-    editCase, runLoadWizard, warnIfUnplaced } = deps;
+  const { store, edit, editWhole, select, ctx, derive, renderHooks, persistence, stamp, uid, showAlert,
+    showConfirm, editCase, runLoadWizard, warnIfUnplaced } = deps;
+
+  // Der gewählte, echte LKW (null bei Ein-LKW-Plänen und im Reiter „Ohne LKW“).
+  const realLkw = (s = store.get()) => {
+    const id = activeLkwOf(s.plan, s.activeLkw);
+    return id === NO_LKW ? null : id;
+  };
+  // Fahrzeug des gewählten LKW ändern (Ein-LKW-Plan: das Fahrzeug des Plans wie bisher).
+  const withTruck = (p, truckId) => {
+    if (!isMultiLkw(p)) return stamp({ ...p, truckId });
+    const id = realLkw();
+    return id ? updateLkw(p, id, { truckId }) : p;
+  };
+  const setActive = id => store.update(s => (s.activeLkw === id ? s : { ...s, activeLkw: id, selectedId: null }));
+
+  // --- Reiterleiste und LKW-Dialog ---
+  async function addLkwFlow() {
+    const s = store.get();
+    const res = await openLkwEditor($('#dlg-lkw'), null, { trucks: s.trucks, defaultTruckId: ctx(s).truck.id });
+    if (res?.action !== 'save') return;
+    const before = new Set(lkwsOf(store.get().plan).map(l => l.id));
+    editWhole(p => addLkw(p, res.value, uid));
+    const added = lkwsOf(store.get().plan).find(l => !before.has(l.id));
+    if (added) setActive(added.id);
+  }
+  async function editLkwFlow() {
+    const s = store.get();
+    const id = realLkw(s);
+    if (!id) return;
+    const lkw = lkwsOf(s.plan).find(l => l.id === id);
+    const res = await openLkwEditor($('#dlg-lkw'), lkw, {
+      trucks: s.trucks, isLast: lkwsOf(s.plan).length === 1,
+      pieces: piecesOf(s.plan).filter(x => x.lkw === id).length,
+    });
+    if (!res) return;
+    if (res.action === 'delete') {
+      editWhole(p => removeLkw(p, id));
+      setActive(null); // fällt auf den ersten LKW zurück (activeLkwOf)
+      return;
+    }
+    editWhole(p => updateLkw(p, id, res.value));
+  }
+  const tabs = mountLkwTabs($('#lkw-tabs'), { onSelect: setActive, onAdd: addLkwFlow, onEdit: editLkwFlow });
+  $('#lkw-multi').onclick = addLkwFlow;
+  renderHooks.push((s, d) => {
+    const multi = d.activeLkw !== null;
+    tabs.update(multi ? lkwTabsModel({ plan: s.plan, trucks: s.trucks, caseById: d.caseById, active: d.activeLkw }) : null);
+    $('#lkw-multi').hidden = multi;
+    const none = d.activeLkw === NO_LKW;
+    $('#lkw-none-hint').hidden = !none;
+    // Im Reiter „Ohne LKW“ gibt es kein Fahrzeug und keine Platzierung: diese Knöpfe ruhen.
+    for (const id of ['truck-select', 'truck-edit', 'pack-rest']) $(`#${id}`).disabled = none;
+  });
 
   // --- Seitenleiste und 2D-Ansichten ---
   const library = mountLibrary($('#library'), {
@@ -56,7 +111,8 @@ export function mountPlanView(deps) {
     onSelectPlaced: id => select(id),
     onSelectUnplaced: id => select(id),
   });
-  renderHooks.push((s, d) => library.update(s, d.truck));
+  // Seitenleiste: Stücke des gewählten LKW (Reiter „Ohne LKW“: die nicht zugeordneten, ohne Fahrzeug).
+  renderHooks.push((s, d) => library.update({ ...s, plan: d.view }, d.activeLkw === NO_LKW ? null : d.truck));
 
   attachTopInteractions($('#svg-top'), {
     getTruck: () => ctx().truck,
@@ -87,7 +143,7 @@ export function mountPlanView(deps) {
     // Farbe mit demselben Rückfall auf Case-Name/Gewerkfarbe wie buildItems() (js/model/items.js).
     let selectedUnplaced = null;
     if (!selected && s.selectedId) {
-      const u = s.plan.unplaced.find(x => x.id === s.selectedId);
+      const u = d.view.unplaced.find(x => x.id === s.selectedId);
       const c = u && d.caseById.get(u.caseId);
       if (u && c) selectedUnplaced = { id: u.id, item: u, c, label: u.label ?? c.name, color: u.color ?? c.color };
     }
@@ -97,6 +153,12 @@ export function mountPlanView(deps) {
       result: d.result,
       truck: d.truck,
       groups: ruleTargets(piecesOf(s.plan), d.caseById).groups,
+      lkw: d.activeLkw === null ? null : {
+        options: lkwsOf(s.plan).map(l => ({ id: l.id, name: l.name })),
+        current: d.activeLkw === NO_LKW ? null : d.activeLkw,
+        name: lkwsOf(s.plan).find(l => l.id === d.activeLkw)?.name,
+        none: d.activeLkw === NO_LKW,
+      },
     });
   });
   const withSel = fn => { const id = store.get().selectedId; if (id) fn(id); };
@@ -158,6 +220,13 @@ export function mountPlanView(deps) {
     const sectionEl = e.target.closest('[data-id]');
     const id = sectionEl?.dataset.id;
     if (!id) return;
+    if (name === 'lkw') {
+      // Stück einem LKW (oder „Ohne LKW“) zuordnen; der Reiter folgt, die Auswahl bleibt.
+      const target = e.target.value || null;
+      editWhole(p => moveToLkw(p, id, target));
+      store.update(st => ({ ...st, activeLkw: target ?? NO_LKW }));
+      return;
+    }
     if (name === 'label') return edit((p, c) => A.setItemLabel(p, id, { label: e.target.value.trim() }));
     if (name === 'color') return edit((p, c) => A.setItemLabel(p, id, { color: e.target.value }));
     if (name === 'tipped') return edit((p, c) => A.setPieceTipped(p, id, e.target.checked, c));
@@ -181,11 +250,24 @@ export function mountPlanView(deps) {
   // --- Werkzeugleiste: Undo/Redo, Packen, Entladen ---
   $('#undo').onclick = () => store.undo();
   $('#redo').onclick = () => store.redo();
+  // Nach dem Verteilen: Stücke ohne LKW (je Gewerk) und Stücke, die in ihrem LKW keinen Platz fanden.
+  async function warnAfterDistribution() {
+    const s = store.get();
+    const lines = distributionNotices(s.plan, ctx(s).caseById);
+    if (lines.length) await showAlert(lines.join(' · '));
+  }
   $('#pack-all').onclick = async () => {
     const s = store.get();
-    if (s.plan.placements.length && !await showConfirm('Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)')) return;
-    edit((p, c) => A.packAll(p, c));
-    await warnIfUnplaced();
+    const multi = isMultiLkw(s.plan);
+    // Bei mehreren LKW ordnet „Alles neu packen“ auch die Zuordnung neu: Rückfrage, sobald es Stücke gibt.
+    const needsAsk = multi && lkwsOf(s.plan).length >= 2 ? piecesOf(s.plan).length > 0 : s.plan.placements.length > 0;
+    const question = multi && lkwsOf(s.plan).length >= 2
+      ? 'Alle Cases neu auf die LKW verteilen und anordnen? (Rückgängig mit ⌘Z möglich)'
+      : 'Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)';
+    if (needsAsk && !await showConfirm(question)) return;
+    editWhole((p, c) => packAllOf(p, c));
+    if (multi) await warnAfterDistribution();
+    else await warnIfUnplaced();
   };
   $('#pack-rest').onclick = async () => {
     edit((p, c) => A.packRest(p, c));
@@ -205,12 +287,15 @@ export function mountPlanView(deps) {
     });
     if (!res) return;
     // Ein einziger Undo-Schritt für „Regeln setzen und neu packen“.
-    edit((p, cx) => { const next = A.setMixTop(A.setPackRules(p, res.rules), res.mixTop); return res.repack ? A.packAll(next, cx) : next; });
-    if (res.repack) await warnIfUnplaced();
+    const multi = isMultiLkw(s.plan);
+    editWhole((p, cx) => { const next = A.setMixTop(A.setPackRules(p, res.rules), res.mixTop); return res.repack ? packAllOf(next, cx) : next; });
+    if (res.repack) await (multi ? warnAfterDistribution() : warnIfUnplaced());
   };
   $('#unload-all').onclick = async () => {
-    if (!store.get().plan.placements.length) return;
-    if (!await showConfirm('Alle Cases aus dem Truck zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)')) return;
+    const s = store.get();
+    if (!derive(s).view.placements.length) return;
+    const where = isMultiLkw(s.plan) ? 'diesem LKW' : 'dem Truck';
+    if (!await showConfirm(`Alle Cases aus ${where} zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)`)) return;
     edit(p => A.unloadAll(p));
     select(null);
   };
@@ -228,9 +313,11 @@ export function mountPlanView(deps) {
   $('#colors-trade').onclick = () => setCaseColors('trade');
   $('#colors-weight').onclick = () => setCaseColors('weight');
   $('#layer-limit').onchange = e => store.update(s => ({ ...s, layerLimit: e.target.value ? Number(e.target.value) : null }));
-  renderHooks.push(s => {
-    $('#views2d').hidden = s.mode !== '2d';
-    $('#view3d').hidden = s.mode !== '3d';
+  renderHooks.push((s, d) => {
+    // Im Reiter „Ohne LKW“ gibt es nichts zu zeichnen (Hinweis statt Fahrzeugansicht).
+    const none = d.activeLkw === NO_LKW;
+    $('#views2d').hidden = s.mode !== '2d' || none;
+    $('#view3d').hidden = s.mode !== '3d' || none;
     $('#mode-2d').classList.toggle('on', s.mode === '2d');
     $('#mode-3d').classList.toggle('on', s.mode === '3d');
     $('#colors-black').classList.toggle('on', s.caseColors === 'black');
@@ -255,12 +342,12 @@ export function mountPlanView(deps) {
     if (truckHtml !== lastTruckHtml) $('#truck-select').innerHTML = lastTruckHtml = truckHtml;
     $('#undo').disabled = !store.canUndo();
     $('#redo').disabled = !store.canRedo();
-    $('#unload-all').disabled = !s.plan.placements.length;
+    $('#unload-all').disabled = !d.view.placements.length;
     $('#pack-rules').title = `Reihenfolge beim automatischen Packen: ${rulesFor(s.plan).map(r => describeRule(r, d.caseById)).join(' · ') || 'nach Name'}${mixTopFor(s.plan) ? ' · Deckschicht an' : ''}`;
   });
 
   // --- Fahrzeuge ---
-  $('#truck-select').onchange = e => edit(p => stamp({ ...p, truckId: e.target.value }));
+  $('#truck-select').onchange = e => editWhole(p => withTruck(p, e.target.value));
 
   async function editTruck(truck) {
     const s0 = store.get();
@@ -268,13 +355,13 @@ export function mountPlanView(deps) {
     if (!res) return;
     if (res.action === 'delete') {
       if (!await persistence.deleteTruck(truck.id)) return;
-      if (store.get().plan.truckId === truck.id) edit(p => stamp({ ...p, truckId: DEFAULT_TRUCK_ID }), false);
+      editWhole(p => repointTruck(p, truck.id, DEFAULT_TRUCK_ID), false); // ändert nur, was auf das Fahrzeug zeigt
       store.resetHistory(); // Undo darf den gelöschten truckId nicht zurückholen
       return;
     }
     const value = await persistence.saveTruck(res.value);
     if (!value) return;
-    edit(p => stamp({ ...p, truckId: value.id }));
+    editWhole(p => withTruck(p, value.id));
   }
   $('#truck-new').onclick = () => editTruck(null);
   $('#truck-edit').onclick = () => editTruck(ctx().truck);
@@ -286,7 +373,7 @@ export function mountPlanView(deps) {
   let view3d = null, view3dLoading = null, view3dFailed = false;
   renderHooks.push(async (s, d) => {
     const stale = $('#view3d-stale');
-    if (s.mode !== '3d') { if (stale) stale.hidden = true; return; }
+    if (s.mode !== '3d' || d.activeLkw === NO_LKW) { if (stale) stale.hidden = true; return; }
     if (view3dFailed) return;
     if (!view3d) {
       try {

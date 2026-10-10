@@ -50,7 +50,19 @@ function loadBlock(piece, c, tippedOn) {
     </div>`;
 }
 
-export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [] }) {
+// Auswahlfeld „LKW“ je Stück (nur bei Plänen mit mehreren LKW): verschiebt das Stück zu einem LKW oder
+// auf „Ohne LKW“. `lkw` = { options: [{ id, name }], current: id | null } oder null (Ein-LKW-Plan).
+export function lkwField(lkw) {
+  if (!lkw) return '';
+  return `<label class="insp-lkw">LKW<select name="lkw">
+          <option value="" ${lkw.current ? '' : 'selected'}>Ohne LKW</option>
+          ${lkw.options.map(o => `<option value="${esc(o.id)}" ${o.id === lkw.current ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}
+        </select></label>`;
+}
+
+// `lkw` (optional): Mehr-LKW-Plan, siehe lkwField; zusätzlich `name` (gewählter LKW, für die Überschrift
+// der Summen) und `none` (Reiter „Ohne LKW“: keine Fahrzeugsummen).
+export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [], lkw = null }) {
   const t = result.totals;
   const pct = t.payload > 0 ? Math.min(100, Math.round(t.weight / t.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
@@ -74,6 +86,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <label>Farbe<input type="color" name="color" value="${esc(selected.color)}"></label>
         <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selected.p.group ?? '')}"></label>
       </div>
+      ${lkwField(lkw)}
       <dl>
         <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
         <dt>Maße stehend</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
@@ -101,6 +114,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <label>Farbe<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
         <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
       </div>
+      ${lkwField(lkw)}
       <p class="insp-weight-row">Gewicht: ${weightField(selectedUnplaced.c)}</p>
       ${weightHint(selectedUnplaced.c)}
       ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
@@ -110,10 +124,9 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       </div>
     </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>');
 
-  const html = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
-    ${sel}
+  const totalsAndIssues = lkw?.none ? '' : `
     <section class="insp-totals">
-      <h3>Ladung – ${esc(truck.name)}</h3>
+      <h3>Ladung – ${lkw?.name ? `${esc(lkw.name)} · ` : ''}${esc(truck.name)}</h3>
       <div class="bar ${t.weight > t.payload ? 'over' : ''}"><span style="width:${pct}%"></span></div>
       <p>${Math.round(t.weight).toLocaleString('de-DE')} / ${t.payload.toLocaleString('de-DE')} kg Nutzlast${t.withoutWeight ? ` · <span class="hint">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig</span>` : ''}</p>
       <dl>
@@ -128,7 +141,9 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       ${result.issues.map(i => `<p class="issue" ${i.placementId ? `data-select="${esc(i.placementId)}"` : ''}>${
         i.placementId && result.sequence.has(i.placementId) ? `<b>${result.sequence.get(i.placementId)}.</b> ` : ''}${esc(i.message)}</p>`).join('')
         || '<p class="ok">Alles in Ordnung.</p>'}
-    </section>
+    </section>`;
+  const html = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+    ${sel}${totalsAndIssues}
     <p class="hint">Tasten: R drehen · T tippen · W Rollenrichtung · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
   if (html === el.__lastHtml) return;
   const focus = captureFocus(el);

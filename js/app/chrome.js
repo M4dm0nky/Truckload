@@ -140,18 +140,18 @@ export function wirePrint({ store, derive }) {
     const doc = $('#print-doc').value;
     if (doc === 'checklist') {
       root.className = 'print-root doc-checklist';
-      buildChecklist(root, { plan: s.plan, truck: d.truck, result: d.result });
+      buildChecklist(root, { plan: d.view, truck: d.truck, result: d.result });
     } else if (doc === 'unload') {
       // Seitenregel (A4 quer) und Spaltenlayout wie die Abhakliste: gleiche Klasse.
       root.className = 'print-root doc-checklist doc-unload';
-      buildUnloadList(root, { plan: s.plan, truck: d.truck, result: d.result });
+      buildUnloadList(root, { plan: d.view, truck: d.truck, result: d.result });
     } else if (doc === 'labels') {
       const size = $('#print-label-size').value;
       root.className = `print-root doc-labels size-${size}`;
-      buildLabels(root, { plan: s.plan, truck: d.truck, result: d.result, size });
+      buildLabels(root, { plan: d.view, truck: d.truck, result: d.result, size });
     } else {
       root.className = 'print-root doc-plan';
-      buildPrint(root, { plan: s.plan, truck: d.truck, result: d.result, colorMode: s.caseColors });
+      buildPrint(root, { plan: d.view, truck: d.truck, result: d.result, colorMode: s.caseColors });
     }
     setPrintPage(doc);
     window.print();
