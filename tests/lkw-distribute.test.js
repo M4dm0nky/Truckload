@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { distributeLkws, packAllLkws, unassignedByCategory } from '../js/model/lkw-distribute.js';
-import { lkwView } from '../js/model/lkw.js';
+import { lkwView, mergeLkwView } from '../js/model/lkw.js';
 import { packAll } from '../js/model/actions.js';
 import { mkCase, mkTruck, plan, P, byId } from './fixtures.js';
 
@@ -54,7 +54,9 @@ test('ohne Rest-LKW bleibt ein nicht angehaktes Gewerk nicht zugeordnet; unassig
   assert.ok(allIds(d).length === 4);
   assert.deepEqual(unassignedByCategory(d, ctx.caseById), [{ category: 'Strom', count: 2 }, { category: 'Backline', count: 1 }]);
   assert.deepEqual(unassignedByCategory(plan([]), ctx.caseById), []);
-  const packed = packAllLkws(p, ctx);
+  // „Alles neu packen“ verteilt erst ab zwei LKW: dafür ein zweiter LKW für ein anderes Gewerk.
+  const p2 = { ...p, lkws: [...p.lkws, L('B', 'big', ['Ton'])] };
+  const packed = packAllLkws(p2, ctx);
   assert.deepEqual(unassignedByCategory(packed, ctx.caseById), [{ category: 'Strom', count: 2 }, { category: 'Backline', count: 1 }]);
 });
 
@@ -121,7 +123,7 @@ test('Platzierungen werden mit verteilt; Summe und IDs bleiben; deterministisch;
 test('Pack-Regeln des Plans gelten je LKW', () => {
   const T = mkTruck({ id: 'narrow', l: 300, w: 60, h: 100, payload: 24000 });
   const cases = [cat('a', 'Licht', 60, 60, 60), cat('b', 'Licht', 60, 60, 60)];
-  const mk = pos => multiPlan([L('A', 'narrow', ['Licht'])], [U('pa', 'a'), U('pb', 'b')],
+  const mk = pos => multiPlan([L('A', 'narrow', ['Licht']), L('B', 'narrow', ['Ton'])], [U('pa', 'a'), U('pb', 'b')],
     [], { packRules: [{ by: 'case', pos, value: 'a' }] });
   const ctx = mkCtx(cases, [T]);
   const first = packAllLkws(mk('first'), ctx), last = packAllLkws(mk('last'), ctx);
@@ -140,4 +142,49 @@ test('Ein-LKW-Plan: packAllLkws ist exakt packAll', () => {
   // Ansicht eines Mehr-LKW-Plans ist selbst ein Ein-LKW-Plan
   const m = multiPlan([L('A', 'big', [])], [U('u1', 'a')]);
   assert.equal('lkws' in lkwView(m, 'A'), false);
+});
+
+test('genau ein LKW: keine Verteilung – nur dessen Ansicht wird gepackt, Fremdes bleibt unberührt', () => {
+  const cases = [cat('li', 'Licht'), cat('to', 'Ton')];
+  const p = multiPlan([L('A', 'big', ['Licht'])],
+    [{ id: 'u1', caseId: 'to', lkw: 'A' }, U('u2', 'li'), U('u3', 'to')],
+    [P('p1', 'li', 0, 0, 0, { lkw: 'A' }), P('p2', 'to', 100, 0, 0)]);
+  const ctx = mkCtx(cases, [BIG]);
+  const r = packAllLkws(p, ctx);
+  assert.deepEqual(noStamp(r), noStamp(mergeLkwView(p, 'A', packAll(lkwView(p, 'A'), ctx))));
+  assert.equal(lkwOfId(r, 'u1'), 'A', 'Ton-Stück bleibt im LKW trotz Gewerke-Haken Licht');
+  assert.equal(lkwOfId(r, 'u2'), undefined, 'nicht zugeordnetes Licht-Stück wird nicht hereingezogen');
+  assert.equal(lkwOfId(r, 'u3'), undefined);
+  assert.deepEqual(r.placements.find(x => x.id === 'p2'), p.placements[1], 'nicht zugeordnete Platzierung unberührt');
+  assert.deepEqual(allIds(r), ['p1', 'p2', 'u1', 'u2', 'u3']);
+  // einziger Rest-LKW saugt nichts auf
+  const q = multiPlan([L('R', 'big', [])], [U('u1', 'li'), { id: 'u2', caseId: 'li', lkw: 'R' }]);
+  const rq = packAllLkws(q, ctx);
+  assert.equal(lkwOfId(rq, 'u1'), undefined);
+  assert.equal(lkwOfId(rq, 'u2'), 'R');
+});
+
+test('unassignedByCategory: Case ohne Gewerk zählt unter „Sonstiges“, fehlender Case als { category: null }', () => {
+  const cases = [cat('li', 'Licht'), { ...cat('nc', 'x'), category: undefined }];
+  const p = multiPlan([L('A', 'big', ['Licht'])], [{ id: 'p1', caseId: 'li', lkw: 'A' }, U('p2', 'nc'), U('p3', 'nc'), U('p4', 'weg'), U('p5', 'weg')]);
+  assert.deepEqual(unassignedByCategory(p, byId(...cases)),
+    [{ category: 'Sonstiges', count: 2 }, { category: null, count: 2 }]);
+});
+
+test('Gewerk ohne Angabe wird wie „Sonstiges“ verteilt', () => {
+  const cases = [{ ...cat('nc', 'x'), category: undefined }];
+  const p = multiPlan([L('A', 'big', ['Sonstiges']), L('B', 'big', ['Licht'])], [U('p1', 'nc')]);
+  assert.deepEqual(assignment(distributeLkws(p, mkCtx(cases, [BIG]))), { p1: 'A' });
+});
+
+test('ohne Fahrzeug (weder ctx.truck noch passendes truckById): kein Wurf, Stücke bleiben in der Ablage', () => {
+  const cases = [cat('li', 'Licht')];
+  const ctx = { caseById: byId(...cases), truckById: new Map(), newId: () => 'x' };
+  const two = multiPlan([L('A', 'weg', ['Licht']), L('B', 'weg', [])], [U('p1', 'li')], [P('p2', 'li', 0, 0, 0)]);
+  const r = packAllLkws(two, ctx);
+  assert.deepEqual(allIds(r), ['p1', 'p2']);
+  assert.equal(r.placements.length, 0);
+  assert.deepEqual(assignment(r), { p1: null, p2: null });
+  const one = multiPlan([L('A', 'weg', ['Licht'])], [{ id: 'p1', caseId: 'li', lkw: 'A' }]);
+  assert.equal(packAllLkws(one, ctx), one, 'unpackbarer einziger LKW: Plan unverändert');
 });

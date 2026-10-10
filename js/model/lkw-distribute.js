@@ -12,6 +12,8 @@ const truckOf = (lkw, ctx) => ctx.truckById?.get(lkw.truckId) ?? ctx.truck;
 const withLkw = (x, id) => ({ ...x, lkw: id });
 const withoutLkw = x => { const { lkw: _d, ...rest } = x; return rest; };
 const weightOf = c => (typeof c.weight === 'number' && Number.isFinite(c.weight) && c.weight > 0 ? c.weight : 0);
+// Case ohne Gewerk gilt als „Sonstiges“ (Vorgabe im Case-Editor).
+const catOf = c => c.category || 'Sonstiges';
 const catRank = name => { const i = CATEGORIES.findIndex(c => c.name === name); return i < 0 ? CATEGORIES.length : i; };
 
 // Zulässige LKW eines Stücks in Listenreihenfolge: die LKW mit angehaktem Gewerk, sonst die
@@ -25,7 +27,7 @@ function eligibleFor(piece, c, lkws, ctx) {
     const o = truck ? chooseOrientation(c, truck, piece) : null;
     if (o) fits.set(l.id, o);
   }
-  const byCat = lkws.filter(l => l.categories.includes(c.category) && fits.has(l.id));
+  const byCat = lkws.filter(l => l.categories.includes(catOf(c)) && fits.has(l.id));
   const list = byCat.length ? byCat : lkws.filter(l => l.categories.length === 0 && fits.has(l.id));
   return { list, fits };
 }
@@ -34,6 +36,7 @@ function eligibleFor(piece, c, lkws, ctx) {
 // (`placements: []`), mit `lkw` oder – ohne zulässigen LKW – ohne Feld. Eigene Entscheidungen:
 // Gewerke werden in CATEGORIES-Reihenfolge abgearbeitet (unbekannte danach); die Auslastung zählt
 // über alle Gewerke hinweg; Stücke ohne bekannten Case bleiben nicht zugeordnet.
+// Die Hilfsfunktionen vertragen ein fehlendes Fahrzeug (kein ctx.truck, kein Treffer in truckById).
 export function distributeLkws(plan, ctx) {
   const lkws = lkwsOf(plan);
   const pieces = [...plan.placements.map(placementToUnplaced), ...plan.unplaced.map(withoutLkw)];
@@ -45,9 +48,9 @@ export function distributeLkws(plan, ctx) {
   };
   const assigned = new Map();
   const order = pieces.map((x, i) => ({ x, i, c: ctx.caseById.get(x.caseId) })).filter(e => e.c);
-  const cats = [...new Set(order.map(e => e.c.category))].sort((a, b) => catRank(a) - catRank(b) || order.findIndex(e => e.c.category === a) - order.findIndex(e => e.c.category === b));
+  const cats = [...new Set(order.map(e => catOf(e.c)))].sort((a, b) => catRank(a) - catRank(b) || order.findIndex(e => catOf(e.c) === a) - order.findIndex(e => catOf(e.c) === b));
   for (const category of cats) {
-    const group = order.filter(e => e.c.category === category).sort((a, b) => volumeOf(b.c) - volumeOf(a.c) || a.i - b.i);
+    const group = order.filter(e => catOf(e.c) === category).sort((a, b) => volumeOf(b.c) - volumeOf(a.c) || a.i - b.i);
     for (const { x, c } of group) {
       const { list, fits } = eligibleFor(x, c, lkws, ctx);
       if (!list.length) continue;
@@ -73,9 +76,14 @@ export function distributeLkws(plan, ctx) {
 export function packAllLkws(plan, ctx) {
   if (!isMultiLkw(plan)) return packAll(plan, ctx);
   const lkws = lkwsOf(plan);
-  let p = distributeLkws(plan, ctx);
   const withTruck = l => ({ ...ctx, truck: truckOf(l, ctx) });
-  for (const l of lkws) p = mergeLkwView(p, l.id, packAll(lkwView(p, l.id), withTruck(l)));
+  const packOne = (q, l) => (truckOf(l, ctx) ? mergeLkwView(q, l.id, packAll(lkwView(q, l.id), withTruck(l))) : q);
+  // Genau ein LKW: nichts zu verteilen („nur bei ≥ 2 LKW“) – nur dessen Ansicht packen, alle anderen
+  // Stücke (nicht zugeordnete) und alle Zuordnungen bleiben unberührt.
+  if (lkws.length === 1) return packOne(plan, lkws[0]);
+  let p = distributeLkws(plan, ctx);
+  // Ein LKW ohne auffindbares Fahrzeug ist nicht packbar: seine Stücke bleiben in der Ablage.
+  for (const l of lkws) p = packOne(p, l);
   for (const origin of lkws) {
     for (const other of lkws) {
       if (other.id === origin.id) continue;
@@ -85,6 +93,7 @@ export function packAllLkws(plan, ctx) {
         return c && eligibleFor(u, c, lkws, ctx).list.some(l => l.id === other.id);
       });
       if (!offered.length) continue;
+      if (!truckOf(other, ctx)) continue;
       const view = lkwView(p, other.id);
       const res = packRest({ ...view, unplaced: offered.map(withoutLkw) }, withTruck(other));
       const before = new Set(view.placements.map(q => q.id));
@@ -97,17 +106,20 @@ export function packAllLkws(plan, ctx) {
 }
 
 // Nicht zugeordnete Stücke je Gewerk für den Hinweis der Oberfläche („12 Stücke ohne LKW (Strom)“):
-// [{ category, count }] in CATEGORIES-Reihenfolge. Stücke ohne bekannten Case haben kein Gewerk und
-// fehlen hier. Ein-LKW-Plan: leer.
+// [{ category, count }] in CATEGORIES-Reihenfolge. Case ohne Gewerk zählt als „Sonstiges“, ein
+// fehlender Case als { category: null }. Ein-LKW-Plan: leer.
 export function unassignedByCategory(plan, caseById) {
   if (!isMultiLkw(plan)) return [];
   const known = new Set(lkwsOf(plan).map(l => l.id));
   const counts = new Map();
   for (const x of [...plan.placements, ...plan.unplaced]) {
     if (known.has(x.lkw)) continue;
-    const category = caseById.get(x.caseId)?.category;
-    if (category !== undefined) counts.set(category, (counts.get(category) ?? 0) + 1);
+    const c = caseById.get(x.caseId);
+    const category = c ? catOf(c) : null;
+    counts.set(category, (counts.get(category) ?? 0) + 1);
   }
+  // `category: null` = Stücke, deren Case nicht (mehr) bekannt ist; steht zuletzt.
   return [...counts].map(([category, count]) => ({ category, count }))
-    .sort((a, b) => catRank(a.category) - catRank(b.category));
+    .sort((a, b) => (a.category === null) - (b.category === null)
+      || (a.category === null ? 0 : catRank(a.category) - catRank(b.category)));
 }
