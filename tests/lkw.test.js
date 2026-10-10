@@ -109,7 +109,7 @@ test('veraltete LKW-ID (Reiter nach Rückgängig/Löschen): fällt auf den erste
   assert.deepEqual(noStamp(mergeLkwView(p, 'nix', v)), noStamp(p));
   assert.equal(updateLkw(p, 'nix', { name: 'Z' }).lkws[0].name, 'Z');
   assert.equal(moveToLkw(p, 'p2', 'nix').unplaced.find(u => u.id === 'p2').lkw, 'L1');
-  assert.deepEqual(removeLkw(p, 'nix').lkws.map(l => l.id), ['L2']);
+  assert.equal(removeLkw(p, 'nix'), p, 'destruktiv: veraltete ID ist ein No-Op, kein Rückfall');
   // Ein-LKW-Plan: Ansicht ist der Plan selbst, Zurückschreiben liefert die Ansicht.
   const single = plan([P('p1', 'a', 0, 0, 0)]);
   assert.equal(lkwView(single, 'x'), single);

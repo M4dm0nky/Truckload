@@ -24,7 +24,7 @@ const findLkw = (plan, id) => lkwsOf(plan).find(l => l.id === id);
 // Auflösung einer LKW-ID für Aufrufer mit einer möglicherweise veralteten ID (gewählter Reiter nach
 // Rückgängig oder Löschen): bekannte ID bleibt, sonst der ERSTE LKW, ohne LKW null. So stürzt nichts
 // ab und keine Bearbeitung geht still verloren; sie landet im ersten LKW. Gilt für lkwView,
-// mergeLkwView, updateLkw, removeLkw und das Ziel von moveToLkw.
+// mergeLkwView, updateLkw und das Ziel (NICHT removeLkw: destruktiv, unbekannte ID = No-Op) von moveToLkw.
 export function resolveLkwId(plan, id) {
   const list = lkwsOf(plan);
   return list.some(l => l.id === id) ? id : (list[0]?.id ?? null);
@@ -158,9 +158,9 @@ export function updateLkw(plan, lkwId, patch = {}) {
 // Platzierungen wandern in die Ablage. Der letzte LKW verschwindet samt `lkws` – der Plan ist dann
 // wieder ein Ein-LKW-Plan (mit dem Fahrzeug des gelöschten LKW in `truckId`, alle Stücke ohne
 // Feld `lkw`, Platzierungen in der Ablage).
-export function removeLkw(plan, lkwId) {
-  const id = resolveLkwId(plan, lkwId);
-  if (id === null) return plan;
+export function removeLkw(plan, id) {
+  // Destruktiv: unbekannte (veraltete) ID ist ein No-Op, kein Rückfall auf den ersten LKW.
+  if (!findLkw(plan, id)) return plan;
   const rest = plan.lkws.filter(l => l.id !== id);
   const mineP = p => p.lkw === id;
   const base = {
