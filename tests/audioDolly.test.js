@@ -265,3 +265,15 @@ test('dollyStackId/dollyStackCase: Altdatensatz ohne Kollision behält seine ID,
   // ohne Firma: nie ein Suffix
   assert.equal(dollyStackId(k2, 2, '', old), 'dolly-k2-2');
 });
+
+test('uniqueDollySlug: Annahme „Basis-IDs beginnen nicht mit <Zahl>-“ – ein solches Case einer Firma wird dem Suffix-Slug zugerechnet', () => {
+  // Dokumentiert die Grenze (eigene Entscheidung, kein Fehler im Normalfall): die ID `dolly-cab-2-foo-3`
+  // der Firma „CAB“ (Basisbox `2-foo`) ist nicht von einem Case der Firma „CAB-2“-artigen Suffix-Slug
+  // `cab-2` zu unterscheiden. Die längste Übereinstimmung gewinnt, also gilt für „CAB“ nun `cab-2`.
+  const k2 = { id: '2-foo' };
+  const own = [{ id: dollyStackId(k2, 3, 'CAB'), company: 'CAB' }];
+  assert.equal(own[0].id, 'dolly-cab-2-foo-3');
+  assert.equal(uniqueDollySlug('CAB', own), 'cab-2');
+  // Normale Basis-IDs (Buchstaben/Ziffern ohne führendes „<Zahl>-“) sind nicht betroffen.
+  assert.equal(uniqueDollySlug('CAB', [{ id: 'dolly-cab-k2-3', company: 'CAB' }]), 'cab');
+});
