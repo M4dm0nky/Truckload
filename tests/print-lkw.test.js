@@ -113,3 +113,19 @@ test('Ohne LKW: Stück ohne Beschriftung und Farbe fällt auf Case-Name und Case
   assert.match(r2.innerHTML, /background:#aa0000/);
   assert.doesNotMatch(r2.innerHTML, /undefined/);
 });
+
+test('dieser LKW: Einzelbuilder nennen den LKW im Kopf und auf den Etiketten (maskiert)', () => {
+  const { sections } = twoLkw();
+  const s = sections[0];
+  const args = { plan: s.plan, truck: s.truck, result: s.result, lkw: s.lkw };
+  for (const fn of [buildChecklist, buildUnloadList]) {
+    const r = root(); fn(r, args);
+    assert.match(r.innerHTML, /Tour &amp; Co – Ton &lt;A&gt;<\/h1>/);
+    assert.match(r.innerHTML, /Sattel &quot;1&quot; ·/);
+    assert.doesNotMatch(r.innerHTML, /Ton <A>/);
+  }
+  assert.match(printHTML(args), /<h1>Tour &amp; Co – Ton &lt;A&gt;<\/h1>/);
+  const r = root(); buildLabels(r, args);
+  assert.match(r.innerHTML, /<span class="lkw">Ton &lt;A&gt;<\/span>/);
+  assert.doesNotMatch(r.innerHTML, /Ton <A>/);
+});

@@ -6,7 +6,7 @@ import {
   buildPrint, buildChecklist, buildUnloadList, buildLabels, pageRuleFor,
   buildPrintAll, buildChecklistAll, buildUnloadListAll, buildLabelsAll,
 } from '../ui/print.js';
-import { isMultiLkw, NO_LKW } from '../model/lkw.js';
+import { isMultiLkw, lkwsOf, NO_LKW } from '../model/lkw.js';
 import { printSectionsOf } from './core.js';
 
 const $ = sel => document.querySelector(sel);
@@ -155,6 +155,9 @@ export function wirePrint({ store, derive }) {
     const root = $('#print-root');
     const doc = $('#print-doc').value;
     const multi = isMultiLkw(s.plan);
+    // „Dieser LKW“ nennt den gewählten LKW wie „alle LKW“ (Name im Kopf und auf den Etiketten);
+    // Ein-LKW-Pläne: undefined, Markup unverändert.
+    const lkw = multi ? lkwsOf(s.plan).find(l => l.id === d.activeLkw) : undefined;
     const all = multi && $('#print-scope').value === 'all';
     // Eigene Entscheidung: Im Reiter „Ohne LKW“ gibt es kein Fahrzeug und damit keine Zeichnung.
     // „Dieser LKW“ druckt dort nur den Abschnitt „Ohne LKW“ (Stücke ohne Ladenummer, nicht geladen),
@@ -181,18 +184,18 @@ export function wirePrint({ store, derive }) {
       }
     } else if (doc === 'checklist') {
       root.className = 'print-root doc-checklist';
-      buildChecklist(root, { plan: d.view, truck: d.truck, result: d.result });
+      buildChecklist(root, { plan: d.view, truck: d.truck, result: d.result, lkw });
     } else if (doc === 'unload') {
       // Seitenregel (A4 quer) und Spaltenlayout wie die Abhakliste: gleiche Klasse.
       root.className = 'print-root doc-checklist doc-unload';
-      buildUnloadList(root, { plan: d.view, truck: d.truck, result: d.result });
+      buildUnloadList(root, { plan: d.view, truck: d.truck, result: d.result, lkw });
     } else if (doc === 'labels') {
       const size = $('#print-label-size').value;
       root.className = `print-root doc-labels size-${size}`;
-      buildLabels(root, { plan: d.view, truck: d.truck, result: d.result, size });
+      buildLabels(root, { plan: d.view, truck: d.truck, result: d.result, size, lkw });
     } else {
       root.className = 'print-root doc-plan';
-      buildPrint(root, { plan: d.view, truck: d.truck, result: d.result, colorMode: s.caseColors });
+      buildPrint(root, { plan: d.view, truck: d.truck, result: d.result, colorMode: s.caseColors, lkw });
     }
     setPrintPage(doc);
     window.print();

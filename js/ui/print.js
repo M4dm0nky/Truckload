@@ -58,8 +58,8 @@ function drawViews(scope, { truck, result, colorMode }, draw = renderView) {
   draw(scope.querySelector('.p-side'), 'side', opts);
 }
 
-export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
-  root.innerHTML = printHTML({ plan, truck, result });
+export function buildPrint(root, { plan, truck, result, colorMode = 'black', lkw }) {
+  root.innerHTML = printHTML({ plan, truck, result, lkw });
   drawViews(root, { truck, result, colorMode });
 }
 
@@ -77,15 +77,15 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
 const CHECKLIST = { title: '', reversed: false, signLabel: 'Geladen von' };
 const UNLOAD = { title: 'Ausladeliste – ', reversed: true, signLabel: 'Entladen von' };
 
-export function buildChecklist(root, { plan, truck, result }) {
-  listDoc(root, { plan, truck, result }, CHECKLIST);
+export function buildChecklist(root, { plan, truck, result, lkw }) {
+  listDoc(root, { plan, truck, result, lkw }, CHECKLIST);
 }
 
 // Vierte Druckart: die Ausladeliste – dieselbe Liste wie die Abhakliste, aber in umgekehrter
 // Ladereihenfolge (das zuletzt Eingeladene steht oben und wird zuerst ausgeladen), mit der
 // Überschrift „Ausladeliste“. Kopfangaben, Lage und Seitenregel (A4 quer) wie bei der Abhakliste.
-export function buildUnloadList(root, { plan, truck, result }) {
-  listDoc(root, { plan, truck, result }, UNLOAD);
+export function buildUnloadList(root, { plan, truck, result, lkw }) {
+  listDoc(root, { plan, truck, result, lkw }, UNLOAD);
 }
 
 function listDoc(root, args, opts) { root.innerHTML = listHTML(args, opts); }
@@ -130,8 +130,8 @@ export const pageRuleFor = doc =>
 // `truck` wird nicht gebraucht und deshalb auch nicht angefasst: ein Etikett nennt nur den
 // Ladenamen. headInfo() würde `truck.name` dereferenzieren und den Etikettendruck ohne Not an
 // ein auflösbares Fahrzeug binden.
-export function buildLabels(root, { plan, result, size = 'large' }) {
-  root.innerHTML = `<div class="labels">${labelsHTML({ plan, result })}</div>`;
+export function buildLabels(root, { plan, result, size = 'large', lkw }) {
+  root.innerHTML = `<div class="labels">${labelsHTML({ plan, result, lkw })}</div>`;
 }
 
 function labelsHTML({ plan, result, lkw }) {
