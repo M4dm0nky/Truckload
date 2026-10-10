@@ -1,4 +1,4 @@
-# Schrift wächst beim Zoomen mit, wenn sie passt (V 0.14.1)
+# Schrift wächst beim Zoomen mit + robustere Mausrad-Erkennung (V 0.14.1)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development. Steps use `- [ ]`.
 
@@ -37,8 +37,24 @@ Druck unverändert (nie gezoomt).
   zurück = Zustand wie vorher. `smokeE.mjs` unverändert grün.
 - [ ] `npm test`; Commits je Schritt.
 
+## Task 1b: Mausrad/Trackpad robuster + Umschalter (Nutzer: „3“ = beides, 2026-10-10)
+**Files:** `js/ui/zoom2d.js`, `index.html`, `css/app.css`, `js/app/planView.js` (nur Verdrahtung), Tests `tests/zoom2d.test.js`.
+- [ ] Reine, getestete Funktion `classifyWheel(e, state, now)` -> `'wheel' | 'pad'`: Zeilenmodus = Rad;
+  `deltaX === 0` und `wheelDeltaY` ein Vielfaches von 120 (≠ 0) = Rad; bisherige Größenregel
+  (`deltaX === 0 && |deltaY| >= 50`) bleibt; Entscheidung gilt für eine ganze Geste: folgt ein Ereignis
+  innerhalb 150 ms auf das vorige, bleibt die Einstufung des vorigen (kein Umkippen mitten im Wischen);
+  ein erstes Ereignis nach > 150 ms Pause wird neu eingestuft. Tests: Maus mit 120er-Schritten,
+  Zeilenmodus, Trackpad-Strom mit kleinen Schritten und deltaX, Trägheitsausläufer nach dem Wischen
+  bleibt „pad“, feines Rad (kleine Schritte, aber `wheelDeltaY` 120-Vielfach) = Rad.
+- [ ] Umschalter „Scrollen: Automatisch / Zoomen / Verschieben“ (eigene Entscheidung, Standard
+  Automatisch): ein kleiner Knopf neben den Zoom-Knöpfen der 2D-Ansichten, wechselt reihum, Zustand in
+  `localStorage` (try/catch, funktioniert auch ohne), Tooltip erklärt. „Zoomen“ = jedes Rad-Ereignis ohne
+  Strg zoomt, „Verschieben“ = jedes verschiebt (Strg/Pinch zoomt immer). Texte deutsch, `aria-label`.
+- [ ] Browserprobe mit simulierten WheelEvents (Maus 120er, Trackpad-Strom) in allen drei Stellungen;
+  `smokeE.mjs` grün. `npm test`; Commits je Schritt.
+
 ## Task 2: Doku + Version 0.14.1
-- [ ] `docs/offene-punkte.md`: Punkt „Zoom: Beschriftungen und Linien wachsen mit“ anpassen (Schrift
+- [ ] `docs/offene-punkte.md`: Punkt „Mausrad oder Trackpad…“ anpassen (robustere Erkennung + Umschalter; weiterhin nur mit simulierten Eingaben geprüft, nicht an echter Hardware). Punkt „Zoom: Beschriftungen und Linien wachsen mit“ anpassen (Schrift
   wächst jetzt nur, wenn sie passt; Linien bleiben) und „Stand“ → 0.14.1. README/architektur
   nur, wo die Schrift erwähnt wird. Version an sechs Stellen 0.14.1, CHANGELOG-Eintrag in
   Nutzersprache. `npm test` + Rundgang. Commit `chore: Version 0.14.1 – Schrift wächst beim Zoomen mit`.
