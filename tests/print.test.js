@@ -242,7 +242,9 @@ test('Ausladeliste: umgekehrte Ladereihenfolge, Überschrift, Lage und Kopf wie 
   assert.equal((unload.innerHTML.match(/class="layer">Lage 1</g) ?? []).length, 3);
   const head = h => h.match(/<p>[^<]*Truckload V[^<]*<\/p>/)[0];
   assert.equal(head(unload.innerHTML), head(check.innerHTML));
-  assert.ok(unload.innerHTML.includes('Geladen von'));
+  assert.ok(unload.innerHTML.includes('Entladen von'));
+  assert.ok(!unload.innerHTML.includes('Geladen von'));
+  assert.ok(check.innerHTML.includes('Geladen von'));
 });
 
 test('Ausladeliste: A4 quer wie die Abhakliste (keine eigene Seitenregel)', () => {

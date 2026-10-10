@@ -69,17 +69,17 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
 // das die Abhakliste verhindern soll. Dasselbe gilt für die Warnungen aus dem Packergebnis, die
 // der Ladeplan schon druckt.
 export function buildChecklist(root, { plan, truck, result }) {
-  listDoc(root, { plan, truck, result }, { title: '', reversed: false });
+  listDoc(root, { plan, truck, result }, { title: '', reversed: false, signLabel: 'Geladen von' });
 }
 
 // Vierte Druckart: die Ausladeliste – dieselbe Liste wie die Abhakliste, aber in umgekehrter
 // Ladereihenfolge (das zuletzt Eingeladene steht oben und wird zuerst ausgeladen), mit der
 // Überschrift „Ausladeliste“. Kopfangaben, Lage und Seitenregel (A4 quer) wie bei der Abhakliste.
 export function buildUnloadList(root, { plan, truck, result }) {
-  listDoc(root, { plan, truck, result }, { title: 'Ausladeliste – ', reversed: true });
+  listDoc(root, { plan, truck, result }, { title: 'Ausladeliste – ', reversed: true, signLabel: 'Entladen von' });
 }
 
-function listDoc(root, { plan, truck, result }, { title, reversed }) {
+function listDoc(root, { plan, truck, result }, { title, reversed, signLabel }) {
   const h = headInfo({ plan, truck, result });
   const rows = sortedBySequence(result);
   if (reversed) rows.reverse();
@@ -100,7 +100,7 @@ function listDoc(root, { plan, truck, result }, { title, reversed }) {
       </li>`).join('')}
     </ul>
     <footer class="signoff">
-      <span class="sign">Geladen von <span class="line"></span></span>
+      <span class="sign">${signLabel} <span class="line"></span></span>
       <span class="sign">Datum <span class="line"></span></span>
     </footer>`;
 }
