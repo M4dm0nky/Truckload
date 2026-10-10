@@ -26,12 +26,6 @@ einzelne Zahl, aus der sich kein Case bauen lässt. Der Nutzer wollte sie selbst
 der Höheneinheit (4,45 cm je HE plus 5,68 cm Aufschlag, abgeleitet aus den drei gemessenen
 Racks), Breite und Tiefe mit 60 × 60 geschätzt. Echte Maße würden das ersetzen.
 
-**Die JDC-1-Gewichte passen nicht zur Stückzahl im Namen.** Seit „Abschluss Teil 1“ ist das Case
-mit „(4)“ das größere (99 × 60 × 58); seine 25 kg stammen aber aus der Rechnung für ein Gerät, die
-60 kg am kleineren Case aus der für vier. Die Namen wurden getauscht, die Gewichte nicht neu
-gerechnet (`docs/casemasse-gewichte.md`, „Korrektur D8+ und JDC-1“). Die Gewichte brauchen einen
-Blick, am besten mit dem echten Case auf der Waage.
-
 **Der Mindest-Case-Anteil von 15 kg überzeichnet kleine Cases.** Bei `SF TourHazer II`
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`
 offengelegt, aber für kleine Cases zu konservativ.

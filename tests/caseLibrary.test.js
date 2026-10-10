@@ -320,13 +320,12 @@ test('D8+ x4/x8/x12: Länge und Breite getauscht, ID, Höhe, Gewicht und Hinweis
   }
 });
 
-test('JDC-1 Cube: Namen getauscht, IDs, Maße und Gewichte unverändert; „(4)“ ist das größere Case', () => {
-  const klein = CASE_LIBRARY.find(c => c.id === 'lib-jdc-1-cube-4-rentall');
-  const gross = CASE_LIBRARY.find(c => c.id === 'lib-jdc-1-cube-rentall');
-  assert.ok(klein && gross, 'beide IDs müssen bestehen bleiben');
-  assert.deepEqual([klein.name, klein.l, klein.w, klein.h, klein.weight], ['JDC-1 Cube -RentALL', 60, 60, 58, 60]);
-  assert.deepEqual([gross.name, gross.l, gross.w, gross.h, gross.weight], ['JDC-1 Cube (4) -RentALL', 99, 60, 58, 25]);
-  assert.match(gross.note, /4 × JDC-1/);
-  assert.match(klein.note, /1 × JDC-1/);
-  assert.ok(gross.l * gross.w > klein.l * klein.w);
+test('JDC-1 Cube: Maße getauscht, IDs, Namen, Gewichte und Hinweise unverändert', () => {
+  const vier = CASE_LIBRARY.find(c => c.id === 'lib-jdc-1-cube-4-rentall');
+  const eins = CASE_LIBRARY.find(c => c.id === 'lib-jdc-1-cube-rentall');
+  assert.ok(vier && eins, 'beide IDs müssen bestehen bleiben');
+  assert.deepEqual([vier.name, vier.l, vier.w, vier.h, vier.weight, vier.note],
+    ['JDC-1 Cube (4) -RentALL', 99, 60, 58, 60, 'Gewicht geschätzt: 4 × JDC-1 à 11.6 kg + Case']);
+  assert.deepEqual([eins.name, eins.l, eins.w, eins.h, eins.weight, eins.note],
+    ['JDC-1 Cube -RentALL', 60, 60, 58, 25, 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case']);
 });

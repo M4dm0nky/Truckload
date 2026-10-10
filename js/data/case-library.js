@@ -135,12 +135,12 @@ export const CASE_LIBRARY = [
   C('Dolly 6-Bar silber -CAB', 'Licht', 215, 60, 193, 'CAB', 'Generic'),
   C('X4-Bar 20 -BBM', 'Licht', 130, 60, 58, 'BBM', 'GLP', { weight: 35, note: 'Gewicht geschätzt: 1 × X4 Bar 20 à 16 kg + Case' }),
   C('JDC-1 lang -Motion', 'Licht', 118, 55, 50, 'Motion', 'GLP', { weight: 25, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
-  // Namen (und Stückzahl im Hinweistext) der beiden Cube-Zeilen auf Nutzerwunsch 2026-10-09 getauscht:
-  // das Case mit „(4)“ ist das größere (99 × 60 × 58). IDs, Maße und Gewichte blieben, wo sie waren,
-  // damit alte Ladepläne ihre Stücke behalten (eigene Entscheidung); die Gewichte sind nicht
-  // nachgerechnet. Siehe docs/casemasse-gewichte.md.
-  C('JDC-1 Cube -RentALL', 'Licht', 60, 60, 58, 'RentAll', 'GLP', { id: 'lib-jdc-1-cube-4-rentall', weight: 60, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
-  C('JDC-1 Cube (4) -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { id: 'lib-jdc-1-cube-rentall', weight: 25, note: 'Gewicht geschätzt: 4 × JDC-1 à 11.6 kg + Case' }),
+  // Maße der beiden Cube-Zeilen auf Nutzerwunsch 2026-10-09 vertauscht: vier Geräte passen nicht
+  // in 60 × 60, 99 × 60 × 58 ist die Größe von „JDC-1 lang (6)“. Namen, Gewichte, Hinweistexte und
+  // IDs blieben (die Gewichte passen zur Gerätezahl im Namen); eigene Entscheidung, nicht nachgemessen.
+  // Siehe docs/casemasse-gewichte.md.
+  C('JDC-1 Cube (4) -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { weight: 60, note: 'Gewicht geschätzt: 4 × JDC-1 à 11.6 kg + Case' }),
+  C('JDC-1 Cube -RentALL', 'Licht', 60, 60, 58, 'RentAll', 'GLP', { weight: 25, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
   C('JDC-1 lang (6) -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { weight: 85, note: 'Gewicht geschätzt: 6 × JDC-1 à 11.6 kg + Case' }),
   C('GLP X4-Bar-20 x4 -CAB', 'Licht', 131, 60, 58, 'CAB', 'GLP', { weight: 80, note: 'Gewicht geschätzt: 4 × X4 Bar 20 à 16 kg + Case' }),
   C('JDC-1 x6 -CAB', 'Licht', 120, 60, 58, 'CAB', 'GLP', { weight: 85, note: 'Gewicht geschätzt: 6 × JDC-1 à 11.6 kg + Case' }),
