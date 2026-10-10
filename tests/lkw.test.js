@@ -229,7 +229,7 @@ test('Eigenschaft: Stückzahl und IDs bleiben nach beliebigen Folgen erhalten (2
 });
 
 test('addLkw/updateLkw: truckId bleibt ein nichtleerer String (Rückfall: erster LKW, sonst plan.truckId)', () => {
-  const nid = counter('L');
+  const nid = counter('N');
   const m = addLkw(multi(), { name: 'x' }, nid);
   assert.equal(m.lkws[2].truckId, 't1');
   assert.equal(addLkw(multi(), { name: 'x', truckId: '' }, nid).lkws[2].truckId, 't1');
