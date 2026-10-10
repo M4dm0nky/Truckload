@@ -156,6 +156,10 @@ export function updateLkw(plan, lkwId, patch = {}) {
     ...(validTruck(patch.truckId) ? { truckId: patch.truckId } : {}),
     ...(patch.categories !== undefined ? { categories: cleanCategories(patch.categories) } : {}),
   };
+  // Nichts geändert (z. B. Dialog ohne Eingabe gespeichert): derselbe Plan, kein Stempel, kein Rückgängig-Schritt.
+  const same = next.name === cur.name && next.truckId === cur.truckId
+    && next.categories.length === cur.categories.length && next.categories.every((c, i) => c === cur.categories[i]);
+  if (same) return plan;
   return stamp(syncTruck({ ...plan, lkws: plan.lkws.map(l => (l.id === id ? next : l)) }));
 }
 

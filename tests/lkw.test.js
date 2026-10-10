@@ -273,3 +273,11 @@ test('addLkw/updateLkw: truckId bleibt ein nichtleerer String (Rückfall: erster
   assert.doesNotThrow(() => checkPlan(m));
   assert.doesNotThrow(() => checkPlan(addLkw(plan([]), {}, counter('Q'))));
 });
+
+test('updateLkw ohne Änderung: derselbe Plan (kein Stempel, kein Rückgängig-Schritt)', () => {
+  const p = multi();
+  const l = p.lkws[0];
+  assert.equal(updateLkw(p, l.id, {}), p);
+  assert.equal(updateLkw(p, l.id, { name: l.name, truckId: l.truckId, categories: [...l.categories] }), p);
+  assert.notEqual(updateLkw(p, l.id, { name: `${l.name}!` }), p);
+});
