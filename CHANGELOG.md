@@ -2,6 +2,27 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.14.0 – 2026-10-10
+
+**Mehrere LKW in einem Plan.** Ein Plan kann jetzt mehrere Fahrzeuge tragen, jedes mit eigenem
+Reiter, eigener 2D- und 3D-Ansicht und eigener Ablage.
+
+- **Umstellen und anlegen:** Knopf „Mehrere LKW“ in der Kopfleiste, danach „+ LKW“ und „LKW
+  bearbeiten“ (Name, Fahrzeug, Gewerke-Haken). Ein LKW ohne Haken ist der Rest-LKW und nimmt alles,
+  was kein anderer annimmt. Nicht zugeordnete Stücke stehen im Reiter „Ohne LKW“, mit Hinweis wie
+  „12 Stücke ohne LKW (Strom)“.
+- **Verteilen:** „Alles neu packen“ verteilt die Stücke je Gewerk gleichmäßig auf die zulässigen
+  LKW (nach Fläche und Nutzlast, Gewicht 0 zählt 0) und packt jeden LKW. Das ist eine Heuristik.
+  Von Hand geht es im Inspector über das Feld „LKW“.
+- **Drucken:** „dieser LKW“ oder „alle LKW“ – bei „alle“ ein Abschnitt je LKW, zuletzt „Ohne LKW“.
+- **Lade-Wizard:** Bei Plänen mit mehreren LKW kommt neues Material nicht zugeordnet in den Plan
+  und wird nicht automatisch gepackt.
+- **Fahrzeug löschen:** LKW, die darauf zeigten, wechseln in allen Plänen auf das Standardfahrzeug.
+- **Bestehende Pläne bleiben Ein-LKW-Pläne; Verteilung erst bei „Alles neu packen“.** Ein-LKW-Pläne
+  packen, prüfen, exportieren und drucken wie vorher (gegen den alten Packer an über 6.000
+  zufälligen Plänen verglichen, ohne Unterschied). Alte Sicherungen laden unverändert; beim Import
+  werden Verweise auf unbekannte LKW repariert und gemeldet.
+
 ## V 0.13.12 – 2026-10-10
 
 **Deckschicht mischen: mehrere kleine Cases nebeneinander.** Mit dem Schalter „Deckschicht mischen“
