@@ -26,3 +26,17 @@ test('weightField: editierbar mit Feld und Hinweis „gilt für alle Stücke die
   const preset = weightField(mkCase('preset-x', 100, 50, 50, { builtin: true, weight: 30 }));
   assert.ok(!preset.includes('<input') && !preset.includes('gilt für alle'));
 });
+
+// ---- Mehrere LKW: Auswahlfeld „LKW“ ----
+import { lkwField } from '../js/ui/inspector.js';
+test('lkwField: Ein-LKW-Plan (null) rendert nichts', () => {
+  assert.equal(lkwField(null), '');
+});
+test('lkwField: „Ohne LKW“ plus alle LKW, aktueller ausgewählt, Namen maskiert', () => {
+  const html = lkwField({ options: [{ id: 'a', name: 'Ton' }, { id: 'b', name: '<b>x</b>' }], current: 'b' });
+  assert.match(html, /<select name="lkw">/);
+  assert.match(html, /<option value="" >Ohne LKW<\/option>/);
+  assert.match(html, /<option value="b" selected>&lt;b&gt;x&lt;\/b&gt;<\/option>/);
+  assert.ok(!html.includes('<b>x'));
+  assert.match(lkwField({ options: [{ id: 'a', name: 'Ton' }], current: null }), /<option value="" selected>Ohne LKW/);
+});

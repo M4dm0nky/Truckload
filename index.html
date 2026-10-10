@@ -61,6 +61,8 @@
   <link rel="modulepreload" href="js/model/geometry.js">
   <link rel="modulepreload" href="js/model/items.js">
   <link rel="modulepreload" href="js/model/limits.js">
+  <link rel="modulepreload" href="js/model/lkw-distribute.js">
+  <link rel="modulepreload" href="js/model/lkw.js">
   <link rel="modulepreload" href="js/model/material.js">
   <link rel="modulepreload" href="js/model/memo.js">
   <link rel="modulepreload" href="js/model/packer.js">
@@ -87,6 +89,8 @@
   <link rel="modulepreload" href="js/ui/instanceMatrix.js">
   <link rel="modulepreload" href="js/ui/labelTexture.js">
   <link rel="modulepreload" href="js/ui/library.js">
+  <link rel="modulepreload" href="js/ui/lkw-editor.js">
+  <link rel="modulepreload" href="js/ui/lkw-tabs.js">
   <link rel="modulepreload" href="js/ui/load-wizard.js">
   <link rel="modulepreload" href="js/ui/material.js">
   <link rel="modulepreload" href="js/ui/pack-rules.js">
@@ -125,7 +129,7 @@
   </section>
   <section id="material-screen" class="material-screen" hidden></section>
   <header class="topbar" hidden>
-    <strong class="brand">Truckload <span id="app-version" class="version">V 0.13.12</span></strong>
+    <strong class="brand">Truckload <span id="app-version" class="version">V 0.14.0</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
       <select id="plan-select" title="Ladeplan"></select>
@@ -139,6 +143,9 @@
       <button id="truck-edit">Bearbeiten</button>
       <button id="truck-new">+ Fahrzeug</button>
       <button id="material-open" type="button" title="Materialverwaltung">Material</button>
+    </div>
+    <div class="group">
+      <button id="lkw-multi" type="button" title="Plan auf mehrere LKW umstellen und einen weiteren LKW anlegen">Mehrere LKW</button>
     </div>
     <div class="group">
       <button id="pack-all" class="primary">Alles neu packen</button>
@@ -177,6 +184,10 @@
         <option value="unload">Ausladeliste</option>
         <option value="labels">Etiketten</option>
       </select>
+      <select id="print-scope" title="Welche LKW gedruckt werden" hidden>
+        <option value="one">dieser LKW</option>
+        <option value="all">alle LKW</option>
+      </select>
       <select id="print-label-size" title="Etikettengröße" hidden>
         <option value="large">Etiketten groß – Avery 3425 (105 × 57 mm, 10 je Bogen)</option>
         <option value="small">Etiketten klein – Avery 3474 (70 × 37 mm, 24 je Bogen)</option>
@@ -187,6 +198,8 @@
   <main class="layout" hidden>
     <aside id="library" class="panel library"></aside>
     <section class="stage">
+      <div id="lkw-tabs" class="lkw-tabs" hidden></div>
+      <p id="lkw-none-hint" class="lkw-none-hint" hidden>Diese Stücke gehören keinem LKW. „Alles neu packen“ verteilt sie auf die LKW, oder weise sie rechts im Feld „LKW“ einem LKW zu.</p>
       <div id="views2d" class="views2d">
         <figure class="view view-top"><figcaption>Draufsicht <small>Stirnwand links · Tür rechts</small><span class="zoom" data-zoom="svg-top"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" aria-label="Ganzen Truck zeigen">Alles</button></span></figcaption><svg id="svg-top"></svg></figure>
         <figure class="view view-side"><figcaption>Seitenansicht <small>von links</small><span class="zoom" data-zoom="svg-side"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" aria-label="Ganzen Truck zeigen">Alles</button></span></figcaption><svg id="svg-side"></svg></figure>
@@ -199,6 +212,7 @@
   </main>
   <dialog id="dlg-case"></dialog>
   <dialog id="dlg-truck"></dialog>
+  <dialog id="dlg-lkw"></dialog>
   <dialog id="dlg-wizard"></dialog>
   <dialog id="dlg-truss"></dialog>
   <dialog id="dlg-dolly"></dialog>

@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.13.12. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.14.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -29,7 +29,7 @@ Daten als Argumente und liefern reine Ergebnisobjekte zurück (`openCaseEditor`,
 
 ### js/app/ — die Verdrahtung
 
-- `core.js` — reine Zustandshelfer (`ctxOf`, `deriveOf`, `allPlansOf`, `piecesOf`, Nutzungszähler).
+- `core.js` — reine Zustandshelfer (`ctxOf`, `deriveOf`, `allPlansOf`, `piecesOf` und `activeLkwOf` für Mehr-LKW-Pläne, Nutzungszähler).
 - `screens.js` — Bildschirmwahl (`screenOf`: Material hat Vorrang, ohne gewählten Plan ist Start, sonst Plan) und Startbildschirm.
   Der Startbildschirm (`renderStartScreen`) zeigt „Neuen Load erstellen“, „Material“, die gespeicherten
   Ladepläne nach Name sortiert (oder „Noch keine gespeicherten Ladepläne.“), „Sicherung importieren“ und
@@ -469,6 +469,113 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   (`#material-screen`, Schalter `materialOpen`). Solange er offen ist, kehrt der
   `keydown`-Handler aus `js/app/keyboard.js` sofort zurück, damit Entf, Pfeile oder Rückgängig nicht
   den dahinterliegenden Plan verändern.
+
+## Mehrere LKW (seit V 0.14.0)
+
+Ein Plan kann mehrere Fahrzeuge tragen. Das ist eine Erweiterung, kein neues Modell: Ein Plan
+ohne `lkws` ist weiter ein gewöhnlicher Ein-LKW-Plan, es gibt keine Migration.
+
+**Datenmodell.** `plan.lkws?: [{ id, name, truckId, categories }]` (`js/model/lkw.js`). Fehlt das
+Feld oder ist die Liste leer, gilt `plan.truckId` wie bisher. Mit `lkws` trägt jedes Stück
+(Platzierung und Ablage-Eintrag) optional `lkw: <lkw.id>`; ohne oder mit unbekannter ID ist es
+**nicht zugeordnet**. `lkw` gehört nicht zu `PIECE_FIELDS`. `plan.truckId` bleibt das Fahrzeug
+des ersten LKW (Rückfallwert für alte Programmstände); `addLkw`/`updateLkw`/`removeLkw` halten das
+ein. `categories` sind Gewerk-Namen; ein LKW mit leerer Liste ist der **Rest-LKW**. Grenzen:
+höchstens `MAX_LKW` = 12 LKW (`js/model/limits.js`). Die Oberfläche verbietet, den letzten LKW zu
+löschen (`removeLkw` auf dem letzten würde `lkws` entfernen und den Plan zum Ein-LKW-Plan machen).
+
+**Ansicht und Zurückschreiben.** Packer, Aktionen, `validatePlan`, Ansichten und Inspector kennen
+LKW nicht. Stattdessen liefert `lkwView(plan, lkwId)` einen normalen Ein-LKW-Plan (ohne `lkws`,
+`truckId` des LKW, nur dessen Platzierungen und Ablage-Einträge, ohne das Feld `lkw`).
+`mergeLkwView` schreibt das Ergebnis zurück und setzt `lkw` an allen Stücken dieses LKW; Stücke der
+anderen LKW und die nicht zugeordneten bleiben unberührt. Auf einem Ein-LKW-Plan ist `lkwView`
+der Plan selbst. Eine veraltete LKW-ID (Reiter nach Rückgängig oder Löschen) fällt in `lkwView`,
+`mergeLkwView`, `updateLkw` und beim Ziel von `moveToLkw` auf den ersten LKW (`resolveLkwId`);
+`removeLkw` mit unbekannter ID tut dagegen nichts, weil Löschen zerstörend ist.
+
+In `js/app/core.js` hängt daran die Verdrahtung: `activeLkwOf` (gewählter Reiter, fällt bei
+ungültigem Wert auf den ersten LKW), `ctxOf`/`deriveOf`/`applyEdit` arbeiten auf der Ansicht des
+gewählten Reiters, und `applyEdit` schreibt sie in **einem** Rückgängig-Schritt zurück.
+`applyEditWhole` wirkt auf den ganzen Plan („Alles neu packen“, Zuordnung im Inspector,
+Löschen eines Fahrzeugs). Der gewählte Reiter (`activeLkw`) liegt im Store, wird nicht gespeichert
+und ist nicht Teil von Rückgängig. `js/ui` importiert nichts aus `js/app/`; die dafür nötigen
+Hilfen (`NO_LKW`, `piecesOf`, `stueck`, `unassignedLines`) liegen im Modell.
+
+**Verteilung** (`js/model/lkw-distribute.js`), nur bei „Alles neu packen“ und nur ab zwei LKW.
+Bei genau einem LKW wird nur dessen Ansicht gepackt, nichts umverteilt; Ein-LKW-Pläne gehen
+unverändert durch `packAll`.
+
+1. Alle Stücke (Platzierungen und Ablage, auch nicht zugeordnete) werden neu verteilt.
+2. Zulässig für ein Stück sind die LKW, die sein Gewerk angehakt haben **und** deren Fahrzeug es in
+   irgendeiner Orientierung aufnehmen kann (`chooseOrientation`). Ist keiner zulässig, nehmen die
+   tauglichen Rest-LKW es. Gibt es auch die nicht, bleibt das Stück nicht zugeordnet (Ablage, mit
+   Hinweis). Ein Case ohne Gewerk gilt als „Sonstiges“; ein Stück ohne bekannten Case bleibt nicht
+   zugeordnet.
+3. Gleichmäßig je Gewerk (**eigene Entscheidung**, eine Heuristik): Gewerke in der Reihenfolge von
+   `CATEGORIES`, darin die Stücke nach Volumen absteigend (Gleichstand: Ablagereihenfolge); jedes
+   Stück geht an den zulässigen LKW mit der kleinsten Auslastung, `max(Grundfläche der bisher
+   zugeteilten Stücke / Bodenfläche des Laderaums, Gewicht der bisher zugeteilten Stücke /
+   Nutzlast)`; Gleichstand: der frühere LKW. Die Auslastung zählt über alle Gewerke hinweg.
+   Gewicht 0 zählt 0 (unbekannt, nichts erfunden). Die Grundfläche ist die der Packorientierung.
+4. Jeder LKW wird mit `packAll` auf seiner Ansicht gepackt (Pack-Regeln und „Deckschicht mischen“
+   stammen aus dem Plan und gelten für jeden LKW). Was nicht passt, wird **einmal** an die übrigen
+   zulässigen LKW weitergegeben (`packRest`, in Listenreihenfolge); was auch dann nicht passt,
+   bleibt in der Ablage seines ersten LKW.
+5. Ergebnis deterministisch; die Reihenfolge der LKW ist die Listenreihenfolge.
+
+Die Weitergabe läuft nur einmal: Ein Stück kann in der Ablage bleiben, obwohl ein dritter LKW Platz
+gehabt hätte. „Rest einpacken“, „Truck entladen“, Ziehen, Tastatur und Inspector wirken nur auf den
+gewählten LKW; es wird **nichts** automatisch umverteilt.
+
+**Oberfläche** (`js/ui/lkw-tabs.js`, `js/ui/lkw-editor.js`, verdrahtet in `js/app/planView.js`).
+Die Reiterleiste erscheint nur bei Plänen mit `lkws`: je LKW „Name · Fahrzeug (n)“, ein Reiter
+„Ohne LKW (n)“ nur bei nicht zugeordneten Stücken, „+ LKW“ und „LKW bearbeiten“, darunter eine
+Summenzeile (Gesamtzahl, Gewicht mit Zahl der Stücke ohne Gewicht, nicht zugeordnete je Gewerk).
+Ein Ein-LKW-Plan hat in der Kopfleiste den Knopf „Mehrere LKW“, der den Dialog „Neuer LKW“
+öffnet und den Plan erst beim Speichern umwandelt (`convertToMulti`: ein LKW „LKW 1“ mit dem
+bisherigen Fahrzeug, ohne Haken, alle Stücke ihm zugeordnet); Abbrechen ändert nichts. Fahrzeugauswahl, „Fahrzeug
+bearbeiten“ und Seitenleiste wirken auf den gewählten LKW; im Inspector verschiebt das Feld „LKW“
+ein Stück (`moveToLkw`: eine Platzierung wandert in die Ablage des Ziel-LKW, „Ohne LKW“ ist wählbar,
+der Reiter folgt dem Ziel). Eigene Entscheidungen:
+
+- Der Reiter „Ohne LKW“ hat keine 2D-/3D-Ansicht, nur einen Hinweistext und die Ablage; Fahrzeugwahl,
+  „Fahrzeug bearbeiten“, „Rest einpacken“ und „Truck entladen“ ruhen dort. Bearbeiten in der Ablage
+  läuft über `mergeUnassignedView` (Platzierungen mit ungültigem Verweis wandern per
+  `placementToUnplaced` in die Ablage).
+- Beim Löschen eines LKW (mit Rückfrage) werden seine Stücke nicht zugeordnet, Platzierungen
+  wandern in die Ablage.
+- Der Lade-Wizard fügt bei einem Mehr-LKW-Plan das Material **nicht zugeordnet** hinzu und
+  packt nicht automatisch; ein Hinweis nennt das. „Alles neu packen“ verteilt es später.
+- „Alles neu packen“ fragt bei Mehr-LKW-Plänen mit vorhandenen Stücken nach und meldet danach
+  Zeilen wie „12 Stücke ohne LKW (Strom)“, „n Stücke mit unbekanntem Case“ und „n Stücke passen
+  nicht in den LKW …“.
+- `.stage` ist ein Spaltenlayout (Reiterleiste oben).
+
+**Fahrzeug löschen.** `deleteTruck` (`js/app/persistence.js`) biegt nicht nur `plan.truckId`,
+sondern auch die `truckId` der LKW **aller** Pläne auf das Standardfahrzeug um; ein Verweis auf
+ein fehlendes Fahrzeug fällt auch in der Verteilung auf das Standardfahrzeug zurück (ein LKW, dessen
+Fahrzeug gar nicht aufzulösen ist, ist nicht packbar, seine Stücke bleiben in der Ablage).
+
+**Druck** (`js/ui/print.js`, `js/app/chrome.js`). Neben der Dokumentenauswahl steht bei
+Mehr-LKW-Plänen der Umschalter `#print-scope` „dieser LKW / alle LKW“; er springt beim Planwechsel
+auf „dieser LKW“. „Dieser LKW“ druckt wie bisher die Ansicht. „Alle LKW“ (`buildPrintAll`,
+`buildChecklistAll`, `buildUnloadListAll`, `buildLabelsAll`, Abschnitte aus `printSectionsOf`) baut je
+LKW einen Abschnitt `p-lkw` (ab dem zweiten mit `p-break`, Seitenumbruch) mit „Plan – LKW-Name“ und
+Fahrzeug im Kopf. Nicht zugeordnete Stücke stehen als letzter Abschnitt „Ohne LKW“ (im Ladeplan nur als
+Liste, ohne Zeichnung, Ladenummer „–“, „nicht geladen“; Beschriftung und Farbe fallen auf den Case zurück). Im
+Reiter „Ohne LKW“ druckt „dieser LKW“ nur diesen Abschnitt (eigene Entscheidung). Etiketten aller LKW
+laufen in einem Raster, die Nummer zählt je LKW, der LKW-Name steht in einer eigenen Zeile. Das
+Markup eines Ein-LKW-Plans ist unverändert (Baseline `tests/baselines/print-single.json`). Alle
+Namen gehen durch `esc()`.
+
+**Import** (`js/store/io.js`). `checkPlan` lehnt ab: mehr als 12 LKW, doppelte LKW-IDs, Felder
+falschen Typs, zu lange Namen, mehr als 32 Gewerke je LKW, nicht-Text bei `piece.lkw`. Gewerke
+werden nur als Text geprüft, nicht gegen `CATEGORIES` (eine spätere Umbenennung macht Dateien
+nicht unlesbar). Repariert und in `repairs` gemeldet wird: ein `lkw`-Verweis auf einen unbekannten
+LKW wird entfernt (auch in Plänen ohne `lkws`); in Mehr-LKW-Plänen wandern Platzierungen ohne gültigen
+Verweis in die Ablage; weicht `plan.truckId` vom Fahrzeug des ersten LKW ab, wird es angeglichen;
+`lkws: null` gilt als fehlend. Alte Sicherungen ohne `lkws` laden unverändert (Regressionstests mit
+Altschema-Plänen in `tests/lkw.test.js` und `tests/io.test.js`).
 
 ## Speicherung und Austausch
 

@@ -1,18 +1,10 @@
 # Offene Punkte
 
-Stand V 0.13.12. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Stand V 0.14.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
 Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
 des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
 Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
 `docs/code-review-2026-09-21.md`.
-
-## Teilprojekte
-
-Ein größeres Vorhaben ist geplant, aber noch nicht begonnen (Teilprojekt 2, „Deckschicht
-nebeneinander“, ist umgesetzt, siehe „Aus den Pack-Regeln“):
-
-- **Teilprojekt 3: Mehrere LKW in einem Plan.** Ein Plan mit mehreren Fahrzeugen und einer
-  Verteilung der Cases darauf.
 
 ## Daten aus der Casemaße-Tabelle
 
@@ -27,6 +19,21 @@ Racks), Breite und Tiefe mit 60 × 60 geschätzt. Echte Maße würden das ersetz
 **Der Mindest-Case-Anteil von 15 kg überzeichnet kleine Cases.** Bei `SF TourHazer II`
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`
 offengelegt, aber für kleine Cases zu konservativ.
+
+## Aus „Mehrere LKW“ (V 0.14.0) offen
+
+- **Verteilt wird nur bei „Alles neu packen“.** Neues Material (Wizard, Ablage) und manuelle
+  Änderungen werden nicht automatisch auf die LKW umverteilt; sie bleiben nicht zugeordnet bzw.
+  im gewählten LKW, bis der Nutzer neu packt oder im Inspector zuweist.
+- **Die Gewerkegrenzen werden nicht optimiert.** Wie viele Stücke eines Gewerks auf welchen LKW
+  gehen, hängt allein von der Reihenfolge (größte zuerst) und der Auslastung ab; ob ein
+  anderer Zuschnitt weniger LKW oder weniger Rest bräuchte, wird nicht gesucht.
+- **Das Verteilmaß ist eine Heuristik (eigene Entscheidung).** Auslastung = größerer Wert aus
+  Grundfläche/Bodenfläche und Gewicht/Nutzlast; Höhe, Stapeln und Pack-Regeln gehen nicht ein. Die
+  Weitergabe nicht passender Reste läuft nur einmal, ein dritter LKW wird dabei unter Umständen nicht
+  mehr erreicht. Gegen den Praxisfall mit echten Plänen ist das nicht geprüft.
+- **Seitenumbruch und Spalten des Mehr-LKW-Drucks** sind per PDF-Ausgabe des Browsers
+  (Print-Medium) geprüft, nicht an einem echten Drucker.
 
 ## Aus der Meilenstein-Review V 0.6.0 (2026-09-21) bewusst offen gelassen
 

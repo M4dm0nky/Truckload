@@ -32,6 +32,10 @@ export const NAME_MAX = 80;
 // lehnt darüber NICHT ab, sondern verschiebt die Platzierung in die Ablage (parseBundle); die
 // Grenze wächst dort mit dem größten Fahrzeug der Datei (2 × Abmessung).
 export const COORD_MAX = 2724;
+// Höchstzahl LKW je Plan (Mehrere LKW in einem Plan, V 0.14). Eigene Entscheidung: mehr als zwölf
+// Reiter sind in der Oberfläche nicht mehr bedienbar. Der Import lehnt darüber ab (checkPlan).
+// LKW-Namen gelten wie alle Namen bis NAME_MAX; Gewerke stammen aus CATEGORIES (data/categories.js).
+export const MAX_LKW = 12;
 // Name eines Regelsets (Pack-Regeln). Zufällig ebenfalls 80, aber eine eigene Bedeutung.
 export const MAX_RULESET_NAME = 80;
 

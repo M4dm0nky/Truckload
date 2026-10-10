@@ -15,7 +15,8 @@ import { mountMaterialScreen } from './app/materialScreen.js';
 import { wireImportExport } from './app/importExport.js';
 import { mountPlanView, renderPlanViews, loadCaseColors } from './app/planView.js';
 import { installEarlyHandlers, setSaveStatus, wirePrint, showVersion, showStorageError, wireBanners, registerServiceWorker } from './app/chrome.js';
-import { ctxOf, deriveOf } from './app/core.js';
+import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf } from './app/core.js';
+import { isMultiLkw } from './model/lkw.js';
 import * as A from './model/actions.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
 
@@ -41,28 +42,34 @@ try {
 // Lagen-Durchsicht ist eine Momentaufnahme.
 export const store = createStore({
   cases: data.cases, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
-  plan: null, selectedId: null, materialOpen: false, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
+  plan: null, selectedId: null, activeLkw: null, materialOpen: false, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
 const ctx = (s = store.get()) => ctxOf(s, uid);
 export const derive = (s = store.get()) => deriveOf(s, uid);
+// Ein-LKW-Plan: fn(plan, ctx) wie immer. Mehr-LKW-Plan: fn arbeitet auf der Ansicht des gewählten
+// Reiters und wird zurückgeschrieben (js/app/core.js, applyEdit) – ein Rückgängig-Schritt.
 export function edit(fn, history = true) {
-  store.update(s => {
-    const next = fn(s.plan, ctx(s));
-    return next === s.plan ? s : { ...s, plan: next };
-  }, { history });
+  store.update(s => applyEdit(s, fn, uid), { history });
+}
+// Planweite Bearbeitung (alle LKW packen, Stück zuordnen, Fahrzeug eines LKW, neues Material).
+export function editWhole(fn, history = true) {
+  store.update(s => applyEditWhole(s, fn, uid), { history });
 }
 export const select = id => store.update(s => (s.selectedId === id ? s : { ...s, selectedId: id }));
 
 // Nach „Alles neu packen“, „Rest einpacken“ und dem Wizard-Autopack: bleiben Stücke in der
 // Ablage, meldet sich die App, sonst fiele die Lücke nur beim Aufklappen der Ablage auf.
-// edit() ist synchron, store.get() liefert direkt danach den frischen Stand.
+// edit() ist synchron, store.get() liefert direkt danach den frischen Stand. Bei Mehr-LKW-Plänen
+// zählt die Ablage des gewählten Reiters.
 async function warnIfUnplaced() {
-  const n = store.get().plan.unplaced.length;
+  const s = store.get();
+  const n = activeViewOf(s.plan, s.activeLkw).unplaced.length;
   if (!n) return;
+  const what = isMultiLkw(s.plan) ? 'LKW' : 'Truck';
   const msg = n === 1
-    ? '1 Case passt nicht in den Truck und bleibt in „Noch nicht geladen“.'
-    : `${n} Cases passen nicht in den Truck und bleiben in „Noch nicht geladen“.`;
+    ? `1 Case passt nicht in den ${what} und bleibt in „Noch nicht geladen“.`
+    : `${n} Cases passen nicht in den ${what} und bleiben in „Noch nicht geladen“.`;
   await showAlert(msg);
 }
 
@@ -129,12 +136,12 @@ const { material, openMaterial, openMaterialFromWizard, editCase, newCaseForWiza
   mountMaterialScreen({ el: materialEl, store, uid, persistence });
 
 const { switchPlan, runLoadWizard } = wirePlans({
-  store, edit, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,
+  store, edit, editWhole, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,
   warnIfUnplaced, saveCase: persistence.saveCase, newCaseForWizard, openMaterialFromWizard,
 });
 
 const { ACTIONS } = mountPlanView({
-  store, edit, select, ctx, derive, renderHooks, persistence, stamp, showConfirm,
+  store, edit, editWhole, select, ctx, derive, renderHooks, persistence, stamp, uid, showAlert, showConfirm,
   editCase, runLoadWizard, warnIfUnplaced,
 });
 
@@ -147,7 +154,7 @@ attachKeyboard({
     redo: () => store.redo(),
     deselect: () => select(null),
     move: (id, dx, dy, step) => {
-      const p = store.get().plan.placements.find(q => q.id === id);
+      const p = derive().view.placements.find(q => q.id === id);
       if (!p) return; // Ablage-Stück ausgewählt: hat kein x/y, hier nichts zu verschieben
       edit((pl, c) => A.moveGroup(pl, id, p.x + dx * step, p.y + dy * step, c, { grid: step, edges: false }));
     },

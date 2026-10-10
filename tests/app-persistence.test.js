@@ -200,6 +200,20 @@ test('deleteTruck: biegt andere Pläne auf den Standardtruck um und speichert si
   assert.deepEqual(calls.map(c => c[0]), ['deleteTruck', 'savePlan']);
   assert.deepEqual(alerts, []);
 });
+test('deleteTruck: biegt auch die LKW anderer Mehr-LKW-Pläne um und speichert sie', async () => {
+  const multi = { id: 'm', truckId: 't1', placements: [], unplaced: [], lkws: [
+    { id: 'a', name: 'A', truckId: 't1', categories: [] }, { id: 'b', name: 'B', truckId: 'other', categories: ['Ton'] },
+    { id: 'c', name: 'C', truckId: 't1', categories: ['Licht'] }] };
+  const keep = { id: 'k', truckId: 'other', placements: [], unplaced: [], lkws: [{ id: 'x', name: 'X', truckId: 'other', categories: [] }] };
+  const { p, store, calls } = setup({ state: { trucks: [{ id: 't1' }, { id: 'other' }], plans: [multi, keep] } });
+  assert.equal(await p.deleteTruck('t1'), true);
+  const m = store.get().plans[0];
+  assert.deepEqual(m.lkws.map(l => l.truckId), [DEFAULT_TRUCK_ID, 'other', DEFAULT_TRUCK_ID]);
+  assert.equal(m.truckId, DEFAULT_TRUCK_ID);
+  assert.equal(store.get().plans[1], keep);
+  assert.deepEqual(calls.map(c => c[0]), ['deleteTruck', 'savePlan']);
+  assert.equal(calls[1][1], m);
+});
 test('deleteTruck: Fehler beim Löschen -> Store unverändert, eine Meldung', async () => {
   const { p, store, alerts } = setup({ fail: { deleteTruck: 'f' }, state: { trucks: [{ id: 't1' }], plans: [{ id: 'p1', truckId: 't1' }] } });
   const before = store.get();

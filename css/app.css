@@ -61,7 +61,7 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .panel { background: var(--panel); overflow: auto; padding: 12px; }
 .library { border-right: 1px solid var(--line); }
 .inspector { border-left: 1px solid var(--line); }
-.stage { min-width: 0; min-height: 0; display: flex; position: relative; }
+.stage { min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; }
 .views2d { flex: 1; display: grid; grid-template-columns: 3fr 1fr; grid-template-rows: 1.2fr 1fr; gap: 10px; padding: 10px; min-height: 0; }
 .view { margin: 0; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .view-top { grid-column: 1 / -1; }
@@ -236,3 +236,15 @@ kbd { font-size: 11px; color: var(--muted); border: 1px solid var(--line); borde
 .mat-list { overflow: auto; display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
 .mat-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .mat-row .lib-text { flex: 1; }
+
+/* Mehrere LKW in einem Plan: Reiterleiste über den Ansichten, Summenzeile darunter. */
+.lkw-tabs { padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+.lkw-tab-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.lkw-tab { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.lkw-tab.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.lkw-tab small { opacity: .75; }
+.lkw-tab.none:not(.on) { border-style: dashed; }
+.lkw-sum { margin: 6px 0 8px; }
+.lkw-none-hint { margin: 24px; color: var(--muted); }
+.editor .lkw-cat-list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.insp-lkw { display: grid; gap: 4px; margin: 8px 0; color: var(--muted); }
