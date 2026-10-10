@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.13.10. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.13.11. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -139,6 +139,16 @@ vorbelegten Wert (Wizard, Duplizieren) nicht erfasst.
 `buildItems()` in `js/model/items.js` führt beides zu `items` zusammen und legt
 `it.label` und `it.color` mit Rückfall auf Case-Name und Gewerkfarbe frei. **Alle**
 Ansichten, der Inspector und der Druck lesen von dort — nicht selbst aus dem Case.
+
+**Grund in der Ablage (`unplacedReason`, `js/model/unplacedReason.js`).** Die Seitenleiste nennt
+bei einem Stück in „Noch nicht geladen“ den Grund, aber nur einen, der allein aus den Maßen folgt:
+`chooseOrientation` (dieselbe Auswahl wie im Packer) findet für das Stück keine Lage im Laderaum,
+und zwar entweder weil es schlicht zu groß ist, oder weil `tipped: true` bzw. `tipped: false` die
+einzig passende Lage ausschließt. Nutzlast, Lagen-Einschränkung und Pack-Regeln prüft die Funktion
+nicht; passt das Stück geometrisch, liefert sie `null`, und es steht kein Grund da — „kein Platz“
+wäre geraten, denn die Ablage füllt sich auch durch „In Ablage“, „Truck entladen“ oder einen
+Wizard ohne Packen. `js/ui/library.js` berechnet die Gründe je Stand von Ablage, Cases und Fahrzeug
+einmal (`reasonOf`).
 
 Der Packer arbeitet auf Stück-Objekten, nicht auf Case-Typen, und übernimmt `id`, `label`
 und `color` in die erzeugten Platzierungen. Wer das ändert, verliert beim „Alles neu
@@ -302,6 +312,12 @@ seitlich zu führen. `trussShape()` liefert `dollies` (das volle Wagenvolumen, g
 die Beschriftungsfläche), `boards`, `rails`, `wheels` und `pieces`. Traversenwagen sind nie
 tippbar.
 
+Legt der Traversen-Dialog einen Wagen-Typ an, den es mit „im Materialbestand ablegen“ schon gibt,
+wird er wiederverwendet (`findMatchingWagon`, `js/model/truss.js`): gleiches Profil, gleiche Länge,
+Stückzahl und Wagenbreite, gleiche Firma, weder `legacy` noch `onlyInPlan`. Ohne das Häkchen gibt
+es nie einen Treffer, weil `onlyInPlan`-Typen global sind und sich zwei Loads sonst einen Typ
+teilen würden.
+
 ### Pre-Rig-Traversen (`standing: true`)
 
 Ein zweiter, seit V 0.7.3 unterstützter Aufbau für Moving-Light-Pre-Rig-Traversen (H.O.F. MLT,
@@ -362,6 +378,13 @@ geschätzt (`totals.cog` bekommt eine Kennzeichnung `source: 'volume'` statt `'w
 die Einseitigkeitswarnung greift, sobald **eine** der beiden Schätzungen (nach Gewicht oder
 nach Volumen) einseitig ausfällt — eine Warnung darf durch zusätzliche Information nie
 verschwinden.
+
+**Gewicht im Inspector (`weightEditable`/`weightField`, `js/ui/inspector.js`).** Das Gewicht ist
+eine Eigenschaft des Case-Typs, nicht des Stücks. Der Inspector zeigt es für eigene Cases und
+Firmen-Vorlagen (`lib-`, als Überlagerung gespeichert) als Zahlenfeld mit dem Hinweis „gilt für
+alle Stücke dieses Typs“; Änderungen laufen über denselben Speicherpfad wie der Case-Editor.
+Standardvorlagen (`preset-`) bleiben lesbar mit Verweis auf „Kopieren“, Traversenwagen ebenfalls
+(ihr Gewicht ergibt sich aus der Konstruktion).
 
 ## Materialbestand
 
@@ -523,6 +546,10 @@ den Katalog.
 
 ## Darstellung
 
+Zahlen in Case-Zeilen und -Details formatiert `fmtNum` (`js/ui/caseInfo.js`): deutsch, höchstens
+eine Nachkommastelle, ohne unnötige Nullen; nicht endliche Werte erscheinen als „–“, ein
+gerundetes `-0` als „0“. Die einheitliche Rundung auf eine Stelle ist eine eigene Entscheidung.
+
 `js/ui/projection.js` bildet eine 3D-Box auf die drei 2D-Ansichten ab (Draufsicht, Seite
 von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 getrennte Aufgaben:
 
@@ -609,10 +636,10 @@ auseinanderlaufen; das ausgewählte Stück ist dort immer ausgenommen. Die Spann
 Gewichtsmodus läuft weiter über ALLE Stücke — sonst spränge die Farbskala beim Umschalten
 der Lagen um.
 
-`js/ui/print.js` erzeugt drei Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
-SVG-Ansichten), `buildChecklist` (Abhakliste) und `buildLabels` (Etiketten). Welches gilt,
-steuert `js/app/chrome.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`,
-bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle drei schreiben
+`js/ui/print.js` erzeugt vier Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
+SVG-Ansichten), `buildChecklist` (Abhakliste), `buildUnloadList` (Ausladeliste, dieselbe Zeilenlogik `listDoc` mit umgekehrter Reihenfolge, Titel „Ausladeliste – …“ und Unterschriftszeile „Entladen von“) und `buildLabels` (Etiketten). Welches gilt,
+steuert `js/app/chrome.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`; die Ausladeliste trägt `doc-checklist doc-unload`,
+bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle vier schreiben
 nur `root.innerHTML`, brauchen dafür also kein echtes DOM, sondern nur eine Attrappe – deshalb
 sind sie ohne jsdom testbar (`tests/print.test.js`). Allein `buildPrint` greift danach über
 `root.querySelector` auf das DOM zu, um die SVGs einzuhängen. Die Seitenvorschrift hängt an der Druckart:

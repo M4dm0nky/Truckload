@@ -1,9 +1,20 @@
 # Offene Punkte
 
-Stand V 0.13.10. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
-Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10 und aus Hinweisen des Nutzers. Nichts davon
-blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der Nützlichkeit. Erledigtes ist raus.
-Die Befunde der Meilenstein-Review V 0.6.0 stehen in `docs/code-review-2026-09-21.md`.
+Stand V 0.13.11. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
+des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
+Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
+`docs/code-review-2026-09-21.md`.
+
+## Teilprojekte
+
+Zwei größere Vorhaben sind geplant, aber noch nicht begonnen:
+
+- **Teilprojekt 2: Deckschicht nebeneinander.** Mehrere kleine Cases nebeneinander auf einem
+  großen statt eines pro Ebene (heute trägt eine Ebene nur ein Stück, siehe „Aus den
+  Pack-Regeln“).
+- **Teilprojekt 3: Mehrere LKW in einem Plan.** Ein Plan mit mehreren Fahrzeugen und einer
+  Verteilung der Cases darauf.
 
 ## Daten aus der Casemaße-Tabelle
 
@@ -15,14 +26,11 @@ einzelne Zahl, aus der sich kein Case bauen lässt. Der Nutzer wollte sie selbst
 der Höheneinheit (4,45 cm je HE plus 5,68 cm Aufschlag, abgeleitet aus den drei gemessenen
 Racks), Breite und Tiefe mit 60 × 60 geschätzt. Echte Maße würden das ersetzen.
 
-**`JDC-1 Cube (4)` und `JDC-1 Cube` sehen nach vertauschten Stückzahlen aus.** Das Case mit
-„(4)“ im Namen ist mit 60 × 60 × 58 kleiner als das mit einem Gerät (99 × 60 × 58). Die
-Stückzahl kommt allein aus dem Namen; das Gewicht der beiden Zeilen ist entsprechend
-fraglich.
-
-**Drei Motorcases sind 240 cm breit** (`D8+ 0,5t CAB x4/x8/x12`). Sie passen nur in die
-großen Fahrzeuge und erzeugen anderswo zwangsläufig eine Überstand-Warnung. In der Quelle
-sehen Länge und Breite vertauscht aus.
+**Die JDC-1-Gewichte passen nicht zur Stückzahl im Namen.** Seit „Abschluss Teil 1“ ist das Case
+mit „(4)“ das größere (99 × 60 × 58); seine 25 kg stammen aber aus der Rechnung für ein Gerät, die
+60 kg am kleineren Case aus der für vier. Die Namen wurden getauscht, die Gewichte nicht neu
+gerechnet (`docs/casemasse-gewichte.md`, „Korrektur D8+ und JDC-1“). Die Gewichte brauchen einen
+Blick, am besten mit dem echten Case auf der Waage.
 
 **Der Mindest-Case-Anteil von 15 kg überzeichnet kleine Cases.** Bei `SF TourHazer II`
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`
@@ -33,14 +41,6 @@ offengelegt, aber für kleine Cases zu konservativ.
 Die Befunde aus `docs/code-review-2026-09-21.md` sind abgearbeitet. Was davon bewusst offen
 geblieben ist, mit Begründung:
 
-- **2D/3D: Schriftfarbe der Beschriftung** (UI-N1). 2D ist fest weiß mit schwarzer Kontur
-  (`css/app.css`), 3D leitet sie aus dem Hintergrund ab (`textColorFor` in `view3d.js`). Auf
-  einem hellen Case (z. B. Gewerkfarbe Gelb) sieht das unterschiedlich aus; die Kontur rettet
-  die Lesbarkeit in beiden Fällen. Der Vorschlag (`textColorFor` nach `caseStyle.js`, in 2D als
-  `style`-Attribut setzen) berührt sowohl die Bildschirm- als auch die Druckdarstellung –
-  zusammen mit der Kontur-Wechselwirkung ist das mehr als eine Zeile und bräuchte eine eigene
-  Browser-Abnahme auf mehreren Case-Farben und im Ausdruck. Nutzen (Konsistenz zwischen
-  Ansichten) gegen Risiko (Lesbarkeitsregression im Ausdruck) abgewogen: zurückgestellt.
 - **Eine Textmetrik für 2D und 3D** (UI-S3). 2D kürzt Beschriftungen einzeilig mit „…“, 3D
   bricht sie mehrzeilig um und verkleinert die Schrift — zwei sichtbar unterschiedliche
   Ergebnisse für denselben Text. Eine Zusammenführung des eigentlichen Verfahrens (Kürzung vs.
@@ -55,9 +55,6 @@ geblieben ist, mit Begründung:
   Änderungen, genau die Fehlerklasse von UI-B1) oder so fein, dass der Gewinn gegenüber dem
   heutigen `innerHTML`-Aufbau klein wird. Ohne Performance-Beschwerde aus der Praxis nicht
   angefasst.
-- **Keine „3D-Ansicht veraltet“-Markierung**, wenn die 3D-Ansicht nach einem Fehler in
-  `update()` einfach stehen bleibt, statt neu aufgebaut zu werden — der Nutzer sieht dann
-  einen möglicherweise nicht mehr aktuellen Stand, ohne Hinweis.
 - **Modellschicht — `caseShape(c, p, box)`/`trussShape(c, p, box)` erzwingen `box === boxOf(c,
   p)` nicht.** Ein Vorgabewert (`box = boxOf(c, p)`) würde die Zusage in die Signatur schreiben,
   ohne die heutigen Aufrufer (die die Box schon haben) zu verlangsamen. Bisher hat kein
@@ -80,27 +77,15 @@ geblieben ist, mit Begründung:
   Kollisionsprüfung (O(n²)) die Stelle, die zuerst spürbar wird. Kein Gitter/Index gebaut,
   solange kein realer Plan das braucht.
 
-## Aus der Gesamt-Review vor dem Merge (2026-09-23) offen gelassen
-
-
 ## Aus dem Leerer-Start/Truss-Wizard-Branch (2026-09-23) offen gelassen
 
-- **„Gestapelt“-Häkchen im Truss-hinzufügen-Dialog überschreibt eine bewusste
-  Nutzer-Entscheidung.** Ist die „danach automatisch packen“-Checkbox im Wizard-Schritt
-  „Beschriften“ vom Nutzer absichtlich abgewählt, setzt „gestapelt“ sie beim Bestätigen
-  trotzdem wieder auf an (`js/ui/load-wizard.js`). Da Auto-Pack ohnehin per Vorgabe an ist,
-  gewinnt man dadurch nichts, verliert aber eine getroffene Entscheidung.
 - **Stiller `preventDefault()` im Truss-Dialog, falls `splitWagons` wirft**
   (`js/ui/truss-wizard.js`). Heute nicht erreichbar, weil die nativen `required`/`min="1"`-
   Formularprüfungen vorher greifen — falls diese Grenzen je gelockert werden, sähe der
   blockierte Knopf ohne Meldung wie ein Fehler aus.
-- **Traversenwagen-Case-Typen aus dem Truss-Dialog werden nicht dedupliziert.** Zweimal
-  identisch angelegt (gleiches Profil/Länge/Stückzahl je Wagen) erzeugt zwei separate
-  Case-Typen mit demselben Namen in „Eigene Cases“ — auch ein abgebrochener Durchlauf
-  hinterlässt seinen Typ dauerhaft. Entspricht dem Verhalten von „+ Neues Case“ (sofort
-  speichern, Aufräumen über 🗑), ist hier aber wahrscheinlicher, weil der Dialog auf
-  wiederholte Nutzung über mehrere Loads hinweg ausgelegt ist. Eine Wiederverwendung
-  vorhandener, exakt passender Case-Typen wäre eine sinnvolle Folge-Aufgabe.
+- **Ein abgebrochener Traversen-Dialog hinterlässt seinen Wagen-Typ.** Ein passender vorhandener
+  Typ wird inzwischen wiederverwendet (`findMatchingWagon`), neu angelegt bleibt der Typ aber
+  auch bei Abbruch in „Eigene Cases“ — wie bei „+ Neues Case“, Aufräumen über 🗑.
 
 ## Aus V 0.7.15 bis V 0.8.0 (2026-09-25 bis 2026-09-27) offen gelassen
 
@@ -124,7 +109,7 @@ geblieben ist, mit Begründung:
 
 - **Eine Ebene trägt nur ein Stück.** Die Deckschicht (seit V 0.8.6) stellt kleine Cases nie
   nebeneinander auf ein großes, auch wenn nebeneinander noch Platz wäre (eigene Entscheidung,
-  YAGNI) — Nutzen gegen Aufwand einer echten Bin-Packing-Lösung innerhalb einer Lage abgewogen.
+  YAGNI). Als Teilprojekt 2 geplant (siehe oben).
 - **0-kg-Cases mischen nicht.** Ein Case ohne Gewichtsangabe kommt weder als Deckschicht auf ein
   fremdes Case, noch trägt es eine fremde Deckschicht — 0 kg heißt unbekannt, nicht leicht.
 - **Die Lagen-Vorgabe 1+2 begrenzt die Deckschicht.** Der Wizard hakt Lage 1 und 2 vor; ein
@@ -142,8 +127,6 @@ geblieben ist, mit Begründung:
   nicht). Benennt man eine Gruppe oder ein Gewerk danach um, greift die Regel nicht mehr — der
   Dialog zeigt sie dann ausgegraut mit „(nicht in diesem Load)“, löscht sie aber nicht
   automatisch.
-- *Erledigt (Abschluss Teil 1):* Regelset überschreiben und löschen fragen nun per `showConfirm`
-  nach (`persistence.saveRuleSet`/`deleteRuleSet`). Rückgängig machen lässt sich ein Löschen weiterhin nicht.
 
 ## Aus dem Aufräumen vor V 0.13.10 bewusst offen gelassen
 
@@ -163,9 +146,6 @@ geblieben ist, mit Begründung:
   Nutzer verwirrend.
 - Tippen kann Nachbarn überlappen, weil nur `z` nachgeführt wird, nicht `x`/`y`. Das
   verhält sich seit jeher wie „Drehen“, und die Prüfung meldet es.
-- *Erledigt (Abschluss Teil 1):* Die Taste T schaltet um (`toggleTip`, `js/model/geometry.js`):
-  getippt (auch vom Packer) -> `standing`, stehend -> erste getippte Lage. Den Schritt-Weiter
-  `cycleTip` gibt es nicht mehr.
 - Im Wizard neu angelegte Cases bleiben in der Bibliothek, auch wenn man den Wizard danach
   abbricht. Entspricht dem Verhalten des Case-Editors.
 - `toPiece` in `js/model/actions.js` listet die Stück-Felder einzeln auf. Ein künftiges
@@ -177,9 +157,6 @@ geblieben ist, mit Begründung:
   gedruckte Beschriftungen können ihren Kasten um rund ein Zeichen überragen.
 - Die 3D-Beschriftung rundet das Seitenverhältnis auf 0,25-Schritte (Cache-Schlüssel), damit
   bleibt eine Restverzerrung von bis zu 33 % auf schmalen Flächen.
-- Der 3D-Ansicht fehlt ein `disposed`-Flag; ein doppelter `dispose()`-Aufruf ist nicht
-  gesondert abgesichert (heute nicht erreichbar, weil unter `js/app/` nichts `dispose()` der
-  3D-Ansicht aufruft).
 - Der senkrechte Rand der Avery-Bögen 3425 und 3474 ist nicht aus Herstellerangaben belegt —
   die öffentlich auffindbaren Quellen nennen ihn nicht, und die eine mit Zahlen widerspricht
   sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es
@@ -187,8 +164,6 @@ geblieben ist, mit Begründung:
   daneben, ist `align-content` in `css/print.css` die Stellschraube.
 - Andere Haftpapier-Formate als 3425 und 3474 gibt es nicht. Ein weiteres Format braucht einen
   Eintrag in `#print-label-size`, eine Rasterregel in `css/print.css` und dessen Maße.
-- Die Abhakliste nennt keine Lage und keine Position. Auf der Rampe reicht die Ladereihenfolge;
-  ob jemand dort zusätzlich die Lage sehen will, ist nicht geklärt.
 - Die Lagen-Auswahl endet bei „bis 3“. Für den vorgesehenen Bereich reicht das (ab Lage 5 warnt
   `validate.js`), aber in einem Load mit 5 Lagen – der gewarnt, nicht verhindert wird – lassen
   sich die Lagen 1–4 nicht gemeinsam freistellen.
@@ -199,11 +174,10 @@ geblieben ist, mit Begründung:
 
 ## Ideen, die noch niemand beauftragt hat
 
-- Gewichte im Inspector schnell nachtragen können, ohne den Case-Editor zu öffnen.
-- Mehrere Trucks je Show, mit Verteilung der Cases auf die Fahrzeuge.
-- Ladereihenfolge nach Ausladereihenfolge statt nach Position.
-- Grund fürs Liegenbleiben in der Ablage anzeigen. Mit der Vorgabe „getippt“ landet ein
-  tippbares Case, das nur stehend passt, nach „Alles neu packen“ ohne erkennbaren Grund in
-  der Ablage (`piece.tipped:true` erzwingt tipLong/tipShort, `chooseOrientation` liefert dann
-  `null`, obwohl „stehend“ gepasst hätte) — der Nutzer sieht nur, dass es nicht platziert
-  wurde, nicht warum. Die Ablage könnte den Grund benennen.
+- Mehrere Trucks je Show, mit Verteilung der Cases auf die Fahrzeuge (Teilprojekt 3, siehe oben).
+- Das Gewicht im Inspector lässt sich nur für eigene Cases und Firmen-Vorlagen ändern; bei
+  Standardvorlagen und Traversenwagen bleibt es lesbar (Vorlage: „Kopieren“ in der Material-
+  verwaltung). Ob Standardvorlagen direkt überschreibbar sein sollen, ist nicht entschieden.
+- Der Grund in der Ablage nennt nur, was aus den Maßen folgt („zu groß für den Laderaum“, „auf
+  getippt/nicht tippen gesetzt, passt aber nur …“). Nutzlast, Lagen-Einschränkung und
+  Pack-Regeln benennt er nicht — „kein Platz“ wäre geraten, deshalb steht dann kein Grund da.
