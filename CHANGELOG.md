@@ -2,6 +2,20 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.14.1 – 2026-10-10
+
+**Schrift wächst beim Zoomen mit, Mausrad und Trackpad robuster erkannt.**
+
+- **Schrift beim Zoomen:** Beim Hineinzoomen in die 2D-Ansichten wird die Beschriftung der Cases
+  größer, solange der ganze Name noch hineinpasst; sonst bleibt sie so groß wie vorher und der
+  Name wird wie bisher gekürzt. Bei Zoom 1 sieht alles aus wie vorher; Linien
+  wachsen weiter mit.
+- **Mausrad und Trackpad:** Die Erkennung ist robuster (Zeilenmodus, Rastschritte, zusammenhängende
+  Wischgesten). Neben den Zoomknöpfen steht jetzt ein Umschalter „Rad: Auto/Zoom/Schieben“ als
+  Ausweg, falls ein Gerät trotzdem falsch erkannt wird; die Wahl wird gemerkt.
+- **Ehrlicher Hinweis:** Die Rad-Erkennung ist nur mit simulierten Ereignissen geprüft, nicht an
+  echter Maus oder echtem Trackpad. Im Zweifel hilft der Umschalter.
+
 ## V 0.14.0 – 2026-10-10
 
 **Mehrere LKW in einem Plan.** Ein Plan kann jetzt mehrere Fahrzeuge tragen, jedes mit eigenem

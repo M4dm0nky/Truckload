@@ -1,6 +1,6 @@
 # Offene Punkte
 
-Stand V 0.14.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Stand V 0.14.1. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
 Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
 des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
 Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
@@ -88,11 +88,12 @@ geblieben ist, mit Begründung:
 
 ## Aus V 0.7.15 bis V 0.8.0 (2026-09-25 bis 2026-09-27) offen gelassen
 
-- **Mausrad oder Trackpad wird an der Schrittgröße erkannt** (`attachZoom`, `js/ui/zoom2d.js`).
-  Zeilen-Modus oder große, rein senkrechte Schritte gelten als Mausrad (zoomen), alles andere
-  als Trackpad-Wischen (verschieben). Mäuse mit sehr feinem Scrollen würden den Ausschnitt
-  deshalb verschieben statt zoomen. Geprüft ist das nur mit simulierten Eingaben, nicht an
-  echter Hardware. Die Knöpfe „−“/„+“ funktionieren in jedem Fall.
+- **Mausrad oder Trackpad wird an der Schrittgröße erkannt** (`classifyWheel`, `js/ui/zoom2d.js`).
+  Seit V 0.14.1 robuster (Zeilenmodus, 120er-Rastschritte, 150-ms-Geste, Strg/Pinch zählt nicht
+  mit). Als Ausweg gibt es neben den Zoomknöpfen den Umschalter „Rad: Auto/Zoom/Schieben“. Geprüft
+  ist das weiterhin nur mit simulierten Eingaben, nicht an echter Hardware; ein Trackpad-Ereignis
+  mit `deltaX` 0 und `wheelDeltaY` als Vielfaches von 120 kann als erstes einer Geste noch als
+  Rad gelten. Die Knöpfe „−“/„+“ funktionieren in jedem Fall.
 - **Die Dolly-Breite der Pre-Rig-Traversen ist geschätzt.** Belegt ist nur, dass die Traverse
   das breiteste Teil ist (Nutzerangabe). Der Einzug von 2 cm je Seite (`STAND_DOLLY_INSET`) ist
   eine optische Annahme ohne Einfluss aufs Packen. Ein echtes Maß würde ihn ersetzen.
@@ -100,9 +101,11 @@ geblieben ist, mit Begründung:
   seit V 0.7.15 nicht mehr alle erlaubten Lagen umfasst. Erlaubt ein Case-Typ später mehr oder
   weniger Lagen, kommt das bei diesen Stücken nicht an; die Schnittmengenregel
   (`pieceLayers`) verhindert nur, dass ein Stück mehr darf als sein Typ.
-- **Zoom: Beschriftungen und Linien wachsen mit.** Sie sind in Truck-Einheiten gezeichnet und
-  werden beim Hineinzoomen entsprechend größer bzw. dicker. Beim Prüfen der Abstände hilft das
-  eher, bei sehr starkem Zoom verdeckt die Schrift aber mehr vom Case.
+- **Zoom: Linien wachsen mit, die Schrift nur, wenn sie ins Case passt.** Linien sind in
+  Truck-Einheiten gezeichnet und werden beim Hineinzoomen dicker. Die Schrift wächst seit
+  V 0.14.1 mit, solange der ganze Name noch in die Breite des Cases passt (Obergrenze: kleinere
+  Case-Seite × 0,32); passt er nicht, bleibt sie auf der Grundgröße und der Name wird wie
+  bisher mit „…“ gekürzt.
 
 ## Aus den Pack-Regeln (2026-09-30) offen
 
@@ -164,10 +167,12 @@ geblieben ist, mit Begründung:
 - Die 3D-Beschriftung rundet das Seitenverhältnis auf 0,25-Schritte (Cache-Schlüssel), damit
   bleibt eine Restverzerrung von bis zu 33 % auf schmalen Flächen.
 - Der senkrechte Rand der Avery-Bögen 3425 und 3474 ist nicht aus Herstellerangaben belegt —
-  die öffentlich auffindbaren Quellen nennen ihn nicht, und die eine mit Zahlen widerspricht
-  sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es
+  eine Websuche in Shopseiten (Post-Shop, alltron) fand nur das Format, keinen senkrechten
+  Rand; die eine Quelle mit Zahlen widerspricht sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es
   eindeutig (2 × 105 = 3 × 70 = 210 mm = A4-Breite). Sitzt der Druck auf einem echten Bogen
   daneben, ist `align-content` in `css/print.css` die Stellschraube.
+  Recherche 2026-10-10: Webquellen nennen nur Format (3425: 105 × 57 mm, 3474: 70 × 37 mm),
+  keinen senkrechten Rand; Annahme „zentriert“ bleibt.
 - Andere Haftpapier-Formate als 3425 und 3474 gibt es nicht. Ein weiteres Format braucht einen
   Eintrag in `#print-label-size`, eine Rasterregel in `css/print.css` und dessen Maße.
 - Die Lagen-Auswahl endet bei „bis 3“. Für den vorgesehenen Bereich reicht das (ab Lage 5 warnt

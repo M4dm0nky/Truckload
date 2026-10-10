@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.14.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.14.1** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -196,6 +196,9 @@ genau zu prüfen, wie die Cases stehen:
 - **Verschieben:** mit zwei Fingern wischen oder auf freier Fläche ziehen. Ziehen auf einem
   Case verschiebt weiterhin das Case.
 - **Ganzer Truck:** Doppelklick auf freie Fläche oder der Knopf „Alles“.
+- **Schrift und Rad:** Die Beschriftung wächst beim Zoomen mit, solange sie ins Case passt.
+  Erkennt die App Maus oder Trackpad falsch, stellt „Rad: Auto/Zoom/Schieben“ neben den
+  Zoomknöpfen um.
 
 Cases lassen sich auch gezoomt verschieben und aus der Liste hineinziehen. Beim
 Hineinziehen rastet ein Case, wie beim Verschieben, an den Kanten der Nachbarn und an den
@@ -282,7 +285,7 @@ Neben dem Knopf „Drucken“ steht, was gedruckt wird:
 
 Etiketten drucken auf A4 hoch und randlos, Ladeplan, Abhakliste und Ausladeliste auf A4 quer. Vor dem ersten
 Etikettenbogen einen Testdruck auf normalem Papier machen und gegen einen Bogen halten — der
-senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (siehe
+senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (nur Shopseiten gesichtet, siehe
 [docs/offene-punkte.md](docs/offene-punkte.md)).
 
 ## Mitgelieferte Cases

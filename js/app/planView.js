@@ -14,7 +14,7 @@ import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
 import { createView3d } from '../ui/view3d.js';
-import { attachZoom, zoomIn, zoomOut, resetZoom } from '../ui/zoom2d.js';
+import { attachZoom, zoomIn, zoomOut, resetZoom, getScrollMode, setScrollMode, nextScrollMode, SCROLL_LABELS, SCROLL_SHORT } from '../ui/zoom2d.js';
 import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, repointTruck, distributionNotices } from './core.js';
 import { lkwsOf, isMultiLkw, addLkw, updateLkw, removeLkw, moveToLkw } from '../model/lkw.js';
 import { mountLkwTabs, lkwTabsModel } from '../ui/lkw-tabs.js';
@@ -134,7 +134,17 @@ export function mountPlanView(deps) {
     const z = e.target.closest('button')?.dataset.z;
     const svg = $(`#${el.dataset.zoom}`);
     if (z === 'in') zoomIn(svg); else if (z === 'out') zoomOut(svg); else if (z === 'all') resetZoom(svg);
+    else if (z === 'scroll') { setScrollMode(nextScrollMode(getScrollMode())); syncScrollButtons(); }
   }));
+  // Beschriftung der Umschalter in allen drei Ansichten angleichen.
+  function syncScrollButtons() {
+    const mode = getScrollMode();
+    document.querySelectorAll('.zoom [data-z="scroll"]').forEach(b => {
+      b.textContent = SCROLL_SHORT[mode];
+      b.setAttribute('aria-label', `${SCROLL_SHORT[mode]} – Scrollverhalten (${SCROLL_LABELS[mode]}), Klick wechselt`);
+    });
+  }
+  syncScrollButtons();
 
   // --- Inspector ---
   renderHooks.push((s, d) => {
