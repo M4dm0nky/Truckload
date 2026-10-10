@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { exportBundle, parseBundle, checkCase, checkTruck, checkPlan, mergeById, backupFileName, preImportBackupFileName, normalizeCase } from '../js/store/io.js';
-import { CASE_LIMITS, MAX_LABEL, NAME_MAX, COORD_MAX } from '../js/model/limits.js';
+import { CASE_LIMITS, MAX_LABEL, NAME_MAX, COORD_MAX, MAX_LKW } from '../js/model/limits.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -764,4 +764,78 @@ test('Name über NAME_MAX direkt an checkCase/checkTruck wird weiterhin abgelehn
   assert.throws(() => checkCase({ ...own, name: nameOf(NAME_MAX + 1) }), /zu lang/);
   assert.throws(() => checkTruck({ ...mkTruck(), name: nameOf(NAME_MAX + 1) }), /zu lang/);
   assert.throws(() => parseBundle(bundleWith({ cases: [{ ...own, name: 5 }], trucks: [], plans: [] })), /ohne ID oder Name/);
+});
+
+// ---- Mehrere LKW in einem Plan (V 0.14) ---------------------------------------------------
+const lkwPlan = (extra = {}) => ({
+  ...plan(
+    [P('p1', 'own', 0, 0, 0, { lkw: 'L1' }), P('p2', 'own', 130, 0, 0, { lkw: 'L2' })],
+    [{ id: 'u1', caseId: 'own', lkw: 'L2' }, { id: 'u2', caseId: 'own' }],
+  ),
+  lkws: [
+    { id: 'L1', name: 'LKW 1', truckId: 't', categories: [] },
+    { id: 'L2', name: 'LKW 2', truckId: 't', categories: ['Ton', 'Licht'] },
+  ],
+  ...extra,
+});
+test('Mehr-LKW-Plan: Export/Import-Roundtrip ist gleich, ohne Reparaturmeldung', () => {
+  const p = lkwPlan();
+  const res = parseBundle(exportBundle({ cases: [own], trucks: [], plans: [p] }));
+  assert.deepEqual(res.plans[0], p);
+  assert.deepEqual(res.repairs, []);
+});
+test('Altschema: Plan ohne lkws und ohne lkw-Felder lädt unverändert, auch mit leerem lkws', () => {
+  const old = plan([P('p1', 'own', 0, 0, 0)], [{ id: 'u1', caseId: 'own' }]);
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [old] }));
+  assert.deepEqual(res.plans[0], old);
+  assert.equal('lkws' in res.plans[0], false);
+  assert.deepEqual(res.repairs, []);
+  assert.doesNotThrow(() => checkPlan({ ...old, lkws: [] }));
+});
+test('checkPlan prüft lkws: Array, Objekte mit eindeutiger id, Name, truckId, categories', () => {
+  assert.doesNotThrow(() => checkPlan(lkwPlan()));
+  const bad = lkws => () => checkPlan(lkwPlan({ lkws }));
+  const ok = { id: 'L1', name: 'A', truckId: 't', categories: [] };
+  assert.throws(() => checkPlan(lkwPlan({ lkws: 'x' })), /LKW/);
+  assert.throws(bad([null]), /LKW/);
+  assert.throws(bad([{ ...ok, id: 5 }]), /LKW/);
+  assert.throws(bad([{ ...ok, name: 5 }]), /LKW/);
+  assert.throws(bad([{ ...ok, truckId: undefined }]), /LKW/);
+  assert.throws(bad([{ ...ok, categories: 'Ton' }]), /LKW/);
+  assert.throws(bad([{ ...ok, categories: [1] }]), /LKW/);
+  assert.throws(bad([ok, { ...ok, name: 'B' }]), /doppelte/);
+  assert.throws(bad([{ ...ok, name: nameOf(NAME_MAX + 1) }]), /Name.*zu lang/);
+  assert.throws(bad(Array.from({ length: MAX_LKW + 1 }, (_, i) => ({ ...ok, id: `L${i}` }))), /LKW/);
+  assert.doesNotThrow(bad(Array.from({ length: MAX_LKW }, (_, i) => ({ ...ok, id: `L${i}` }))));
+});
+test('checkPlan: piece.lkw muss ein String sein', () => {
+  assert.throws(() => checkPlan(lkwPlan({ unplaced: [{ id: 'u1', caseId: 'own', lkw: 3 }] })), /Platzierungen/);
+  assert.throws(() => checkPlan(lkwPlan({ placements: [P('p1', 'own', 0, 0, 0, { lkw: 3 })] })), /Platzierungen/);
+});
+test('Unbekannter lkw-Verweis wird repariert (Feld entfernt, Platzierung in die Ablage) und gemeldet', () => {
+  const p = lkwPlan({
+    placements: [P('p1', 'own', 0, 0, 0, { lkw: 'L1' }), P('p2', 'own', 130, 0, 0, { lkw: 'GEIST' }), P('p3', 'own', 260, 0, 0)],
+    unplaced: [{ id: 'u1', caseId: 'own', lkw: 'GEIST' }, { id: 'u2', caseId: 'own', lkw: 'L2' }],
+  });
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] }));
+  const r = res.plans[0];
+  assert.deepEqual(r.placements.map(x => x.id), ['p1']);
+  assert.deepEqual(r.unplaced.map(x => [x.id, x.lkw]), [['u1', undefined], ['u2', 'L2'], ['p2', undefined], ['p3', undefined]]);
+  assert.ok(r.unplaced.every(u => !('x' in u) && !('orientation' in u)));
+  assert.equal(res.repairs.length, 1);
+  assert.match(res.repairs[0], /Ladeplan „Test“/);
+  assert.match(res.repairs[0], /2 Stücke.*LKW/);
+  assert.match(res.repairs[0], /2 Platzierungen.*Ablage/);
+});
+test('Plan ohne lkws, aber mit lkw-Feldern: Felder entfernt und gemeldet', () => {
+  const p = plan([], [{ id: 'u1', caseId: 'own', lkw: 'L1' }]);
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] }));
+  assert.equal('lkw' in res.plans[0].unplaced[0], false);
+  assert.equal(res.repairs.length, 1);
+  assert.match(res.repairs[0], /1 Stück.*LKW/);
+});
+test('Platzierung weit außerhalb behält ihren lkw in der Ablage', () => {
+  const p = lkwPlan({ placements: [P('far', 'own', COORD_MAX + 5, 0, 0, { lkw: 'L2' })], unplaced: [] });
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] }));
+  assert.deepEqual(res.plans[0].unplaced, [{ id: 'far', caseId: 'own', lkw: 'L2' }]);
 });

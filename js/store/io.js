@@ -1,6 +1,6 @@
 import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.js';
-import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, layersValid } from '../model/limits.js';
+import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, layersValid } from '../model/limits.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
@@ -121,7 +121,24 @@ const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.
 const pieceLayersOk = x => x.layers === undefined || layersValid(x.layers);
 const tippedOk = x => x.tipped === undefined || typeof x.tipped === 'boolean';
 const groupOk = x => x.group === undefined || (typeof x.group === 'string' && x.group.trim().length > 0 && x.group.length <= MAX_LABEL);
+const lkwRefOk = x => x.lkw === undefined || typeof x.lkw === 'string';
 const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk);
+// Mehrere LKW in einem Plan (V 0.14): `lkws` fehlt (Ein-LKW-Plan) oder ist eine Liste von höchstens
+// MAX_LKW Objekten mit eindeutiger id, Name, Fahrzeug-ID und Gewerke-Liste. Gewerke werden hier nur
+// als Strings geprüft (ein später entferntes Gewerk soll die Datei nicht unlesbar machen).
+function checkLkws(p) {
+  if (p.lkws === undefined) return;
+  const bad = () => new Error(`Ladeplan „${p.name}“ hat ungültige LKW.`);
+  if (!Array.isArray(p.lkws) || p.lkws.length > MAX_LKW) throw bad();
+  for (const l of p.lkws) {
+    if (!l || typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.truckId !== 'string'
+      || !Array.isArray(l.categories) || !l.categories.every(c => typeof c === 'string')) throw bad();
+    const tooLong = nameTooLong('LKW', l);
+    if (tooLong) throw tooLong;
+  }
+  const lkwIds = p.lkws.map(l => l.id);
+  if (new Set(lkwIds).size !== lkwIds.length) throw new Error(`Ladeplan „${p.name}“ enthält doppelte LKW-IDs.`);
+}
 export function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
     throw new Error('Ungültiger Ladeplan in der Datei.');
@@ -136,12 +153,13 @@ export function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ hat ungültige Pack-Regeln.`);
   if (p.mixTop !== undefined && typeof p.mixTop !== 'boolean')
     throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Deckschicht-Schalter.`);
+  checkLkws(p);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
     && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl)
-    && pieceLayersOk(pl) && tippedOk(pl) && groupOk(pl);
+    && pieceLayersOk(pl) && tippedOk(pl) && groupOk(pl) && lkwRefOk(pl);
   const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u)
-    && pieceLayersOk(u) && tippedOk(u) && groupOk(u);
+    && pieceLayersOk(u) && tippedOk(u) && groupOk(u) && lkwRefOk(u);
   if (!p.placements.every(placementOk) || !arr(p.unplaced).every(unplacedOk))
     throw new Error(`Ladeplan „${p.name}“ enthält ungültige Platzierungen.`);
   const pieceIds = [...p.placements, ...arr(p.unplaced)].map(x => x.id);
@@ -242,10 +260,36 @@ export function parseBundle(text) {
     return {
       ...p,
       placements: p.placements.filter(x => !farOut(x)),
-      unplaced: [...p.unplaced, ...out.map(x => ({ id: x.id, caseId: x.caseId, ...pickPieceFields(x) }))],
+      unplaced: [...p.unplaced, ...out.map(x => ({ id: x.id, caseId: x.caseId, ...pickPieceFields(x), ...(typeof x.lkw === 'string' ? { lkw: x.lkw } : {}) }))],
     };
   };
-  const plans = rawPlans.map(movePlaced).map(p => ({
+  // Unbekannte LKW-Verweise (`lkw` zeigt auf keinen LKW des Plans, oder der Plan hat gar keine
+  // `lkws`): Feld entfernen statt die Datei abzulehnen. Eine Platzierung ohne gültigen LKW gibt es
+  // nicht – sie kommt in die Ablage (nicht zugeordnet). Nicht-String-Werte bleiben stehen und
+  // lehnt checkPlan ab. Stücke ganz ohne `lkw` in einem Mehr-LKW-Plan sind gültig (nicht zugeordnet).
+  const fixLkwRefs = p => {
+    if (!Array.isArray(p.placements)) return p; // checkPlan lehnt den Plan ab
+    const known = new Set((Array.isArray(p.lkws) ? p.lkws : []).map(l => l?.id));
+    const stale = x => x && typeof x.lkw === 'string' && !known.has(x.lkw);
+    const multi = known.size > 0;
+    const nStale = [...p.placements, ...p.unplaced].filter(stale).length;
+    // Platzierungen ohne gültigen LKW: nur wo es LKW gibt und die Platzierung nicht schon (mit
+    // gültigem Verweis) zugeordnet ist.
+    const orphanPl = x => multi && x && typeof x === 'object' && (stale(x) || x.lkw === undefined);
+    const toTray = p.placements.filter(orphanPl);
+    if (nStale === 0 && toTray.length === 0) return p;
+    const strip = x => (stale(x) ? (({ lkw: _d, ...rest }) => rest)(x) : x);
+    const parts = [];
+    if (nStale > 0) parts.push(`${nStale} ${nStale === 1 ? 'Stück' : 'Stücke'} mit unbekanntem LKW-Verweis – Zuordnung entfernt`);
+    if (toTray.length > 0) parts.push(`${toTray.length} ${toTray.length === 1 ? 'Platzierung' : 'Platzierungen'} ohne LKW – in die Ablage verschoben`);
+    planRepairs.push(`Ladeplan „${p.name}“: ${parts.join('; ')}.`);
+    return {
+      ...p,
+      placements: p.placements.filter(x => !toTray.includes(x)).map(strip),
+      unplaced: [...p.unplaced.map(strip), ...toTray.map(x => ({ id: x.id, caseId: x.caseId, ...pickPieceFields(x) }))],
+    };
+  };
+  const plans = rawPlans.map(movePlaced).map(fixLkwRefs).map(p => ({
     ...p,
     name: cutName('plan', p.name),
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
