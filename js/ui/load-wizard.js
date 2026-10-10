@@ -225,6 +225,8 @@ export async function openLoadWizard(dlg, opts = {}) {
     const res = await openTrussDialog(opts.trussDlg, { cases, onNewTruss: opts.onNewTruss, stock: stockOpt() });
     if (!res) return;
     for (const nc of res.newCases) created.add(nc.id);
+    // Auch wiederverwendete Wagen (nur in additions) müssen trotz Filter in der Liste stehen.
+    for (const a of res.additions) created.add(a.caseId);
     if (res.newCases.length) cases = [...cases.filter(c => !res.newCases.some(nc => nc.id === c.id)), ...res.newCases];
     // Dieselbe MAX_ITEMS-Grenze wie addNewCase() oben – anders als dort kann eine einzelne Addition
     // aber weit mehr als 1 Stück bringen (z. B. alle gleich besetzten Wagen eines „Gesamtstückzahl“-
