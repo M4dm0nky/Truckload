@@ -83,15 +83,51 @@ export function resetZoom(svg) {
   set(svg, full, full);
 }
 
-// Mausrad oder Trackpad: Pinch (ctrlKey) und Mausrad zoomen an der Mausposition, Wischen mit zwei
-// Fingern verschiebt. Ein Mausrad erkennt man am Zeilen-Modus oder an großen, rein senkrechten
-// Schritten; Trackpad-Wischen liefert kleine Schritte und oft auch deltaX.
+// --- Mausrad oder Trackpad? ---
+// Ein Rad erkennt man am Zeilen-Modus, an wheelDeltaY in 120er-Schritten bei reinem deltaY (auch
+// feine Räder) oder an großen, rein senkrechten Schritten; Trackpad-Wischen liefert kleine Schritte
+// und oft auch deltaX. Die Einstufung gilt für eine ganze Geste: folgt ein Ereignis binnen 150 ms
+// auf das vorige, bleibt es bei dessen Einstufung (kein Umkippen mitten im Wischen, Trägheit bleibt
+// „pad“). `state` ({ kind, t }) hält die letzte Einstufung und wird hier fortgeschrieben.
+const GESTURE_GAP_MS = 150;
+export function classifyWheel(e, state, now) {
+  const fresh = state.kind && now - state.t <= GESTURE_GAP_MS;
+  let kind = state.kind;
+  if (!fresh) {
+    const stepped = e.deltaX === 0 && e.wheelDeltaY && e.wheelDeltaY % 120 === 0;
+    kind = e.deltaMode === 1 || stepped || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50) ? 'wheel' : 'pad';
+  }
+  state.kind = kind;
+  state.t = now;
+  return kind;
+}
+
+// --- Umschalter „Scrollen“: Automatisch / Zoomen / Verschieben (gilt für alle 2D-Ansichten) ---
+export const SCROLL_MODES = ['auto', 'zoom', 'pan'];
+export const SCROLL_LABELS = { auto: 'Automatisch', zoom: 'Zoomen', pan: 'Verschieben' };
+const SCROLL_KEY = 'truckload.scrollMode';
+export const nextScrollMode = m => SCROLL_MODES[(SCROLL_MODES.indexOf(m) + 1) % SCROLL_MODES.length];
+const defaultStore = () => { try { return globalThis.localStorage; } catch { return undefined; } };
+export function loadScrollMode(store = defaultStore()) {
+  try { const v = store?.getItem(SCROLL_KEY); return SCROLL_MODES.includes(v) ? v : 'auto'; } catch { return 'auto'; }
+}
+export function saveScrollMode(mode, store = defaultStore()) {
+  try { store?.setItem(SCROLL_KEY, mode); } catch { /* ohne Speicher: gilt nur bis zum Neuladen */ }
+}
+let scrollMode = null;
+export const getScrollMode = () => (scrollMode ??= loadScrollMode());
+export function setScrollMode(mode) { scrollMode = SCROLL_MODES.includes(mode) ? mode : 'auto'; saveScrollMode(scrollMode); }
+
+// Mausrad oder Trackpad: Pinch (ctrlKey) zoomt immer an der Mausposition; sonst je nach Umschalter
+// (Automatisch: Rad zoomt, Trackpad-Wischen verschiebt; Zoomen / Verschieben: alles gleich).
 // Ziehen auf freier Fläche (nicht auf einem Case) verschiebt, Doppelklick dort zeigt wieder alles.
 export function attachZoom(svg) {
+  const gesture = {};
   svg.addEventListener('wheel', e => {
     const { full, vb } = current(svg);
-    const isWheel = e.deltaMode === 1 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50);
-    if (e.ctrlKey || isWheel) {
+    const mode = getScrollMode();
+    const kind = classifyWheel(e, gesture, e.timeStamp || performance.now());
+    if (e.ctrlKey || mode === 'zoom' || (mode === 'auto' && kind === 'wheel')) {
       e.preventDefault();
       const p = toSvg(svg, e.clientX, e.clientY);
       const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
@@ -100,7 +136,8 @@ export function attachZoom(svg) {
       if (vb.w >= full.w - 1e-9) return; // nichts zu verschieben – Seite normal scrollen lassen
       e.preventDefault();
       const k = unitsPerPx(svg);
-      set(svg, panBy(vb, e.deltaX * k, e.deltaY * k, full), full);
+      const m = e.deltaMode === 1 ? 33 : 1;
+      set(svg, panBy(vb, e.deltaX * m * k, e.deltaY * m * k, full), full);
     }
   }, { passive: false });
 

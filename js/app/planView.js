@@ -134,7 +134,17 @@ export function mountPlanView(deps) {
     const z = e.target.closest('button')?.dataset.z;
     const svg = $(`#${el.dataset.zoom}`);
     if (z === 'in') zoomIn(svg); else if (z === 'out') zoomOut(svg); else if (z === 'all') resetZoom(svg);
+    else if (z === 'scroll') { setScrollMode(nextScrollMode(getScrollMode())); syncScrollButtons(); }
   }));
+  // Beschriftung der Umschalter in allen drei Ansichten angleichen.
+  function syncScrollButtons() {
+    const mode = getScrollMode();
+    document.querySelectorAll('.zoom [data-z="scroll"]').forEach(b => {
+      b.textContent = `Scrollen: ${SCROLL_LABELS[mode]}`;
+      b.setAttribute('aria-label', `Scrollen: ${SCROLL_LABELS[mode]} – Klick wechselt`);
+    });
+  }
+  syncScrollButtons();
 
   // --- Inspector ---
   renderHooks.push((s, d) => {
