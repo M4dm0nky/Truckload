@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { chooseOrientation, buildStacks, placeStacks, autoPack, orderSorts } from '../js/model/packer.js';
 import { PACK_ORDERS, legacyRules } from '../js/model/packRules.js';
 import { validatePlan } from '../js/model/validate.js';
-import { wheelFace, DOOR_FACE, isTruss, pieceOrientations, canTip } from '../js/model/geometry.js';
+import { wheelFace, DOOR_FACE, isTruss, pieceOrientations, canTip, boxOf, overlaps } from '../js/model/geometry.js';
 import { mkCase, mkTruck, SPRINTER, plan, byId } from './fixtures.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
@@ -834,4 +834,171 @@ test('Traversenwagen mit tippable:true (Altdaten): nur standing, Packer tippt ni
   assert.ok(placements.every(p => p.orientation === 'standing'));
   const r = validatePlan(plan([...placements, { ...placements[0], id: 'x', x: 900, orientation: 'tipLong' }]), byId(tw), mkTruck());
   assert.ok(!r.issues.some(i => i.code === 'notTippable'), 'keine Warnung zum Tippen');
+});
+
+// --- Deckschicht nebeneinander (Teilprojekt „Deckschicht nebeneinander“) ---------------------------
+// Die oberste Lage eines Stapels trägt mehrere Stücke im Regalverfahren auf der Fläche des obersten
+// Hauptstücks; jedes Deckstück hat einen Versatz (ox, oy) in der Stapelfläche.
+const topBig = (extra = {}) => mkCase('tb', 120, 80, 60, { weight: 120, category: 'Audio', ...extra });
+const topSm = (id = 'ts', extra = {}) => mkCase(id, 60, 40, 40, { weight: 15, category: 'Audio', ...extra });
+const at = (r, id) => r.placements.find(p => p.id === id);
+const rel = (r, id, baseId) => { const p = at(r, id), b = at(r, baseId); return [p.x - b.x, p.y - b.y, p.z - b.z]; };
+const capOf = list => buildStacks(list, mkTruck(), { mixTop: true }).stacks.find(s => s.capped);
+
+test('Deckschicht nebeneinander: vier kleine Cases liegen in zwei Reihen auf einem großen, das fünfte nicht mehr', () => {
+  const r = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 5, 's')], mkTruck(), { mixTop: true });
+  assert.deepEqual(r.unplaced, []);
+  assert.deepEqual(rel(r, 's1', 'b1'), [0, 0, 60]);
+  assert.deepEqual(rel(r, 's2', 'b1'), [60, 0, 60]);
+  assert.deepEqual(rel(r, 's3', 'b1'), [0, 40, 60], 'zweite Reihe: um die Tiefe 40 versetzt');
+  assert.deepEqual(rel(r, 's4', 'b1'), [60, 40, 60]);
+  assert.equal(at(r, 's5').z, 0, 'das fünfte steht auf dem Boden (nächster Stapel)');
+  assert.notDeepEqual([at(r, 's5').x, at(r, 's5').y], [at(r, 'b1').x, at(r, 'b1').y]);
+  const { stacks } = buildStacks([...items(topBig(), 1, 'b'), ...items(topSm(), 5, 's')], mkTruck(), { mixTop: true });
+  const s = stacks.find(x => x.capped);
+  assert.equal(s.height, 100, 'Stapelhöhe = Hauptstapel 60 + Deckstück 40');
+  assert.equal(s.weight, 120 + 4 * 15);
+  assert.equal(s.mixed, true);
+});
+
+test('Deckschicht nebeneinander: drei Stücke, ein Stapel mit zwei Reihen (Reihe 1: zwei, Reihe 2: eins)', () => {
+  const s = capOf([...items(topBig(), 1, 'b'), ...items(topSm(), 3, 's')]);
+  assert.deepEqual(s.items.map(x => [x.ox ?? 0, x.oy ?? 0, x.z]), [[0, 0, 0], [0, 0, 60], [60, 0, 60], [0, 40, 60]]);
+});
+
+test('Deckschicht nebeneinander: ein Stück wird in der Reihe um 90° gedreht, wenn es sonst nicht mehr passt', () => {
+  const a = mkCase('a', 60, 30, 20, { weight: 20, category: 'Audio' });
+  const b = mkCase('b', 55, 30, 20, { weight: 15, category: 'Audio' });
+  const top = mkCase('top', 100, 60, 60, { weight: 150, category: 'Audio' });
+  const r = autoPack([...items(top, 1, 't'), ...items(a, 1, 'a'), ...items(b, 1, 'b')], mkTruck(), { mixTop: true });
+  assert.deepEqual(rel(r, 'a1', 't1'), [0, 0, 60]);
+  assert.deepEqual(rel(r, 'b1', 't1'), [60, 0, 60], '55 breit passt rechts nicht (115 > 100), gedreht 30 × 55 schon');
+  const bb = boxOf(b, at(r, 'b1'));
+  assert.deepEqual([bb.x1 - bb.x0, bb.y1 - bb.y0], [30, 55]);
+});
+
+test('Deckschicht nebeneinander: die Summe der Deckgewichte darf die Auflast des obersten Stücks nicht überschreiten', () => {
+  const r = autoPack([...items(topBig({ maxTopLoad: 40 }), 1, 'b'), ...items(topSm(), 3, 's')], mkTruck(), { mixTop: true });
+  assert.equal(at(r, 's1').z, 60); assert.equal(at(r, 's2').z, 60);
+  assert.equal(at(r, 's3').z, 0, '3 × 15 = 45 > 40 kg: das dritte wird abgelehnt');
+  const ok = autoPack([...items(topBig({ maxTopLoad: 45 }), 1, 'b'), ...items(topSm(), 3, 's')], mkTruck(), { mixTop: true });
+  assert.equal(at(ok, 's3').z, 60, 'genau 45 kg gehen noch');
+});
+
+test('Deckschicht nebeneinander: die Auflast-Kette zählt auch die Stücke unter dem obersten', () => {
+  // Unteres Stück trägt höchstens 160 kg: oberes Stück 120 + Deckschicht ≤ 40 kg → zwei Stücke (30 kg), das dritte (45) nicht.
+  const lower = topBig({ maxTopLoad: 160 });
+  const r = autoPack([...items(lower, 2, 'b'), ...items(topSm(), 3, 's')], mkTruck(), { mixTop: true });
+  assert.equal(at(r, 's1').z, 120); assert.equal(at(r, 's2').z, 120);
+  assert.equal(at(r, 's3').z, 0);
+});
+
+test('Deckschicht nebeneinander: die Summe der Deckgewichte darf das Gewicht des obersten Stücks nicht überschreiten', () => {
+  const r = autoPack([...items(topBig({ weight: 50 }), 1, 'b'), ...items(topSm('ts', { weight: 20 }), 3, 's')], mkTruck(), { mixTop: true });
+  assert.equal(at(r, 's1').z, 60); assert.equal(at(r, 's2').z, 60);
+  assert.equal(at(r, 's3').z, 0, '3 × 20 = 60 > 50 kg');
+});
+
+test('Deckschicht nebeneinander: Fahrzeughöhe begrenzt das höchste Deckstück', () => {
+  const tall = mkCase('tall', 60, 40, 80, { weight: 10, category: 'Audio' });
+  const truck = mkTruck({ h: 130 });
+  const r = autoPack([...items(topBig(), 1, 'b'), ...items(topSm('ts', { weight: 15 }), 1, 's'), ...items(tall, 1, 't')], truck, { mixTop: true });
+  assert.equal(at(r, 's1').z, 60);
+  assert.equal(at(r, 't1').z, 0, '60 + 80 = 140 > 130');
+  const small = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 1, 's'), ...items(mkCase('mid', 60, 40, 70, { weight: 10, category: 'Audio' }), 1, 'm')], truck, { mixTop: true });
+  assert.equal(at(small, 'm1').z, 60, '60 + 70 = 130 passt gerade');
+});
+
+test('Deckschicht nebeneinander: Stapelhöhe ist Hauptstapel plus das höchste Deckstück', () => {
+  const tall = mkCase('tall', 60, 40, 55, { weight: 10, category: 'Audio' });
+  const s = capOf([...items(topBig(), 1, 'b'), ...items(topSm(), 1, 's'), ...items(tall, 1, 't')]);
+  assert.equal(s.height, 60 + 55);
+  assert.equal(s.items.length, 3);
+});
+
+test('Deckschicht nebeneinander: Gruppe und Gewerk gelten für jedes Deckstück', () => {
+  const lamp = mkCase('lamp', 60, 40, 40, { weight: 15, category: 'Licht' });
+  const r = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 1, 's'), ...items(lamp, 1, 'l')], mkTruck(), { mixTop: true });
+  assert.equal(at(r, 's1').z, 60);
+  assert.equal(at(r, 'l1').z, 0, 'anderes Gewerk');
+  const g = (list, grp) => list.map(it => ({ ...it, group: grp }));
+  const r2 = autoPack([...g(items(topBig(), 1, 'b'), 'A'), ...g(items(topSm(), 1, 's'), 'A'), ...g(items(lamp, 1, 'l'), 'B')], mkTruck(), { mixTop: true });
+  assert.equal(at(r2, 's1').z, 60);
+  assert.equal(at(r2, 'l1').z, 0, 'andere Gruppe');
+});
+
+test('Deckschicht nebeneinander: 0 kg, Traversen, nicht stapelbares oberstes Stück und volle 4 Lagen nehmen keine Deckstücke', () => {
+  const zero = autoPack([...items(topBig(), 1, 'b'), ...items(topSm('z', { weight: 0 }), 2, 'z')], mkTruck(), { mixTop: true });
+  assert.ok(zero.placements.filter(p => p.caseId === 'z').every(p => p.z === 0));
+  const ns = autoPack([...items(topBig({ stackable: false }), 1, 'b'), ...items(topSm(), 2, 's')], mkTruck(), { mixTop: true });
+  assert.ok(ns.placements.filter(p => p.caseId === 'ts').every(p => p.z === 0), 'nicht stapelbar: nichts obendrauf');
+  const four = autoPack([...items(topBig(), 4, 'b'), ...items(topSm(), 2, 's')], mkTruck(), { mixTop: true });
+  assert.ok(four.placements.filter(p => p.caseId === 'ts').every(p => p.z === 0), 'vier Lagen sind voll');
+  const trussSm = mkCase('trs', 60, 40, 40, { kind: 'truss', category: 'Audio', weight: 10, stackable: true, truss: { length: 60, width: 40, count: 1, standing: true, height: 40 } });
+  const tr = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 1, 's'), ...items(trussSm, 1, 't')], mkTruck(), { mixTop: true });
+  assert.equal(at(tr, 't1').z, 0, 'Traverse nie als Deckstück');
+});
+
+test('Deckschicht nebeneinander: Lagen je Stück gelten (Deckschicht liegt in Lage n+1)', () => {
+  const only1 = items(topSm(), 2, 's').map(it => ({ ...it, layers: [1] }));
+  const r = autoPack([...items(topBig(), 1, 'b'), ...only1], mkTruck(), { mixTop: true });
+  assert.ok(r.placements.filter(p => p.caseId === 'ts').every(p => p.z === 0), 'nur Lage 1 erlaubt');
+});
+
+test('Deckschicht nebeneinander: ein Stapel mit Deckschicht trägt nichts mehr obendrauf und nimmt keine eigene Sorte an', () => {
+  // 12 kleine, 2 große: die Deckschicht trägt höchstens vier, der Rest steht auf dem Boden/anderen Stapeln – nie in Lage 3 über einem Deckstück.
+  const r = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 12, 's')], mkTruck(), { mixTop: true });
+  assert.deepEqual(r.unplaced, []);
+  assert.equal(r.placements.filter(p => p.z === 60).length, 4);
+  assert.ok(!r.placements.some(p => p.z === 100 && p.caseId === 'ts' && at(r, 'b1').x === p.x && at(r, 'b1').y === p.y), 'keine Deckstücke übereinander');
+});
+
+test('Deckschicht nebeneinander: ohne mixTop unverändert, auch mit vielen kleinen Stücken', () => {
+  const list = [...items(topBig(), 2, 'b'), ...items(topSm(), 10, 's')];
+  assert.deepEqual(autoPack(list, mkTruck(), { mixTop: false }), autoPack(list, mkTruck()));
+  const off = autoPack(list, mkTruck());
+  assert.ok(off.placements.filter(p => p.caseId === 'ts').every(p => p.z < 120), 'nur reguläres Stapeln');
+});
+
+// Geometrie in Weltkoordinaten: jedes Deckstück liegt vollständig auf dem obersten Hauptstück, auch bei
+// einem im Grundriss um 90° gedrehten Stapel (swap in placeStacks: Versatz (ox, oy) wird zu (oy, ox)).
+const insideXY = (inner, outer) => inner.x0 >= outer.x0 - 1e-6 && inner.x1 <= outer.x1 + 1e-6
+  && inner.y0 >= outer.y0 - 1e-6 && inner.y1 <= outer.y1 + 1e-6;
+const assertCapsOnTop = (r, cases, topId, capIds, label) => {
+  const top = boxOf(cases.get(at(r, topId).caseId), at(r, topId));
+  for (const id of capIds) {
+    const p = at(r, id), b = boxOf(cases.get(p.caseId), p);
+    assert.equal(b.z0, top.z1, `${label}: ${id} steht auf der Oberkante von ${topId}`);
+    assert.ok(insideXY(b, top), `${label}: ${id} liegt vollständig auf ${topId}`);
+  }
+  const caps = capIds.map(id => boxOf(cases.get(at(r, id).caseId), at(r, id)));
+  caps.forEach((a, i) => caps.slice(i + 1).forEach(b => assert.ok(!overlaps(a, b), `${label}: Deckstücke überschneiden sich nicht`)));
+};
+
+test('Deckschicht nebeneinander: Stapel im Grundriss gedreht (swap) trägt die Deckstücke vollständig auf dem obersten Stück', () => {
+  const big = topBig();
+  const sm = topSm();
+  // Nur ein 85 cm breiter Gang: der Stapel (Grundfläche 80 × 120) passt nur um 90° gedreht hinein.
+  const truck = mkTruck({ l: 300, w: 130 });
+  const obstacles = [{ x0: 0, y0: 85, z0: 0, x1: 300, y1: 130, z1: 270 }];
+  const list = [...items(big, 2, 'b'), ...items(sm, 3, 's')];
+  const { stacks } = buildStacks(list, truck, { mixTop: true });
+  const { placed } = placeStacks(stacks, truck, obstacles);
+  assert.equal(placed.find(p => p.stack.capped).swap, true, 'Vorbedingung: der Stapel wird gedreht');
+  const r = autoPack(list, truck, { mixTop: true, obstacles });
+  assert.deepEqual(r.unplaced, []);
+  assertCapsOnTop(r, byId(big, sm), 'b2', ['s1', 's2', 's3'], 'swap');
+  const issues = placementIssues(validatePlan(plan(r.placements), byId(big, sm), truck));
+  assert.deepEqual(issues.filter(i => /overlap|collision|support|overhang/i.test(i.code)), []);
+});
+
+test('Deckschicht nebeneinander: ungedreht und gedreht, auch mit gedrehten Deckstücken, bleiben alle Deckstücke auf dem obersten Stück', () => {
+  const cases = byId(topBig(), topSm(), mkCase('wide', 30, 70, 30, { weight: 10, category: 'Audio' }));
+  for (const [truck, obstacles] of [[mkTruck(), []], [mkTruck({ l: 300, w: 130 }), [{ x0: 0, y0: 85, z0: 0, x1: 300, y1: 130, z1: 270 }]]]) {
+    const list = [...items(topBig(), 2, 'b'), ...items(topSm(), 2, 's'), ...items(cases.get('wide'), 2, 'w')];
+    const r = autoPack(list, truck, { mixTop: true, obstacles });
+    const caps = r.placements.filter(p => p.z === 120).map(p => p.id);
+    assert.ok(caps.length >= 2, 'mindestens zwei Deckstücke');
+    assertCapsOnTop(r, cases, 'b2', caps, truck.w === 130 ? 'gedreht' : 'ungedreht');
+  }
 });
