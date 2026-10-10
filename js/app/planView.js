@@ -270,7 +270,9 @@ export function mountPlanView(deps) {
   // und nicht bei jedem Frame das Laden neu versuchen.
   let view3d = null, view3dLoading = null, view3dFailed = false;
   renderHooks.push(async (s, d) => {
-    if (s.mode !== '3d' || view3dFailed) return;
+    const stale = $('#view3d-stale');
+    if (s.mode !== '3d') { stale.hidden = true; return; }
+    if (view3dFailed) return;
     if (!view3d) {
       try {
         view3d = await (view3dLoading ??= createView3d($('#view3d')));
@@ -287,8 +289,13 @@ export function mountPlanView(deps) {
     }
     try {
       view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors, layerLimit: s.layerLimit });
+      stale.hidden = true;
     } catch (err) {
       console.error('3D-Ansicht: Aktualisierung fehlgeschlagen', err);
+      // Die Szene zeigt den Stand vor dem Fehler: kleiner Hinweis (eigenes Element, nur textContent),
+      // verschwindet beim nächsten erfolgreichen update() oder im Wechsel auf 2D.
+      stale.textContent = '3D-Ansicht nicht aktuell – bitte Ansicht wechseln';
+      stale.hidden = false;
     }
   });
 

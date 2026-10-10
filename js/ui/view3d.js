@@ -553,7 +553,10 @@ export async function createView3d(container) {
   // über Updates hinweg wiederverwendet werden) und die Farb-/Beschriftungs-Caches. Ohne das bleibt
   // bei jedem Neuaufbau nach einem Fehler (app.js, `catch`) ein WebGL-Kontext hängen – Chrome hält
   // nur rund 16 davon.
+  let disposed = false;
   function dispose() {
+    if (disposed) return; // zweiter Aufruf wäre ein doppeltes Freigeben von Renderer und Texturen
+    disposed = true;
     themeQuery.removeEventListener('change', onThemeChange);
     resizeObserver.disconnect();
     controls.dispose();
@@ -578,6 +581,7 @@ export async function createView3d(container) {
 
   let framedFor = null;
   function update({ truck, result, selectedId, colorMode = 'black', layerLimit = null }) {
+    if (disposed) return;
     clear();
     usedLabelKeys = new Set();
     usedBodyMatKeys = new Set();
