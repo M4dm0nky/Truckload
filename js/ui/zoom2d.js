@@ -105,6 +105,8 @@ export function classifyWheel(e, state, now) {
 // --- Umschalter „Scrollen“: Automatisch / Zoomen / Verschieben (gilt für alle 2D-Ansichten) ---
 export const SCROLL_MODES = ['auto', 'zoom', 'pan'];
 export const SCROLL_LABELS = { auto: 'Automatisch', zoom: 'Zoomen', pan: 'Verschieben' };
+// Kurzform für den schmalen Knopf (Rückansicht ist eng).
+export const SCROLL_SHORT = { auto: 'Rad: Auto', zoom: 'Rad: Zoom', pan: 'Rad: Schieben' };
 const SCROLL_KEY = 'truckload.scrollMode';
 export const nextScrollMode = m => SCROLL_MODES[(SCROLL_MODES.indexOf(m) + 1) % SCROLL_MODES.length];
 const defaultStore = () => { try { return globalThis.localStorage; } catch { return undefined; } };
@@ -126,7 +128,8 @@ export function attachZoom(svg) {
   svg.addEventListener('wheel', e => {
     const { full, vb } = current(svg);
     const mode = getScrollMode();
-    const kind = classifyWheel(e, gesture, e.timeStamp || performance.now());
+    // Pinch (ctrlKey) zoomt ohnehin und zählt nicht als Wisch-/Rad-Geste.
+    const kind = e.ctrlKey ? 'pad' : classifyWheel(e, gesture, e.timeStamp || performance.now());
     if (e.ctrlKey || mode === 'zoom' || (mode === 'auto' && kind === 'wheel')) {
       e.preventDefault();
       const p = toSvg(svg, e.clientX, e.clientY);
