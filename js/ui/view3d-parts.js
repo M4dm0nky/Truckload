@@ -1,16 +1,5 @@
-import { CASE_BLACK } from './caseStyle.js';
-
 // Reine Bauteil-Geometrie der 3D-Ansicht: nur Zahlen und Boxen, kein Three.js – damit ohne WebGL
 // testbar (tests/view3d-parts.test.js). Die Ansicht selbst (view3d.js) macht daraus Meshes.
-
-// Schriftfarbe zu einem Hintergrund: hell auf dunkel, dunkel auf hell.
-export function textColorFor(hex) {
-  const s = String(hex || CASE_BLACK).replace('#', '');
-  const full = s.length === 3 ? s.split('').map(ch => ch + ch).join('') : s.padStart(6, '0').slice(0, 6);
-  const r = parseInt(full.slice(0, 2), 16) || 0, g = parseInt(full.slice(2, 4), 16) || 0, b = parseInt(full.slice(4, 6), 16) || 0;
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.55 ? '#111214' : '#f5f5f5';
-}
 
 // Zerlegt den Korpus eines Lautsprecher-Stacks (kind: 'speaker') in `unitH`-hohe Einzelboxen
 // (z-Bereiche) – Grundlage für die Trennlinien und die Grille-Andeutung je Einzelbox. Ohne

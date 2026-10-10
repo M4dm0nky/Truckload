@@ -3,7 +3,7 @@ import { caseIdAt, safeColor, svgEl, toSvg } from './dom.js';
 import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
 import { wheelFace, isTruss } from '../model/geometry.js';
 import { caseShape } from '../model/caseShape.js';
-import { caseColors, weightRange, weightColor } from './caseStyle.js';
+import { caseColors, weightRange, weightColor, textColorFor } from './caseStyle.js';
 import { archBoxes } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { trussShape, TUBE_R_RATIO } from '../model/truss.js';
@@ -138,19 +138,29 @@ function textMeasurer(svg, weight) {
   };
 }
 
-function drawLabel(g, labelRect, it, measure) {
+// Schrift und Kontur nach der Körperfarbe (wie in 3D, textColorFor): helle Schrift mit dunkler Kontur
+// auf dunklem Grund, dunkle Schrift mit heller Kontur auf hellem. Als Inline-style, weil nur die
+// Körperfarbe des Stücks die Wahl entscheidet (alle drei Farbmodi, Druck inklusive).
+const DARK_TEXT = '#111214';
+function labelPaint(bodyColor) {
+  const fill = textColorFor(bodyColor);
+  return `fill:${fill};stroke:${fill === DARK_TEXT ? '#fff' : '#000'}`;
+}
+
+function drawLabel(g, labelRect, it, measure, bodyColor) {
+  const paint = labelPaint(bodyColor);
   const w = labelRect.u1 - labelRect.u0, h = labelRect.v1 - labelRect.v0;
   const fontSize = Math.max(LABEL_MIN, Math.min(LABEL_MAX, Math.min(w, h) * LABEL_RATIO));
   const label = svgEl('text', {
     x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2,
-    class: 'label', style: `font-size:${fontSize}px`,
+    class: 'label', style: `font-size:${fontSize}px;${paint}`,
   }, g);
   label.textContent = truncateToWidth(it.label, Math.max(0, w - LABEL_PAD * 2), text => measure(text, fontSize));
 
   const seqSize = Math.max(LABEL_MIN, fontSize * 0.55);
   svgEl('text', {
     x: labelRect.u0 + LABEL_PAD, y: labelRect.v0 + LABEL_PAD,
-    class: 'label-seq', style: `font-size:${seqSize}px`,
+    class: 'label-seq', style: `font-size:${seqSize}px;${paint}`,
   }, g).textContent = it.seq;
 }
 
@@ -159,12 +169,14 @@ function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure }
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
 
   let labelRect = r;
+  let bodyColor; // Wagen ohne Korpus-Rechteck: Rückfall Case-Schwarz (helle Schrift) wie bisher
   if (isTruss(it.c)) {
     drawTruss(g, it, mode, truck);
   } else {
     const itemColor = colorMode === 'weight' ? weightColor(it.c.weight, weightSpan) : it.color;
     const colors = caseColors(it.c, colorMode, itemColor);
-    svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, fill: safeColor(colors.body), class: 'body' }, g);
+    bodyColor = safeColor(colors.body);
+    svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, fill: bodyColor, class: 'body' }, g);
     // Modus „Schwarz“: dunkle Kiste, die Gewerkfarbe als dünner Innenrahmen – ein eigenes
     // Rechteck, damit die Auswahlfarbe auf `rect.body` über CSS weiter greift.
     if (colors.stripe) svgEl('rect', {
@@ -179,7 +191,7 @@ function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure }
     labelRect = bodyRect;
   }
 
-  if (labels) drawLabel(g, labelRect, it, measure);
+  if (labels) drawLabel(g, labelRect, it, measure, bodyColor);
   svgEl('title', {}, g).textContent = it.title;
 }
 
