@@ -8,7 +8,8 @@ import { rulesFor, ruleTargets, describeRule, mixTopFor } from '../model/packRul
 import { renderView, attachTopInteractions, attachSelect } from '../ui/view2d.js';
 import { mountLibrary } from '../ui/library.js';
 import { openPackRules } from '../ui/pack-rules.js';
-import { renderInspector } from '../ui/inspector.js';
+import { renderInspector, weightEditable } from '../ui/inspector.js';
+import { CASE_LIMITS } from '../model/limits.js';
 import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
@@ -55,7 +56,7 @@ export function mountPlanView(deps) {
     onSelectPlaced: id => select(id),
     onSelectUnplaced: id => select(id),
   });
-  renderHooks.push(s => library.update(s));
+  renderHooks.push((s, d) => library.update(s, d.truck));
 
   attachTopInteractions($('#svg-top'), {
     getTruck: () => ctx().truck,
@@ -108,7 +109,7 @@ export function mountPlanView(deps) {
   };
   const ACTIONS = {
     rotate: id => edit((p, c) => A.rotate(p, id, c)),
-    tip: id => edit((p, c) => A.cycleTip(p, id, c)),
+    tip: id => edit((p, c) => A.toggleTipPiece(p, id, c)),
     dup: id => edit((p, c) => A.duplicate(p, id, c)),
     tray: id => { edit(p => A.toTray(p, id)); select(null); },
     // Entf auf einem Ablage-Stück muss A.removeUnplaced treffen: A.removePlacement liefe für
@@ -138,6 +139,19 @@ export function mountPlanView(deps) {
     const target = e.target.closest('[data-select]')?.dataset.select;
     if (target) select(target);
   });
+  // Gewicht des Case-Typs ändern (Inspector): speichert den Typ (bei `lib-` als Überlagerung mit
+  // gleicher ID) – alle Stücke dieses Typs folgen über den Store. Ungültig (leer, negativ, über der
+  // Grenze): Feld zurücksetzen, nichts speichern.
+  async function changeWeight(input, id) {
+    const c = ctx().caseById.get(findCaseIdForPiece(id));
+    if (!c || !weightEditable(c)) return;
+    const value = input.value.trim() === '' ? NaN : Number(input.value);
+    if (!(value >= 0 && value <= CASE_LIMITS.weight)) { input.value = c.weight; return; }
+    if (value === c.weight) return;
+    const saved = await persistence.saveCase({ ...c, builtin: false, weight: value });
+    invalidateInspector();
+    if (!saved) input.value = c.weight;
+  }
   $('#inspector').addEventListener('change', e => {
     invalidateInspector();
     const name = e.target.name;
@@ -148,6 +162,7 @@ export function mountPlanView(deps) {
     if (name === 'color') return edit((p, c) => A.setItemLabel(p, id, { color: e.target.value }));
     if (name === 'tipped') return edit((p, c) => A.setPieceTipped(p, id, e.target.checked, c));
     if (name === 'group') return edit(p => A.setPieceGroup(p, id, e.target.value));
+    if (name === 'weight') return changeWeight(e.target, id);
     if (e.target.dataset.layer) {
       // Wie im Wizard (js/ui/load-wizard.js): die letzte angehakte Lage lässt sich nicht
       // abwählen – Häkchen wieder setzen, Hinweis zeigen, keine Aktion.
@@ -270,7 +285,9 @@ export function mountPlanView(deps) {
   // und nicht bei jedem Frame das Laden neu versuchen.
   let view3d = null, view3dLoading = null, view3dFailed = false;
   renderHooks.push(async (s, d) => {
-    if (s.mode !== '3d' || view3dFailed) return;
+    const stale = $('#view3d-stale');
+    if (s.mode !== '3d') { if (stale) stale.hidden = true; return; }
+    if (view3dFailed) return;
     if (!view3d) {
       try {
         view3d = await (view3dLoading ??= createView3d($('#view3d')));
@@ -287,8 +304,12 @@ export function mountPlanView(deps) {
     }
     try {
       view3d.update({ truck: d.truck, result: d.result, selectedId: s.selectedId, colorMode: s.caseColors, layerLimit: s.layerLimit });
+      if (stale) stale.hidden = true;
     } catch (err) {
       console.error('3D-Ansicht: Aktualisierung fehlgeschlagen', err);
+      // Die Szene zeigt den Stand vor dem Fehler: kleiner Hinweis (eigenes Element, nur textContent),
+      // verschwindet beim nächsten erfolgreichen update() oder im Wechsel auf 2D.
+      if (stale) { stale.textContent = '3D-Ansicht nicht aktuell – bitte Ansicht wechseln'; stale.hidden = false; }
     }
   });
 

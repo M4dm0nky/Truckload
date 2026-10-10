@@ -21,10 +21,14 @@ export const setBlockedHandler = fn => { blockedHandler = fn; };
 export const setUnblockedHandler = fn => { unblockedHandler = fn; };
 export const setVersionChangeHandler = fn => { versionChangeHandler = fn; };
 
-// Exportiert als kleinste Testnaht: `dbPromise` ist Modulebene und einmalig gespritzt (`??=`),
-// ein Test kann open() aber direkt mit einem Fake-`indexedDB` aufrufen.
+// Exportiert als kleinste Testnaht: `dbPromise` ist Modulebene und zwischengespeichert, ein Test
+// kann open() aber direkt mit einem Fake-`indexedDB` aufrufen. Eine ABGELEHNTE Promise wird
+// verworfen (`onerror`, auch ein synchron werfendes `indexedDB.open`), damit der nächste Zugriff
+// neu versucht, statt die Sitzung lang denselben Fehler zu liefern. `onblocked` lehnt nie ab; die
+// wartende Promise bleibt stehen.
 export function open() {
-  return (dbPromise ??= new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  const attempt = dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       for (const s of STORES) if (!req.result.objectStoreNames.contains(s))
@@ -38,7 +42,9 @@ export function open() {
       resolve(database);
     };
     req.onerror = () => reject(req.error);
-  }));
+  });
+  attempt.catch(() => { if (dbPromise === attempt) dbPromise = undefined; });
+  return attempt;
 }
 
 // Ein abgelehntes/abgebrochenes `tx.error` ist nicht verlässlich gefüllt (in Chrome bei einem
@@ -76,15 +82,24 @@ export const del = (store, id) => run(store, 'readwrite', s => s.delete(id));
 // fehlgeschlagen gilt. Deshalb try/catch um die Schleife und explizites `tx.abort()`.
 // items: [{ store, value }, …]
 export function putMany(items) {
-  if (items.length === 0) return Promise.resolve();
+  return writeMany({ puts: items });
+}
+
+// Wie putMany, nur zusätzlich mit Löschungen in derselben Transaktion: entweder passiert alles
+// (alle Puts und Deletes), oder – wirft ein Aufruf oder lehnt die Datenbank ab – nichts. Gedacht
+// für „Firma löschen“, wo Überlagerungen (Puts) und Entfernungen (Deletes) zusammengehören.
+// puts: [{ store, value }, …], deletes: [{ store, id }, …]
+export function writeMany({ puts = [], deletes = [] } = {}) {
+  if (puts.length === 0 && deletes.length === 0) return Promise.resolve();
   return open().then(db => new Promise((resolve, reject) => {
-    const storeNames = [...new Set(items.map(i => i.store))];
+    const storeNames = [...new Set([...puts, ...deletes].map(i => i.store))];
     const tx = db.transaction(storeNames, 'readwrite');
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(txFailure(tx));
     tx.onabort = () => reject(txFailure(tx));
     try {
-      for (const { store, value } of items) tx.objectStore(store).put(value);
+      for (const { store, value } of puts) tx.objectStore(store).put(value);
+      for (const { store, id } of deletes) tx.objectStore(store).delete(id);
     } catch (err) {
       try { tx.abort(); } catch { /* Transaktion ist evtl. schon abgebrochen */ }
       reject(err); // falls onabort aus irgendeinem Grund nicht feuert, trotzdem sicher ablehnen

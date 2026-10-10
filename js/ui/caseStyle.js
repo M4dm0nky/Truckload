@@ -13,6 +13,16 @@ export function caseColors(c, mode, itemColor) {
   return mode === 'trade' || mode === 'weight' ? { body: color, stripe: null } : { body: CASE_BLACK, stripe: color };
 }
 
+// Schriftfarbe zu einem Hintergrund: hell auf dunkel, dunkel auf hell – gemeinsam für die 3D-Beschriftung,
+// die 2D-Beschriftung und den Druck.
+export function textColorFor(hex) {
+  const s = String(hex || CASE_BLACK).replace('#', '');
+  const full = s.length === 3 ? s.split('').map(ch => ch + ch).join('') : s.padStart(6, '0').slice(0, 6);
+  const r = parseInt(full.slice(0, 2), 16) || 0, g = parseInt(full.slice(2, 4), 16) || 0, b = parseInt(full.slice(4, 6), 16) || 0;
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.55 ? '#111214' : '#f5f5f5';
+}
+
 // Grauton für „Gewicht unbekannt“ – fest, unabhängig von der Spanne des aktuellen Loads.
 const WEIGHT_UNKNOWN = '#8a8f96';
 // Leicht → Blau, schwer → Rot (sRGB-Interpolation, reicht für diese Einfärbung).

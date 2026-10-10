@@ -2,11 +2,11 @@ import { safeColor } from './dom.js';
 import { archBoxes, isTruss } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
-import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d } from './caseStyle.js';
+import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d, textColorFor } from './caseStyle.js';
 import { trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
 import { labelPlanes, fitFontSize } from './labelTexture.js';
-import { edgeBars, latchBoxes, speakerUnits, speakerDollyFrame, speakerUnitParts, faceZigzag, trussPoint, textColorFor } from './view3d-parts.js';
+import { edgeBars, latchBoxes, speakerUnits, speakerDollyFrame, speakerUnitParts, faceZigzag, trussPoint } from './view3d-parts.js';
 
 // Etikett-Text auf Case, Traverse und Lautsprecher: Nummer immer, Beschriftung wenn vorhanden.
 const labelText = (seq, label) => (label ? `${seq}. ${label}` : `${seq}.`);
@@ -553,7 +553,10 @@ export async function createView3d(container) {
   // über Updates hinweg wiederverwendet werden) und die Farb-/Beschriftungs-Caches. Ohne das bleibt
   // bei jedem Neuaufbau nach einem Fehler (app.js, `catch`) ein WebGL-Kontext hängen – Chrome hält
   // nur rund 16 davon.
+  let disposed = false;
   function dispose() {
+    if (disposed) return; // zweiter Aufruf wäre ein doppeltes Freigeben von Renderer und Texturen
+    disposed = true;
     themeQuery.removeEventListener('change', onThemeChange);
     resizeObserver.disconnect();
     controls.dispose();
@@ -578,6 +581,7 @@ export async function createView3d(container) {
 
   let framedFor = null;
   function update({ truck, result, selectedId, colorMode = 'black', layerLimit = null }) {
+    if (disposed) return;
     clear();
     usedLabelKeys = new Set();
     usedBodyMatKeys = new Set();

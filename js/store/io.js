@@ -1,11 +1,12 @@
 import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.js';
-import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, layersValid } from '../model/limits.js';
+import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, layersValid } from '../model/limits.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
-import { upgradeDollyStack } from '../model/audioDolly.js';
+import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
+import { pickPieceFields } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
 
 // FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
@@ -15,7 +16,6 @@ const CASE_KINDS = ['case', 'truss', 'speaker'];
 
 const num = v => typeof v === 'number' && Number.isFinite(v);
 const arr = v => (Array.isArray(v) ? v : []);
-const numOrNullMax = (v, max) => v == null || (num(v) && v >= 0 && v <= max);
 // Mitgeliefertes nie aus fremden Dateien übernehmen. `preset-` (Standardkatalog, nur lesbar)
 // immer verwerfen; `lib-` (Firmen-Vorlagen) nur, wenn als mitgeliefert markiert – eigene
 // Überlagerungen mit gleicher lib-ID sind gewollt (Materialverwaltung).
@@ -24,17 +24,32 @@ const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const colorOk = x => x.color === undefined || COLOR_RE.test(x.color);
 const updatedAtOk = x => x.updatedAt === undefined || typeof x.updatedAt === 'string';
 
+const nameTooLong = (kind, x) => x.name.length > NAME_MAX
+  && new Error(`${kind} „${x.name.slice(0, 20)}…“: Name zu lang (höchstens ${NAME_MAX} Zeichen).`);
+
+// Gewicht, Auflast und Bestand über CASE_LIMITS lehnen den Import NICHT ab (eigene Entscheidung:
+// ein schweres Spezialcase soll die ganze Sicherung nicht unlesbar machen). Der Wert bleibt
+// unverändert, parseBundle meldet ihn in `overLimit`; im Editor gilt die Grenze weiterhin.
+const SOFT_LIMITED = ['weight', 'maxTopLoad', 'stock'];
+const softOk = (v, nullable) => (nullable && v == null) || (num(v) && v >= 0);
+function overLimit(c) {
+  return SOFT_LIMITED.filter(k => num(c[k]) && c[k] > CASE_LIMITS[k])
+    .map(field => ({ id: c.id, name: c.name, field, value: c[field], max: CASE_LIMITS[field] }));
+}
+
 export function checkCase(c) {
   if (!c || typeof c.id !== 'string' || typeof c.name !== 'string') throw new Error('Case ohne ID oder Name in der Datei.');
+  const tooLong = nameTooLong('Case', c);
+  if (tooLong) throw tooLong;
   for (const k of ['l', 'w', 'h']) if (!num(c[k]) || c[k] <= 0 || c[k] > CASE_LIMITS[k]) throw new Error(`Case „${c.name}“ hat ungültige Maße.`);
-  if (!num(c.weight) || c.weight < 0 || c.weight > CASE_LIMITS.weight) throw new Error(`Case „${c.name}“ hat ein ungültiges Gewicht.`);
+  if (!softOk(c.weight, false)) throw new Error(`Case „${c.name}“ hat ein ungültiges Gewicht.`);
   if (!colorOk(c)) throw new Error(`Case „${c.name}“ hat eine ungültige Farbe.`);
   if (!updatedAtOk(c)) throw new Error(`Case „${c.name}“ hat einen ungültigen Zeitstempel.`);
   const wheelHOk = c.wheelH == null || (num(c.wheelH) && c.wheelH >= 0 && c.wheelH <= CASE_LIMITS.wheelH
     && (c.dimsInclWheels === false || c.wheelH < c.h));
   const layersOk = c.layers == null || layersValid(c.layers);
   const kindOk = c.kind == null || CASE_KINDS.includes(c.kind);
-  const propsOk = numOrNullMax(c.maxTopLoad, CASE_LIMITS.maxTopLoad) && numOrNullMax(c.stock, CASE_LIMITS.stock)
+  const propsOk = softOk(c.maxTopLoad, true) && softOk(c.stock, true)
     && (c.tippable === undefined || typeof c.tippable === 'boolean')
     && (c.stackable === undefined || typeof c.stackable === 'boolean')
     && (c.wheels === undefined || typeof c.wheels === 'boolean')
@@ -91,8 +106,10 @@ function checkArch(a) {
   return a && num(a.x) && a.x >= 0 && num(a.l) && a.l > 0 && num(a.w) && a.w > 0 && num(a.h) && a.h > 0
     && ARCH_SIDES.includes(a.side);
 }
-function checkTruck(t) {
+export function checkTruck(t) {
   if (!t || typeof t.id !== 'string' || typeof t.name !== 'string') throw new Error('Fahrzeug ohne ID oder Name in der Datei.');
+  const tooLong = nameTooLong('Fahrzeug', t);
+  if (tooLong) throw tooLong;
   for (const k of ['l', 'w', 'h', 'payload']) if (!num(t[k]) || t[k] <= 0) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Werte.`);
   if (!updatedAtOk(t)) throw new Error(`Fahrzeug „${t.name}“ hat einen ungültigen Zeitstempel.`);
   if (t.wheelArches != null && !Array.isArray(t.wheelArches)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
@@ -105,9 +122,11 @@ const pieceLayersOk = x => x.layers === undefined || layersValid(x.layers);
 const tippedOk = x => x.tipped === undefined || typeof x.tipped === 'boolean';
 const groupOk = x => x.group === undefined || (typeof x.group === 'string' && x.group.trim().length > 0 && x.group.length <= MAX_LABEL);
 const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk);
-function checkPlan(p) {
+export function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
     throw new Error('Ungültiger Ladeplan in der Datei.');
+  const tooLong = nameTooLong('Ladeplan', p);
+  if (tooLong) throw tooLong;
   if (!updatedAtOk(p)) throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Zeitstempel.`);
   if (p.notes !== undefined && (typeof p.notes !== 'string' || p.notes.length > 2000))
     throw new Error(`Ladeplan „${p.name}“ hat ungültige Notizen.`);
@@ -175,17 +194,32 @@ export function parseBundle(text) {
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
   const rawCases = arr(data.cases).filter(c => !isPreset(c));
-  const trucks = arr(data.trucks).filter(t => !isPreset(t));
+  const rawTrucks = arr(data.trucks).filter(t => !isPreset(t));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
-  if (rawCases.length === 0 && trucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0)
+  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
+
+  // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
+  // bereits langen Namen: bis 91 Zeichen); ein zu langer Name von Ladeplan, Case oder Fahrzeug wird
+  // gekürzt und gemeldet, damit die eigene alte Sicherung importierbar bleibt (eigene
+  // Entscheidung). Bei Dolly-Namen bleibt der Zusatz „N er (auf Dolly)“ lesbar erhalten. Die ID
+  // bleibt unverändert.
+  const nameRepairs = { plan: 0, case: 0, truck: 0 };
+  const cutName = (kind, name) => {
+    if (typeof name !== 'string' || name.length <= NAME_MAX) return name;
+    nameRepairs[kind]++;
+    const dolly = kind === 'case' && /^(.*) (\d+)er \(auf Dolly\)$/.exec(name);
+    return dolly ? dollyName(dolly[1], dolly[2]) : name.slice(0, NAME_MAX);
+  };
+  const withCutName = (kind, x) => (x && typeof x.name === 'string' && x.name.length > NAME_MAX ? { ...x, name: cutName(kind, x.name) } : x);
+  const trucks = rawTrucks.map(t => withCutName('truck', t));
 
   let wheelHRepairs = 0;
   const cases = rawCases.map(c => {
     const fixed = repairWheelH(c);
     if (fixed) wheelHRepairs++;
-    return fixed ?? c;
+    return withCutName('case', fixed ?? c);
   });
   let labelRepairs = 0;
   const repairPiece = x => {
@@ -193,8 +227,27 @@ export function parseBundle(text) {
     if (fixed) labelRepairs++;
     return fixed ?? x;
   };
-  const plans = rawPlans.map(p => ({
+  // Platzierungen weit außerhalb jedes Fahrzeugs (Betrag > coordMax) kommen in die Ablage statt die
+  // Datei abzulehnen: die App begrenzt Koordinaten nirgends, ein solcher Stand ist für sie
+  // möglich (validatePlan warnt nur). coordMax = 2 × größte Fahrzeugabmessung (mitgelieferte und
+  // die der Datei), mindestens COORD_MAX – ein langes eigenes Fahrzeug löst die Reparatur also nie
+  // für legitime Positionen aus.
+  const coordMax = Math.max(COORD_MAX, 2 * Math.max(0, ...trucks.flatMap(t => [t.l, t.w, t.h]).filter(num)));
+  const farOut = x => x && typeof x === 'object' && ['x', 'y', 'z'].some(k => num(x[k]) && Math.abs(x[k]) > coordMax);
+  const planRepairs = [];
+  const movePlaced = p => {
+    if (!Array.isArray(p.placements) || !p.placements.some(farOut)) return p;
+    const out = p.placements.filter(farOut);
+    planRepairs.push(`Ladeplan „${p.name}“: ${out.length} ${out.length === 1 ? 'Platzierung' : 'Platzierungen'} außerhalb des Fahrzeugbereichs – in die Ablage verschoben.`);
+    return {
+      ...p,
+      placements: p.placements.filter(x => !farOut(x)),
+      unplaced: [...p.unplaced, ...out.map(x => ({ id: x.id, caseId: x.caseId, ...pickPieceFields(x) }))],
+    };
+  };
+  const plans = rawPlans.map(movePlaced).map(p => ({
     ...p,
+    name: cutName('plan', p.name),
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
     // placementOk sie annimmt und der eigene Export wieder importierbar ist.
     placements: Array.isArray(p.placements)
@@ -204,26 +257,39 @@ export function parseBundle(text) {
   }));
 
   cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet);
+  // Doppelte IDs in derselben Liste lassen mergeById/winners still Datensätze verschlucken.
+  for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets]]) {
+    const dup = list.map(x => x.id).find((id, i, ids) => ids.indexOf(id) !== i);
+    if (dup !== undefined) throw new Error(`Die Datei enthält doppelte IDs bei ${FIELD_LABELS[field]} („${dup}“).`);
+  }
 
   const knownCaseIds = new Set([...cases.map(c => c.id), ...CASE_LIBRARY.map(c => c.id), ...PRESET_CASES.map(c => c.id)]);
   const knownTruckIds = new Set([...trucks.map(t => t.id), ...PRESET_TRUCKS.map(t => t.id)]);
-  const warnings = [];
+  // Unbekannte Verweise nur als IDs liefern: ob ein Case oder Fahrzeug wirklich fehlt, zeigt erst
+  // der Abgleich mit dem lokalen Bestand nach dem Zusammenführen (js/app/importExport.js, dort
+  // entsteht auch der Warntext). Ein Plan, der auf ein eigenes lokales Case verweist, das nicht
+  // in der Datei steht, ist kein Fehler. `cases` führt eine ID je betroffenem Stück.
+  const unknownRefs = [];
   for (const p of plans) {
-    const refs = [...p.placements, ...p.unplaced].map(x => x.caseId);
-    const unknown = refs.filter(id => !knownCaseIds.has(id)).length;
-    if (unknown > 0)
-      warnings.push(`Ladeplan „${p.name}“: ${unknown} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.`);
-    if (!knownTruckIds.has(p.truckId))
-      warnings.push(`Ladeplan „${p.name}“ verweist auf ein unbekanntes Fahrzeug.`);
+    const missingCases = [...p.placements, ...p.unplaced].map(x => x.caseId).filter(id => !knownCaseIds.has(id));
+    const truck = knownTruckIds.has(p.truckId) ? null : p.truckId;
+    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck });
   }
 
   const repairs = [];
   if (wheelHRepairs > 0)
-    repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollen abgewählt.`);
+    repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.`);
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
-  return { cases: cases.map(c => normalizeCase(dropStrayLegacy(c))), trucks, plans, ruleSets, warnings, repairs };
+  repairs.push(...planRepairs);
+  const nameNote = (n, one, many) =>
+    n > 0 && repairs.push(`${n} ${n === 1 ? one : many}: Name länger als ${NAME_MAX} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.`);
+  nameNote(nameRepairs.plan, 'Ladeplan', 'Ladepläne');
+  nameNote(nameRepairs.case, 'Case', 'Cases');
+  nameNote(nameRepairs.truck, 'Fahrzeug', 'Fahrzeuge');
+
+  return { cases: cases.map(c => normalizeCase(dropStrayLegacy(c))), trucks, plans, ruleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
 }
 
 // Ein lokaler mitgelieferter Eintrag (`builtin: true`) verliert immer: Mitgeliefertes kommt nie

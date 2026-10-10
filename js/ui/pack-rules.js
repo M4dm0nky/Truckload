@@ -1,4 +1,5 @@
 import { esc } from './dom.js';
+import { MAX_RULESET_NAME } from '../model/limits.js';
 import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, ruleActive } from '../model/packRules.js';
 
 // Dialog „Pack-Regeln“. Store-unwissend wie openCaseEditor/openLoadWizard: bekommt
@@ -40,7 +41,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
           <button type="button" data-act="delete-set" class="danger">Löschen</button>
         </div>
         <div class="rule-add-row">
-          <input name="setName" maxlength="80" placeholder="Name, z. B. „Tour-Standard“">
+          <input name="setName" maxlength="${MAX_RULESET_NAME}" placeholder="Name, z. B. „Tour-Standard“">
           <button type="button" data-act="save-set">Als Regelset speichern</button>
         </div>
         <small class="hint rule-set-hint" hidden></small>

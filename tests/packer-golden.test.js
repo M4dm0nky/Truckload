@@ -1,0 +1,243 @@
+// Goldene Ausgabe des Packers (Stand vor der Überfüllungs-Optimierung, 2.3): die Eingaben stehen in
+// tests/packer-golden.fixtures.js, die Erwartungen unten sind wörtlich festgehalten. Eine Optimierung
+// von placeStacks/buildStacks darf an ihnen nichts ändern.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { FIXTURES, snapshot } from './packer-golden.fixtures.js';
+import { placeStacks } from '../js/model/packer.js';
+
+const EXPECTED = {
+  light: {
+    placements: [
+      'a1@0,0,0/0/standing',
+      'a2@0,0,100/0/standing',
+      'a3@0,80,0/0/standing',
+      'b1@0,160,0/0/standing',
+      'b2@0,160,50/0/standing',
+      'b3@0,160,100/0/standing',
+    ],
+    unplaced: [],
+  },
+  mixed: {
+    placements: [
+      'big1@0,0,0/0/standing',
+      'big2@0,100,0/0/standing',
+      'rack1@200,0,0/0/standing',
+      'rack2@200,0,90/0/standing',
+      'rack3@200,0,180/0/standing',
+      'rack4@200,60,0/0/standing',
+      'rack5@200,60,90/0/standing',
+      'grp1@200,60,180/0/standing',
+      'grp2@200,120,0/0/standing',
+      'amp1@200,180,0/0/standing',
+      'amp2@200,180,60/0/standing',
+      'amp3@200,180,120/0/standing',
+      'amp4@260,0,0/0/standing',
+      'amp5@260,0,60/0/standing',
+      'amp6@260,0,120/0/standing',
+      'amp7@260,60,0/0/standing',
+      'lamp1@260,120,0/0/tipLong',
+      'lamp2@260,120,50/0/tipLong',
+      'lamp3@260,120,100/0/tipLong',
+      'lamp4@260,120,150/0/tipLong',
+      'lamp5@280,160,0/0/tipLong',
+      'lamp6@280,160,50/0/tipLong',
+      'lamp7@280,160,100/0/tipLong',
+      'lamp8@280,160,150/0/tipLong',
+    ],
+    unplaced: ['fl1', 'fl2', 'fl3', 'fl4'],
+  },
+  overfull: {
+    placements: [
+      'd1@0,0,0/90/standing',
+      'd2@90,0,0/90/standing',
+      'd3@315,0,0/90/standing',
+    ],
+    unplaced: ['d4', 'd5', 'd6', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9', 'b10', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 'a13', 'a14', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12'],
+  },
+  overfullSmall: {
+    placements: [
+      'b1@0,0,0/270/tipLong',
+      'b2@0,0,50/270/tipLong',
+      'b3@0,0,100/270/tipLong',
+      'b4@0,80,0/270/tipLong',
+      'b5@0,80,50/270/tipLong',
+      'b6@0,80,100/270/tipLong',
+      'b7@35,0,0/270/tipLong',
+      'b8@35,0,50/270/tipLong',
+      'b9@35,0,100/270/tipLong',
+      'b10@35,80,0/270/tipLong',
+      'b11@35,80,50/270/tipLong',
+      'b12@35,80,100/270/tipLong',
+      'b13@70,0,0/270/tipLong',
+      'b14@70,0,50/270/tipLong',
+      'b15@70,0,100/270/tipLong',
+      'b16@70,80,0/270/tipLong',
+      'b17@70,80,50/270/tipLong',
+      'b18@70,80,100/270/tipLong',
+      'b19@105,0,0/270/tipLong',
+      'b20@105,0,50/270/tipLong',
+      'b21@105,0,100/270/tipLong',
+      'b22@105,80,0/270/tipLong',
+      'b23@105,80,50/270/tipLong',
+      'b24@105,80,100/270/tipLong',
+      'b25@140,0,0/270/tipLong',
+      'c1@140,100,0/0/standing',
+      'c2@140,100,50/0/standing',
+      'c3@140,100,100/0/standing',
+      'c4@175,0,0/0/standing',
+      'c5@175,0,50/0/standing',
+      'c6@175,0,100/0/standing',
+      'c7@175,50,0/0/standing',
+      'c8@175,50,50/0/standing',
+      'c9@175,50,100/0/standing',
+      'c10@190,100,0/0/standing',
+      'c11@190,100,50/0/standing',
+      'c12@190,100,100/0/standing',
+      'c13@225,0,0/0/standing',
+      'c14@225,0,50/0/standing',
+      'c15@225,0,100/0/standing',
+      'c16@225,50,0/0/standing',
+      'c17@225,50,50/0/standing',
+      'c18@225,50,100/0/standing',
+      'c19@240,100,0/0/standing',
+      'c20@240,100,50/0/standing',
+      'c21@240,100,100/0/standing',
+    ],
+    unplaced: ['c22', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 'a13', 'a14', 'a15', 'a16', 'a17', 'a18', 'a19', 'a20', 'a21', 'a22', 'a23', 'a24', 'a25', 'a26', 'a27', 'a28', 'a29', 'a30'],
+  },
+  tippedMix: {
+    placements: [
+      't2@70,0,0/0/standing',
+      't3@70,0,40/0/standing',
+      't5@70,0,80/0/standing',
+      't6@70,55,0/0/standing',
+      't8@70,55,40/0/standing',
+      't9@70,55,80/0/standing',
+      't11@160,0,0/0/standing',
+      't12@160,0,40/0/standing',
+      't14@160,0,80/0/standing',
+      't15@160,55,0/0/standing',
+      't17@160,55,40/0/standing',
+      't18@160,55,80/0/standing',
+      't1@70,110,0/0/tipLong',
+      't4@70,110,55/0/tipLong',
+      't7@160,110,0/0/tipLong',
+      't10@160,110,55/0/tipLong',
+    ],
+    unplaced: ['t20', 't21', 't23', 't24', 't26', 't27', 't29', 't30', 't32', 't33', 't35', 't36', 't13', 't16', 't19', 't22', 't25', 't28', 't31', 't34'],
+  },
+  truss: {
+    placements: [
+      'b1@0,0,0/0/standing',
+      'b2@0,0,70/0/standing',
+      'b3@0,0,140/0/standing',
+      'b4@0,60,0/0/standing',
+      'b5@0,60,70/0/standing',
+      'b6@0,60,140/0/standing',
+      'b7@0,120,0/0/standing',
+      'b8@0,120,70/0/standing',
+      'b9@0,120,140/0/standing',
+      's1@0,186,0/0/standing',
+      's2@100,0,0/0/standing',
+      'w1@100,62,0/0/standing',
+      'w2@100,62,60/0/standing',
+      'w3@100,62,120/0/standing',
+      'w4@100,62,180/0/standing',
+      'w5@100,124,0/0/standing',
+      'w6@100,124,60/0/standing',
+    ],
+    unplaced: [],
+  },
+  dolly: {
+    placements: [
+      'd31@0,0,0/0/standing',
+      'd32@0,80,0/0/standing',
+      'd33@0,160,0/0/standing',
+      'd21@135,0,0/0/standing',
+      'd22@135,60,0/0/standing',
+      'd23@135,120,0/0/standing',
+      'd24@135,180,0/0/standing',
+      'sub1@270,0,0/0/standing',
+      'sub2@270,0,80/0/standing',
+      'sub3@270,0,160/0/standing',
+      'sub4@270,70,0/0/standing',
+      'sub5@270,70,80/0/standing',
+      'sub6@270,70,160/0/standing',
+    ],
+    unplaced: [],
+  },
+  mixTop: {
+    placements: [
+      'big1@0,0,0/0/standing',
+      'big2@0,0,60/0/standing',
+      'mid1@0,0,120/0/standing',
+      'mid2@0,0,170/0/standing',
+      'big3@0,80,0/0/standing',
+      'big4@0,80,60/0/standing',
+      'mid3@0,80,120/0/standing',
+      'sm1@0,80,170/0/standing',
+      'sm2@0,160,0/0/standing',
+      'sm3@0,160,40/0/standing',
+      'sm4@0,160,80/0/standing',
+      'sm5@0,160,120/0/standing',
+      'sm6@0,200,0/0/standing',
+      'li1@0,200,40/0/standing',
+      'li2@0,200,80/0/standing',
+      'li3@0,200,120/0/standing',
+      'gs1@60,160,0/0/standing',
+      'gs2@60,160,40/0/standing',
+    ],
+    unplaced: [],
+  },
+  obstacles: {
+    placements: [
+      'b1@100,120,0/0/standing',
+      'b2@100,120,60/0/standing',
+      'b3@100,120,120/0/standing',
+      'b4@100,120,180/0/standing',
+      'b5@100,180,0/0/standing',
+      'b6@100,180,60/0/standing',
+      'b7@100,180,120/0/standing',
+      'a1@150,0,0/0/standing',
+      'a2@150,0,80/0/standing',
+      'a3@150,0,160/0/standing',
+      'a4@150,60,0/0/standing',
+      'a5@150,60,80/0/standing',
+      'a6@150,60,160/0/standing',
+    ],
+    unplaced: [],
+  },
+};
+
+for (const [name, expected] of Object.entries(EXPECTED)) {
+  test(`Packer-Ausgabe unverändert: ${name}`, () => {
+    const got = snapshot(FIXTURES[name]());
+    assert.deepEqual(got.placements, expected.placements);
+    assert.deepEqual(got.unplaced, expected.unplaced);
+  });
+}
+
+test('Packer-Ausgabe: die Fixtures decken Ablage und Platzierungen ab', () => {
+  assert.ok(EXPECTED.overfull.unplaced.length > 0 && EXPECTED.overfullSmall.unplaced.length > 0);
+  assert.equal(EXPECTED.light.unplaced.length, 0);
+});
+
+// Regression Rasterstelle: Ein größerer Stapel (L, 60×45) trifft im Spurraster y = k · 45 eine Stelle
+// (y = 45), die dem kleineren, zuvor gescheiterten (S, 60×35, Raster y = k · 35) und allen
+// Eckpunkten verschlossen blieb. Eine Ablehnung „größer als ein gescheiterter“ wäre falsch; abgelehnt
+// wird nur bei identischer Grundfläche. Erwartung aus dem Packer vor 2.3 (da2c2f7).
+test('Regression Rasterstelle: ein größerer Stapel darf eine Stelle treffen, an der ein kleinerer scheiterte', () => {
+  const truck = { l: 120, w: 100, h: 300, wheelArches: [] };
+  const obstacles = [
+    { x0: 0, y0: 0, z0: 0, x1: 120, y1: 40, z1: 100 },
+    { x0: 0, y0: 40, z0: 0, x1: 50, y1: 95, z1: 100 },
+    { x0: 0, y0: 95, z0: 0, x1: 120, y1: 100, z1: 100 },
+    { x0: 100, y0: 40, z0: 0, x1: 110, y1: 45, z1: 100 },
+  ];
+  const S = { id: 'S', dx: 60, dy: 35, height: 50, ownWeight: 100, sort: 0 };
+  const L = { id: 'L', dx: 60, dy: 45, height: 50, ownWeight: 50, sort: 0 };
+  const r = placeStacks([S, L], truck, obstacles);
+  assert.deepEqual(r.placed.map(p => [p.stack.id, p.box.x0, p.box.y0, p.swap]), [['L', 50, 45, false]]);
+  assert.deepEqual(r.failed.map(s => s.id), ['S']);
+});

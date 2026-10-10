@@ -188,8 +188,21 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
     const group = stacks.filter(s => (s.sort ?? 0) === sort)
       .sort((a, b) => (a.mixed ? 1 : 0) - (b.mixed ? 1 : 0) || (b.ownWeight ?? b.weight) - (a.ownWeight ?? a.weight));
     const boxesHere = [];
+    // Überfüllung (2.3): Scheitert ein Stapel, scheitert bei UNVERÄNDERTER Belegung jeder weitere mit
+    // GLEICHER Grundfläche (gleiches dx × dy oder genau um 90° getauscht) und mindestens gleicher
+    // Höhe – die Suche entfällt dann. Nur bei identischer Grundfläche stimmen Spurraster (y = k · Breite)
+    // und Eckensuche überein; bei bloß „größerer“ Grundfläche könnte der größere Stapel eine Rasterstelle
+    // treffen, die dem kleineren verschlossen blieb (Gegenbeispiel: tests/packer-golden.test.js,
+    // „Regression Rasterstelle“). Nach jeder erfolgreichen Platzierung verfällt die Merkliste, denn
+    // neue Punkte und Hindernisse ändern die Lage.
+    let failedShapes = [];
+    const knownToFail = (a, b, h) => failedShapes.some(f => f.h <= h + 1e-6
+      && ((Math.abs(f.dx - a) < 1e-6 && Math.abs(f.dy - b) < 1e-6) || (Math.abs(f.dy - a) < 1e-6 && Math.abs(f.dx - b) < 1e-6)));
+    let sorted = false;   // Punkte sind nur nach einer Platzierung neu zu sortieren
+    let xs = null;        // Kandidaten-x der Spurraster-Suche; hängt nur von den Punkten ab
     for (const s of group) {
-      points.sort((p, q) => p.x - q.x || p.y - q.y);
+      if (knownToFail(s.dx, s.dy, s.height)) { failed.push(s); continue; }
+      if (!sorted) { points.sort((p, q) => p.x - q.x || p.y - q.y); sorted = true; xs = null; }
       const fits = box => box.x1 <= truck.l + 1e-6 && box.y1 <= truck.w + 1e-6 && !blocked.some(b => overlaps(b, box));
       const swaps = s.dx === s.dy ? [false] : [false, true];
       let hit = null;
@@ -197,7 +210,7 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
       // Bottom-Left die Sorte in die Ecke neben der letzten Reihe der vorigen Sorte, deren Spuren
       // eine andere Breite haben – 62er-Wagen landeten so bei y = 60/122/184, an der Wand blieben
       // 60 cm übrig und es passten nur 3 statt 4 nebeneinander (Nutzer-Befund 2026-09-28).
-      const xs = [...new Set(points.map(p => Math.max(p.x, minX)))].sort((a, b) => a - b);
+      xs ??= [...new Set(points.map(p => Math.max(p.x, minX)))].sort((a, b) => a - b);
       // Je x gewinnt die kleinste freie Spur-y über beide Grundriss-Drehungen, bei Gleichstand
       // ungedreht – dieselbe Vorrangfolge wie die Eckensuche unten (Punkt vor Drehung).
       for (const x of xs) {
@@ -230,7 +243,15 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
         }
         if (hit) break;
       }
-      if (!hit) { failed.push(s); continue; }
+      if (!hit) {
+        failed.push(s);
+        // Je Grundfläche zählt die kleinste gescheiterte Höhe.
+        failedShapes = failedShapes.filter(f => !(s.height <= f.h + 1e-6 && Math.abs(f.dx - s.dx) < 1e-6 && Math.abs(f.dy - s.dy) < 1e-6));
+        failedShapes.push({ dx: s.dx, dy: s.dy, h: s.height });
+        continue;
+      }
+      failedShapes = [];
+      sorted = false;
       blocked.push(hit.box);
       boxesHere.push(hit.box);
       placed.push({ stack: s, ...hit });

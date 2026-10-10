@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, checkCase, mergeById, backupFileName, preImportBackupFileName, normalizeCase } from '../js/store/io.js';
-import { CASE_LIMITS, MAX_LABEL } from '../js/model/limits.js';
+import { exportBundle, parseBundle, checkCase, checkTruck, checkPlan, mergeById, backupFileName, preImportBackupFileName, normalizeCase } from '../js/store/io.js';
+import { CASE_LIMITS, MAX_LABEL, NAME_MAX, COORD_MAX } from '../js/model/limits.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -90,6 +90,7 @@ test('Case mit wheelH >= h wird repariert (Rollen abgewählt) statt abgelehnt', 
   assert.equal(res.cases[0].wheels, false);
   assert.equal(res.repairs.length, 1);
   assert.match(res.repairs[0], /1 Case.*Rollenhöhe/);
+  assert.match(res.repairs[0], /Rollenhöhe auf 0 gesetzt und Rollen abgewählt/, 'nennt Rollenhöhe UND die Rollen-Angabe (wheels)');
 });
 // Rückbau-Beleg für die Reparatur oben: der bestehende Test „Case mit negativem wheelH wird
 // abgelehnt“ (Zeile 69) zeigt bereits, dass ein außerhalb des gültigen Bereichs liegender
@@ -361,17 +362,10 @@ test('Case mit Maß genau an der Obergrenze wird akzeptiert, darüber abgelehnt'
   const bad = bundleWith({ cases: [{ ...own, l: CASE_LIMITS.l + 1 }], trucks: [], plans: [] });
   assert.throws(() => parseBundle(bad), /ungültige Maße/);
 });
-test('Case mit riesigem Gewicht (100 Tonnen) wird abgelehnt', () => {
-  const bad = bundleWith({ cases: [{ ...own, weight: 100000 }], trucks: [], plans: [] });
-  assert.throws(() => parseBundle(bad), /ungültiges Gewicht/);
-});
-test('Case mit riesigem maxTopLoad wird abgelehnt', () => {
-  const bad = bundleWith({ cases: [{ ...own, maxTopLoad: CASE_LIMITS.maxTopLoad + 1 }], trucks: [], plans: [] });
-  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
-});
-test('Case mit riesigem stock wird abgelehnt', () => {
-  const bad = bundleWith({ cases: [{ ...own, stock: CASE_LIMITS.stock + 1 }], trucks: [], plans: [] });
-  assert.throws(() => parseBundle(bad), /ungültige Eigenschaften/);
+test('Case mit riesigem Gewicht (100 Tonnen) wird übernommen und gemeldet (Warnung statt Abbruch)', () => {
+  const res = parseBundle(bundleWith({ cases: [{ ...own, weight: 100000 }], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].weight, 100000);
+  assert.equal(res.overLimit[0].field, 'weight');
 });
 test('Case mit riesiger wheelH wird abgelehnt', () => {
   const bad = bundleWith({ cases: [{ ...own, wheelH: CASE_LIMITS.wheelH + 1, dimsInclWheels: false }], trucks: [], plans: [] });
@@ -435,45 +429,43 @@ test('Ein Case mit lib-…-ID und builtin:true wird beim Import verworfen (verde
   assert.deepEqual(res.cases.map(c => c.id), ['own']);
 });
 
-// --- Daten-21: Verweise auf unbekannte Cases/Fahrzeuge werden gemeldet ---
+// --- Daten-21: Verweise auf unbekannte Cases/Fahrzeuge werden strukturiert gemeldet ---
+// parseBundle liefert nur die IDs (`unknownRefs`); den Warntext und den Abgleich gegen den
+// lokalen Bestand erledigt js/app/importExport.js (tests/app-importexport.test.js).
 
 test('Ladeplan mit Verweis auf unbekanntes Case wird gemeldet, aber importiert', () => {
   const p = plan([P('pl1', 'geist-case-123', 0, 0, 0)]);
-  const ok = bundleWith({ cases: [], trucks: [], plans: [p] });
-  const res = parseBundle(ok);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
   assert.equal(res.plans.length, 1);
-  assert.ok(res.warnings.some(w => /unbekannt|weder in der Datei/.test(w)));
+  assert.equal('warnings' in res, false);
+  assert.deepEqual(res.unknownRefs, [{ planId: p.id, plan: p.name, cases: ['geist-case-123'], truck: null }]);
 });
-test('Ladeplan mit Verweis auf ein Standard-Case (preset-) erzeugt keine Warnung', () => {
+test('Ladeplan mit Verweis auf ein Standard-Case (preset-) erzeugt keinen Eintrag', () => {
   const p = plan([P('pl1', 'preset-k2', 0, 0, 0)]);
-  const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
   assert.equal(res.plans.length, 1);
-  assert.deepEqual(res.warnings.filter(w => /weder in der Datei/.test(w)), []);
+  assert.deepEqual(res.unknownRefs, []);
 });
-test('Ladeplan mit Verweis auf ein Standard-Case und ein unbekanntes meldet nur das unbekannte', () => {
-  const p = plan([P('pl1', 'preset-k2', 0, 0, 0), P('pl2', 'gibt-es-nicht', 0, 0, 0)]);
+test('Ladeplan mit Verweis auf ein Standard-Case und ein unbekanntes nennt nur das unbekannte (je Stück)', () => {
+  const p = plan([P('pl1', 'preset-k2', 0, 0, 0), P('pl2', 'gibt-es-nicht', 0, 0, 0), P('pl3', 'gibt-es-nicht', 0, 0, 0)]);
   const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
-  assert.equal(res.warnings.filter(w => /weder in der Datei/.test(w)).length, 1);
-  assert.match(res.warnings.find(w => /weder in der Datei/.test(w)), /1 Stück/);
+  assert.deepEqual(res.unknownRefs[0].cases, ['gibt-es-nicht', 'gibt-es-nicht']);
 });
 test('Ladeplan mit Verweis auf unbekanntes Fahrzeug wird gemeldet, aber importiert', () => {
   const p = { ...plan([]), truckId: 'geist-truck-123' };
-  const ok = bundleWith({ cases: [], trucks: [], plans: [p] });
-  const res = parseBundle(ok);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [], plans: [p] }));
   assert.equal(res.plans.length, 1);
-  assert.ok(res.warnings.some(w => /unbekanntes Fahrzeug/.test(w)));
+  assert.deepEqual(res.unknownRefs, [{ planId: p.id, plan: p.name, cases: [], truck: 'geist-truck-123' }]);
 });
-test('Ladeplan ohne fremde Verweise erzeugt keine Warnung', () => {
+test('Ladeplan ohne fremde Verweise erzeugt keinen Eintrag', () => {
   const p = plan([P('pl1', 'own', 0, 0, 0)]);
-  const ok = bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] });
-  const res = parseBundle(ok);
-  assert.deepEqual(res.warnings, []);
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] }));
+  assert.deepEqual(res.unknownRefs, []);
 });
-test('Verweis auf ein Bibliotheks-Case (lib-…) gilt als bekannt, keine Warnung', () => {
+test('Verweis auf ein Bibliotheks-Case (lib-…) gilt als bekannt, kein Eintrag', () => {
   const p = plan([P('pl1', 'lib-lakabaum-flach-bbm', 0, 0, 0)]);
-  const ok = bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] });
-  const res = parseBundle(ok);
-  assert.deepEqual(res.warnings, []);
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
+  assert.deepEqual(res.unknownRefs, []);
 });
 
 // --- Daten-15: kaputte Felder werden gemeldet statt zu leerem Import zu werden ---
@@ -659,4 +651,117 @@ test('checkCase: company/legacy/onlyInPlan werden geprüft, fehlen darf jedes (a
   checkCase({ ...base, company: 'CAB', legacy: true, onlyInPlan: true });
   assert.throws(() => checkCase({ ...base, company: 5 }));
   assert.throws(() => checkCase({ ...base, onlyInPlan: 'ja' }));
+});
+
+// --- Grenzen beim Import (Abschluss Teil 1, Punkt 1.2) ---
+
+const nameOf = n => 'N'.repeat(n);
+
+test('Casename: genau NAME_MAX Zeichen gültig, eines mehr abgelehnt', () => {
+  assert.doesNotThrow(() => checkCase({ ...own, name: nameOf(NAME_MAX) }));
+  assert.throws(() => checkCase({ ...own, name: nameOf(NAME_MAX + 1) }), /Name.*zu lang/);
+});
+test('Fahrzeugname: genau NAME_MAX Zeichen gültig, eines mehr abgelehnt', () => {
+  assert.doesNotThrow(() => checkTruck({ ...mkTruck(), name: nameOf(NAME_MAX) }));
+  assert.throws(() => checkTruck({ ...mkTruck(), name: nameOf(NAME_MAX + 1) }), /Name.*zu lang/);
+});
+test('Planname: genau NAME_MAX Zeichen gültig, eines mehr abgelehnt (checkPlan)', () => {
+  assert.doesNotThrow(() => checkPlan({ ...plan([]), name: nameOf(NAME_MAX) }));
+  assert.throws(() => checkPlan({ ...plan([]), name: nameOf(NAME_MAX + 1) }), /Name.*zu lang/);
+});
+test('Planname über NAME_MAX aus einer älteren Sicherung wird gekürzt und gemeldet statt die Datei zu verwerfen (eigene Entscheidung)', () => {
+  // Umbenennen und „Kopie“ hatten früher keine Grenze; die eigene Sicherung darf deshalb nicht
+  // unimportierbar sein.
+  const long = { ...plan([]), name: nameOf(NAME_MAX + 6) };
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [long] }));
+  assert.equal(res.plans[0].name, nameOf(NAME_MAX));
+  assert.equal(res.repairs.length, 1);
+  assert.match(res.repairs[0], /1 Ladeplan.*Name.*gekürzt/);
+});
+test('checkPlan prüft Koordinaten nur auf endliche Zahlen (Bereichsprüfung ist eine Reparatur in parseBundle)', () => {
+  assert.doesNotThrow(() => checkPlan(plan([P('a', 'own', COORD_MAX + 1, 0, 0)])));
+  assert.throws(() => checkPlan(plan([P('a', 'own', 'x', 0, 0)])), /Platzierungen/);
+  assert.throws(() => checkPlan(plan([P('a', 'own', Infinity, 0, 0)])), /Platzierungen/);
+});
+test('Platzierung außerhalb COORD_MAX (x, y, z, auch negativ) wandert in die Ablage und wird gemeldet', () => {
+  for (const k of ['x', 'y', 'z']) for (const sign of [1, -1]) {
+    const bad = P('bad', 'own', 0, 0, 0, { [k]: sign * (COORD_MAX + 1), label: 'L1', color: '#112233', layers: [1], tipped: true, group: 'G' });
+    const edge = P('edge', 'own', 0, 0, 0, { [k]: sign * COORD_MAX });
+    const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [plan([bad, edge])] }));
+    assert.deepEqual(res.plans[0].placements.map(x => x.id), ['edge'], `${k}${sign}`);
+    assert.deepEqual(res.plans[0].unplaced, [{ id: 'bad', caseId: 'own', label: 'L1', color: '#112233', layers: [1], tipped: true, group: 'G' }]);
+    assert.equal(res.repairs.length, 1);
+    assert.match(res.repairs[0], /Ladeplan „Test“.*1 Platzierung.*Ablage/);
+  }
+});
+test('Eigenes 2000-cm-Fahrzeug: Platzierung bei x=3500 bleibt (Grenze wächst mit dem größten Fahrzeug der Datei, 2 × Maß)', () => {
+  const big = mkTruck({ id: 'big', l: 2000 });
+  const p = { ...plan([P('far', 'own', 3500, 0, 0)]), truckId: 'big' };
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [big], plans: [p] }));
+  assert.equal(res.plans[0].placements.length, 1);
+  assert.deepEqual(res.repairs, []);
+});
+test('Doppelte IDs innerhalb einer Liste lehnen die Datei ab (Cases, Fahrzeuge, Pläne, Regelsets)', () => {
+  const rs = { id: 'r1', name: 'Set', rules: [] };
+  assert.throws(() => parseBundle(bundleWith({ cases: [own, { ...own, name: 'Zweites' }], trucks: [], plans: [] })), /Cases.*doppelt|doppelte.*Case/i);
+  assert.throws(() => parseBundle(bundleWith({ cases: [], trucks: [mkTruck(), mkTruck()], plans: [] })), /Fahrzeug.*doppelt|doppelte.*Fahrzeug/i);
+  assert.throws(() => parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [plan([]), plan([])] })), /Ladepl.*doppelt|doppelte.*Ladepl/i);
+  assert.throws(() => parseBundle(bundleWith({ cases: [], trucks: [], plans: [], ruleSets: [rs, rs] })), /Regelset.*doppelt|doppelte.*Regelset/i);
+  // dieselbe ID in VERSCHIEDENEN Listen ist normal
+  assert.doesNotThrow(() => parseBundle(bundleWith({ cases: [{ ...own, id: 'x' }], trucks: [{ ...mkTruck(), id: 'x' }], plans: [] })));
+});
+test('Gewicht/Auflast/Bestand über der Grenze: Warnung statt Abbruch, Wert bleibt unverändert', () => {
+  const heavy = { ...own, id: 'heavy', name: 'Schwer', weight: CASE_LIMITS.weight + 1, maxTopLoad: CASE_LIMITS.maxTopLoad + 5, stock: CASE_LIMITS.stock + 1 };
+  const res = parseBundle(bundleWith({ cases: [heavy], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].weight, CASE_LIMITS.weight + 1);
+  assert.equal(res.cases[0].maxTopLoad, CASE_LIMITS.maxTopLoad + 5);
+  assert.equal(res.cases[0].stock, CASE_LIMITS.stock + 1);
+  assert.deepEqual(res.overLimit, [
+    { id: 'heavy', name: 'Schwer', field: 'weight', value: CASE_LIMITS.weight + 1, max: CASE_LIMITS.weight },
+    { id: 'heavy', name: 'Schwer', field: 'maxTopLoad', value: CASE_LIMITS.maxTopLoad + 5, max: CASE_LIMITS.maxTopLoad },
+    { id: 'heavy', name: 'Schwer', field: 'stock', value: CASE_LIMITS.stock + 1, max: CASE_LIMITS.stock },
+  ]);
+});
+test('Gewicht/Auflast/Bestand genau an der Grenze: keine Warnung; negativ oder keine Zahl weiterhin abgelehnt', () => {
+  const edge = { ...own, weight: CASE_LIMITS.weight, maxTopLoad: CASE_LIMITS.maxTopLoad, stock: CASE_LIMITS.stock };
+  assert.deepEqual(parseBundle(bundleWith({ cases: [edge], trucks: [], plans: [] })).overLimit, []);
+  assert.throws(() => checkCase({ ...own, weight: -1 }), /Gewicht/);
+  assert.throws(() => checkCase({ ...own, stock: 'viel' }), /ungültige Eigenschaften/);
+  assert.throws(() => checkCase({ ...own, maxTopLoad: -1 }), /ungültige Eigenschaften/);
+});
+test('Maße (l/w/h) über der Grenze lehnen weiterhin ab', () => {
+  assert.throws(() => checkCase({ ...own, l: CASE_LIMITS.l + 1 }), /ungültige Maße/);
+});
+test('Regression: Sicherung im alten Schema (lange Namen bis 80, keine Koordinatenextreme) lädt unverändert', () => {
+  const oldCase = { id: 'alt-c', name: nameOf(80), l: 80, w: 60, h: 50, weight: 42, tippable: false, stackable: true };
+  const oldTruck = { id: 'alt-t', name: nameOf(80), l: 1360, w: 248, h: 270, payload: 24000 };
+  const oldPlan = { id: 'alt-p', name: nameOf(80), truckId: 'alt-t', placements: [{ id: 'p1', caseId: 'alt-c', x: 1300, y: 240, z: 260, orientation: 'standing', rot: 0 }] };
+  const res = parseBundle(bundleWith({ cases: [oldCase], trucks: [oldTruck], plans: [oldPlan] }));
+  assert.equal(res.cases[0].name, oldCase.name);
+  assert.equal(res.plans[0].name, oldPlan.name);
+  assert.deepEqual(res.plans[0].placements[0].x, 1300);
+  assert.deepEqual(res.repairs, []);
+  assert.deepEqual(res.overLimit, []);
+});
+
+test('Regression (altes Schema): Dolly-Case mit 91-Zeichen-Name und Fahrzeug mit 100 Zeichen werden gekürzt importiert, ID bleibt, Reparatur gemeldet', () => {
+  const name = `${'D'.repeat(91 - ' 4er (auf Dolly)'.length)} 4er (auf Dolly)`;
+  assert.equal(name.length, 91);
+  const dolly = { id: 'dolly-alt-4', name, l: 80, w: 60, h: 80, weight: 100, tippable: false, stackable: true, kind: 'speaker' };
+  const edge = { id: 'edge', name: nameOf(80), l: 80, w: 60, h: 50, weight: 1, tippable: false, stackable: true };
+  const truck = { ...mkTruck(), id: 'lang', name: nameOf(100) };
+  const res = parseBundle(bundleWith({ cases: [dolly, edge], trucks: [truck], plans: [] }));
+  const d = res.cases.find(c => c.id === 'dolly-alt-4');
+  assert.equal(d.name.length, 80);
+  assert.ok(d.name.endsWith(' 4er (auf Dolly)'), d.name);
+  assert.equal(res.cases.find(c => c.id === 'edge').name, nameOf(80));
+  assert.equal(res.trucks[0].name, nameOf(80));
+  assert.equal(res.trucks[0].id, 'lang');
+  assert.ok(res.repairs.some(r => /^1 Case: Name länger als 80/.test(r)));
+  assert.ok(res.repairs.some(r => /^1 Fahrzeug: Name länger als 80/.test(r)));
+});
+test('Name über NAME_MAX direkt an checkCase/checkTruck wird weiterhin abgelehnt; Nicht-Strings ebenfalls', () => {
+  assert.throws(() => checkCase({ ...own, name: nameOf(NAME_MAX + 1) }), /zu lang/);
+  assert.throws(() => checkTruck({ ...mkTruck(), name: nameOf(NAME_MAX + 1) }), /zu lang/);
+  assert.throws(() => parseBundle(bundleWith({ cases: [{ ...own, name: 5 }], trucks: [], plans: [] })), /ohne ID oder Name/);
 });

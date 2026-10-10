@@ -1,12 +1,33 @@
 import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
-import { outerDims, wheelFace, layersOf, pieceLayers, canTip } from '../model/geometry.js';
-import { MAX_LABEL } from '../model/limits.js';
+import { outerDims, wheelFace, layersOf, pieceLayers, canTip, isTruss } from '../model/geometry.js';
+import { MAX_LABEL, CASE_LIMITS } from '../model/limits.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
 // (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die
 // gegenüberliegende (großes y) als „rechts“ (siehe js/ui/projection.js / view2d.js).
 const WHEEL_FACE_ORDER = ['+x', '-x', '-y', '+y'];
 const WHEEL_FACE_LABEL = { '+x': 'Tür', '-x': 'Front', '-y': 'links', '+y': 'rechts' };
+
+// Darf der Inspector das Gewicht dieses Case-Typs ändern? Eigene Cases (nicht builtin) und
+// Firmen-Vorlagen (`lib-`, werden als Überlagerung mit gleicher ID gespeichert, siehe
+// js/model/material.js) ja; Standardvorlagen (`preset-`) nur lesbar – dort führt „Kopieren“ in der
+// Materialverwaltung zum eigenen Case; Traversenwagen nie, ihr Gewicht ergibt sich aus der Konstruktion.
+export function weightEditable(c) {
+  if (!c || isTruss(c)) return false;
+  return !c.builtin || String(c.id).startsWith('lib-');
+}
+const PRESET_WEIGHT_HINT = 'Standardvorlage – über „Kopieren“ in der Materialverwaltung ändern';
+const isPreset = c => c?.builtin === true && String(c.id).startsWith('preset-');
+
+// Zahlenfeld (kg) für ein editierbares Gewicht, sonst der Wert als Text plus – bei Standardvorlagen –
+// der Hinweis, wie man ihn ändert.
+export function weightField(c) {
+  if (weightEditable(c)) {
+    return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">gilt für alle Stücke dieses Typs</small>`;
+  }
+  return `${esc(c.weight)} kg`;
+}
+const weightHint = c => (isPreset(c) ? `<p class="hint insp-weight-hint">${PRESET_WEIGHT_HINT}</p>` : '');
 
 // Block „Laden“ – für ein platziertes Stück (piece = das Placement, tippedOn aus der
 // Orientierung) genauso wie für ein Ablage-Stück (piece = der Ablage-Eintrag, tippedOn aus
@@ -57,8 +78,9 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
         <dt>Maße stehend</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
         <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
-        <dt>Gewicht</dt><dd>${esc(selected.c.weight)} kg · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
+        <dt>Gewicht</dt><dd>${weightField(selected.c)} · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
       </dl>
+      ${weightHint(selected.c)}
       ${wheelRow}
       ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
@@ -79,6 +101,8 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <label>Farbe<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
         <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
       </div>
+      <p class="insp-weight-row">Gewicht: ${weightField(selectedUnplaced.c)}</p>
+      ${weightHint(selectedUnplaced.c)}
       ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
       <div class="btns">
         <button data-act="edit-case">Case bearbeiten</button>

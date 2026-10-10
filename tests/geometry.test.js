@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
   snap, snapToEdges, stackAbove, DEFAULT_WHEEL_H, wheelHOf,
   DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims,
-  ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace, nextTip,
+  ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace, nextTip, toggleTip,
   pieceLayers, pieceOrientations } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
 
@@ -222,4 +222,14 @@ test('Traversenwagen: outerDims ändert die Maße nicht (wheelH ist 0, l/w/h fix
   // dimsInclWheels === false darf trotzdem nichts ändern, da wheelHOf 0 ist (kein wheels-Flag gesetzt).
   const trussExplicit = { ...truss, dimsInclWheels: false };
   assert.deepEqual(outerDims(trussExplicit), { l: 300, w: 60, h: 80 });
+});
+
+test('toggleTip: stehend -> erste getippte Lage (wie nextTip), getippt -> standing, rot unberührt', () => {
+  const c = { kind: 'case', tippable: true };
+  assert.deepEqual(toggleTip({ orientation: 'standing', rot: 0 }, c), { ...nextTip('standing', 0), tipped: true });
+  assert.deepEqual(toggleTip({ orientation: 'tipLong', rot: 0 }, c), { orientation: 'standing', tipped: false });
+});
+test('toggleTip: nicht tippbar oder Traverse -> keine Änderung', () => {
+  assert.deepEqual(toggleTip({ orientation: 'standing', rot: 0 }, { kind: 'case', tippable: false }), {});
+  assert.deepEqual(toggleTip({ orientation: 'standing', rot: 0 }, { kind: 'truss', tippable: true }), {});
 });

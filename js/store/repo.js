@@ -4,8 +4,6 @@ import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { normalizeCase, mergeById, dropStrayLegacy } from './io.js';
 
-export const stamp = obj => ({ ...obj, updatedAt: new Date().toISOString() });
-
 // Reicht die db.js-Rückrufe weiter: die App-Schicht importiert db.js nicht selbst, sondern nur
 // repo.js.
 export const setBlockedHandler = db.setBlockedHandler;
@@ -60,18 +58,36 @@ export function pickLatestPlan(plans) {
   return [...plans].sort((a, b) => ts(b).localeCompare(ts(a)))[0];
 }
 
+// Bereinigt alle vier Stores (sanitizeUpdatedAt) und schreibt die dabei geänderten Datensätze in
+// EINEM putMany zurück nach IndexedDB; sonst bliebe der Altwert dort stehen und würde bei jedem
+// Start erneut bereinigt (und landete unbereinigt in Sicherungen). Ein Schreibfehler wird nur
+// geloggt – das Laden darf daran nicht scheitern. `write` ist die Testnaht (db.putMany).
+export async function sanitizeAndWriteBack(raw, write = db.putMany) {
+  const clean = {};
+  const items = [];
+  for (const [storeName, records] of Object.entries(raw)) {
+    clean[storeName] = sanitizeUpdatedAt(records);
+    clean[storeName].forEach((r, i) => { if (r !== records[i]) items.push({ store: storeName, value: r }); });
+  }
+  if (items.length > 0) {
+    try { await write(items); } catch (err) { console.error('Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', err); }
+  }
+  return clean;
+}
+
 export async function loadAll() {
   await db.persist();
   const [cases, trucks, plans, ruleSets] = await Promise.all([
     db.getAll('cases'), db.getAll('trucks'), db.getAll('plans'), db.getAll('ruleSets'),
   ]);
-  const ownCases = normalizeOwnCases(sanitizeUpdatedAt(cases));
+  const clean = await sanitizeAndWriteBack({ cases, trucks, plans, ruleSets });
+  const ownCases = normalizeOwnCases(clean.cases);
   const mergedCases = mergeOwnWithBuiltins(ownCases, [...PRESET_CASES, ...CASE_LIBRARY]);
   return {
     cases: mergedCases,
-    trucks: [...PRESET_TRUCKS, ...sanitizeUpdatedAt(trucks)],
-    plans: sanitizeUpdatedAt(plans),
-    ruleSets: sanitizeUpdatedAt(ruleSets),
+    trucks: [...PRESET_TRUCKS, ...clean.trucks],
+    plans: clean.plans,
+    ruleSets: clean.ruleSets,
   };
 }
 
@@ -143,6 +159,16 @@ export const buildCaseItems = list => list.map(value => ({ store: 'cases', value
 
 // Schreibt mehrere Cases in EINER Transaktion (alles oder nichts), z. B. beim Umbenennen einer Firma.
 export const saveCases = list => db.putMany(buildCaseItems(list));
+
+export const buildSaveAndDelete = ({ saves = [], removeIds = [] }) => ({
+  puts: buildCaseItems(saves),
+  deletes: removeIds.map(id => ({ store: 'cases', id })),
+});
+
+// Speichert Cases und löscht andere in EINER Transaktion (alles oder nichts), z. B. beim Löschen
+// einer Firma: ihre Überlagerungen (saves) und Entfernungen (removeIds) – eigene Entscheidung: der
+// Name beschreibt beides, statt saveCases() um Löschungen zu erweitern.
+export const saveAndDelete = ({ saves = [], removeIds = [] } = {}) => db.writeMany(buildSaveAndDelete({ saves, removeIds }));
 
 // Schreibt die Gewinner eines Imports (siehe mergeImportedBundle) in EINER Transaktion: alle oder
 // keiner. Unabhängige db.put()-Aufrufe könnten teilweise gelingen, bevor der Gesamtvorgang als

@@ -12,20 +12,34 @@ export function trussProfileName(width) {
   return p ? p.name.split(' ')[0] : `${width} cm`;
 }
 
-export function caseLine(c) {
-  const company = c.company ? ` · ${c.company}` : '';
-  if (isTruss(c)) {
-    const wagen = c.truss.standing ? '' : ` · Wagen ${c.w} cm breit`;
-    return `Traverse · ${c.truss.count} Stück · ${c.weight} kg/Stück${wagen}${company}`;
-  }
-  if (c.kind === 'speaker' && c.unitH > 0) return `Dolly ${c.l} × ${c.w} cm (B × T) · ${c.h + (c.wheelH ?? 0)} cm hoch · ${c.weight} kg${company}`;
-  const { l, w, h } = outerDims(c);
-  return `${l}×${w}×${h} cm · ${c.weight} kg${company}`;
+// Zahlen einheitlich: deutsch, höchstens eine Nachkommastelle, ohne unnötige Nullen
+// („12,5“, „20“, „45,5“). Eigene Entscheidung: Rundung auf eine Stelle statt Rohwert, weil
+// Maße und Gewichte so überall gleich aussehen.
+export function fmtNum(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '–';
+  const s = v.toLocaleString('de-DE', { maximumFractionDigits: 1, useGrouping: false });
+  return s === '-0' ? '0' : s; // -0,04 rundet sonst zu „-0“
 }
 
-function trussLabel(c) {
+// Gemeinsamer Kern von caseLine und caseDetail: Traverse = Profil, Länge, Stückzahl, Wagenbreite,
+// Gewicht (c.weight ist bei Traversenwagen das Gewicht des ganzen Wagens); sonst Maße und Gewicht.
+function trussCore(c) {
   const lengthM = (c.truss.length / 100).toFixed(2).replace('.', ',');
-  return `Traverse ${trussProfileName(c.truss.width)} · ${lengthM} m · ${c.truss.count} Stück · Wagen ${c.w}er`;
+  const wagon = c.truss.standing ? '' : ` · Wagen ${fmtNum(c.w)} cm breit`;
+  const unit = c.truss.standing ? 'kg' : 'kg/Wagen';
+  return `Traverse ${trussProfileName(c.truss.width)} · ${lengthM} m · ${c.truss.count} Stück${wagon} · ${fmtNum(c.weight)} ${unit}`;
+}
+function dimsCore(c) {
+  const { l, w, h } = outerDims(c);
+  return `${fmtNum(l)}×${fmtNum(w)}×${fmtNum(h)} cm · ${fmtNum(c.weight)} kg`;
+}
+
+export function caseLine(c) {
+  const company = c.company ? ` · ${c.company}` : '';
+  if (isTruss(c)) return `${trussCore(c)}${company}`;
+  if (c.kind === 'speaker' && c.unitH > 0) return `Dolly ${fmtNum(c.l)} × ${fmtNum(c.w)} cm (B × T) · ${fmtNum(c.h + (c.wheelH ?? 0))} cm hoch · ${fmtNum(c.weight)} kg${company}`;
+  return `${dimsCore(c)}${company}`;
 }
 
 function layerLabel(c) {
@@ -37,8 +51,7 @@ function layerLabel(c) {
 }
 
 export function caseDetail(c) {
-  const { l, w, h } = outerDims(c);
-  return isTruss(c)
-    ? trussLabel(c)
-    : `${l}×${w}×${h} cm · ${c.weight} kg${canTip(c) ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layerLabel(c) ? ` · ${layerLabel(c)}` : ''}`;
+  if (isTruss(c)) return trussCore(c);
+  const layers = layerLabel(c);
+  return `${dimsCore(c)}${canTip(c) ? ' · tippbar' : ''}${c.stackable ? '' : ' · nicht stapelbar'}${layers ? ` · ${layers}` : ''}`;
 }

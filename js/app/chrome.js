@@ -2,7 +2,7 @@
 // zweiter Tab, unerwarteter Fehler), Speicherstatus, Versionsanzeige, Druck und
 // Service-Worker-Registrierung. Kein Import von js/app.js.
 import { APP_VERSION } from '../version.js';
-import { buildPrint, buildChecklist, buildLabels, pageRuleFor } from '../ui/print.js';
+import { buildPrint, buildChecklist, buildUnloadList, buildLabels, pageRuleFor } from '../ui/print.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -141,6 +141,10 @@ export function wirePrint({ store, derive }) {
     if (doc === 'checklist') {
       root.className = 'print-root doc-checklist';
       buildChecklist(root, { plan: s.plan, truck: d.truck, result: d.result });
+    } else if (doc === 'unload') {
+      // Seitenregel (A4 quer) und Spaltenlayout wie die Abhakliste: gleiche Klasse.
+      root.className = 'print-root doc-checklist doc-unload';
+      buildUnloadList(root, { plan: s.plan, truck: d.truck, result: d.result });
     } else if (doc === 'labels') {
       const size = $('#print-label-size').value;
       root.className = `print-root doc-labels size-${size}`;

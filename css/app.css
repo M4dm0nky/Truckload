@@ -61,7 +61,7 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .panel { background: var(--panel); overflow: auto; padding: 12px; }
 .library { border-right: 1px solid var(--line); }
 .inspector { border-left: 1px solid var(--line); }
-.stage { min-width: 0; min-height: 0; display: flex; }
+.stage { min-width: 0; min-height: 0; display: flex; position: relative; }
 .views2d { flex: 1; display: grid; grid-template-columns: 3fr 1fr; grid-template-rows: 1.2fr 1fr; gap: 10px; padding: 10px; min-height: 0; }
 .view { margin: 0; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .view-top { grid-column: 1 / -1; }
@@ -71,6 +71,8 @@ select, input, textarea { background: var(--bg); border: 1px solid var(--line); 
 .view figcaption .zoom button { padding: 1px 8px; font-size: 12px; font-weight: 400; }
 .view svg { flex: 1; width: 100%; min-height: 0; touch-action: none; user-select: none; }
 .view3d { flex: 1; min-height: 0; }
+.view3d-stale { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); margin: 0; padding: 4px 10px; background: var(--panel); color: var(--text); border: 1px solid var(--accent); border-radius: var(--radius); font-size: 13px; z-index: 1; }
+.view3d-stale[hidden] { display: none; }
 
 /* SVG – Einheiten sind cm */
 svg .truck { fill: var(--truck); stroke: var(--muted); stroke-width: 2; }
@@ -88,8 +90,9 @@ svg .case .trade-edge { fill: none; stroke-width: 2.5; }
 /* Rollenzone in echter Tiefe, nur wo man die Rollen von der Kante sieht. Dunkel plus feine helle
    Kante – ein reiner Schatten verschwände im Modus „Schwarz“ auf der schwarzen Kiste. */
 svg .case .wheel-strip { fill: rgba(0, 0, 0, .35); stroke: var(--alu); stroke-width: 1; stroke-opacity: .6; }
-svg .case .label { fill: #fff; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; paint-order: stroke; stroke: #000; stroke-width: 3; stroke-linejoin: round; }
-svg .case .label-seq { fill: #fff; font-weight: 600; text-anchor: start; dominant-baseline: text-before-edge; pointer-events: none; paint-order: stroke; stroke: #000; stroke-width: 2.5; stroke-linejoin: round; opacity: .85; }
+/* Farbe und Kontur der Schrift setzt view2d.js je Stück (textColorFor der Körperfarbe). */
+svg .case .label { font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; paint-order: stroke; stroke-width: 3; stroke-linejoin: round; }
+svg .case .label-seq { font-weight: 600; text-anchor: start; dominant-baseline: text-before-edge; pointer-events: none; paint-order: stroke; stroke-width: 2.5; stroke-linejoin: round; opacity: .85; }
 svg .case.bad rect.alert { fill: none; stroke: var(--danger); stroke-width: 4; stroke-dasharray: 10 5; pointer-events: none; }
 svg .case.sel rect.body { stroke: var(--accent); stroke-width: 5; }
 /* Lagen-Durchsicht: Stücke oberhalb der gewählten Lage bleiben blass sichtbar, nicht versteckt.
@@ -190,7 +193,10 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .lib-text { flex: 1; min-width: 0; display: grid; }
 .lib-text b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 .lib-text small { color: var(--muted); }
+.lib-text .lib-reason { white-space: normal; font-size: 11px; }
 
+.inspector input.insp-weight { width: 6.5em; display: inline-block; padding: 2px 6px; }
+.inspector .insp-weight-row { margin: 6px 0; }
 .inspector h2 { font-size: 16px; margin: 0 0 6px; display: flex; gap: 8px; align-items: center; }
 .inspector h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 6px; }
 .inspector dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 8px 0; }

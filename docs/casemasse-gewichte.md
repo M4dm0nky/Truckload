@@ -525,3 +525,16 @@ Einträge sind damit überflüssig und jetzt `legacy: true`, gleiches Muster wie
   (solotech.com, die 23 kg Generator + 33,5 kg Cradle + 120 kg
   Betriebsgewicht nennt, aber nicht die 84 kg) als Quelle angegeben – jetzt
   auf die tatsächlich belegende Quelle korrigiert.
+
+## Korrektur D8+ und JDC-1 (2026-10-09)
+
+Auf Nutzerwunsch 2026-10-09 (Auswahl „D8+ und JDC-1 korrigieren“), nicht nachgemessen:
+
+- **`D8+ 0,5t CAB x4/x8/x12`:** Länge und Breite getauscht. Vorher 50 × 240, 100 × 240 und
+  150 × 240 cm, jetzt 240 × 50, 240 × 100 und 240 × 150 (240 cm ist die lange Seite, wie sonst
+  in der Bibliothek). Höhe 56 cm, Gewicht, Hinweistext und ID unverändert.
+- **`JDC-1 Cube (4)` / `JDC-1 Cube`:** Maße der beiden Zeilen vertauscht (auf Nutzerwunsch
+  2026-10-09, Auswahl „D8+ und JDC-1 korrigieren“): „(4)“ ist jetzt 99 × 60 × 58, der Cube mit
+  einem Gerät 60 × 60 × 58 (vorher umgekehrt; vier Geräte passen nicht in 60 × 60). Die Anwendung
+  (Maße tauschen, Namen/Gewichte/Hinweistexte/IDs behalten, weil die Gewichte – 60 kg bzw. 25 kg –
+  zur Gerätezahl im Namen passen) ist **eigene Entscheidung**; nicht nachgemessen.

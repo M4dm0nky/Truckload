@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.13.10** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.13.11** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -125,6 +125,16 @@ Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
 Zeile in der Seitenleiste anklicken).
 
+Bei einem Stück in „Noch nicht geladen“ steht, wenn es sich aus den Maßen ergibt, der Grund dabei,
+etwa „zu groß für den Laderaum“ oder „auf ‚getippt‘ gesetzt, passt aber nur stehend“. Gründe, die
+nicht aus den Maßen folgen (Nutzlast, Lagen-Einschränkung, Pack-Regeln), nennt die App nicht –
+dann steht dort nichts.
+
+Das **Gewicht** eines Case-Typs lässt sich im Inspector direkt ändern (Zahlenfeld in kg, gilt für
+alle Stücke dieses Typs). Das gilt für eigene Cases und Firmen-Vorlagen; bei Standardvorlagen
+legt „Kopieren“ in der Materialverwaltung eine änderbare Version an, und das Gewicht von
+Traversenwagen ergibt sich aus der Konstruktion.
+
 ## Materialverwaltung
 
 Die Materialverwaltung ist ein eigener Bereich für den Bestand an Cases, Traversen und
@@ -200,7 +210,7 @@ werden lesbar, der Zusammenhang bleibt aber sichtbar, weil nichts verschwindet. 
 ergibt das einen sauberen Schnitt durch die Ladung. Das ausgewählte Case bleibt in beiden
 Fällen sichtbar. Der Ausdruck zeigt immer alle Lagen.
 
-## Drucken: Ladeplan, Abhakliste, Etiketten
+## Drucken: Ladeplan, Abhakliste, Ausladeliste, Etiketten
 
 Neben dem Knopf „Drucken“ steht, was gedruckt wird:
 
@@ -211,12 +221,14 @@ Neben dem Knopf „Drucken“ steht, was gedruckt wird:
   Zweispaltig; rund 40 Cases passen auf ein Blatt. Liegt noch etwas in „Noch nicht geladen“,
   sagt der Kopf das ausdrücklich — eine abgehakte Liste heißt sonst, alles sei verladen,
   obwohl Cases in der Halle stehen. Warnungen aus dem Packergebnis stehen ebenfalls darauf.
+- **Ausladeliste** – dieselbe Liste wie die Abhakliste, aber in umgekehrter Reihenfolge (zuletzt
+  Geladenes zuerst) und mit der Unterschriftszeile „Entladen von“, für die Ankunft am Zielort.
 - **Etiketten** – ein Bogen zum Ausdrucken und Zerschneiden, je Stück ein Etikett mit großer
   Ladenummer, Beschriftung, Farbbalken und „3 von 17“. Zwei Größen zur Wahl, beide auf
   gängiges Haftpapier abgestimmt: **Avery Zweckform 3425** (105 × 57 mm, 10 je Bogen) und
   **Avery Zweckform 3474** (70 × 37 mm, 24 je Bogen).
 
-Etiketten drucken auf A4 hoch und randlos, Ladeplan und Abhakliste auf A4 quer. Vor dem ersten
+Etiketten drucken auf A4 hoch und randlos, Ladeplan, Abhakliste und Ausladeliste auf A4 quer. Vor dem ersten
 Etikettenbogen einen Testdruck auf normalem Papier machen und gegen einen Bogen halten — der
 senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (siehe
 [docs/offene-punkte.md](docs/offene-punkte.md)).
@@ -264,7 +276,7 @@ jederzeit nachtragen.
 | Taste | Aktion |
 |-------|--------|
 | **R** | Gedrehte Case um 90° drehen |
-| **T** | Case tippen (tipLong / tipShort wechseln) |
+| **T** | Case tippen: ein stehendes Case wird auf die Seite getippt, ein getipptes wieder aufgestellt |
 | **W** | Rollenseite (Richtung) wechseln |
 | **D** | Case duplizieren |
 | **Entf** | Case löschen |

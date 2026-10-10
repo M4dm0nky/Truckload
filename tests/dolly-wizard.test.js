@@ -47,3 +47,11 @@ test('buildDollyResult: Bestand ohne Firma behält die alte ID', () => {
   const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
   assert.equal(buildDollyResult(base, 2, {}, { inStock: true, company: '' }, 'u').id, 'dolly-k2-2');
 });
+
+test('buildDollyResult: bei gleichem Firmen-Slug einer anderen Firma bekommt die ID ein Suffix', () => {
+  const base = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
+  const existing = [{ id: 'dolly-cab-k2-2', company: 'CAB' }];
+  assert.equal(buildDollyResult(base, 2, {}, { inStock: true, company: 'C.A.B.' }, 'u', existing).id, 'dolly-c-a-b-k2-2');
+  assert.equal(buildDollyResult(base, 2, {}, { inStock: true, company: 'cab' }, 'u', existing).id, 'dolly-cab-2-k2-2');
+  assert.equal(buildDollyResult(base, 2, {}, { inStock: true, company: 'CAB' }, 'u', existing).id, 'dolly-cab-k2-2');
+});
