@@ -6,7 +6,7 @@ import { caseLine } from './caseInfo.js';
 import { MAX_LABEL, NAME_MAX } from '../model/limits.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
-import { searchInOptionsHtml, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
+import { searchInOptionsHtml, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, autoPackAfterStacked, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
 
 const MAX_ITEMS = 500;
 
@@ -88,6 +88,9 @@ export async function openLoadWizard(dlg, opts = {}) {
 
   const form = dlg.querySelector('form');
   const f = form.elements;
+  // „change“ feuert nur bei Bedienung durch den Nutzer, nicht beim Setzen per Skript.
+  let autoPackTouched = false;
+  f.autoPack.addEventListener('change', () => { autoPackTouched = true; });
   const sections = new Map([...dlg.querySelectorAll('.wiz-step')].map(el => [el.dataset.step, el]));
   const dots = [...dlg.querySelectorAll('.wiz-dot')];
   const tabBtns = [...dlg.querySelectorAll('.case-tabs button')];
@@ -232,7 +235,7 @@ export async function openLoadWizard(dlg, opts = {}) {
       if (room <= 0) break;
       counts.set(caseId, (counts.get(caseId) ?? 0) + Math.min(n, room));
     }
-    if (res.gestapelt) f.autoPack.checked = true;
+    if (res.gestapelt) f.autoPack.checked = autoPackAfterStacked(f.autoPack.checked, autoPackTouched);
     renderCompanyOptions();
     renderCaseList();
   }
