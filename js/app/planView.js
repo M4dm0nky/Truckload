@@ -108,7 +108,7 @@ export function mountPlanView(deps) {
   };
   const ACTIONS = {
     rotate: id => edit((p, c) => A.rotate(p, id, c)),
-    tip: id => edit((p, c) => A.cycleTip(p, id, c)),
+    tip: id => edit((p, c) => A.toggleTipPiece(p, id, c)),
     dup: id => edit((p, c) => A.duplicate(p, id, c)),
     tray: id => { edit(p => A.toTray(p, id)); select(null); },
     // Entf auf einem Ablage-Stück muss A.removeUnplaced treffen: A.removePlacement liefe für

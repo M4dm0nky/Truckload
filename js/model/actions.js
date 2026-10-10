@@ -1,4 +1,4 @@
-import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, archBoxes, nextTip, layersOf, canTip } from './geometry.js';
+import { boxOf, effectiveDims, gravityZ, snap, snapToEdges, stackAbove, rotForWheelFace, archBoxes, toggleTip, layersOf, canTip } from './geometry.js';
 import { MAX_LABEL, layersValid } from './limits.js';
 import { buildItems } from './items.js';
 import { pickPieceFields, cleanGroup } from './pieceFields.js';
@@ -106,12 +106,9 @@ function reorient(plan, id, ctx, change) {
 export const rotate = (plan, id, ctx) =>
   reorient(plan, id, ctx, p => ({ rot: ((p.rot ?? 0) + 90) % 360 }));
 
-export const cycleTip = (plan, id, ctx) =>
-  reorient(plan, id, ctx, (p, c) => {
-    if (!canTip(c)) return {};
-    const next = nextTip(p.orientation, p.rot);
-    return { ...next, tipped: next.orientation !== 'standing' };
-  });
+// T und das Häkchen „getippt“ im Inspector (setPieceTipped) laufen beide hierüber.
+export const toggleTipPiece = (plan, id, ctx) =>
+  reorient(plan, id, ctx, (p, c) => toggleTip(p, c));
 
 // Dreht ein bereits getipptes Case so, dass die Rollen zur gewünschten Seite zeigen.
 // Ist die Richtung für die aktuelle Lage nicht erreichbar (z. B. „standing“, Traverse), passiert nichts.
@@ -230,10 +227,7 @@ export function setPieceTipped(plan, id, tipped, ctx) {
   }
   const p = found.item;
   const isTippedNow = p.orientation !== 'standing';
-  if (tipped && !isTippedNow) return cycleTip(plan, id, ctx);
-  // Aufstellen NICHT über cycleTip: das tippt gerichtet „einmal weiter“ (nextTip() in geometry.js)
-  // und kann je nach rot in einer ANDEREN getippten Lage landen statt auf standing.
-  if (!tipped && isTippedNow) return reorient(plan, id, ctx, () => ({ orientation: 'standing', tipped: false }));
+  if (tipped !== isTippedNow) return toggleTipPiece(plan, id, ctx);
   if (p.tipped === tipped) return plan;
   const patch = it => (it.id === id ? { ...it, tipped } : it);
   return stamp({ ...plan, placements: plan.placements.map(patch) });

@@ -52,38 +52,38 @@ test('rotate dreht um 90°', () => {
   const pl = A.rotate(plan([P('a','k',0,0,0)]), 'a', ctx());
   assert.equal(find(pl,'a').rot, 90);
 });
-test('cycleTip nur bei tippbaren Cases', () => {
-  assert.equal(find(A.cycleTip(plan([P('a','k',0,0,0)]), 'a', ctx()), 'a').orientation, 'standing');
+test('toggleTipPiece nur bei tippbaren Cases', () => {
+  assert.equal(find(A.toggleTipPiece(plan([P('a','k',0,0,0)]), 'a', ctx()), 'a').orientation, 'standing');
   // T (120×60×100) steht bei rot 0 mit der LÄNGE (120) in Fahrtrichtung (x) -> nextTip()
   // verzweigt hier deshalb nach tipShort (verzichtet nicht wie früher fest auf tipLong).
-  assert.equal(find(A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx()), 'a').orientation, 'tipShort');
+  assert.equal(find(A.toggleTipPiece(plan([P('a','t',0,0,0)]), 'a', ctx()), 'a').orientation, 'tipShort');
 });
-test('cycleTip lässt Traversenwagen unverändert (auch bei fälschlich tippable:true)', () => {
+test('toggleTipPiece lässt Traversenwagen unverändert (auch bei fälschlich tippable:true)', () => {
   const truss = mkCase('trs', 300, 60, 80, { kind: 'truss', tippable: true });
   const trussCtx = { caseById: byId(K, T, truss), truck: mkTruck(), newId: counter('n') };
-  assert.equal(find(A.cycleTip(plan([P('a','trs',0,0,0)]), 'a', trussCtx), 'a').orientation, 'standing');
+  assert.equal(find(A.toggleTipPiece(plan([P('a','trs',0,0,0)]), 'a', trussCtx), 'a').orientation, 'standing');
 });
-// Bis zur Nutzer-Rückmeldung vom 2026-09-23 setzte cycleTip bei jedem Tipp die Rollen fest zur
+// Bis zur Nutzer-Rückmeldung vom 2026-09-23 setzte toggleTipPiece bei jedem Tipp die Rollen fest zur
 // Trucktür, unabhängig von der Ausgangsdrehung – stand die lange Seite in Fahrtrichtung, kippte
-// das Case dadurch sichtbar zur Seite statt nach vorn. cycleTip kippt jetzt relativ zur aktuellen
+// das Case dadurch sichtbar zur Seite statt nach vorn. toggleTipPiece kippt jetzt relativ zur aktuellen
 // Lage (nextTip() in geometry.js, dort im Detail getestet); die Rollenrichtung danach ist nicht
 // mehr garantiert und muss bei Bedarf über setWheelFace gewählt werden.
-test('cycleTip: Case mit Länge in Fahrtrichtung (rot 0) kippt nach vorn (tipShort), nicht zur Seite', () => {
-  const pl = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+test('toggleTipPiece: Case mit Länge in Fahrtrichtung (rot 0) kippt nach vorn (tipShort), nicht zur Seite', () => {
+  const pl = A.toggleTipPiece(plan([P('a','t',0,0,0)]), 'a', ctx());
   const p = find(pl, 'a');
   assert.equal(p.orientation, 'tipShort');
   assert.equal(p.rot, 0);
 });
-test('cycleTip: zweiter Tipp kippt zurück auf standing (Hin-und-zurück, nicht in eine dritte Lage)', () => {
-  const once = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+test('toggleTipPiece: zweiter Tipp kippt zurück auf standing (Hin-und-zurück, nicht in eine dritte Lage)', () => {
+  const once = A.toggleTipPiece(plan([P('a','t',0,0,0)]), 'a', ctx());
   assert.equal(find(once, 'a').orientation, 'tipShort');
-  const twice = A.cycleTip(once, 'a', ctx());
+  const twice = A.toggleTipPiece(once, 'a', ctx());
   const p = find(twice, 'a');
   assert.equal(p.orientation, 'standing');
   assert.equal(p.rot, 0);
 });
 test('setWheelFace dreht die Rollen eines getippten Cases in die gewünschte Richtung', () => {
-  const tipped = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+  const tipped = A.toggleTipPiece(plan([P('a','t',0,0,0)]), 'a', ctx());
   const pl = A.setWheelFace(tipped, 'a', '-y', ctx());
   assert.equal(wheelFace(find(pl, 'a')), '-y');
 });
@@ -198,7 +198,7 @@ test('duplicate legt die Kopie in die Ablage, wenn nirgends im Truck Platz ist',
 // Platzierung – ein Ablage-Eintrag mit einem eigenen (fremden) x/y hätte die gerade gewählte
 // Mausposition überschrieben (docs/code-review-2026-09-21.md, „actions.js:38-39“). Nur
 // label/color werden jetzt übernommen.
-// Lage/Tippen je Stück (Task 1): addUnplaced/placeCase/cycleTip/duplicate/toTray übernehmen
+// Lage/Tippen je Stück (Task 1): addUnplaced/placeCase/toggleTipPiece/duplicate/toTray übernehmen
 // layers/tipped genauso wie label/color.
 
 test('addUnplaced übernimmt layers und tipped', () => {
@@ -232,16 +232,16 @@ test('placeCase: ohne tipped-Feld startet standing (Regression, Altdaten)', () =
   assert.ok(!('tipped' in pl.placements[0]));
 });
 
-test('cycleTip aktualisiert tipped passend zur neuen Orientierung', () => {
-  const pl = A.cycleTip(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
+test('toggleTipPiece aktualisiert tipped passend zur neuen Orientierung', () => {
+  const pl = A.toggleTipPiece(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
   assert.equal(find(pl, 'a').orientation, 'tipShort');
   assert.equal(find(pl, 'a').tipped, true);
-  const back = A.cycleTip(pl, 'a', ctx());
+  const back = A.toggleTipPiece(pl, 'a', ctx());
   assert.equal(find(back, 'a').orientation, 'standing');
   assert.equal(find(back, 'a').tipped, false);
 });
-test('cycleTip an einem nicht tippbaren Case ändert tipped nicht (kein tatsächliches Tippen)', () => {
-  const pl = A.cycleTip(plan([P('a', 'k', 0, 0, 0)]), 'a', ctx());
+test('toggleTipPiece an einem nicht tippbaren Case ändert tipped nicht (kein tatsächliches Tippen)', () => {
+  const pl = A.toggleTipPiece(plan([P('a', 'k', 0, 0, 0)]), 'a', ctx());
   assert.ok(!('tipped' in find(pl, 'a')));
 });
 
@@ -321,7 +321,7 @@ test('setPieceLayers: [4,3,2,1] entfernt ein vorhandenes layers-Feld auch bei ei
 });
 
 test('setPieceTipped(false) auf getipptes Placement kippt zurück (standing) und setzt tipped:false', () => {
-  const tipped = A.cycleTip(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
+  const tipped = A.toggleTipPiece(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
   assert.equal(find(tipped, 'a').orientation, 'tipShort');
   const pl = A.setPieceTipped(tipped, 'a', false, ctx());
   const p = find(pl, 'a');
@@ -334,21 +334,19 @@ test('setPieceTipped(true) auf stehendes Placement tippt und setzt tipped:true',
   assert.notEqual(p.orientation, 'standing');
   assert.equal(p.tipped, true);
 });
-// Fix-Runde 1 [critical]: setPieceTipped(false) rief für ein getipptes Placement bisher cycleTip
-// auf – das ist aber ein GERICHTETER „einmal weiter kippen“-Schritt (nextTip() in geometry.js),
-// der je nach Ausgangs-rot auch in einer ANDEREN getippten Lage landen kann statt auf standing.
-// Reproduziert mit einem Placement, wie es Auto-Pack/Import erzeugen kann (nicht über cycleTip
-// selbst entstanden): tipLong/rot 0 -> cycleTip landete auf tipShort statt standing.
+// Fix-Runde 1 [critical] (früher mit dem Schritt-Weiter cycleTip, der entfallen ist): ein vom
+// Packer getipptes Placement (tipLong/rot 0 …) muss auf standing gehen, nicht in eine andere
+// getippte Lage. Seit Task 3.1 ist toggleTip (geometry.js) dafür zuständig: getippt -> standing.
 // Alle vier packer-typischen Ausgangslagen (tipLong/tipShort x rot 0/90) müssen auf
 // { orientation: 'standing', tipped: false } führen.
 for (const [orientation, rot] of [['tipLong', 0], ['tipLong', 90], ['tipShort', 0], ['tipShort', 90]]) {
-  test(`setPieceTipped(false) stellt ${orientation}/rot ${rot} sicher auf standing (nicht über cycleTip)`, () => {
+  test(`setPieceTipped(false) stellt ${orientation}/rot ${rot} sicher auf standing `, () => {
     const pl0 = plan([P('a', 't', 0, 0, 0, { orientation, rot, tipped: true })]);
     const pl = A.setPieceTipped(pl0, 'a', false, ctx());
     const p = find(pl, 'a');
     assert.equal(p.orientation, 'standing');
     assert.equal(p.tipped, false);
-    assert.equal(p.rot, rot, 'rot bleibt erhalten (kein Umlegen über cycleTip)');
+    assert.equal(p.rot, rot, 'rot bleibt erhalten');
   });
 }
 test('setPieceTipped auf ein Ablage-Stück setzt nur das Feld', () => {
@@ -528,9 +526,9 @@ const touchCases = [
   ['placeCase', () => A.placeCase(withOld(plan([P('a','k',0,0,0)])), 'k', { x: 400, y: 0 }, ctx())],
   ['moveGroup', () => A.moveGroup(withOld(plan([P('a','k',0,0,0)])), 'a', 300, 100, ctx())],
   ['rotate', () => A.rotate(withOld(plan([P('a','k',0,0,0)])), 'a', ctx())],
-  ['cycleTip', () => A.cycleTip(withOld(plan([P('a','t',0,0,0)])), 'a', ctx())],
+  ['toggleTipPiece', () => A.toggleTipPiece(withOld(plan([P('a','t',0,0,0)])), 'a', ctx())],
   ['setWheelFace', () => {
-    const tipped = A.cycleTip(plan([P('a','t',0,0,0)]), 'a', ctx());
+    const tipped = A.toggleTipPiece(plan([P('a','t',0,0,0)]), 'a', ctx());
     return A.setWheelFace(withOld(tipped), 'a', '-y', ctx());
   }],
   ['addUnplaced', () => A.addUnplaced(withOld(plan([])), 'k', 1, counter('u'))],
@@ -782,4 +780,20 @@ test('packRest: Regeln ordnen nur die neuen Blöcke, sie schließen hinter der v
   const mot = r.placements.filter(q => q.caseId === 'g');
   const newBig = r.placements.filter(q => q.caseId === 'big' && q.id !== 'x');
   assert.ok(Math.min(...mot.map(q => q.x)) <= Math.min(...newBig.map(q => q.x)), 'Motoren zuerst unter den neuen');
+});
+
+// Task 3.1: T = Umschalten. Getippt (auch vom Packer: tipLong/rot 0) -> standing; stehend -> getippt.
+test('toggleTipPiece: vom Packer getipptes tipLong mit rot 0 geht auf standing, ein zweiter Druck tippt wieder', () => {
+  const pl0 = plan([P('a', 't', 0, 0, 0, { orientation: 'tipLong', rot: 0, tipped: true })]);
+  const up = find(A.toggleTipPiece(pl0, 'a', ctx()), 'a');
+  assert.equal(up.orientation, 'standing');
+  assert.equal(up.tipped, false);
+  const again = find(A.toggleTipPiece(A.toggleTipPiece(pl0, 'a', ctx()), 'a', ctx()), 'a');
+  assert.notEqual(again.orientation, 'standing');
+  assert.equal(again.tipped, true);
+});
+test('toggleTipPiece: stehend -> getippt -> stehend', () => {
+  const t1 = A.toggleTipPiece(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
+  assert.equal(find(t1, 'a').orientation, 'tipShort');
+  assert.equal(find(A.toggleTipPiece(t1, 'a', ctx()), 'a').orientation, 'standing');
 });
