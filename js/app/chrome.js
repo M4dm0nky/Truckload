@@ -2,7 +2,12 @@
 // zweiter Tab, unerwarteter Fehler), Speicherstatus, Versionsanzeige, Druck und
 // Service-Worker-Registrierung. Kein Import von js/app.js.
 import { APP_VERSION } from '../version.js';
-import { buildPrint, buildChecklist, buildUnloadList, buildLabels, pageRuleFor } from '../ui/print.js';
+import {
+  buildPrint, buildChecklist, buildUnloadList, buildLabels, pageRuleFor,
+  buildPrintAll, buildChecklistAll, buildUnloadListAll, buildLabelsAll,
+} from '../ui/print.js';
+import { isMultiLkw, NO_LKW } from '../model/lkw.js';
+import { printSectionsOf } from './core.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -128,17 +133,47 @@ function clearPrintPage() {
 
 // deps: store, derive.
 export function wirePrint({ store, derive }) {
-  // Die Etikettengröße steht nicht im Store (reine Druckoptik, kein Teil des Plans) und wird
-  // deshalb hier direkt ein-/ausgeblendet statt über einen Render-Hook.
+  // Die Etikettengröße und der Druckumfang stehen nicht im Store (reine Druckoptik, kein Teil des
+  // Plans) und werden deshalb hier direkt ein-/ausgeblendet statt über einen Render-Hook.
   $('#print-doc').onchange = () => {
     $('#print-label-size').hidden = $('#print-doc').value !== 'labels';
   };
+  // Der Umschalter „dieser LKW / alle LKW“ gilt nur bei Mehr-LKW-Plänen.
+  const syncScope = s => { $('#print-scope').hidden = !(s.plan && isMultiLkw(s.plan)); };
+  store.subscribe(syncScope);
+  syncScope(store.get());
   window.addEventListener('afterprint', clearPrintPage);
   $('#print').onclick = () => {
     const s = store.get(), d = derive(s);
     const root = $('#print-root');
     const doc = $('#print-doc').value;
-    if (doc === 'checklist') {
+    const multi = isMultiLkw(s.plan);
+    const all = multi && $('#print-scope').value === 'all';
+    // Eigene Entscheidung: Im Reiter „Ohne LKW“ gibt es kein Fahrzeug und damit keine Zeichnung.
+    // „Dieser LKW“ druckt dort nur den Abschnitt „Ohne LKW“ (Stücke ohne Ladenummer, nicht geladen),
+    // so wie er bei „alle LKW“ als letzter Abschnitt steht – statt wie früher die Stücke auf dem
+    // Fahrzeug des ersten LKW darzustellen.
+    const onFree = multi && !all && d.activeLkw === NO_LKW;
+    if (all || onFree) {
+      const { sections, free } = printSectionsOf(s);
+      const parts = onFree ? [] : sections;
+      const f = all || onFree ? free : null;
+      if (!parts.length && !f) return;
+      if (doc === 'checklist') {
+        root.className = 'print-root doc-checklist doc-all';
+        buildChecklistAll(root, parts, { free: f });
+      } else if (doc === 'unload') {
+        root.className = 'print-root doc-checklist doc-unload doc-all';
+        buildUnloadListAll(root, parts, { free: f });
+      } else if (doc === 'labels') {
+        const size = $('#print-label-size').value;
+        root.className = `print-root doc-labels size-${size}`;
+        buildLabelsAll(root, parts, { free: f });
+      } else {
+        root.className = 'print-root doc-plan doc-all';
+        buildPrintAll(root, parts, { colorMode: s.caseColors, free: f });
+      }
+    } else if (doc === 'checklist') {
       root.className = 'print-root doc-checklist';
       buildChecklist(root, { plan: d.view, truck: d.truck, result: d.result });
     } else if (doc === 'unload') {

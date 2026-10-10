@@ -128,6 +128,21 @@ const derived = memoLast((plan, cases, trucks, newId, activeLkw) => {
 });
 export const deriveOf = (s, newId) => derived(s.plan, s.cases, s.trucks, newId, s.activeLkw ?? null);
 
+// Druck „alle LKW“: je LKW ein Abschnitt { lkw, plan (Ansicht), truck, result } in Listenreihenfolge,
+// dazu `free` ({ plan, caseById }: die nicht zugeordneten Stücke als Ablage) oder null, wenn es
+// keine gibt. Ein Fahrzeug, das es nicht mehr gibt, fällt auf das Standardfahrzeug zurück (wie ctxOf).
+export function printSectionsOf(s) {
+  const caseById = caseByIdOf(s.cases);
+  const find = truckFinder(s.trucks);
+  const sections = lkwsOf(s.plan).map(lkw => {
+    const view = lkwView(s.plan, lkw.id);
+    const truck = find(lkw.truckId);
+    return { lkw, plan: view, truck, result: validatePlan(view, caseById, truck) };
+  });
+  const view = unassignedView(s.plan);
+  return { sections, free: view.unplaced.length ? { plan: view, caseById } : null };
+}
+
 // Aktueller Plan (falls vorhanden) plus alle übrigen gespeicherten, ohne Dublette.
 export const allPlansOf = s => [s.plan, ...s.plans.filter(p => p.id !== s.plan?.id)].filter(Boolean);
 
