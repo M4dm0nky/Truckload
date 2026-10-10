@@ -167,6 +167,28 @@ const EXPECTED = {
     ],
     unplaced: [],
   },
+  // BEWUSST GEÄNDERT (Deckschicht nebeneinander): ALT (V 0.13.11) lagen sm1/sm2 übereinander auf big2 (z 120/160),
+  // sm3..sm6 und sm7/sm8 in zwei Bodenstapeln. NEU liegen sm1..sm4 in zwei Reihen nebeneinander auf big2.
+  mixTopMulti: {
+    placements: [
+      'big1@0,0,0/0/standing',
+      'big2@0,0,60/0/standing',
+      'sm1@0,0,120/0/standing',
+      'sm2@60,0,120/0/standing',
+      'sm3@0,40,120/0/standing',
+      'sm4@60,40,120/0/standing',
+      'sm5@0,80,0/0/standing',
+      'sm6@0,80,40/0/standing',
+      'sm7@0,80,80/0/standing',
+      'sm8@0,80,120/0/standing',
+    ],
+    unplaced: [],
+  },
+  // BEWUSST GEÄNDERT in „Deckschicht nebeneinander“ (V 0.13.12): Passt ein weiteres Deckstück NEBEN das erste,
+  // kommt es dorthin; sonst bleibt das bisherige Übereinander (Deckstück auf Deckstück). ALT (V 0.13.11):
+  //   big1@0,0,0/0/standing, big2@0,0,60/0/standing, mid1@0,0,120/0/standing, mid2@0,0,170/0/standing, big3@0,80,0/0/standing, big4@0,80,60/0/standing, mid3@0,80,120/0/standing, sm1@0,80,170/0/standing, sm2@0,160,0/0/standing, sm3@0,160,40/0/standing, sm4@0,160,80/0/standing, sm5@0,160,120/0/standing, sm6@0,200,0/0/standing, li1@0,200,40/0/standing, li2@0,200,80/0/standing, li3@0,200,120/0/standing, gs1@60,160,0/0/standing, gs2@60,160,40/0/standing
+  // NEU: nur sm2 ändert sich – es liegt (um 90° gedreht, 40 × 60) neben sm1 auf mid3 statt auf dem Boden
+  // (alle übrigen Stücke danach rücken auf; mid2 auf mid1 bleibt, da neben mid1 (100 von 120 breit) nichts passt).
   mixTop: {
     placements: [
       'big1@0,0,0/0/standing',
@@ -177,16 +199,27 @@ const EXPECTED = {
       'big4@0,80,60/0/standing',
       'mid3@0,80,120/0/standing',
       'sm1@0,80,170/0/standing',
-      'sm2@0,160,0/0/standing',
-      'sm3@0,160,40/0/standing',
-      'sm4@0,160,80/0/standing',
-      'sm5@0,160,120/0/standing',
-      'sm6@0,200,0/0/standing',
-      'li1@0,200,40/0/standing',
-      'li2@0,200,80/0/standing',
-      'li3@0,200,120/0/standing',
-      'gs1@60,160,0/0/standing',
-      'gs2@60,160,40/0/standing',
+      'sm2@60,80,170/90/standing',
+      'sm3@0,160,0/0/standing',
+      'sm4@0,160,40/0/standing',
+      'sm5@0,160,80/0/standing',
+      'sm6@0,160,120/0/standing',
+      'li1@0,200,0/0/standing',
+      'li2@0,200,40/0/standing',
+      'li3@0,200,80/0/standing',
+      'gs1@0,200,120/0/standing',
+      'gs2@60,160,0/0/standing',
+    ],
+    unplaced: [],
+  },
+  // Deckstück auf Deckstück bleibt, wo nebeneinander nichts passt (Befund Review Task 1): 1 × 120×80×60 mit 120 kg und
+  // 3 × 110×70×40 mit 30 kg ergibt wie in V 0.13.11 eine senkrechte Kette c1 → c2 → c3. Literal aus dem alten Packer.
+  mixTopCapCap: {
+    placements: [
+      'b1@0,0,0/0/standing',
+      'c1@0,0,60/180/standing',
+      'c2@0,0,100/180/standing',
+      'c3@0,0,140/180/standing',
     ],
     unplaced: [],
   },
