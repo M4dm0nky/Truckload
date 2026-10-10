@@ -8,11 +8,9 @@ Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 s
 
 ## Teilprojekte
 
-Zwei größere Vorhaben sind geplant, aber noch nicht begonnen:
+Ein größeres Vorhaben ist geplant, aber noch nicht begonnen (Teilprojekt 2, „Deckschicht
+nebeneinander“, ist umgesetzt, siehe „Aus den Pack-Regeln“):
 
-- **Teilprojekt 2: Deckschicht nebeneinander.** Mehrere kleine Cases nebeneinander auf einem
-  großen statt eines pro Ebene (heute trägt eine Ebene nur ein Stück, siehe „Aus den
-  Pack-Regeln“).
 - **Teilprojekt 3: Mehrere LKW in einem Plan.** Ein Plan mit mehreren Fahrzeugen und einer
   Verteilung der Cases darauf.
 
@@ -101,9 +99,16 @@ geblieben ist, mit Begründung:
 
 ## Aus den Pack-Regeln (2026-09-30) offen
 
-- **Eine Ebene trägt nur ein Stück.** Die Deckschicht (seit V 0.8.6) stellt kleine Cases nie
-  nebeneinander auf ein großes, auch wenn nebeneinander noch Platz wäre (eigene Entscheidung,
-  YAGNI). Als Teilprojekt 2 geplant (siehe oben).
+- **Das Regalverfahren der Deckschicht ist keine optimale Packung.** Mehrere kleine Cases stehen
+  seit V 0.13.12 nebeneinander auf einem großen (Reihen in Ankunftsreihenfolge, eigene
+  Entscheidung). Das ist eine Heuristik: Sie probiert „nebeneinander“ zuerst und fällt nur bei einem
+  einzelnen Deckstück auf „Deckstück auf Deckstück“ zurück. In einem Vergleich mit dem alten Packer
+  an 20.000 synthetischen, für die Deckschicht günstigen Fällen (Abschlussprüfung, kein Teil der
+  Testsuite) wich das Ergebnis in 2.787 ab: 423-mal blieb mehr unverladen, 382-mal weniger; bei
+  gleicher Ablage wurden in 145 Fällen weniger, in 21 mehr Lademeter gebraucht. Eine volle
+  Deckschicht aus mehreren Stücken trägt nichts mehr, wo senkrechtes Stapeln Fläche gespart hätte.
+  Deshalb bleibt der Schalter „Deckschicht mischen“ optional; ein Vergleich von Fläche und Höhe
+  statt der festen Reihenfolge wäre denkbar, ist aber nicht geplant.
 - **0-kg-Cases mischen nicht.** Ein Case ohne Gewichtsangabe kommt weder als Deckschicht auf ein
   fremdes Case, noch trägt es eine fremde Deckschicht — 0 kg heißt unbekannt, nicht leicht.
 - **Die Lagen-Vorgabe 1+2 begrenzt die Deckschicht.** Der Wizard hakt Lage 1 und 2 vor; ein

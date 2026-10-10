@@ -99,16 +99,31 @@ seiner Grundfläche (ungedreht oder um 90° gedreht) vollständig darauf passen.
 (0 kg) mischen nicht – weder als Deckschicht auf ein fremdes Case, noch tragen sie eine fremde
 Deckschicht, weil dort das Gewicht unbekannt ist.
 
-Die Lagen je Stück gelten dabei weiter: Mit der Wizard-Vorgabe Lage 1 und 2 ist ein Stapel aus
-zwei gleichen Cases schon voll, eine Deckschicht bräuchte dann Lage 3. Die Regel greift also vor
-allem dort, wo ein Stapel niedriger bleibt als die Truckhöhe – bei nicht stapelbaren Sorten auf
-nur einer Lage, bei einer ungeraden letzten Reihe, oder wenn die kleinen Cases Lage 3 bzw. 4
-erlauben. Auch mit Deckschicht bleiben die Pack-Regeln gewahrt (eine Deckschicht wandert nie vor
-einen Block, der laut Rangliste eigentlich zuletzt kommen soll), trägt eine Ebene nur ein Stück
-(keine kleinen Cases nebeneinander auf einem großen), und Traversenwagen tragen nie etwas Fremdes
-und stehen nie auf einer Deckschicht. Da es dabei immer der erste passende Stapel gewinnt, kann es
-vorkommen, dass sich mehrere kleine Cases auf demselben großen Case stapeln, statt sich auf
+Mehrere kleine Cases dürfen nebeneinander auf einem großen stehen. Alle liegen auf der Fläche des
+obersten Stücks des Stapels und stehen nie über: Das erste kommt in eine Ecke der Fläche, die
+nächsten daneben; ist die Reihe voll, beginnt dahinter eine neue. Ein Stück passt dabei
+ungedreht oder um 90° gedreht. Reihenfolge der Versuche: erst nebeneinander auf diesen Stapel; geht
+das nicht und trägt der Stapel erst ein einziges Deckstück, wird dieses wie bisher zum Träger und
+das neue Stück stellt sich auf ihn (Deckstück auf Deckstück). Sind es schon zwei oder mehr
+nebeneinander, trägt der Stapel nichts mehr obendrauf; weitere Stücke suchen den nächsten Stapel
+oder eine eigene Bodenfläche.
+
+Gewicht und Lagen: Die Summe der Gewichte aller Deckstücke darf weder die zulässige Auflast des
+obersten Stücks und der Stücke darunter noch das Gewicht des obersten Stücks überschreiten (die
+zweite Grenze ist eine eigene Entscheidung: „nichts Schweres auf Leichtes“ gilt für die Lage als
+Ganzes). Jedes Deckstück darf einzeln nicht schwerer sein als das Stück unter ihm. Die Lagen je
+Stück gelten weiter: Mit der Wizard-Vorgabe Lage 1 und 2 ist ein Stapel aus zwei gleichen Cases
+schon voll, eine Deckschicht bräuchte dann Lage 3. Die Regel greift also vor allem dort, wo ein
+Stapel niedriger bleibt als die Truckhöhe – bei nicht stapelbaren Sorten auf nur einer Lage, bei
+einer ungeraden letzten Reihe, oder wenn die kleinen Cases Lage 3 bzw. 4 erlauben. Auch mit
+Deckschicht bleiben die Pack-Regeln gewahrt (eine Deckschicht wandert nie vor einen Block, der
+laut Rangliste eigentlich zuletzt kommen soll), und Traversenwagen tragen nie etwas Fremdes und
+stehen nie auf einer Deckschicht. Da es dabei immer der erste passende Stapel gewinnt, kann es
+vorkommen, dass sich mehrere kleine Cases auf demselben großen Case sammeln, statt sich auf
 mehrere große Cases zu verteilen.
+
+Bestehende Pläne bleiben, wie sie sind: Gespeicherte Platzierungen ändern sich nicht. Erst beim
+nächsten „Alles neu packen“ gilt die neue Anordnung.
 
 Der Schalter gilt je Load und wandert, wie die Rangliste selbst, mit einem gespeicherten
 Regelset mit.

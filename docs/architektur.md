@@ -267,25 +267,62 @@ Platzierung neu sortiert. Die Ausgabe bleibt unverändert (Vergleich mit dem alt
 `tests/packer-golden.test.js`, `tests/packer-property.test.js`). Spec:
 `docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md`.
 
-**Deckschicht (seit V 0.8.6):** optionaler Schalter `plan.mixTop` (`mixTopFor(plan)`,
-`js/model/packRules.js`), umgesetzt in `buildStacks` (`js/model/packer.js`). Für jedes Stück
-probiert `addTo` vier Wege der Reihe nach: (1) den letzten offenen Stapel des vorigen Blocks
-auffüllen (`prevLast`, wie bisher), (2) einen eigenen Stapel gleicher Grundfläche (wie bisher),
-(3) nur bei `mixTop`, wenn beides scheitert: als Deckschicht auf einen Stapel eines **früheren**
-Blocks, (4) sonst ein neuer Stapel am Boden. Kandidaten für (3) sind die Stapel früherer Blöcke
-in Entstehungsreihenfolge; es gewinnt der erste passende (näher an der Stirnwand) – deshalb
-können mehrere kleine Cases auf demselben großen landen, statt sich zu verteilen (README,
+**Deckschicht (seit V 0.8.6, mehrere Stücke nebeneinander seit V 0.13.12):** optionaler Schalter
+`plan.mixTop` (`mixTopFor(plan)`, `js/model/packRules.js`), umgesetzt in `buildStacks`
+(`js/model/packer.js`). Für jedes Stück probiert `addTo` vier Wege der Reihe nach: (1) den letzten
+offenen Stapel des vorigen Blocks auffüllen (`prevLast`, wie bisher), (2) einen eigenen Stapel gleicher
+Grundfläche (wie bisher), (3) nur bei `mixTop`, wenn beides scheitert: als Deckstück auf einen Stapel
+eines **früheren** Blocks, (4) sonst ein neuer Stapel am Boden. Kandidaten für (3) sind die Stapel
+früherer Blöcke in Entstehungsreihenfolge; es gewinnt der erste passende (näher an der Stirnwand) –
+deshalb können mehrere kleine Cases auf demselben großen landen, statt sich zu verteilen (README,
 Abschnitt „Deckschicht mischen“).
 
-`capFits(s, it, c, o, truck)` prüft, ob ein Stück als Deckschicht auf Stapel `s` passt:
-`belongsTogether(a, ca, b, cb)` (beide mit Gruppe → gleiche Gruppe, beide ohne → gleiches
+*Datenstruktur.* Die Deckschicht ist **eine** Lage auf dem **obersten Hauptstück** des Stapels.
+`s.cap = { n, z, row }`: `n` = Anzahl der Hauptstücke, `z` = Unterkante der Deckschicht (= Höhe des
+Hauptstapels), `row` = Zustand des Regalverfahrens. Die Deckstücke stehen in `s.items` hinter den
+Hauptstücken, alle auf `z = cap.z`, mit Versatz `ox`/`oy` in der Fläche des ungedrehten Stapels
+(`pushCap`). Die Stapelhöhe ist Oberkante des Hauptstapels plus höchstes Deckstück, `weight` die Summe
+aller Stücke, die Grundfläche bleibt die des Hauptstapels. Ein Stapel mit Deckschicht
+(`s.capped = true`) nimmt kein Stück seiner eigenen Sorte mehr an, trägt nichts obendrauf und gilt wie
+ein aufgefüllter Stapel als `mixed` (steht innerhalb seines Blocks zuletzt).
+
+*Prüfung.* `capFits(s, it, c, o, truck)` entscheidet, ob ein Stück als weiteres Deckstück auf Stapel
+`s` passt: `belongsTogether(a, ca, b, cb)` (beide mit Gruppe → gleiche Gruppe, beide ohne → gleiches
 Gewerk, gemischt → nein) zwischen dem Stück und dem Gründungsstück des Stapels,
-`sameSelectorRank(rules, a, b)` (`packRules.js` – für jede Auswahlregel derselbe Rang wie der
-Block des Stapels, sonst könnte eine Deckschicht ein „zuletzt“ unterlaufen), keine Traversen auf
-keiner Seite, beide Gewichte bekannt (`> 0`, 0 kg = unbekannt) und nicht schwerer als das oberste
-Stück, sowie dieselben Grenzen wie beim normalen Stapeln (`canAddToStack`, `pieceLayers`, 4
-Lagen). Ein Stapel mit Deckschicht (`s.capped = true`) nimmt kein Stück seiner eigenen Sorte mehr
-an und gilt wie ein aufgefüllter Stapel als `mixed` (steht innerhalb seines Blocks zuletzt).
+`sameSelectorRank(rules, a, b)` (`packRules.js` – für jede Auswahlregel derselbe Rang wie der Block des
+Stapels, sonst könnte eine Deckschicht ein „zuletzt“ unterlaufen), keine Traversen auf keiner Seite,
+alle Gewichte bekannt (`> 0`, 0 kg = unbekannt), das oberste Hauptstück stapelbar, `pieceLayers` und
+höchstens 4 Lagen, Oberkante der Deckschicht höchstens Fahrzeughöhe. Gewicht: Die **Summe** der Deckgewichte (mit dem
+neuen Stück) darf die `maxTopLoad` des obersten Hauptstücks und jeder Stücke darunter (Kette, jeweils
+mit dem Gewicht der Stücke darüber) nicht überschreiten (wie beim Stapeln, nur mit der Summe). Eigene
+Entscheidung: Zusätzlich darf die Summe das Gewicht des obersten Hauptstücks nicht übersteigen
+(„nichts Schweres auf Leichtes“ für die Lage als Ganzes).
+
+*Regalverfahren.* Deterministisch in Ankunftsreihenfolge, im Koordinatensystem des ungedrehten Stapels
+(x entlang `dx`, y entlang `dy`): Das Stück kommt in der aktuellen Reihe rechts an das letzte (erst
+Orientierung wie gewählt, sonst um 90° gedreht); passt es dort nicht, beginnt eine neue Reihe im Abstand
+der Tiefe der tiefsten Stücke der bisherigen; passt auch das nicht, ist der Stapel für dieses Stück
+ungeeignet und die Suche geht zum nächsten früheren Stapel weiter. Die Reihe ist kein optimales
+Packen, sondern ein einfaches, nachvollziehbares Verfahren (eigene Entscheidung, siehe
+`docs/offene-punkte.md`).
+
+*Versatz im Stapel.* `autoPack` rechnet die Deckstück-Positionen in Weltkoordinaten um:
+`x = box.x0 + (swap ? oy : ox)`, `y = box.y0 + (swap ? ox : oy)`. Hat `placeStacks` den Stapel im
+Grundriss um 90° gedreht (`swap`), ist er transponiert – die Versätze tauschen deshalb wie die Maße,
+die `rot + 90°` vertauscht. Ohne diese Transposition würden Deckstücke eines gedrehten Stapels
+überstehen (durch Mutationstest in `tests/packer-property.test.js` abgesichert).
+
+*Rückfall (Hochstufen).* Scheitert „nebeneinander“ und trägt die Deckschicht des Stapels genau **ein**
+Stück (`s.items.length === s.cap.n + 1`), versucht `buildStacks` das neue Stück auf diesem Deckstück
+(`capFits({ ...s, cap: null }, …)`: das einzelne Deckstück gilt als oberstes Hauptstück, mit seinem
+Versatz `ox`/`oy` als Fläche); gelingt das, setzt `pushCap` `s.cap = null` („Hochstufen“) und beginnt
+eine neue Deckschicht auf ihm. Das ist das frühere Verhalten (Deckstück auf Deckstück). Deckschichten
+mit zwei oder mehr Stücken werden nie hochgestuft. Erst „nebeneinander“, dann „übereinander“ ist eine
+eigene Entscheidung.
+
+*Validierung.* `validatePlan` braucht keine Sonderfälle: Auflage, Lagen und Last laufen über die
+Geometrie der Platzierungen, die Last auf dem obersten Hauptstück ist daher die Summe der Deckstücke
+(`tests/validate.test.js`, „Deckschicht nebeneinander (gepackt)“).
 
 ## Traversenwagen
 
