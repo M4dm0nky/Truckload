@@ -9,7 +9,8 @@ import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
 
-const mkItem = (c, id, extra = {}) => ({ id, caseId: c.id, c, ...extra });
+const seenCases = new Map(); // caseId → Case, für onBase (Maße der Stücke in den Platzierungen)
+const mkItem = (c, id, extra = {}) => { seenCases.set(c.id, c); return { id, caseId: c.id, c, ...extra }; };
 const items = (c, n, pre = 'i') => Array.from({ length: n }, (_, i) => mkItem(c, `${pre}${i + 1}`));
 const placementIssues = r => r.issues.filter(i => i.placementId);
 
@@ -663,9 +664,16 @@ const bigC = mkCase('bigC', 120, 60, 80, { weight: 75, layers: [1] });
 const smallC = mkCase('smallC', 60, 60, 60, { weight: 28 });
 const withLayers = (list, layers) => list.map(it => ({ ...it, layers }));
 const withGroup = (list, group) => list.map(it => ({ ...it, ...(group ? { group } : {}) }));
-// Anzahl Stücke `capId`, die in einer Säule über einem Stück `baseId` stehen (gleiches x/y, Deckschicht bündig an x0/y0).
-const onBase = (r, capId, baseId) => r.placements.filter(p => p.caseId === capId
-  && r.placements.some(b => b.caseId === baseId && b.x === p.x && b.y === p.y && b.z < p.z)).length;
+// Anzahl Stücke `capId`, die über einem Stück `baseId` stehen (Grundfläche vollständig innerhalb der Grundfläche
+// des Stücks darunter und darüber – seit „Deckschicht nebeneinander“ liegen Deckstücke mit Versatz auf dem Stück).
+const onBase = (r, capId, baseId) => {
+  const box = p => boxOf(seenCases.get(p.caseId), p);
+  return r.placements.filter(p => p.caseId === capId && r.placements.some(b => {
+    if (b.caseId !== baseId || b.z >= p.z) return false;
+    const bb = box(b), pb = box(p);
+    return pb.x0 >= bb.x0 - 1e-6 && pb.x1 <= bb.x1 + 1e-6 && pb.y0 >= bb.y0 - 1e-6 && pb.y1 <= bb.y1 + 1e-6;
+  })).length;
+};
 
 test('Deckschicht: kleine, leichte Cases gleichen Gewerks liegen auf den großen, Lademeter sinken', () => {
   const list = [...items(bigC, 12, 'b'), ...withLayers(items(smallC, 12, 's'), [1, 2])];
@@ -786,9 +794,10 @@ test('F1: eine Traverse wird selbst nie als Deckschicht auf ein fremdes Case ges
   }
 });
 
-test('Deckschicht auf Deckschicht: kleinere Stücke dürfen weiter oben aufeinander, solange alle Grenzen halten', () => {
+test('Deckschicht nebeneinander statt übereinander: zwei kleine Stücke liegen nebeneinander auf dem großen', () => {
   const r = autoPack([...items(bigC, 1, 'b'), ...items(smallC, 2, 's')], mkTruck(), { mixTop: true });
-  assert.equal(onBase(r, 'smallC', 'bigC'), 2, 'zweites smallC auf dem ersten (Lage 3, alle Lagen erlaubt)');
+  assert.equal(onBase(r, 'smallC', 'bigC'), 2, 'beide in der Deckschicht (120 × 60 trägt 2 × 60 × 60), nicht in Lage 3');
+  assert.deepEqual(r.placements.filter(p => p.caseId === 'smallC').map(p => p.z), [80, 80]);
   assert.deepEqual(placementIssues(validatePlan(plan(r.placements), byId(bigC, smallC), mkTruck())), []);
 });
 
@@ -917,7 +926,7 @@ test('Deckschicht nebeneinander: Stapelhöhe ist Hauptstapel plus das höchste D
 });
 
 test('Deckschicht nebeneinander: Gruppe und Gewerk gelten für jedes Deckstück', () => {
-  const lamp = mkCase('lamp', 60, 40, 40, { weight: 15, category: 'Licht' });
+  const lamp = mkCase('lamp', 55, 35, 40, { weight: 15, category: 'Licht' });
   const r = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 1, 's'), ...items(lamp, 1, 'l')], mkTruck(), { mixTop: true });
   assert.equal(at(r, 's1').z, 60);
   assert.equal(at(r, 'l1').z, 0, 'anderes Gewerk');
@@ -929,20 +938,20 @@ test('Deckschicht nebeneinander: Gruppe und Gewerk gelten für jedes Deckstück'
 
 test('Deckschicht nebeneinander: 0 kg, Traversen, nicht stapelbares oberstes Stück und volle 4 Lagen nehmen keine Deckstücke', () => {
   const zero = autoPack([...items(topBig(), 1, 'b'), ...items(topSm('z', { weight: 0 }), 2, 'z')], mkTruck(), { mixTop: true });
-  assert.ok(zero.placements.filter(p => p.caseId === 'z').every(p => p.z === 0));
+  assert.equal(onBase(zero, 'z', 'tb'), 0, '0 kg');
   const ns = autoPack([...items(topBig({ stackable: false }), 1, 'b'), ...items(topSm(), 2, 's')], mkTruck(), { mixTop: true });
-  assert.ok(ns.placements.filter(p => p.caseId === 'ts').every(p => p.z === 0), 'nicht stapelbar: nichts obendrauf');
+  assert.equal(onBase(ns, 'ts', 'tb'), 0, 'nicht stapelbar: nichts obendrauf');
   const four = autoPack([...items(topBig(), 4, 'b'), ...items(topSm(), 2, 's')], mkTruck(), { mixTop: true });
-  assert.ok(four.placements.filter(p => p.caseId === 'ts').every(p => p.z === 0), 'vier Lagen sind voll');
+  assert.equal(onBase(four, 'ts', 'tb'), 0, 'vier Lagen sind voll');
   const trussSm = mkCase('trs', 60, 40, 40, { kind: 'truss', category: 'Audio', weight: 10, stackable: true, truss: { length: 60, width: 40, count: 1, standing: true, height: 40 } });
   const tr = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 1, 's'), ...items(trussSm, 1, 't')], mkTruck(), { mixTop: true });
-  assert.equal(at(tr, 't1').z, 0, 'Traverse nie als Deckstück');
+  assert.equal(onBase(tr, 'trs', 'tb'), 0, 'Traverse nie als Deckstück');
 });
 
 test('Deckschicht nebeneinander: Lagen je Stück gelten (Deckschicht liegt in Lage n+1)', () => {
   const only1 = items(topSm(), 2, 's').map(it => ({ ...it, layers: [1] }));
   const r = autoPack([...items(topBig(), 1, 'b'), ...only1], mkTruck(), { mixTop: true });
-  assert.ok(r.placements.filter(p => p.caseId === 'ts').every(p => p.z === 0), 'nur Lage 1 erlaubt');
+  assert.equal(onBase(r, 'ts', 'tb'), 0, 'nur Lage 1 erlaubt');
 });
 
 test('Deckschicht nebeneinander: ein Stapel mit Deckschicht trägt nichts mehr obendrauf und nimmt keine eigene Sorte an', () => {
@@ -957,7 +966,7 @@ test('Deckschicht nebeneinander: ohne mixTop unverändert, auch mit vielen klein
   const list = [...items(topBig(), 2, 'b'), ...items(topSm(), 10, 's')];
   assert.deepEqual(autoPack(list, mkTruck(), { mixTop: false }), autoPack(list, mkTruck()));
   const off = autoPack(list, mkTruck());
-  assert.ok(off.placements.filter(p => p.caseId === 'ts').every(p => p.z < 120), 'nur reguläres Stapeln');
+  assert.equal(onBase(off, 'ts', 'tb'), 0, 'ohne mixTop keine Deckschicht auf den großen');
 });
 
 // Geometrie in Weltkoordinaten: jedes Deckstück liegt vollständig auf dem obersten Hauptstück, auch bei

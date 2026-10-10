@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from '../js/model/actions.js';
 import { validatePlan } from '../js/model/validate.js';
-import { wheelFace, DOOR_FACE } from '../js/model/geometry.js';
+import { wheelFace, DOOR_FACE, boxOf } from '../js/model/geometry.js';
 import { MAX_LABEL } from '../js/model/limits.js';
 import { rulesFor } from '../js/model/packRules.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
@@ -736,8 +736,12 @@ test('packAll: mixTop legt kleine Cases als Deckschicht auf die großen', () => 
   const ctx = { caseById: byId(big, small), truck: mkTruck(), newId: counter('n') };
   let p = A.addUnplaced(plan([]), 'big', 4, counter('b'));
   p = A.addUnplaced(p, 'small', 4, counter('s'), { layers: [1, 2] });
-  const onBig = r => r.placements.filter(q => q.caseId === 'small'
-    && r.placements.some(b => b.caseId === 'big' && b.x === q.x && b.y === q.y)).length;
+  // Seit „Deckschicht nebeneinander“ liegen mehrere Deckstücke mit Versatz auf einem großen Stück.
+  const onBig = r => r.placements.filter(q => q.caseId === 'small' && r.placements.some(b => {
+    if (b.caseId !== 'big' || b.z >= q.z) return false;
+    const bb = boxOf(big, b), qb = boxOf(small, q);
+    return qb.x0 >= bb.x0 - 1e-6 && qb.x1 <= bb.x1 + 1e-6 && qb.y0 >= bb.y0 - 1e-6 && qb.y1 <= bb.y1 + 1e-6;
+  })).length;
   assert.equal(onBig(A.packAll(p, ctx)), 0, 'aus: eigener Block');
   assert.equal(onBig(A.packAll(A.setMixTop(p, true), ctx)), 4, 'an: alle vier auf den großen');
 });

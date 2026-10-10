@@ -58,25 +58,56 @@ function canAddToStack(stack, c, dz, truck) {
 const belongsTogether = (a, ca, b, cb) =>
   (a.group || b.group) ? a.group === b.group : ca.category === cb.category;
 
-// Passt das Stück als Deckschicht auf den Stapel `s` eines früheren Blocks? Liefert die (evtl. im
-// Grundriss um 90° gedrehte) Orientierung oder null. Grundfläche ganz auf dem obersten Stück
-// (100 % Auflage), Gewichte bekannt (> 0, 0 kg = unbekannt, eigene Entscheidung) und nicht
-// schwerer als oben, keine Traversen, sonst dieselben Grenzen wie beim Stapeln (canAddToStack,
-// 4 Lagen, Lagen je Stück).
+// Passt das Stück als weiteres Deckstück auf den Stapel `s` eines früheren Blocks? Die Deckschicht ist
+// die oberste Lage eines Stapels und darf mehrere Stücke nebeneinander tragen, alle auf der Fläche
+// des obersten HAUPTstücks (`s.cap.n` = Anzahl Hauptstücke; was in `s.items` dahinter kommt, sind
+// Deckstücke mit Versatz ox/oy). Regeln: Grundfläche ganz auf dem obersten Hauptstück (100 % Auflage,
+// Regalverfahren s. u.), Gewichte bekannt (> 0, 0 kg = unbekannt, eigene Entscheidung), keine
+// Traversen, sonst dieselben Grenzen wie beim Stapeln (4 Lagen, Lagen je Stück, Fahrzeughöhe) – und
+// für die Lage als Ganzes: die SUMME der Deckgewichte darf die Auflast (maxTopLoad) des obersten
+// Hauptstücks und der Stücke darunter nicht überschreiten (wie beim Stapeln, nur mit der Summe) und
+// das Gewicht des obersten Hauptstücks nicht übersteigen („nichts Schweres auf Leichtes“ gilt für die
+// Lage als Ganzes – eigene Entscheidung).
+//
+// Regalverfahren, deterministisch in Ankunftsreihenfolge, im Koordinatensystem des ungedrehten
+// Stapels (x entlang dx, y entlang dy): das Stück kommt in der aktuellen Reihe rechts an das letzte
+// (Orientierung wie bisher, sonst um 90° gedreht); passt es dort nicht, beginnt eine neue Reihe im
+// Abstand der tiefsten Stücke der bisherigen; passt auch das nicht, ist der Stapel ungeeignet.
+// Liefert { o, ox, oy, row } (o = ggf. gedrehte Orientierung, row = neuer Reihenzustand) oder null.
 function capFits(s, it, c, o, truck) {
-  const base = s.items[0], top = s.items.at(-1);
+  const n = s.cap ? s.cap.n : s.items.length;
+  const main = s.items.slice(0, n), base = main[0], top = main[n - 1];
   // Nicht nur das Fundament prüfen: ein Traversenwagen kann per prevLast-Auffüllen mittig in einen
   // fremden Stapel geraten (gleiche Grundfläche); dann trägt der Stapel nichts Fremdes.
   if (isTruss(c) || s.items.some(x => isTruss(x.c))) return null;
   if (!(c.weight > 0) || !s.items.every(x => x.c.weight > 0)) return null;
   if (!belongsTogether(it, c, base.it, base.c)) return null;
-  if (s.items.length >= 4 || !pieceLayers(it, c).includes(s.items.length + 1)) return null;
+  if (n >= 4 || !pieceLayers(it, c).includes(n + 1)) return null;
+  if (!top.c.stackable) return null;
+  const capZ = s.cap ? s.cap.z : s.height;
+  if (capZ + o.d.dz > truck.h + 1e-6) return null;
+  const sum = s.items.slice(n).reduce((t, x) => t + x.c.weight, 0) + c.weight;
+  if (sum > top.c.weight) return null;
+  let above = sum;
+  for (let i = n - 1; i >= 0; i--) {
+    const mt = main[i].c.maxTopLoad;
+    if (mt != null && above > mt) return null;
+    above += main[i].c.weight;
+  }
   // Wie beim Stapel-Swap in placeStacks: ein um 90° gedrehter Deckel kann die Rollenrichtung zur
   // Tür verlieren; hier geht Grundfläche vor Rollenrichtung.
   const swapped = { ...o, rot: (o.rot + 90) % 360, d: { dx: o.d.dy, dy: o.d.dx, dz: o.d.dz } };
+  const W = s.dx, D = s.dy, row = s.cap?.row ?? null, eps = 1e-6;
+  if (row) for (const cand of [o, swapped]) {
+    const { dx: a, dy: b } = cand.d;
+    if (row.x + a <= W + eps && row.y + b <= D + eps) {
+      return { o: cand, ox: row.x, oy: row.y, row: { y: row.y, x: row.x + a, depth: Math.max(row.depth, b) } };
+    }
+  }
+  const y = row ? row.y + row.depth : 0;
   for (const cand of [o, swapped]) {
-    if (cand.d.dx > top.o.d.dx + 1e-6 || cand.d.dy > top.o.d.dy + 1e-6) continue;
-    if (canAddToStack(s, c, cand.d.dz, truck)) return cand;
+    const { dx: a, dy: b } = cand.d;
+    if (a <= W + eps && y + b <= D + eps) return { o: cand, ox: 0, oy: y, row: { y, x: a, depth: b } };
   }
   return null;
 }
@@ -118,6 +149,19 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
     s.weight += c.weight;
     if (own) s.ownWeight += c.weight; else s.mixed = true;
   };
+  // Deckstück in die Deckschicht von `s` einfügen. `s.cap` = { n: Anzahl Hauptstücke, z: Unterkante der
+  // Deckschicht (= Höhe des Hauptstapels), row: Zustand des Regalverfahrens (capFits) }. Die Deckstücke
+  // stehen in `s.items` hinter den Hauptstücken, alle auf z = cap.z, mit Versatz ox/oy in der
+  // Stapelfläche. Die Stapelhöhe wächst nur bis zum höchsten Deckstück; die Grundfläche bleibt.
+  const pushCap = (s, it, c, { o, ox, oy, row }) => {
+    s.cap ??= { n: s.items.length, z: s.height, row: null };
+    s.cap.row = row;
+    s.items.push({ it, c, o, z: s.cap.z, ox, oy });
+    s.height = Math.max(s.height, s.cap.z + o.d.dz);
+    s.weight += c.weight;
+    s.mixed = true;
+    s.capped = true;
+  };
   let prevLast = null; // letzter Stapel, in dem die vorige Sorte zuletzt etwas abgelegt hat
 
   orderSorts(itemList, rules).forEach((group, sort) => {
@@ -140,13 +184,13 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
         // passenden Stapel eines FRÜHEREN Blocks (näher an der Stirnwand). `last` bleibt dabei
         // unverändert – prevLast gehört weiter dem Stapel, den diese Sorte selbst zuletzt belegt hat.
         if (mixTop) {
-          let cap = null, capO = null;
+          let cap = null, fit = null;
           for (const s of stacks) {
             if (s.sort >= sort || !sameSelectorRank(rules, s.block, group)) continue;
-            capO = capFits(s, it, c, o, truck);
-            if (capO) { cap = s; break; }
+            fit = capFits(s, it, c, o, truck);
+            if (fit) { cap = s; break; }
           }
-          if (cap) { push(cap, it, c, capO, false); cap.capped = true; continue; }
+          if (cap) { pushCap(cap, it, c, fit); continue; }
         }
         onMiss({ it, c, o });
       }
@@ -271,9 +315,12 @@ export function autoPack(items, truck, { obstacles = [], order = 'volume', rules
   const { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
   const placements = [];
   for (const { stack, box, swap } of placed) {
-    for (const { it, o, z } of stack.items) {
+    for (const { it, o, z, ox = 0, oy = 0 } of stack.items) {
       placements.push({
-        id: it.id, caseId: it.caseId, x: box.x0, y: box.y0, z,
+        // Deckstücke (ox/oy ≠ 0) liegen im Koordinatensystem des ungedrehten Stapels; bei swap ist der
+        // Stapel im Grundriss transponiert (Weltachse x = Stapel-y, y = Stapel-x), also tauschen auch
+        // die Versätze – wie die Maße, die rot + 90° vertauscht.
+        id: it.id, caseId: it.caseId, x: box.x0 + (swap ? oy : ox), y: box.y0 + (swap ? ox : oy), z,
         // swap (Stapel im Grundriss um 90° platziert, siehe placeStacks) dreht rot
         // mit — die Rollenrichtung ist dann nicht mehr garantiert zur Tür.
         orientation: o.orientation, rot: swap ? (o.rot + 90) % 360 : o.rot,
