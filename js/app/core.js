@@ -6,7 +6,7 @@ import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { stamp } from '../model/stamp.js';
 import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView } from '../model/lkw.js';
 import { packAllLkws, unassignedByCategory } from '../model/lkw-distribute.js';
-import { packAll } from '../model/actions.js';
+import { packAll, placementToUnplaced } from '../model/actions.js';
 
 export const caseByIdOf = memoLast(cases => new Map(cases.map(c => [c.id, c])));
 
@@ -68,7 +68,8 @@ export function mergeUnassignedView(plan, view) {
     truckId: plan.truckId,
     lkws: plan.lkws,
     placements: plan.placements.filter(p => known.has(p.lkw)),
-    unplaced: [...plan.unplaced.filter(u => known.has(u.lkw)), ...view.unplaced],
+    // Platzierungen der Ansicht (kommen nur von einer fremden Aktion) gehen in die Ablage, nie verloren.
+    unplaced: [...plan.unplaced.filter(u => known.has(u.lkw)), ...view.unplaced, ...view.placements.map(placementToUnplaced)],
   });
 }
 

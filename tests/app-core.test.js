@@ -273,3 +273,15 @@ test('Altschema: Plan ohne lkws und ohne activeLkw im Zustand verhält sich wie 
   assert.equal(lkwView(old, undefined), old);
   assert.equal(convertToMulti(old, () => 'L').lkws[0].id, 'L');
 });
+
+test('mergeUnassignedView: Platzierungen der Ansicht gehen in die Ablage statt verloren', () => {
+  const p = twoLkw();
+  const view = { ...activeViewOf({ ...p, unplaced: [...p.unplaced, { id: 'f', caseId: 'li' }] }, NO_LKW),
+    placements: [{ id: 'pl', caseId: 'li', x: 0, y: 0, z: 0, rot: 0, orientation: 'standing' }] };
+  const m = mergeUnassignedView(p, view);
+  assert.deepEqual(m.placements.filter(x => x.id === 'pl'), []);
+  const row = m.unplaced.find(u => u.id === 'pl');
+  assert.ok(row);
+  assert.equal(row.lkw, undefined);
+  assert.ok(m.unplaced.some(u => u.id === 'f'));
+});
