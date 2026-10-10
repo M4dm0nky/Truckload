@@ -124,7 +124,7 @@ Beide Felder lassen sich danach im Inspector je Stück ändern (`A.setPieceLayer
 `A.setPieceTipped`, `js/ui/inspector.js`), nach derselben Reduktionsregel wie
 `reduceWizardItem` im Wizard: Lagen, die genau dem Case-Typ entsprechen, werden nicht
 gespeichert, `tipped` gibt es nur für tippbare Case-Typen, und Aufstellen (`tipped:false`
-auf einem platzierten Stück) geht direkt auf `standing`, nicht über `cycleTip`. `A.unloadAll`
+auf einem platzierten Stück) geht direkt auf `standing` (beides über `toggleTip`). `A.unloadAll`
 (Knopf „Truck entladen“) legt alle Placements zurück in die Ablage und behält dabei Label,
 Farbe, `layers` und `tipped` je Stück.
 
@@ -171,21 +171,17 @@ sonst `+x`, `+y`, `-x` oder `-y`. `DOOR_FACE` ist `+x`, also die Trucktür.
 `rotForWheelFace(orientation, face)` ist die Umkehrung und liefert `null`, wenn die
 Richtung für diese Ausrichtung nicht erreichbar ist.
 
-**Manuelles Tippen (`cycleTip`, seit V 0.7.3):** kippt relativ zur aktuellen Lage nach vorn/
-hinten (Fahrtrichtung) — die Case-Kante, die gerade auf der x-Achse liegt, kippt nach oben
-bzw. unten, die Seitenkante (y-Achse) bleibt unverändert. `nextTip(orientation, rot)`
-(`geometry.js`) rechnet das rein symbolisch anhand der Dimensions-Namen (Länge/Breite/Höhe),
-nicht anhand fester `rot`-Werte — welche der beiden getippten Lagen (`tipLong`/`tipShort`)
-dabei herauskommt, hängt davon ab, ob gerade Länge oder Breite in Fahrtrichtung steht. Zweimal
-in Folge Tippen landet deshalb wieder bei `standing` (Hin und zurück), nicht bei der jeweils
-dritten Lage — die ist nur über eine Drehung (`rotate`, Taste R) vor dem Tippen erreichbar.
-Das gilt für einen über Tippen selbst erreichten Zustand; bei einer vom Packer erzeugten
-Ausgangslage (z. B. `tipLong` mit `rot 0`) kann `nextTip` stattdessen über die jeweils andere
-Achse kippen, weil der Schritt gerichtet ist, nicht auf `standing` zielt (docs/offene-punkte.md,
-„Kleinigkeiten“). Verlässlich steht das Case über das „getippt“-Häkchen im Inspector
-(`setPieceTipped`, s. u.), das für `tipped:false` immer direkt `standing` setzt statt `cycleTip`
-aufzurufen.
-Bis V 0.7.2 setzte `cycleTip` `rot` bei jedem Übergang stattdessen fest so, dass die Rollen zur
+**Manuelles Tippen (`toggleTip`, seit Abschluss Teil 1; vorher der Schritt-Weiter `cycleTip`):**
+Taste T und das „getippt“-Häkchen im Inspector (`setPieceTipped`) laufen über dieselbe reine
+Funktion `toggleTip(piece, case)` (`geometry.js`, als Aktion `A.toggleTipPiece`). Getippt (egal wie
+erreicht, auch `tipLong`/`rot 0` vom Packer) -> `standing`, `rot` bleibt; stehend -> die erste
+mögliche getippte Lage, die `nextTip(orientation, rot)` von `standing` aus liefert: sie kippt
+relativ zur aktuellen Lage nach vorn (Fahrtrichtung) — die Case-Kante, die gerade auf der x-Achse
+liegt, geht nach oben, die Seitenkante (y-Achse) bleibt. `nextTip` rechnet rein symbolisch anhand
+der Dimensions-Namen, nicht anhand fester `rot`-Werte; welche der beiden getippten Lagen
+(`tipLong`/`tipShort`) herauskommt, hängt davon ab, ob Länge oder Breite in Fahrtrichtung steht.
+Nicht tippbare Cases und Traversen bleiben unverändert.
+Bis V 0.7.2 setzte das Tippen `rot` bei jedem Übergang stattdessen fest so, dass die Rollen zur
 Tür zeigen, unabhängig von der Ausgangsdrehung — stand die lange Seite in Fahrtrichtung, kippte
 das Case dadurch sichtbar zur Seite statt nach vorn (Nutzer-Feedback 2026-09-23). Die
 Rollenrichtung ist nach dem Tippen nicht mehr garantiert; `setWheelFace` (Taste W) dreht sie bei

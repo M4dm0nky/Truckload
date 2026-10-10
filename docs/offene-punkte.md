@@ -142,10 +142,8 @@ geblieben ist, mit Begründung:
   nicht). Benennt man eine Gruppe oder ein Gewerk danach um, greift die Regel nicht mehr — der
   Dialog zeigt sie dann ausgegraut mit „(nicht in diesem Load)“, löscht sie aber nicht
   automatisch.
-- **Regelsets überschreiben sich beim Speichern unter demselben Namen ohne Rückfrage** (eigene
-  Entscheidung).
-- **Ein Regelset löschen passiert ohne Rückfrage und lässt sich nicht rückgängig machen**
-  (eigene Entscheidung).
+- *Erledigt (Abschluss Teil 1):* Regelset überschreiben und löschen fragen nun per `showConfirm`
+  nach (`persistence.saveRuleSet`/`deleteRuleSet`). Rückgängig machen lässt sich ein Löschen weiterhin nicht.
 
 ## Aus dem Aufräumen vor V 0.13.10 bewusst offen gelassen
 
@@ -171,14 +169,9 @@ geblieben ist, mit Begründung:
   Nutzer verwirrend.
 - Tippen kann Nachbarn überlappen, weil nur `z` nachgeführt wird, nicht `x`/`y`. Das
   verhält sich seit jeher wie „Drehen“, und die Prüfung meldet es.
-- **Die Taste T (`cycleTip`) stellt ein vom Packer getipptes Case nicht immer auf**, sondern
-  kippt es über die jeweils andere Achse weiter. `nextTip` (`js/model/geometry.js`) ist ein
-  gerichteter „einen Schritt weiter“-Sprung, kein Umschalter zwischen „getippt“ und
-  „stehend“ — bei einem selbst über T erreichten Zustand landet Zweimal-Tippen zwar wieder
-  bei `standing` (docs/architektur.md), aber ein vom Packer erzeugtes `tipLong` mit `rot 0`
-  z. B. kippt beim ersten T-Druck stattdessen in die andere getippte Lage. Das „getippt“-
-  Häkchen im Inspector (`setPieceTipped`) geht diesen Umweg nicht mit und stellt zuverlässig
-  auf.
+- *Erledigt (Abschluss Teil 1):* Die Taste T schaltet um (`toggleTip`, `js/model/geometry.js`):
+  getippt (auch vom Packer) -> `standing`, stehend -> erste getippte Lage. Den Schritt-Weiter
+  `cycleTip` gibt es nicht mehr.
 - Im Wizard neu angelegte Cases bleiben in der Bibliothek, auch wenn man den Wizard danach
   abbricht. Entspricht dem Verhalten des Case-Editors.
 - `toPiece` in `js/model/actions.js` listet die Stück-Felder einzeln auf. Ein künftiges
