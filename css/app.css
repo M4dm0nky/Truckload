@@ -6,28 +6,42 @@
      nicht die vom Skill vorgeschlagene rgba(255,255,255,0.08): die wäre als SVG-Füllung des
      Radkastens (`svg .arch`, unten) auf dem Truckboden kaum sichtbar. --ok liefert der Skill
      ebenfalls nicht, bleibt unverändert. */
-  --bg: #0f172a; --panel: #192134; --line: #2a3444; --text: #ffffff; --muted: #94a3b8;
-  --accent: #d97706; --on-accent: #111; --danger: #dc2626; --ok: #30a46c; --truck: #121a2c; --grid: #223049;
+  /* Gestaltungs-Tokens (js/ui/themeTokens.js, docs/nyx-host.md): ein Host wie NYX überschreibt
+     sie, die Web-App behält diese Standardwerte. */
+  --tl-theme-version: 1;
+  --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a;
+  --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-accent: #d97706;
+  --tl-on-accent: #111; --tl-selection: #f0a500; --tl-danger: #dc2626; --tl-ok: #30a46c;
+  --tl-truck: #121a2c; --tl-grid: #223049; --tl-radius: 6px; --tl-focus: #d97706;
+  --tl-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --tl-font-display: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg: var(--tl-bg); --panel: var(--tl-surface); --line: var(--tl-line); --text: var(--tl-text); --muted: var(--tl-text-muted);
+  --accent: var(--tl-accent); --on-accent: var(--tl-on-accent); --danger: var(--tl-danger); --ok: var(--tl-ok); --truck: var(--tl-truck); --grid: var(--tl-grid);
   --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   --case-body: #1c1d20; --alu: #b8bec6; --corner: #d6dbe1; --wheel: #2b2d31;
 }
 @media (prefers-color-scheme: light) {
   /* Hellmodus komplett selbst abgeleitet (eigene Entscheidung, 2026-10-02) – der Skill-Treffer
      deckt nur den Dunkelmodus ab. In derselben Indigo-Blauton-Familie wie oben. */
-  :root { --bg: #f1f4f9; --panel: #fff; --line: #dce3ec; --text: #16213a; --muted: #5b6b85; --truck: #f7f9fc; --grid: #e5eaf1; }
+  :root { --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
   /* Cases sind immer schwarz mit Alu-Kanten, unabhängig vom Theme */
 }
+/* Ein Host (NYX) setzt hell/dunkel ausdrücklich. :root[data-theme] hat die Spezifität (0,2,0) und
+   schlägt damit die Systemeinstellung oben (0,1,0), unabhängig von der Reihenfolge. */
+:root[data-theme="dark"] { --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a; --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-truck: #121a2c; --tl-grid: #223049; }
+:root[data-theme="light"] { --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; font-family: var(--tl-font); }
+h1, h2, h3, .brand { font-family: var(--tl-font-display); }
 button, .btn, select, input, textarea { font: inherit; color: inherit; }
-button, .btn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button, .btn { background: var(--tl-raised); border: 1px solid var(--line); border-radius: var(--tl-radius); padding: 5px 10px; cursor: pointer; }
 button:hover, .btn:hover { border-color: var(--muted); }
 button:disabled { opacity: .4; cursor: default; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+:focus-visible { outline: 2px solid var(--tl-focus); outline-offset: 1px; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 button.danger { color: var(--danger); }
-select, input, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+select, input, textarea { background: var(--tl-input); border: 1px solid var(--line); border-radius: var(--tl-radius); padding: 5px 8px; }
 
 .banner { padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--line); position: relative; }
 .banner-warn { background: color-mix(in srgb, var(--accent) 18%, transparent); }

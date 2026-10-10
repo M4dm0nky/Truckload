@@ -75,6 +75,7 @@ const ASSETS = [
   'js/ui/projection.js',
   'js/ui/stock-target.js',
   'js/ui/textMetrics.js',
+  'js/ui/themeTokens.js',
   'js/ui/truck-editor.js',
   'js/ui/truss-wizard.js',
   'js/ui/view2d.js',
