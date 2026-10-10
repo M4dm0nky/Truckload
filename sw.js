@@ -19,6 +19,7 @@ const ASSETS = [
   'js/app/chrome.js',
   'js/app/core.js',
   'js/app/guarded.js',
+  'js/app/hostPrint.js',
   'js/app/importExport.js',
   'js/app/keyboard.js',
   'js/app/materialScreen.js',

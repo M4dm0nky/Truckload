@@ -124,8 +124,10 @@ function listHTML({ plan, truck, result, lkw }, { title, reversed, signLabel }) 
 // bleiben A4 quer. Benannte Seiten (`@page x { … }` + `page:`) wären der direktere Weg, werden
 // aber von Browsern uneinheitlich unterstützt – js/app.js hängt deshalb diese Regel nur für den
 // Etikettendruck ein und nimmt sie danach wieder weg.
-export const pageRuleFor = doc =>
-  doc === 'labels' ? '@page { size: A4 portrait; margin: 0; }' : null;
+export const pageRuleFor = (doc, { randUntenMm } = {}) =>
+  doc === 'labels' ? '@page { size: A4 portrait; margin: 0; }'
+    : randUntenMm ? `@page { size: A4 landscape; margin: 10mm 10mm ${randUntenMm}mm; }`
+      : null;
 
 // `truck` wird nicht gebraucht und deshalb auch nicht angefasst: ein Etikett nennt nur den
 // Ladenamen. headInfo() würde `truck.name` dereferenzieren und den Etikettendruck ohne Not an
