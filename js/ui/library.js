@@ -44,7 +44,7 @@ export function mountLibrary(el, h) {
   const reasonOf = u => {
     if (!reasons || reasons.unplaced !== last.plan.unplaced || reasons.cases !== last.cases || reasons.truck !== last.truck)
       reasons = { unplaced: last.plan.unplaced, cases: last.cases, truck: last.truck, map: new Map() };
-    if (!reasons.map.has(u.id)) reasons.map.set(u.id, unplacedReason(u, last.byId.get(u.caseId), last.truck, last.plan));
+    if (!reasons.map.has(u.id)) reasons.map.set(u.id, unplacedReason(u, last.byId.get(u.caseId), last.truck));
     return reasons.map.get(u.id);
   };
 
