@@ -81,6 +81,7 @@ const ASSETS = [
   'js/ui/view2d.js',
   'js/ui/wizard-items.js',
   'js/ui/zoom2d.js',
+  'js/ui/themeColors.js',
   'js/ui/view3d-parts.js',
   'js/ui/view3d.js',
   'vendor/three.module.min.js',
