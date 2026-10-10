@@ -65,6 +65,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
 
   async function saveRuleSet(name, rules, mixTop) {
     const existing = store.get().ruleSets.find(r => r.name.toLowerCase() === name.toLowerCase());
+    if (existing && !await showConfirm(`Regelset „${existing.name}“ überschreiben?`, { okLabel: 'Überschreiben', danger: true })) return undefined;
     const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
     const r = await run('Regelset konnte nicht gespeichert werden', () => repo.saveRuleSet(value));
     if (!r.ok) return undefined;
@@ -73,6 +74,8 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
 
   async function deleteRuleSet(id) {
+    const set = store.get().ruleSets.find(x => x.id === id);
+    if (set && !await showConfirm(`Regelset „${set.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return false;
     const r = await run('Regelset konnte nicht gelöscht werden', () => repo.deleteRuleSet(id));
     if (!r.ok) return false;
     store.update(s => ({ ...s, ruleSets: s.ruleSets.filter(x => x.id !== id) }));
