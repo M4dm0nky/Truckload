@@ -2,6 +2,17 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.15.0 – 2026-10-10
+
+**Vier Racks mit geschätzten Maßen sind aus der Auswahl genommen.**
+
+- **19″-Racks 1 HE, 4 HE, 5 HE und 16 HE** werden nicht mehr zur Auswahl angeboten: Ihre Maße
+  waren aus der Höheneinheit gerechnet und die Breite und Tiefe (60 × 60 cm) nur geschätzt. Sie sind
+  nicht gelöscht – bestehende Pläne laden sie unverändert weiter. Sobald es echte Maße gibt, lassen
+  sie sich wieder freigeben.
+- Die Racks mit 2 HE und 6 HE (Höhe gemessen, Breite und Tiefe 60 × 60 geschätzt) sowie 3 HE
+  (komplett gemessen) bleiben vorerst in der Auswahl.
+
 ## V 0.14.1 – 2026-10-10
 
 **Schrift wächst beim Zoomen mit, Mausrad und Trackpad robuster erkannt.**

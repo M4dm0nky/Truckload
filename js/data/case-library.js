@@ -201,17 +201,20 @@ export const CASE_LIBRARY = [
   // (h_gemessen − HE × 4,45 cm): 2 HE → 15 − 8,9 = 6,1 cm; 3 HE → 19 − 13,35 = 5,65 cm;
   // 6 HE → 32 − 26,7 = 5,3 cm. Mittelwert ≈ 5,68 cm, also h = HE × 4,45 + 5,68.
   //
+  // Die vier ganz gerechneten Racks (1, 4, 5, 16 HE: Höhe aus der Höheneinheit, l/w geschätzt) sind
+  // seit Nutzerwunsch 2026-10-10 `legacy`: nicht mehr wählbar, alte Pläne laden sie weiter.
+  //
   // Diese kleinen Racks haben keine Rollen (nur der 16-HE-Eintrag heißt „on wheels“, weil der
   // Zusatz auf die anderen nicht zutrifft). Die gemessenen Werte bestätigen das: ein 2-HE-Case mit
   // 15 cm Gesamthöhe hätte bei 13 cm Rollenhöhe nur 2 cm Korpus, ein 3-HE-Case mit 19 cm nur 6 cm.
   // Daher `wheels: false, wheelH: 0`; das erlaubt auch für 1 HE den abgeleiteten Wert statt einer
   // künstlichen Mindesthöhe.
-  C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 76.9, 'CAB'),  // 16 HE: h = 16 * 4,45 + 5,68, l/w geschätzt 60 x 60 – hat Rollen (Name)
-  C('19" 1HE -CAB', 'Ton', 60, 60, 10.1, 'CAB', '', { wheels: false, wheelH: 0 }),  // 1 HE: h = 1 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
+  C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 76.9, 'CAB', '', { legacy: true }),  // 16 HE: h = 16 * 4,45 + 5,68, l/w geschätzt 60 x 60 – hat Rollen (Name)
+  C('19" 1HE -CAB', 'Ton', 60, 60, 10.1, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 1 HE: h = 1 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
   C('19" 2HE -CAB', 'Ton', 60, 60, 15, 'CAB', '', { wheels: false, wheelH: 0 }),  // 2 HE: h = 15 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen
   C('19" 3HE -CAB', 'Ton', 63, 54, 19, 'CAB', '', { wheels: false, wheelH: 0 }),  // 3 HE: gemessen (Quelle), keine Rollen
-  C('19" 4HE -CAB', 'Ton', 60, 60, 23.5, 'CAB', '', { wheels: false, wheelH: 0 }),  // 4 HE: h = 4 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
-  C('19" 5HE -CAB', 'Ton', 60, 60, 27.9, 'CAB', '', { wheels: false, wheelH: 0 }),  // 5 HE: h = 5 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
+  C('19" 4HE -CAB', 'Ton', 60, 60, 23.5, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 4 HE: h = 4 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
+  C('19" 5HE -CAB', 'Ton', 60, 60, 27.9, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 5 HE: h = 5 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
   C('19" 6HE -CAB', 'Ton', 60, 60, 32, 'CAB', '', { wheels: false, wheelH: 0 }),  // 6 HE: h = 32 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen
   // Leere Rack-/Dolly-Gehäuse ohne festen Geräteinhalt (Nutzerangabe 2026-09-30): Standardgewicht
   // 75 kg/m³, Herleitung siehe docs/casemasse-gewichte.md „Nachrecherche 2026-09-30“.

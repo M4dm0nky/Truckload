@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.14.1. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.15.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
