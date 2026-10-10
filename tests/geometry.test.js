@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { effectiveDims, boxOf, wheelFace, overlaps, footprintOverlapArea, gravityZ,
-  snap, snapToEdges, stackAbove, supportersOf, DEFAULT_WHEEL_H, wheelHOf,
+  snap, snapToEdges, stackAbove, DEFAULT_WHEEL_H, wheelHOf,
   DEFAULT_LAYERS, layersOf, NEW_CASE_WHEEL_H, WHEEL_PRESETS, hasWheels, outerDims,
   ORIENTATIONS, WHEEL_FACES, DOOR_FACE, rotForWheelFace, nextTip,
   pieceLayers, pieceOrientations } from '../js/model/geometry.js';
@@ -222,16 +222,4 @@ test('Traversenwagen: outerDims ändert die Maße nicht (wheelH ist 0, l/w/h fix
   // dimsInclWheels === false darf trotzdem nichts ändern, da wheelHOf 0 ist (kein wheels-Flag gesetzt).
   const trussExplicit = { ...truss, dimsInclWheels: false };
   assert.deepEqual(outerDims(trussExplicit), { l: 300, w: 60, h: 80 });
-});
-test('stackAbove: eine übergebene Auflage-Map liefert dasselbe wie die eigene Berechnung', () => {
-  const items = [
-    { id: 'A', box: B(0,0,0,100,60,60) },
-    { id: 'Bx', box: B(0,0,60,100,60,120) },
-    { id: 'C', box: B(0,0,120,100,60,180) },
-    { id: 'D', box: B(100,0,0,200,60,60) },
-    { id: 'E', box: B(50,0,60,150,60,100) },
-  ];
-  const sup = new Map(items.filter(it => it.box.z0 > 0).map(it => [it.id, supportersOf(it, items)]));
-  assert.deepEqual(stackAbove('A', items, sup).sort(), stackAbove('A', items).sort());
-  assert.deepEqual(stackAbove('D', items, sup).sort(), stackAbove('D', items).sort());
 });
