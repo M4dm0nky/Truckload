@@ -75,7 +75,7 @@ test('Packer-Eigenschaft: die 50 Seeds liefern sowohl voll verladene als auch ü
 // Deckschicht mischen (mixTop): große Hauptstücke plus viele kleine, leichte Cases derselben
 // Kategorie, damit Deckstücke nebeneinander entstehen. Geprüft wird in Weltkoordinaten.
 const CAP_BAD = [...VIOLATIONS, 'unsupported', 'overload', 'notStackable', 'tooManyLayers', 'layer'];
-const CAP_SEEDS = Array.from({ length: 300 }, (_, i) => 5000 + i);
+const CAP_SEEDS = Array.from({ length: 500 }, (_, i) => 5000 + i);
 const E = 1e-6;
 
 function capScenario(seed) {
@@ -104,7 +104,7 @@ function capScenario(seed) {
 const overlapXY = (a, b) => a.x0 < b.x1 - E && b.x0 < a.x1 - E && a.y0 < b.y1 - E && b.y0 < a.y1 - E;
 const containsXY = (u, x) => x.x0 >= u.x0 - E && x.x1 <= u.x1 + E && x.y0 >= u.y0 - E && x.y1 <= u.y1 + E;
 
-test('Packer-Eigenschaft mit Deckschicht mischen: 300 Mischungen, Auflage, Validierung, Höhe', () => {
+test('Packer-Eigenschaft mit Deckschicht mischen: 500 Mischungen, Auflage, Validierung, Höhe', () => {
   let sideBySide = 0;
   for (const seed of CAP_SEEDS) {
     const { truck, caseById, plan: input, count } = capScenario(seed);

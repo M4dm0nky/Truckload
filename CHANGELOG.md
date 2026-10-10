@@ -2,6 +2,22 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.12 – 2026-10-10
+
+**Deckschicht mischen: mehrere kleine Cases nebeneinander.** Mit dem Schalter „Deckschicht mischen“
+dürfen mehrere kleine Cases **nebeneinander** oben auf einem großen stehen (vorher höchstens eines
+je Lage). Passt nichts mehr daneben, gilt wie bisher Deckstück auf Deckstück. Die bisherigen Regeln
+bleiben: gleiche Gruppe bzw. gleiches Gewerk, Gewichte bekannt, nichts Schweres auf Leichtes (die
+Summe der Deckgewichte darf das Gewicht des Case darunter nicht übersteigen), Auflast, höchstens
+4 Lagen, Fahrzeughöhe.
+
+- **Bestehende Pläne ändern sich nicht von selbst.** Erst beim nächsten „Alles neu packen“ greift
+  die neue Regel. Ohne den Schalter packt alles wie vorher (gegen den alten Packer an über 150.000
+  zufälligen Fällen verglichen).
+- Das Regalverfahren ist eine Heuristik: In künstlichen Tests mit sehr vielen kleinen Cases
+  war das Ergebnis mal besser, mal schlechter als vorher (Zahlen in `docs/offene-punkte.md`),
+  deshalb bleibt der Schalter optional.
+
 ## V 0.13.11 – 2026-10-10
 
 Abschluss der offenen Punkte, Teil 1.

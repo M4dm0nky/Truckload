@@ -1,6 +1,6 @@
 # Offene Punkte
 
-Stand V 0.13.11. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Stand V 0.13.12. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
 Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
 des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
 Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
@@ -108,7 +108,7 @@ geblieben ist, mit Begründung:
   gleicher Ablage wurden in 145 Fällen weniger, in 21 mehr Lademeter gebraucht. Eine volle
   Deckschicht aus mehreren Stücken trägt nichts mehr, wo senkrechtes Stapeln Fläche gespart hätte.
   Deshalb bleibt der Schalter „Deckschicht mischen“ optional; ein Vergleich von Fläche und Höhe
-  statt der festen Reihenfolge wäre denkbar, ist aber nicht geplant.
+  statt der festen Reihenfolge wäre denkbar; eigene Entscheidung: nicht umgesetzt.
 - **0-kg-Cases mischen nicht.** Ein Case ohne Gewichtsangabe kommt weder als Deckschicht auf ein
   fremdes Case, noch trägt es eine fremde Deckschicht — 0 kg heißt unbekannt, nicht leicht.
 - **Die Lagen-Vorgabe 1+2 begrenzt die Deckschicht.** Der Wizard hakt Lage 1 und 2 vor; ein

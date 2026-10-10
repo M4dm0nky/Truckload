@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.13.11. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.13.12. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -310,7 +310,7 @@ Packen, sondern ein einfaches, nachvollziehbares Verfahren (eigene Entscheidung,
 `x = box.x0 + (swap ? oy : ox)`, `y = box.y0 + (swap ? ox : oy)`. Hat `placeStacks` den Stapel im
 Grundriss um 90° gedreht (`swap`), ist er transponiert – die Versätze tauschen deshalb wie die Maße,
 die `rot + 90°` vertauscht. Ohne diese Transposition würden Deckstücke eines gedrehten Stapels
-überstehen (durch Mutationstest in `tests/packer-property.test.js` abgesichert).
+überstehen (der Eigenschaftstest in `tests/packer-property.test.js` schlägt an, wenn die Transposition fehlt).
 
 *Rückfall (Hochstufen).* Scheitert „nebeneinander“ und trägt die Deckschicht des Stapels genau **ein**
 Stück (`s.items.length === s.cap.n + 1`), versucht `buildStacks` das neue Stück auf diesem Deckstück
