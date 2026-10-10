@@ -215,7 +215,8 @@ test('Eigenschaft: Stückzahl und IDs bleiben nach beliebigen Folgen erhalten (2
     const unplaced = Array.from({ length: nUn }, (_, i) => ({ id: `u${i}`, caseId: 'a' }));
     let p = plan(placements, unplaced);
     if (r() < 0.5) p = convertToMulti(p, counter('c'));
-    const want = ids(p);
+    let want = ids(p);
+    let fresh = 0;
     const nid = counter(`g${n}-`);
     for (let step = 0; step < 12; step++) {
       const op = pick(['add', 'remove', 'move', 'merge']);
@@ -230,8 +231,19 @@ test('Eigenschaft: Stückzahl und IDs bleiben nach beliebigen Folgen erhalten (2
         // zufällige Ansichtsänderung: Platzierungen in die Ablage, Reihenfolge mischen
         const moved = v.placements.filter(() => r() < 0.5);
         const keep = v.placements.filter(x => !moved.includes(x));
-        const edited = { ...v, placements: keep.reverse(), unplaced: [...v.unplaced, ...moved.map(x => ({ id: x.id, caseId: x.caseId }))] };
+        // neue Stücke hinzufügen (Ablage und Platzierung), einige Ablage-Zeilen entfernen
+        const added = Array.from({ length: Math.floor(r() * 3) }, () => `new${n}-${fresh++}`);
+        const dropped = v.unplaced.filter(() => r() < 0.3).map(x => x.id);
+        const edited = {
+          ...v,
+          placements: [...keep.reverse(), ...added.slice(0, 1).map(i => P(i, 'a', 0, 0, 0))],
+          unplaced: [...v.unplaced.filter(x => !dropped.includes(x.id)), ...moved.map(x => ({ id: x.id, caseId: x.caseId })), ...added.slice(1).map(i => ({ id: i, caseId: 'a' }))],
+        };
+        const others = q => [...q.placements, ...q.unplaced].filter(x => x.lkw !== id);
+        const beforeOthers = others(p);
         p = mergeLkwView(p, id, edited);
+        assert.deepEqual(others(p), beforeOthers, 'fremde Stücke unverändert und in gleicher Reihenfolge');
+        want = [...want.filter(i => !dropped.includes(i)), ...added].sort();
       }
       assert.deepEqual(ids(p), want, `Plan ${n} Schritt ${step} (${op})`);
       const all2 = [...p.placements, ...p.unplaced].map(x => x.id);
