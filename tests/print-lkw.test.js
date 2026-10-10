@@ -76,7 +76,8 @@ test('alle LKW: Etiketten in einer Folge, Nummern je LKW, LKW-Name maskiert, Ohn
   assert.equal([...h.matchAll(/<div class="labels">/g)].length, 1);
   assert.doesNotMatch(h, /p-break/);
   assert.deepEqual([...h.matchAll(/class="seq">([^<]+)</g)].map(m => m[1]), ['1', '2', '1', '–']);
-  assert.match(h, /Tour &amp; Co · Ton &lt;A&gt;/);
+  assert.match(h, /<span class="lkw">Ton &lt;A&gt;<\/span> <span class="load">Tour &amp; Co<\/span>/);
+  assert.match(h, /<span class="lkw">Licht<\/span>/);
   assert.ok(idx(h, 'L-b1') < idx(h, 'Frei &lt;1&gt;'));
   assert.match(h, /Ohne LKW/);
 });
@@ -86,12 +87,29 @@ test('alle LKW: Ladeplan – Kopf nennt LKW und Fahrzeug, Ohne LKW ohne Zeichnun
   const head = printHTML(sections[0]);
   assert.match(head, /<h1>Tour &amp; Co – Ton &lt;A&gt;<\/h1>/);
   assert.match(head, /Sattel &quot;1&quot; · Innen/);
-  // buildPrintAll braucht DOM (renderView): hier nur das Markup ohne Zeichnen prüfen.
-  const svgs = [];
-  const fakeScope = { querySelector: sel => { svgs.push(sel); return null; } };
-  const r = { innerHTML: '', querySelectorAll: () => [fakeScope, fakeScope] };
-  assert.throws(() => buildPrintAll(r, sections, { free }), TypeError); // renderView(null) – nach dem Markup
+  // buildPrintAll zeichnet über `draw` (sonst renderView, braucht DOM): hier ein Zähler. Je Abschnitt
+  // müssen beide Ansichten angefordert werden; renderView selbst läuft im Browser-Rundgang.
+  const asked = [];
+  const mkScope = i => ({ querySelector: sel => ({ sel, i }) });
+  const draw = (svg, mode) => asked.push(`${svg.i}:${svg.sel}:${mode}`);
+  const r = { innerHTML: '', querySelectorAll: () => [mkScope(0), mkScope(1), mkScope(2)] };
+  buildPrintAll(r, sections, { free, draw });
+  assert.deepEqual(asked, ['0:.p-top:top', '0:.p-side:side', '1:.p-top:top', '1:.p-side:side']);
   assert.equal([...r.innerHTML.matchAll(/<section class="p-lkw/g)].length, 3);
   assert.equal([...r.innerHTML.matchAll(/<svg class="p-top">/g)].length, 2);
   assert.match(r.innerHTML, /Ohne LKW/);
+});
+
+test('Ohne LKW: Stück ohne Beschriftung und Farbe fällt auf Case-Name und Case-Farbe zurück', () => {
+  const c = mkCase('c1', 50, 50, 50, { name: 'Rack <Z>', color: '#aa0000' });
+  const fp = { ...plan([], [{ id: 'f1', caseId: 'c1' }]), name: 'T' };
+  const free = { plan: fp, caseById: byId(c) };
+  const r = root(); buildChecklistAll(r, [], { free });
+  assert.match(r.innerHTML, /<span class="label">Rack &lt;Z&gt; <small>\(Rack &lt;Z&gt;\)<\/small>/);
+  assert.match(r.innerHTML, /background:#aa0000/);
+  assert.doesNotMatch(r.innerHTML, /undefined/);
+  const r2 = root(); buildLabelsAll(r2, [], { free });
+  assert.match(r2.innerHTML, /<span class="name">Rack &lt;Z&gt;<\/span>/);
+  assert.match(r2.innerHTML, /background:#aa0000/);
+  assert.doesNotMatch(r2.innerHTML, /undefined/);
 });

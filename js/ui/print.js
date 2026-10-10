@@ -52,10 +52,10 @@ export function printHTML({ plan, truck, result, lkw }) {
     </table>`;
 }
 
-function drawViews(scope, { truck, result, colorMode }) {
+function drawViews(scope, { truck, result, colorMode }, draw = renderView) {
   const opts = { truck, result, selectedId: null, colorMode };
-  renderView(scope.querySelector('.p-top'), 'top', opts);
-  renderView(scope.querySelector('.p-side'), 'side', opts);
+  draw(scope.querySelector('.p-top'), 'top', opts);
+  draw(scope.querySelector('.p-side'), 'side', opts);
 }
 
 export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
@@ -135,7 +135,7 @@ export function buildLabels(root, { plan, result, size = 'large' }) {
 }
 
 function labelsHTML({ plan, result, lkw }) {
-  const planName = esc(plan.name) + (lkw ? ` · ${esc(lkw.name)}` : '');
+  const planName = esc(plan.name);
   const rows = sortedBySequence(result);
   const total = rows.length;
   return rows.map(it => {
@@ -145,10 +145,17 @@ function labelsHTML({ plan, result, lkw }) {
         <span class="seq">${n}</span>
         <span class="name">${esc(it.label)}</span>
         <span class="bar" style="background:${safeColor(it.color)}"></span>
-        <span class="meta"><span class="load">${planName}</span> <span class="count">${n} von ${total}</span></span>
+        ${metaHTML(planName, lkw ? esc(lkw.name) : '', `${n} von ${total}`)}
       </div>`;
   }).join('');
 }
+
+// Fußzeile eines Etiketts. Mit LKW-Name (nur „alle LKW“) steht er in einer eigenen, nicht
+// gekürzten Zeile über Planname und Zählung – sonst sähen Etiketten verschiedener LKW gleich aus.
+// Ohne LKW bleibt das Markup wie vor Mehr-LKW.
+const metaHTML = (planName, lkwName, count) => lkwName
+  ? `<span class="meta meta-lkw"><span class="lkw">${lkwName}</span> <span class="load">${planName}</span> <span class="count">${count}</span></span>`
+  : `<span class="meta"><span class="load">${planName}</span> <span class="count">${count}</span></span>`;
 
 // ---- Mehr-LKW-Pläne: „alle LKW“ -----------------------------------------------------------
 // `sections`: je LKW { lkw: {name}, plan, truck, result } (die Ansicht des LKW und ihre Prüfung).
@@ -171,25 +178,34 @@ function freeHTML({ plan, caseById }, title = '') {
       <p>${h.date} · ${n} Stück${n === 1 ? '' : 'e'} · Truckload V ${h.version}</p>
       <p class="p-open"><b>${n} Stück${n === 1 ? '' : 'e'} ohne LKW</b> – ${n === 1 ? 'es ist' : 'sie sind'} keinem Fahrzeug zugeordnet und nicht geladen.</p>
     </header>
-    <ul class="checklist">${items.map(u => `<li>
+    <ul class="checklist">${items.map(u => {
+      const { label, color, caseName } = freePiece(u, caseById);
+      return `<li>
         <span class="num">–</span>
-        ${swatch(u.color)}
-        <span class="label">${esc(u.label)} <small>(${esc(caseById.get(u.caseId)?.name ?? 'unbekannter Case')})</small></span>
+        ${swatch(color)}
+        <span class="label">${esc(label)} <small>(${esc(caseName)})</small></span>
         <span class="layer">nicht geladen</span>
         <span class="tick"></span>
-      </li>`).join('')}
+      </li>`;
+    }).join('')}
     </ul>`;
 }
+// Beschriftung und Farbe wie in js/model/items.js: fehlt beides am Stück, gelten Case-Name und -Farbe.
+const freePiece = (u, caseById) => {
+  const c = caseById.get(u.caseId);
+  return { label: u.label ?? c?.name ?? u.caseId, color: u.color ?? c?.color, caseName: c?.name ?? 'unbekannter Case' };
+};
 const headInfoFree = plan => ({ plan: esc(plan.name), date: new Date().toLocaleDateString('de-DE'), version: APP_VERSION });
 
 const hasFree = free => !!free && free.plan.unplaced.length > 0;
 
-export function buildPrintAll(root, sections, { colorMode = 'black', free = null } = {}) {
+// `draw` ersetzt renderView (nur für Tests ohne DOM).
+export function buildPrintAll(root, sections, { colorMode = 'black', free = null, draw } = {}) {
   const parts = sections.map(s => printHTML(s));
   if (hasFree(free)) parts.push(freeHTML(free));
   root.innerHTML = wrapSections(parts);
   const scopes = root.querySelectorAll('.p-lkw');
-  sections.forEach((s, i) => drawViews(scopes[i], { truck: s.truck, result: s.result, colorMode }));
+  sections.forEach((s, i) => drawViews(scopes[i], { truck: s.truck, result: s.result, colorMode }, draw));
 }
 
 function buildListAll(root, sections, free, opts) {
@@ -208,13 +224,16 @@ export function buildLabelsAll(root, sections, { free = null } = {}) {
   if (hasFree(free)) {
     const planName = esc(free.plan.name);
     const total = free.plan.unplaced.length;
-    parts.push(free.plan.unplaced.map((u, i) => `
+    parts.push(free.plan.unplaced.map((u, i) => {
+      const { label, color } = freePiece(u, free.caseById);
+      return `
       <div class="tl-label">
         <span class="seq">–</span>
-        <span class="name">${esc(u.label)}</span>
-        <span class="bar" style="background:${safeColor(u.color)}"></span>
-        <span class="meta"><span class="load">${planName} · Ohne LKW</span> <span class="count">${i + 1} von ${total}</span></span>
-      </div>`).join(''));
+        <span class="name">${esc(label)}</span>
+        <span class="bar" style="background:${safeColor(color)}"></span>
+        ${metaHTML(planName, 'Ohne LKW', `${i + 1} von ${total}`)}
+      </div>`;
+    }).join(''));
   }
   root.innerHTML = `<div class="labels">${parts.join('')}</div>`;
 }

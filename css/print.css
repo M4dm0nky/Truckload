@@ -73,6 +73,8 @@ body > *:not(#print-root) { display: none !important; }
    sonst schnitt ein langer Ladename genau die Angabe weg, die das Etikett zeigen soll. */
 #print-root.doc-labels .meta { font-size: 8pt; color: #555; display: flex; gap: 2mm; overflow: hidden; }
 #print-root.doc-labels .meta .load { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#print-root.doc-labels .meta-lkw { flex-wrap: wrap; row-gap: 0; }
+#print-root.doc-labels .meta .lkw { flex: 0 0 100%; font-weight: 600; color: #000; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #print-root.doc-labels .meta .count { flex: 0 0 auto; margin-left: auto; white-space: nowrap; }
 #print-root.doc-labels.size-small .seq { font-size: 20pt; }
 #print-root.doc-labels.size-small .name { font-size: 9pt; }
