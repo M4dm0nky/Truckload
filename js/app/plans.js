@@ -10,6 +10,8 @@ import { guarded } from './guarded.js';
 import { piecesOf, activeLkwOf } from './core.js';
 import { isMultiLkw } from '../model/lkw.js';
 
+export const MULTI_ADDED_NOTICE = 'Das neue Material ist noch keinem LKW zugeordnet. „Alles neu packen“ verteilt es auf die LKW.';
+
 const $ = sel => document.querySelector(sel);
 
 // Neuer aktiver Plan. Der bisherige (falls es einen gibt) wandert in `plans`; ohne aktiven Plan
@@ -106,7 +108,8 @@ export function wirePlans(deps) {
       if (res.autoPack && !multi) next = A.packRest(next, c);
       return next;
     });
-    if (res.autoPack && multi) await showAlert('Das neue Material ist noch keinem LKW zugeordnet. „Alles neu packen“ verteilt es auf die LKW.');
+    // Mehr-LKW: neues Material ist immer unzugeordnet (auch ohne Autopack) – das sagt der Hinweis.
+    if (multi && res.items.length) await showAlert(MULTI_ADDED_NOTICE);
     else if (res.autoPack) await warnIfUnplaced();
   }
 
