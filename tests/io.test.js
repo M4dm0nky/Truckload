@@ -743,3 +743,25 @@ test('Regression: Sicherung im alten Schema (lange Namen bis 80, keine Koordinat
   assert.deepEqual(res.repairs, []);
   assert.deepEqual(res.overLimit, []);
 });
+
+test('Regression (altes Schema): Dolly-Case mit 91-Zeichen-Name und Fahrzeug mit 100 Zeichen werden gekürzt importiert, ID bleibt, Reparatur gemeldet', () => {
+  const name = `${'D'.repeat(91 - ' 4er (auf Dolly)'.length)} 4er (auf Dolly)`;
+  assert.equal(name.length, 91);
+  const dolly = { id: 'dolly-alt-4', name, l: 80, w: 60, h: 80, weight: 100, tippable: false, stackable: true, kind: 'speaker' };
+  const edge = { id: 'edge', name: nameOf(80), l: 80, w: 60, h: 50, weight: 1, tippable: false, stackable: true };
+  const truck = { ...mkTruck(), id: 'lang', name: nameOf(100) };
+  const res = parseBundle(bundleWith({ cases: [dolly, edge], trucks: [truck], plans: [] }));
+  const d = res.cases.find(c => c.id === 'dolly-alt-4');
+  assert.equal(d.name.length, 80);
+  assert.ok(d.name.endsWith(' 4er (auf Dolly)'), d.name);
+  assert.equal(res.cases.find(c => c.id === 'edge').name, nameOf(80));
+  assert.equal(res.trucks[0].name, nameOf(80));
+  assert.equal(res.trucks[0].id, 'lang');
+  assert.ok(res.repairs.some(r => /^1 Case: Name länger als 80/.test(r)));
+  assert.ok(res.repairs.some(r => /^1 Fahrzeug: Name länger als 80/.test(r)));
+});
+test('Name über NAME_MAX direkt an checkCase/checkTruck wird weiterhin abgelehnt; Nicht-Strings ebenfalls', () => {
+  assert.throws(() => checkCase({ ...own, name: nameOf(NAME_MAX + 1) }), /zu lang/);
+  assert.throws(() => checkTruck({ ...mkTruck(), name: nameOf(NAME_MAX + 1) }), /zu lang/);
+  assert.throws(() => parseBundle(bundleWith({ cases: [{ ...own, name: 5 }], trucks: [], plans: [] })), /ohne ID oder Name/);
+});

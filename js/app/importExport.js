@@ -130,7 +130,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
 
     if (merge.planChanged) store.resetHistory();
     // Reparaturen an Altwerten werden gemeldet, damit der Nutzer sieht, was angepasst wurde.
-    const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${bundle.repairs.join('\n– ')}` : '';
+    const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${capList(bundle.repairs).join('\n– ')}` : '';
     // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
     const warnings = capList(warningsForWinners(bundle, merge.winners, store.get()));
     const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';

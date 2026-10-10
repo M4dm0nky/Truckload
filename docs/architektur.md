@@ -463,10 +463,13 @@ Zeitstempel verliert immer gegen einen gültigen.
 Import-Regeln (Abschluss Teil 1):
 - Namen: `NAME_MAX` (= 80, `js/model/limits.js`) gilt für Case-, Fahrzeug- und Ladeplan-Namen und
   entspricht den `maxlength`-Attributen der Editoren (das Umbenennen-Feld des Plans hatte vorher
-  keine; Kopien kürzen den Namen via `copyName` in `js/app/plans.js`). Ein Ladeplan-Name über 80
-  Zeichen aus einer älteren Sicherung wird beim Import gekürzt und gemeldet (eigene Entscheidung,
-  damit eigene alte Sicherungen importierbar bleiben); `checkPlan` selbst lehnt ihn ab.
-  Dolly-Stack-Namen kürzt `dollyName` (`audioDolly.js`).
+  keine; Kopien kürzen den Namen via `copyName` in `js/app/plans.js`). Ein Name von Ladeplan, Case
+  oder Fahrzeug über 80 Zeichen aus einer älteren Sicherung (bis V 0.13.10 möglich, z. B. ein
+  Dolly-Stack aus einem langen Namen mit bis zu 91 Zeichen) wird beim Import gekürzt und gemeldet
+  (eigene Entscheidung, damit eigene alte Sicherungen importierbar bleiben); bei Dolly-Namen bleibt
+  der Zusatz „N er (auf Dolly)“ erhalten, die ID ändert sich nicht. `checkCase`/`checkTruck`/
+  `checkPlan` selbst lehnen zu lange Namen weiter ab. Neue Dolly-Namen kürzt `dollyName`
+  (`audioDolly.js`).
 - Doppelte IDs innerhalb derselben Liste (Cases, Fahrzeuge, Pläne, Regelsets) lehnen die Datei ab.
 - Koordinaten: `COORD_MAX` (= 2724 cm = 2 × größte mitgelieferte Fahrzeugabmessung, eigene
   Entscheidung). Eine Platzierung mit |x|, |y| oder |z| über `max(COORD_MAX, 2 × größte Abmessung

@@ -5,7 +5,7 @@ import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
-import { upgradeDollyStack } from '../model/audioDolly.js';
+import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
 import { pickPieceFields } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
 
@@ -194,31 +194,38 @@ export function parseBundle(text) {
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
   const rawCases = arr(data.cases).filter(c => !isPreset(c));
-  const trucks = arr(data.trucks).filter(t => !isPreset(t));
+  const rawTrucks = arr(data.trucks).filter(t => !isPreset(t));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
-  if (rawCases.length === 0 && trucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0)
+  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
+
+  // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
+  // bereits langen Namen: bis 91 Zeichen); ein zu langer Name von Ladeplan, Case oder Fahrzeug wird
+  // gekürzt und gemeldet, damit die eigene alte Sicherung importierbar bleibt (eigene
+  // Entscheidung). Bei Dolly-Namen bleibt der Zusatz „N er (auf Dolly)“ lesbar erhalten. Die ID
+  // bleibt unverändert.
+  const nameRepairs = { plan: 0, case: 0, truck: 0 };
+  const cutName = (kind, name) => {
+    if (typeof name !== 'string' || name.length <= NAME_MAX) return name;
+    nameRepairs[kind]++;
+    const dolly = kind === 'case' && /^(.*) (\d+)er \(auf Dolly\)$/.exec(name);
+    return dolly ? dollyName(dolly[1], dolly[2]) : name.slice(0, NAME_MAX);
+  };
+  const withCutName = (kind, x) => (x && typeof x.name === 'string' && x.name.length > NAME_MAX ? { ...x, name: cutName(kind, x.name) } : x);
+  const trucks = rawTrucks.map(t => withCutName('truck', t));
 
   let wheelHRepairs = 0;
   const cases = rawCases.map(c => {
     const fixed = repairWheelH(c);
     if (fixed) wheelHRepairs++;
-    return fixed ?? c;
+    return withCutName('case', fixed ?? c);
   });
   let labelRepairs = 0;
   const repairPiece = x => {
     const fixed = repairLabel(x);
     if (fixed) labelRepairs++;
     return fixed ?? x;
-  };
-  // Ladeplan-Namen waren bis V 0.13.10 nicht begrenzt (Umbenennen, „(Kopie)“); ein zu langer Name
-  // wird gekürzt und gemeldet, damit die eigene Sicherung importierbar bleibt (eigene Entscheidung).
-  let planNameRepairs = 0;
-  const repairPlanName = name => {
-    if (typeof name !== 'string' || name.length <= NAME_MAX) return name;
-    planNameRepairs++;
-    return name.slice(0, NAME_MAX);
   };
   // Platzierungen weit außerhalb jedes Fahrzeugs (Betrag > coordMax) kommen in die Ablage statt die
   // Datei abzulehnen: die App begrenzt Koordinaten nirgends, ein solcher Stand ist für sie
@@ -240,7 +247,7 @@ export function parseBundle(text) {
   };
   const plans = rawPlans.map(movePlaced).map(p => ({
     ...p,
-    name: repairPlanName(p.name),
+    name: cutName('plan', p.name),
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
     // placementOk sie annimmt und der eigene Export wieder importierbar ist.
     placements: Array.isArray(p.placements)
@@ -276,8 +283,11 @@ export function parseBundle(text) {
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
   repairs.push(...planRepairs);
-  if (planNameRepairs > 0)
-    repairs.push(`${planNameRepairs} ${planNameRepairs === 1 ? 'Ladeplan' : 'Ladepläne'}: Name länger als ${NAME_MAX} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.`);
+  const nameNote = (n, one, many) =>
+    n > 0 && repairs.push(`${n} ${n === 1 ? one : many}: Name länger als ${NAME_MAX} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.`);
+  nameNote(nameRepairs.plan, 'Ladeplan', 'Ladepläne');
+  nameNote(nameRepairs.case, 'Case', 'Cases');
+  nameNote(nameRepairs.truck, 'Fahrzeug', 'Fahrzeuge');
 
   return { cases: cases.map(c => normalizeCase(dropStrayLegacy(c))), trucks, plans, ruleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
 }
