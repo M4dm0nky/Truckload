@@ -82,7 +82,7 @@ body > *:not(#print-root) { display: none !important; }
    Abhakliste teilt ihre Spalten dann je Liste statt am ganzen Dokument, sonst zöge ein Seitenumbruch
    mitten durch die Spalten. */
 #print-root .p-break { break-before: page; page-break-before: always; }
-#print-root.doc-checklist.doc-all { column-count: 1; }
+#print-root.doc-checklist.doc-all { column-count: auto; }
 #print-root.doc-checklist.doc-all .checklist { column-count: 2; column-gap: 8mm; }
 #print-root.doc-all .checklist { list-style: none; margin: 4mm 0 0; padding: 0; }
 #print-root.doc-all .checklist li { display: flex; align-items: center; gap: 2mm; padding: 1.5mm 0; break-inside: avoid; }
