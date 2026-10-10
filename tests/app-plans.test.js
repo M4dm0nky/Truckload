@@ -82,3 +82,13 @@ test('removePlanPersisted: scheitert deletePlan, wird nicht vergessen und gemeld
   assert.deepEqual(log, ['flush']);
   assert.deepEqual(alerts, ['Löschen fehlgeschlagen: Quota']);
 });
+
+test('switchPlanState / deletePlanState: Reiter = erster LKW des neuen Plans, null bei Ein-LKW-Plänen', () => {
+  const multi = { id: 'm', name: 'm', truckId: 't', placements: [], unplaced: [], lkws: [{ id: 'L1', name: 'A', truckId: 't', categories: [] }, { id: 'L2', name: 'B', truckId: 't', categories: [] }] };
+  const single = { id: 's', name: 's', truckId: 't', placements: [], unplaced: [] };
+  const s = { plan: single, plans: [multi], selectedId: 'x', activeLkw: 'alt' };
+  assert.equal(switchPlanState(s, multi).activeLkw, 'L1');
+  assert.equal(switchPlanState({ ...s, plan: multi, plans: [single] }, single).activeLkw, null);
+  assert.equal(deletePlanState({ ...s, plan: single, plans: [multi] }).activeLkw, 'L1');
+  assert.equal(deletePlanState({ ...s, plan: single, plans: [] }).activeLkw, null);
+});
