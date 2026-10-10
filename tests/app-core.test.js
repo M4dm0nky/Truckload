@@ -221,7 +221,8 @@ test('applyEditWhole: fn bekommt den ganzen Plan', () => {
 test('packAllOf: Ein-LKW-Plan = packAll; Mehr-LKW verteilt nach Gewerken', () => {
   const single = A.addUnplaced({ id: 'S', name: 'S', truckId: DEFAULT_TRUCK_ID, placements: [], unplaced: [] }, 'li', 2, (() => { let i = 0; return () => `s${++i}`; })());
   const ctx = { caseById: byId(...cases), truck: TRK, newId: () => 'n' };
-  assert.deepEqual(packAllOf(single, ctx), A.packAll(single, ctx));
+  const noStamp = x => { const { updatedAt: _u, ...r } = x; return r; }; // Zeitstempel kann um 1 ms abweichen
+  assert.deepEqual(noStamp(packAllOf(single, ctx)), noStamp(A.packAll(single, ctx)));
   const p = twoLkw();
   const m = packAllOf(p, { ...ctx, truckById: new Map([[TRK.id, TRK], ['klein', TRK2]]) });
   const lkwOf = id => [...m.placements, ...m.unplaced].find(x => x.id === id).lkw;
