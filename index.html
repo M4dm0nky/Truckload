@@ -89,6 +89,8 @@
   <link rel="modulepreload" href="js/ui/instanceMatrix.js">
   <link rel="modulepreload" href="js/ui/labelTexture.js">
   <link rel="modulepreload" href="js/ui/library.js">
+  <link rel="modulepreload" href="js/ui/lkw-editor.js">
+  <link rel="modulepreload" href="js/ui/lkw-tabs.js">
   <link rel="modulepreload" href="js/ui/load-wizard.js">
   <link rel="modulepreload" href="js/ui/material.js">
   <link rel="modulepreload" href="js/ui/pack-rules.js">
@@ -143,6 +145,9 @@
       <button id="material-open" type="button" title="Materialverwaltung">Material</button>
     </div>
     <div class="group">
+      <button id="lkw-multi" type="button" title="Plan auf mehrere LKW umstellen und einen weiteren LKW anlegen">Mehrere LKW</button>
+    </div>
+    <div class="group">
       <button id="pack-all" class="primary">Alles neu packen</button>
       <button id="pack-rest">Rest einpacken</button>
       <button id="pack-rules" type="button">Pack-Regeln …</button>
@@ -189,6 +194,8 @@
   <main class="layout" hidden>
     <aside id="library" class="panel library"></aside>
     <section class="stage">
+      <div id="lkw-tabs" class="lkw-tabs" hidden></div>
+      <p id="lkw-none-hint" class="lkw-none-hint" hidden>Diese Stücke gehören keinem LKW. „Alles neu packen“ verteilt sie auf die LKW, oder weise sie rechts im Feld „LKW“ einem LKW zu.</p>
       <div id="views2d" class="views2d">
         <figure class="view view-top"><figcaption>Draufsicht <small>Stirnwand links · Tür rechts</small><span class="zoom" data-zoom="svg-top"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" aria-label="Ganzen Truck zeigen">Alles</button></span></figcaption><svg id="svg-top"></svg></figure>
         <figure class="view view-side"><figcaption>Seitenansicht <small>von links</small><span class="zoom" data-zoom="svg-side"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" aria-label="Ganzen Truck zeigen">Alles</button></span></figcaption><svg id="svg-side"></svg></figure>
@@ -201,6 +208,7 @@
   </main>
   <dialog id="dlg-case"></dialog>
   <dialog id="dlg-truck"></dialog>
+  <dialog id="dlg-lkw"></dialog>
   <dialog id="dlg-wizard"></dialog>
   <dialog id="dlg-truss"></dialog>
   <dialog id="dlg-dolly"></dialog>

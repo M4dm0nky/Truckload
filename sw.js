@@ -65,6 +65,8 @@ const ASSETS = [
   'js/ui/instanceMatrix.js',
   'js/ui/labelTexture.js',
   'js/ui/library.js',
+  'js/ui/lkw-editor.js',
+  'js/ui/lkw-tabs.js',
   'js/ui/load-wizard.js',
   'js/ui/material.js',
   'js/ui/pack-rules.js',
