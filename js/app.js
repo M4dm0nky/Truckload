@@ -154,7 +154,7 @@ attachKeyboard({
     redo: () => store.redo(),
     deselect: () => select(null),
     move: (id, dx, dy, step) => {
-      const p = store.get().plan.placements.find(q => q.id === id);
+      const p = derive().view.placements.find(q => q.id === id);
       if (!p) return; // Ablage-Stück ausgewählt: hat kein x/y, hier nichts zu verschieben
       edit((pl, c) => A.moveGroup(pl, id, p.x + dx * step, p.y + dy * step, c, { grid: step, edges: false }));
     },

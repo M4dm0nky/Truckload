@@ -286,3 +286,15 @@ test('mergeUnassignedView: Platzierungen der Ansicht gehen in die Ablage statt v
   assert.equal(row.lkw, undefined);
   assert.ok(m.unplaced.some(u => u.id === 'f'));
 });
+
+test('Entf im Reiter „Ohne LKW“: Platzierung mit unbekanntem LKW ist dort eine Ablage-Zeile und lässt sich entfernen', () => {
+  const p = twoLkw();
+  const alt = { ...p, placements: [{ id: 'alt', caseId: 'li', x: 0, y: 0, z: 0, rot: 0, orientation: 'standing', lkw: 'gelöscht' }] };
+  const s = mkState(alt, { activeLkw: NO_LKW });
+  const view = activeViewOf(alt, NO_LKW);
+  assert.equal(view.placements.some(x => x.id === 'alt'), false, 'in der Ansicht keine Platzierung');
+  const isPlaced = view.placements.some(x => x.id === 'alt');
+  const n = applyEdit(s, pl => (isPlaced ? A.removePlacement(pl, 'alt') : A.removeUnplaced(pl, 'alt')), () => 'x');
+  assert.notEqual(n, s);
+  assert.ok(![...n.plan.placements, ...n.plan.unplaced].some(x => x.id === 'alt'));
+});

@@ -177,14 +177,16 @@ export function mountPlanView(deps) {
     // Entf auf einem Ablage-Stück muss A.removeUnplaced treffen: A.removePlacement liefe für
     // eine unbekannte Placement-id ins Leere und ließe das Stück in der Ablage stehen.
     delete: id => {
-      const isPlaced = store.get().plan.placements.some(p => p.id === id);
+      // Ansicht des gewählten Reiters, nicht der ganze Plan: im Reiter „Ohne LKW“ liegt auch eine
+      // Platzierung ohne gültigen LKW als Ablage-Zeile vor.
+      const isPlaced = derive().view.placements.some(p => p.id === id);
       edit(p => (isPlaced ? A.removePlacement(p, id) : A.removeUnplaced(p, id)));
       select(null);
     },
     'edit-case': id => editCase(findCaseIdForPiece(id)),
     // Mit `face` setzt die Aktion genau diese Radseite (Inspector-Knopf), ohne reihum weiter.
     'wheel-face': (id, face) => {
-      const p = store.get().plan.placements.find(q => q.id === id);
+      const p = derive().view.placements.find(q => q.id === id);
       if (!p) return;
       const next = face ?? WHEEL_FACES[(WHEEL_FACES.indexOf(wheelFace(p)) + 1) % WHEEL_FACES.length];
       edit((pl, c) => A.setWheelFace(pl, id, next, c));
