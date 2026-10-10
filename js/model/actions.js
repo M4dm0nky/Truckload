@@ -267,7 +267,7 @@ export const removePlacement = (plan, id) =>
   stamp({ ...plan, placements: plan.placements.filter(p => p.id !== id) });
 
 // Placement -> Ablage-Eintrag (nur id/caseId/label?/color?/layers?/tipped?/group?, keine Positions-/Orientierungsfelder).
-const placementToUnplaced = p =>
+export const placementToUnplaced = p =>
   ({ id: p.id, caseId: p.caseId, ...pickPieceFields(p) });
 
 export function toTray(plan, id) {
