@@ -2,6 +2,47 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.13.11 – 2026-10-10
+
+Abschluss der offenen Punkte, Teil 1.
+
+**Neu**
+- **Ausladeliste:** viertes Druckdokument, dieselbe Liste wie die Abhakliste in umgekehrter
+  Reihenfolge (zuletzt Eingeladenes zuerst), mit Lage und „Entladen von“.
+- **Abhakliste** zeigt jetzt die Lage je Stück.
+- **Grund in der Ablage:** Ein nicht geladenes Stück nennt seinen Grund, wenn er aus den Maßen
+  folgt (zu groß für den Laderaum; auf „getippt“ gesetzt, passt aber nur stehend; auf „nicht
+  tippen“ gesetzt, passt aber nur getippt). Mehr wird bewusst nicht behauptet.
+- **Gewicht im Inspector:** Das Gewicht des Case-Typs lässt sich direkt ändern (eigene und
+  Firmen-Cases; Standardvorlagen mit Hinweis auf „Kopieren“).
+- **Schriftfarbe in 2D und im Druck** passt sich dem Case an (dunkle Schrift auf hellen Cases),
+  wie in 3D.
+- **Zahlen einheitlich:** Seitenleiste, Wizard und Materialverwaltung zeigen Maße und Gewichte
+  gleich formatiert; Traversenwagen zeigen „kg/Wagen“.
+- **Taste T** schaltet zuverlässig zwischen „stehend“ und „getippt“ um, auch bei vom Packer
+  getippten Cases.
+- **Regelsets:** Rückfrage beim Überschreiben und beim Löschen.
+- **Traversenwagen** (Profil, Länge, Stückzahl, Wagenbreite, Firma) werden aus dem Bestand
+  wiederverwendet statt doppelt angelegt.
+- „Gestapelt“ im Traversen-Dialog überschreibt ein abgewähltes „danach automatisch packen“ nicht.
+- 3D: Hinweis „3D-Ansicht nicht aktuell“, wenn der Aufbau fehlschlägt.
+
+**Robuster**
+- **Import:** Hinweise zu fehlenden Verweisen erscheinen erst nach dem Zusammenführen und nur
+  für wirklich fehlende; zu schwere Cases sind eine Warnung statt eines Abbruchs; zu lange
+  Namen (Ladeplan, Case, Fahrzeug) werden gekürzt und gemeldet; Stücke weit außerhalb des
+  Fahrzeugs wandern in die Ablage; doppelte IDs werden abgelehnt.
+- Datenbank: ein fehlgeschlagenes Öffnen wird beim nächsten Zugriff wiederholt; ein kaputter
+  Zeitstempel wird auch in der Datenbank repariert; „Plan löschen“ speichert vorher.
+- „Firma löschen“ läuft in einer Transaktion; Dolly-IDs verschiedener Firmen kollidieren nicht.
+- Packer: bei überfüllter Ladung deutlich schneller, Ergebnis unverändert (gegen den alten
+  Packer an über 270.000 zufälligen Fällen verglichen).
+
+**Maße korrigiert (bitte beachten):** `D8+ 0,5t CAB x4/x8/x12` (Länge und Breite getauscht) und
+`JDC-1 Cube (4)` / `JDC-1 Cube` (Maße der beiden Zeilen getauscht), jeweils auf Wunsch, nicht
+nachgemessen. **Bestehende Pläne mit diesen Cases danach neu packen**, sonst melden Kollisions-
+und Überstand-Prüfung Abweichungen.
+
 ## V 0.13.10 – 2026-10-09
 
 Aufräumen Teil 6 (Abschluss) – Kommentare im Code gekürzt (der Verlauf steht in der
