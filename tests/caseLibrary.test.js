@@ -304,3 +304,29 @@ test('Nachrecherche 2026-09-30 (2. Runde): FD34/Slick verschwinden aus jeder Aus
   assert.equal(r.items.length, 2);
   assert.ok(!r.issues.some(i => i.code === 'missingCase'), JSON.stringify(r.issues));
 });
+
+// Korrektur auf Nutzerwunsch 2026-10-09 („D8+ und JDC-1 korrigieren“): Länge/Breite der Motorcases
+// getauscht; bei den JDC-1-Cubes die Namen (samt Stückzahl im Hinweis). IDs und Gewichte blieben.
+test('D8+ x4/x8/x12: Länge und Breite getauscht, ID, Höhe, Gewicht und Hinweis unverändert', () => {
+  const soll = {
+    'lib-d8-0-5t-cab-x4': { l: 240, w: 50, weight: 95, note: 'Gewicht geschätzt: 4 × D8+ 0,5t à 17 kg + Case' },
+    'lib-d8-0-5t-cab-x8': { l: 240, w: 100, weight: 190, note: 'Gewicht geschätzt: 8 × D8+ 0,5t à 17 kg + Case' },
+    'lib-d8-0-5t-cab-x12': { l: 240, w: 150, weight: 285, note: 'Gewicht geschätzt: 12 × D8+ 0,5t à 17 kg + Case' },
+  };
+  for (const [id, s] of Object.entries(soll)) {
+    const c = CASE_LIBRARY.find(x => x.id === id);
+    assert.ok(c, id);
+    assert.deepEqual([c.l, c.w, c.h, c.weight, c.note], [s.l, s.w, 56, s.weight, s.note], id);
+  }
+});
+
+test('JDC-1 Cube: Namen getauscht, IDs, Maße und Gewichte unverändert; „(4)“ ist das größere Case', () => {
+  const klein = CASE_LIBRARY.find(c => c.id === 'lib-jdc-1-cube-4-rentall');
+  const gross = CASE_LIBRARY.find(c => c.id === 'lib-jdc-1-cube-rentall');
+  assert.ok(klein && gross, 'beide IDs müssen bestehen bleiben');
+  assert.deepEqual([klein.name, klein.l, klein.w, klein.h, klein.weight], ['JDC-1 Cube -RentALL', 60, 60, 58, 60]);
+  assert.deepEqual([gross.name, gross.l, gross.w, gross.h, gross.weight], ['JDC-1 Cube (4) -RentALL', 99, 60, 58, 25]);
+  assert.match(gross.note, /4 × JDC-1/);
+  assert.match(klein.note, /1 × JDC-1/);
+  assert.ok(gross.l * gross.w > klein.l * klein.w);
+});

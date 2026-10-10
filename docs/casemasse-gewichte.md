@@ -392,8 +392,8 @@ w), nicht nur für eine.
 | ETC S4 x6 -CAB | 6 × ETC Source Four (6,3 kg) | 55 |
 | X4-Bar 20 -BBM | 1 × X4 Bar 20 | 35 |
 | JDC-1 lang -Motion | 1 × JDC-1 | 25 |
-| JDC-1 Cube (4) -RentALL | 4 × JDC-1 | 60 |
-| JDC-1 Cube -RentALL | 1 × JDC-1 | 25 |
+| JDC-1 Cube -RentALL (ID `lib-jdc-1-cube-4-rentall`, 60 × 60 × 58) | 1 × JDC-1 | 60 |
+| JDC-1 Cube (4) -RentALL (ID `lib-jdc-1-cube-rentall`, 99 × 60 × 58) | 4 × JDC-1 | 25 |
 | JDC-1 lang (6) -RentALL | 6 × JDC-1 | 85 |
 | GLP X4-Bar-20 x4 -CAB | 4 × X4 Bar 20 | 80 |
 | JDC-1 x6 -CAB | 6 × JDC-1 | 85 |
@@ -525,3 +525,18 @@ Einträge sind damit überflüssig und jetzt `legacy: true`, gleiches Muster wie
   (solotech.com, die 23 kg Generator + 33,5 kg Cradle + 120 kg
   Betriebsgewicht nennt, aber nicht die 84 kg) als Quelle angegeben – jetzt
   auf die tatsächlich belegende Quelle korrigiert.
+
+## Korrektur D8+ und JDC-1 (2026-10-09)
+
+Auf Nutzerwunsch 2026-10-09 (Auswahl „D8+ und JDC-1 korrigieren“), nicht nachgemessen:
+
+- **`D8+ 0,5t CAB x4/x8/x12`:** Länge und Breite getauscht. Vorher 50 × 240, 100 × 240 und
+  150 × 240 cm, jetzt 240 × 50, 240 × 100 und 240 × 150 (240 cm ist die lange Seite, wie sonst
+  in der Bibliothek). Höhe 56 cm, Gewicht, Hinweistext und ID unverändert.
+- **`JDC-1 Cube (4)` / `JDC-1 Cube`:** Die Namen der beiden Zeilen sind getauscht, damit das Case
+  mit „(4)“ das größere (99 × 60 × 58) ist; der Hinweistext („4 × JDC-1“ bzw. „1 × JDC-1“) ging
+  mit dem Namen. Wie die Auswahl umgesetzt wird, ist eine **eigene Entscheidung**: IDs, Maße und
+  Gewichte bleiben an ihrer Zeile, damit bestehende Pläne ihre Stücke behalten. Folge: Die
+  Gewichte (60 kg am 60 × 60-Case, 25 kg am 99 × 60-Case) passen jetzt nicht mehr zur
+  Stückzahl im Namen und sind **nicht neu gerechnet**; sie bleiben offen (siehe
+  `docs/offene-punkte.md`).

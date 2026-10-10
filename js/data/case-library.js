@@ -135,8 +135,12 @@ export const CASE_LIBRARY = [
   C('Dolly 6-Bar silber -CAB', 'Licht', 215, 60, 193, 'CAB', 'Generic'),
   C('X4-Bar 20 -BBM', 'Licht', 130, 60, 58, 'BBM', 'GLP', { weight: 35, note: 'Gewicht geschätzt: 1 × X4 Bar 20 à 16 kg + Case' }),
   C('JDC-1 lang -Motion', 'Licht', 118, 55, 50, 'Motion', 'GLP', { weight: 25, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
-  C('JDC-1 Cube (4) -RentALL', 'Licht', 60, 60, 58, 'RentAll', 'GLP', { weight: 60, note: 'Gewicht geschätzt: 4 × JDC-1 à 11.6 kg + Case' }),
-  C('JDC-1 Cube -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { weight: 25, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
+  // Namen (und Stückzahl im Hinweistext) der beiden Cube-Zeilen auf Nutzerwunsch 2026-10-09 getauscht:
+  // das Case mit „(4)“ ist das größere (99 × 60 × 58). IDs, Maße und Gewichte blieben, wo sie waren,
+  // damit alte Ladepläne ihre Stücke behalten (eigene Entscheidung); die Gewichte sind nicht
+  // nachgerechnet. Siehe docs/casemasse-gewichte.md.
+  C('JDC-1 Cube -RentALL', 'Licht', 60, 60, 58, 'RentAll', 'GLP', { id: 'lib-jdc-1-cube-4-rentall', weight: 60, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
+  C('JDC-1 Cube (4) -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { id: 'lib-jdc-1-cube-rentall', weight: 25, note: 'Gewicht geschätzt: 4 × JDC-1 à 11.6 kg + Case' }),
   C('JDC-1 lang (6) -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { weight: 85, note: 'Gewicht geschätzt: 6 × JDC-1 à 11.6 kg + Case' }),
   C('GLP X4-Bar-20 x4 -CAB', 'Licht', 131, 60, 58, 'CAB', 'GLP', { weight: 80, note: 'Gewicht geschätzt: 4 × X4 Bar 20 à 16 kg + Case' }),
   C('JDC-1 x6 -CAB', 'Licht', 120, 60, 58, 'CAB', 'GLP', { weight: 85, note: 'Gewicht geschätzt: 6 × JDC-1 à 11.6 kg + Case' }),
@@ -185,9 +189,10 @@ export const CASE_LIBRARY = [
   C('D8 2t CAB', 'Rigging', 80, 60, 60, 'CAB', 'Motor', { weight: 55, note: 'Gewicht geschätzt: 1 × D8 2t à 39 kg + Case' }),
   C('D8+ 0,25t CAB', 'Rigging', 60, 50, 56, 'CAB', 'Motor', { weight: 25, note: 'Gewicht geschätzt: 1 × D8+ 0,25t à 10.2 kg + Case' }),
   C('D8+ 0,5t CAB', 'Rigging', 60, 50, 56, 'CAB', 'Motor', { weight: 30, note: 'Gewicht geschätzt: 1 × D8+ 0,5t à 17 kg + Case' }),
-  C('D8+ 0,5t CAB x12', 'Rigging', 150, 240, 56, 'CAB', 'Motor', { weight: 285, note: 'Gewicht geschätzt: 12 × D8+ 0,5t à 17 kg + Case' }),
-  C('D8+ 0,5t CAB x4', 'Rigging', 50, 240, 56, 'CAB', 'Motor', { weight: 95, note: 'Gewicht geschätzt: 4 × D8+ 0,5t à 17 kg + Case' }),
-  C('D8+ 0,5t CAB x8', 'Rigging', 100, 240, 56, 'CAB', 'Motor', { weight: 190, note: 'Gewicht geschätzt: 8 × D8+ 0,5t à 17 kg + Case' }),
+  // Länge/Breite der drei x4/x8/x12-Cases auf Nutzerwunsch 2026-10-09 getauscht (240 cm ist die Länge).
+  C('D8+ 0,5t CAB x12', 'Rigging', 240, 150, 56, 'CAB', 'Motor', { weight: 285, note: 'Gewicht geschätzt: 12 × D8+ 0,5t à 17 kg + Case' }),
+  C('D8+ 0,5t CAB x4', 'Rigging', 240, 50, 56, 'CAB', 'Motor', { weight: 95, note: 'Gewicht geschätzt: 4 × D8+ 0,5t à 17 kg + Case' }),
+  C('D8+ 0,5t CAB x8', 'Rigging', 240, 100, 56, 'CAB', 'Motor', { weight: 190, note: 'Gewicht geschätzt: 8 × D8+ 0,5t à 17 kg + Case' }),
   C('D8+ 1t PlusLite -cab', 'Rigging', 69, 60, 71, 'CAB', 'Motor', { weight: 45, note: 'Gewicht geschätzt: 1 × D8+ 1t à 31 kg + Case' }),
   // Auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt (überflüssig).
   C('63A VT Haube -BBM', 'Ton', 60, 60, 73, 'BBM', '', { legacy: true }),
