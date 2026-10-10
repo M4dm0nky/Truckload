@@ -69,12 +69,17 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black' }) {
 // das die Abhakliste verhindern soll. Dasselbe gilt für die Warnungen aus dem Packergebnis, die
 // der Ladeplan schon druckt.
 export function buildChecklist(root, { plan, truck, result }) {
+  listDoc(root, { plan, truck, result }, { title: '', reversed: false });
+}
+
+function listDoc(root, { plan, truck, result }, { title, reversed }) {
   const h = headInfo({ plan, truck, result });
   const rows = sortedBySequence(result);
+  if (reversed) rows.reverse();
   const offen = plan.unplaced?.length ?? 0;
   root.innerHTML = `
     <header>
-      <h1>${h.plan}</h1>
+      <h1>${title}${h.plan}</h1>
       <p>${h.truck} · ${h.date} · ${h.count} Cases · ${h.weight} kg · Truckload V ${h.version}</p>
       ${offen ? `<p class="p-open"><b>${offen} Stück nicht geladen</b> – ${offen === 1 ? 'es steht' : 'sie stehen'} nicht auf dieser Liste.</p>` : ''}
     </header>
@@ -83,6 +88,7 @@ export function buildChecklist(root, { plan, truck, result }) {
         <span class="num">${result.sequence.get(it.id)}</span>
         ${swatch(it.color)}
         <span class="label">${esc(it.label)} <small>(${esc(it.c.name)})</small></span>
+        <span class="layer">Lage ${result.layers.get(it.id)}</span>
         <span class="tick"></span>
       </li>`).join('')}
     </ul>

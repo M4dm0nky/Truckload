@@ -214,3 +214,15 @@ test('pageRuleFor: nur Etiketten brauchen eine eigene Seitenvorschrift', () => {
   assert.match(pageRuleFor('labels'), /@page\s*\{[^}]*A4 portrait/);
   assert.match(pageRuleFor('labels'), /margin:\s*0/);
 });
+
+test('Abhakliste: jede Zeile nennt die Lage wie result.layers', () => {
+  const c = mkCase('c1', 50, 50, 50);
+  const placements = [P('p1', 'c1', 0, 0, 0), P('p2', 'c1', 0, 0, 50)];
+  const { truck, plan: p, result } = buildResult({ cases: [c], placements });
+  const root = FAKE_ROOT();
+  buildChecklist(root, { plan: p, truck, result });
+  const layers = [...root.innerHTML.matchAll(/class="layer">Lage (\d+)</g)].map(m => Number(m[1]));
+  const bySeq = [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
+  assert.deepEqual(layers, bySeq.map(it => result.layers.get(it.id)));
+  assert.deepEqual([...layers].sort(), [1, 2]);
+});
