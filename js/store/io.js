@@ -3,6 +3,7 @@ import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.
 import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, layersValid } from '../model/limits.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
+import { CATEGORIES } from '../data/categories.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
@@ -127,12 +128,13 @@ const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk
 // MAX_LKW Objekten mit eindeutiger id, Name, Fahrzeug-ID und Gewerke-Liste. Gewerke werden hier nur
 // als Strings geprüft (ein später entferntes Gewerk soll die Datei nicht unlesbar machen).
 function checkLkws(p) {
-  if (p.lkws === undefined) return;
+  if (p.lkws === undefined || p.lkws === null) return; // null = fehlendes Feld
   const bad = () => new Error(`Ladeplan „${p.name}“ hat ungültige LKW.`);
   if (!Array.isArray(p.lkws) || p.lkws.length > MAX_LKW) throw bad();
   for (const l of p.lkws) {
     if (!l || typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.truckId !== 'string'
-      || !Array.isArray(l.categories) || !l.categories.every(c => typeof c === 'string')) throw bad();
+      || !Array.isArray(l.categories) || l.categories.length > CATEGORIES.length
+      || !l.categories.every(c => typeof c === 'string' && c.length <= MAX_LABEL)) throw bad();
     const tooLong = nameTooLong('LKW', l);
     if (tooLong) throw tooLong;
   }
@@ -289,7 +291,16 @@ export function parseBundle(text) {
       unplaced: [...p.unplaced.map(strip), ...toTray.map(x => ({ id: x.id, caseId: x.caseId, ...pickPieceFields(x) }))],
     };
   };
-  const plans = rawPlans.map(movePlaced).map(fixLkwRefs).map(p => ({
+  // `plan.truckId` ist bei Mehr-LKW-Plänen das Fahrzeug des ersten LKW (js/model/lkw.js). Weicht es
+  // ab (fremde oder handbearbeitete Datei), wird es hier angeglichen und gemeldet (eigene
+  // Entscheidung); nur wenn sich dadurch wirklich etwas ändert.
+  const realignTruck = p => {
+    const first = Array.isArray(p.lkws) ? p.lkws[0]?.truckId : undefined;
+    if (typeof first !== 'string' || first === p.truckId) return p;
+    planRepairs.push(`Ladeplan „${p.name}“: Fahrzeug des Plans an das des ersten LKW angeglichen.`);
+    return { ...p, truckId: first };
+  };
+  const plans = rawPlans.map(movePlaced).map(fixLkwRefs).map(realignTruck).map(p => ({
     ...p,
     name: cutName('plan', p.name),
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit

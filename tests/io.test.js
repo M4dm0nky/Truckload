@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { exportBundle, parseBundle, checkCase, checkTruck, checkPlan, mergeById, backupFileName, preImportBackupFileName, normalizeCase } from '../js/store/io.js';
 import { CASE_LIMITS, MAX_LABEL, NAME_MAX, COORD_MAX, MAX_LKW } from '../js/model/limits.js';
+import { CATEGORIES } from '../js/data/categories.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
@@ -838,4 +839,31 @@ test('Platzierung weit außerhalb behält ihren lkw in der Ablage', () => {
   const p = lkwPlan({ placements: [P('far', 'own', COORD_MAX + 5, 0, 0, { lkw: 'L2' })], unplaced: [] });
   const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [p] }));
   assert.deepEqual(res.plans[0].unplaced, [{ id: 'far', caseId: 'own', lkw: 'L2' }]);
+});
+
+// ---- Härtung Mehr-LKW (Task 1, Nachbesserung) ---------------------------------------------
+test('parseBundle gleicht plan.truckId an den ersten LKW an und meldet es nur dann', () => {
+  const diff = lkwPlan({ truckId: 'anderes' });
+  const res = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [diff] }));
+  assert.equal(res.plans[0].truckId, 't');
+  assert.equal(res.repairs.length, 1);
+  assert.match(res.repairs[0], /Ladeplan „Test“.*Fahrzeug.*erste/);
+  const same = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [lkwPlan()] }));
+  assert.deepEqual(same.repairs, []);
+  const single = parseBundle(bundleWith({ cases: [own], trucks: [mkTruck()], plans: [plan([])] }));
+  assert.deepEqual(single.repairs, []);
+});
+test('lkws: null gilt wie fehlendes Feld; lkws: [] übersteht den Roundtrip', () => {
+  assert.doesNotThrow(() => checkPlan({ ...plan([]), lkws: null }));
+  const p = { ...plan([P('p1', 'own', 0, 0, 0)]), lkws: [] };
+  const res = parseBundle(exportBundle({ cases: [own], trucks: [], plans: [p] }));
+  assert.deepEqual(res.plans[0], p);
+  assert.deepEqual(res.repairs, []);
+});
+test('checkPlan: Gewerke-Liste höchstens CATEGORIES.length Einträge, jeder höchstens MAX_LABEL Zeichen', () => {
+  const l = categories => lkwPlan({ lkws: [{ id: 'L1', name: 'A', truckId: 't', categories }] });
+  assert.doesNotThrow(() => checkPlan(l(CATEGORIES.map(c => c.name))));
+  assert.throws(() => checkPlan(l([...CATEGORIES.map(c => c.name), 'Extra'])), /LKW/);
+  assert.throws(() => checkPlan(l(['G'.repeat(MAX_LABEL + 1)])), /LKW/);
+  assert.doesNotThrow(() => checkPlan(l(['G'.repeat(MAX_LABEL)])));
 });
