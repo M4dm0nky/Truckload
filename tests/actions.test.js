@@ -63,9 +63,9 @@ test('toggleTipPiece lässt Traversenwagen unverändert (auch bei fälschlich ti
   const trussCtx = { caseById: byId(K, T, truss), truck: mkTruck(), newId: counter('n') };
   assert.equal(find(A.toggleTipPiece(plan([P('a','trs',0,0,0)]), 'a', trussCtx), 'a').orientation, 'standing');
 });
-// Bis zur Nutzer-Rückmeldung vom 2026-09-23 setzte toggleTipPiece bei jedem Tipp die Rollen fest zur
+// Bis zur Nutzer-Rückmeldung vom 2026-09-23 setzte cycleTip bei jedem Tipp die Rollen fest zur
 // Trucktür, unabhängig von der Ausgangsdrehung – stand die lange Seite in Fahrtrichtung, kippte
-// das Case dadurch sichtbar zur Seite statt nach vorn. toggleTipPiece kippt jetzt relativ zur aktuellen
+// das Case dadurch sichtbar zur Seite statt nach vorn. cycleTip kippt jetzt relativ zur aktuellen
 // Lage (nextTip() in geometry.js, dort im Detail getestet); die Rollenrichtung danach ist nicht
 // mehr garantiert und muss bei Bedarf über setWheelFace gewählt werden.
 test('toggleTipPiece: Case mit Länge in Fahrtrichtung (rot 0) kippt nach vorn (tipShort), nicht zur Seite', () => {
@@ -198,7 +198,7 @@ test('duplicate legt die Kopie in die Ablage, wenn nirgends im Truck Platz ist',
 // Platzierung – ein Ablage-Eintrag mit einem eigenen (fremden) x/y hätte die gerade gewählte
 // Mausposition überschrieben (docs/code-review-2026-09-21.md, „actions.js:38-39“). Nur
 // label/color werden jetzt übernommen.
-// Lage/Tippen je Stück (Task 1): addUnplaced/placeCase/toggleTipPiece/duplicate/toTray übernehmen
+// Lage/Tippen je Stück (Task 1): addUnplaced/placeCase/cycleTip/duplicate/toTray übernehmen
 // layers/tipped genauso wie label/color.
 
 test('addUnplaced übernimmt layers und tipped', () => {
@@ -340,7 +340,7 @@ test('setPieceTipped(true) auf stehendes Placement tippt und setzt tipped:true',
 // Alle vier packer-typischen Ausgangslagen (tipLong/tipShort x rot 0/90) müssen auf
 // { orientation: 'standing', tipped: false } führen.
 for (const [orientation, rot] of [['tipLong', 0], ['tipLong', 90], ['tipShort', 0], ['tipShort', 90]]) {
-  test(`setPieceTipped(false) stellt ${orientation}/rot ${rot} sicher auf standing `, () => {
+  test(`setPieceTipped(false) stellt ${orientation}/rot ${rot} sicher auf standing`, () => {
     const pl0 = plan([P('a', 't', 0, 0, 0, { orientation, rot, tipped: true })]);
     const pl = A.setPieceTipped(pl0, 'a', false, ctx());
     const p = find(pl, 'a');
