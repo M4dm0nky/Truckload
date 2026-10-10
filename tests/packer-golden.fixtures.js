@@ -73,6 +73,61 @@ export const FIXTURES = {
       opts: { mixTop: true, rules: [{ by: 'group', value: 'Motoren', pos: 'last' }, { by: 'volume' }, { by: 'count' }] },
     };
   },
+  // --- Vorlauf Deckschicht nebeneinander (Teilprojekt „Deckschicht nebeneinander“): feste Fixtures OHNE
+  // mixTop, deren Ausgabe sich nie ändern darf. Die Cases sind absichtlich so gewählt, dass mit mixTop
+  // Deckschichten entstünden (kleine, leichte Cases gleichen Gewerks neben großen).
+  noTopMixed() {
+    const big = mkCase('big', 120, 80, 60, { weight: 120, category: 'Audio', maxTopLoad: 200 });
+    const sm = mkCase('sm', 60, 40, 40, { weight: 15, category: 'Audio' });
+    const sm2 = mkCase('sm2', 40, 40, 30, { weight: 8, category: 'Audio', tippable: true });
+    const li = mkCase('li', 100, 60, 50, { weight: 30, category: 'Licht', layers: [1, 2] });
+    return { items: [...many(big, 5, 'big'), ...many(sm, 7, 'sm'), ...many(sm2, 6, 'tiny'), ...many(li, 4, 'li')], truck: mkTruck({ l: 500 }) };
+  },
+  noTopOverfull() {
+    const big = mkCase('big', 120, 80, 70, { weight: 110, category: 'Audio' });
+    const sm = mkCase('sm', 60, 40, 40, { weight: 15, category: 'Audio' });
+    const obstacle = { x0: 0, y0: 0, z0: 0, x1: 60, y1: 80, z1: 50 };
+    return {
+      items: [...many(big, 12, 'big'), ...many(sm, 16, 'sm')],
+      truck: SPRINTER,
+      opts: { obstacles: [obstacle], startX: 40 },
+    };
+  },
+  noTopGroups() {
+    const big = mkCase('big', 120, 80, 60, { weight: 120, category: 'Audio' });
+    const sm = mkCase('sm', 60, 40, 40, { weight: 15, category: 'Audio' });
+    return {
+      items: [...many(big, 4, 'bm', { group: 'Motoren' }), ...many(big, 3, 'bf', { group: 'FOH' }), ...many(sm, 5, 'sm', { group: 'Motoren' }),
+        ...many(sm, 4, 'sf', { group: 'FOH' }), ...many(sm, 2, 'sx')],
+      truck: mkTruck({ l: 500 }),
+      opts: { mixTop: false, rules: [{ by: 'group', value: 'Motoren', pos: 'last' }, { by: 'volume' }, { by: 'count' }] },
+    };
+  },
+  noTopTruss() {
+    const wagon = trussCase('wagon', 240, 62, 60, { weight: 120, stackable: true, category: 'Rigging', layers: [1, 2] });
+    const sm = mkCase('sm', 60, 60, 40, { weight: 20, category: 'Rigging' });
+    const big = mkCase('big', 120, 62, 80, { weight: 80, category: 'Rigging', layers: [1] });
+    return { items: [...many(wagon, 4, 'w'), ...many(big, 4, 'big'), ...many(sm, 8, 'sm')], truck: mkTruck({ l: 700 }), opts: { mixTop: false } };
+  },
+  noTopDolly() {
+    const k2 = mkCase('preset-k2', 135, 53, 53, { weight: 56, category: 'Audio', speakerType: 'line', cabinetColor: '#222222' });
+    const d2 = dollyStackCase(k2, 2), d3 = dollyStackCase(k2, 3, { l: 135, w: 80 });
+    const sm = mkCase('sm', 60, 40, 40, { weight: 15, category: 'Audio' });
+    return { items: [...many(d3, 3, 'd3'), ...many(d2, 4, 'd2'), ...many(sm, 6, 'sm')], truck: mkTruck({ l: 500 }), opts: { order: 'count' } };
+  },
+  // Mit mixTop: höchstens EIN Deckstück je Stapel (jedes Deckstück füllt die Fläche des obersten
+  // Stücks fast ganz) – das Ergebnis muss gleich bleiben.
+  mixTopSingle() {
+    const big = mkCase('big', 120, 80, 60, { weight: 120, category: 'Audio' });
+    const cap = mkCase('cap', 110, 70, 40, { weight: 40, category: 'Audio' });
+    return { items: [...many(big, 3, 'big'), ...many(cap, 3, 'cap')], truck: mkTruck({ l: 500 }), opts: { mixTop: true } };
+  },
+  // Mit mixTop: auf ein Stück passen zwei bis vier kleine nebeneinander – ändert sich.
+  mixTopMulti() {
+    const big = mkCase('big', 120, 80, 60, { weight: 120, category: 'Audio' });
+    const sm = mkCase('sm', 60, 40, 40, { weight: 15, category: 'Audio' });
+    return { items: [...many(big, 2, 'big'), ...many(sm, 8, 'sm')], truck: mkTruck({ l: 500 }), opts: { mixTop: true } };
+  },
   obstacles() {
     const a = mkCase('a', 100, 60, 80, { weight: 70 }), b = mkCase('b', 60, 60, 60, { weight: 30 });
     const obstacle = { x0: 0, y0: 0, z0: 0, x1: 150, y1: 120, z1: 100 };
