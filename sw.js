@@ -45,6 +45,7 @@ const ASSETS = [
   'js/model/slug.js',
   'js/model/stamp.js',
   'js/model/truss.js',
+  'js/model/unplacedReason.js',
   'js/model/validate.js',
   'js/store/autosave.js',
   'js/store/db.js',

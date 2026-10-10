@@ -55,7 +55,7 @@ export function mountPlanView(deps) {
     onSelectPlaced: id => select(id),
     onSelectUnplaced: id => select(id),
   });
-  renderHooks.push(s => library.update(s));
+  renderHooks.push((s, d) => library.update(s, d.truck));
 
   attachTopInteractions($('#svg-top'), {
     getTruck: () => ctx().truck,
