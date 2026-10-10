@@ -139,7 +139,14 @@ export function wirePrint({ store, derive }) {
     $('#print-label-size').hidden = $('#print-doc').value !== 'labels';
   };
   // Der Umschalter „dieser LKW / alle LKW“ gilt nur bei Mehr-LKW-Plänen.
-  const syncScope = s => { $('#print-scope').hidden = !(s.plan && isMultiLkw(s.plan)); };
+  // Beim Planwechsel springt der Umfang auf „dieser LKW“ zurück (sonst druckte der nächste
+  // Mehr-LKW-Plan unbemerkt alles).
+  let scopePlanId = null;
+  const syncScope = s => {
+    $('#print-scope').hidden = !(s.plan && isMultiLkw(s.plan));
+    const id = s.plan?.id ?? null;
+    if (id !== scopePlanId) { scopePlanId = id; $('#print-scope').value = 'one'; }
+  };
   store.subscribe(syncScope);
   syncScope(store.get());
   window.addEventListener('afterprint', clearPrintPage);
@@ -157,21 +164,20 @@ export function wirePrint({ store, derive }) {
     if (all || onFree) {
       const { sections, free } = printSectionsOf(s);
       const parts = onFree ? [] : sections;
-      const f = all || onFree ? free : null;
-      if (!parts.length && !f) return;
+      if (!parts.length && !free) return;
       if (doc === 'checklist') {
         root.className = 'print-root doc-checklist doc-all';
-        buildChecklistAll(root, parts, { free: f });
+        buildChecklistAll(root, parts, { free });
       } else if (doc === 'unload') {
         root.className = 'print-root doc-checklist doc-unload doc-all';
-        buildUnloadListAll(root, parts, { free: f });
+        buildUnloadListAll(root, parts, { free });
       } else if (doc === 'labels') {
         const size = $('#print-label-size').value;
         root.className = `print-root doc-labels size-${size}`;
-        buildLabelsAll(root, parts, { free: f });
+        buildLabelsAll(root, parts, { free });
       } else {
         root.className = 'print-root doc-plan doc-all';
-        buildPrintAll(root, parts, { colorMode: s.caseColors, free: f });
+        buildPrintAll(root, parts, { colorMode: s.caseColors, free });
       }
     } else if (doc === 'checklist') {
       root.className = 'print-root doc-checklist';
