@@ -551,7 +551,7 @@ import { applyStockTarget } from '../js/model/material.js';
     assert.equal(findMatchingWagon([st], spec), undefined);
     assert.equal(findMatchingWagon([{ id: 'k', kind: undefined, l: 1, w: 1, h: 1 }], spec), undefined);
   });
-  test('findMatchingWagon mit Häkchen: onlyInPlan wird übergangen, Standardliste passt nur zu Spec ohne Firma', () => {
+  test('findMatchingWagon mit Häkchen: onlyInPlan und legacy werden übergangen, Standardliste passt nur zu Spec ohne Firma', () => {
     const plan = mk('p', {}, { inStock: false });
     assert.equal(findMatchingWagon([plan], spec), undefined);
     assert.equal(findMatchingWagon([plan], { ...spec, company: '' }), undefined);
@@ -559,13 +559,10 @@ import { applyStockTarget } from '../js/model/material.js';
     assert.equal(findMatchingWagon([std], { ...spec, company: '' }), std);
     assert.equal(findMatchingWagon([std], spec), undefined);
   });
-  test('findMatchingWagon ohne Häkchen: nimmt nur onlyInPlan-Wagen, nie Bestand (auch nicht fremder Firmen)', () => {
+  test('findMatchingWagon ohne Häkchen: nie ein Treffer (auch nicht onlyInPlan oder Bestand)', () => {
     const loadOnly = { ...spec, inStock: false, company: '' };
-    const stock = mk('a');
-    const stockStd = mk('d', {}, { inStock: true, company: '' });
-    assert.equal(findMatchingWagon([stock, stockStd], loadOnly), undefined);
-    const plan = mk('p', {}, { inStock: false });
-    assert.equal(findMatchingWagon([stock, plan], loadOnly), plan);
-    assert.equal(findMatchingWagon([mk('p', { legacy: true }, { inStock: false })], loadOnly), undefined);
+    const all = [mk('a'), mk('d', {}, { inStock: true, company: '' }), mk('p', {}, { inStock: false })];
+    assert.equal(findMatchingWagon(all, loadOnly), undefined);
+    assert.equal(findMatchingWagon(all, { ...spec, inStock: false }), undefined);
   });
 }
