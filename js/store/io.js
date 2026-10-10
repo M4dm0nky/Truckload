@@ -3,7 +3,6 @@ import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.
 import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, layersValid } from '../model/limits.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
-import { CATEGORIES } from '../data/categories.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
@@ -127,13 +126,16 @@ const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk
 // Mehrere LKW in einem Plan (V 0.14): `lkws` fehlt (Ein-LKW-Plan) oder ist eine Liste von höchstens
 // MAX_LKW Objekten mit eindeutiger id, Name, Fahrzeug-ID und Gewerke-Liste. Gewerke werden hier nur
 // als Strings geprüft (ein später entferntes Gewerk soll die Datei nicht unlesbar machen).
+// Feste Schranke gegen feindliche Größen; bewusst NICHT an CATEGORIES gebunden, damit ein später
+// entferntes Gewerk keine Datei unlesbar macht.
+const MAX_LKW_CATEGORIES = 32;
 function checkLkws(p) {
   if (p.lkws === undefined || p.lkws === null) return; // null = fehlendes Feld
   const bad = () => new Error(`Ladeplan „${p.name}“ hat ungültige LKW.`);
   if (!Array.isArray(p.lkws) || p.lkws.length > MAX_LKW) throw bad();
   for (const l of p.lkws) {
     if (!l || typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.truckId !== 'string'
-      || !Array.isArray(l.categories) || l.categories.length > CATEGORIES.length
+      || !Array.isArray(l.categories) || l.categories.length > MAX_LKW_CATEGORIES
       || !l.categories.every(c => typeof c === 'string' && c.length <= MAX_LABEL)) throw bad();
     const tooLong = nameTooLong('LKW', l);
     if (tooLong) throw tooLong;

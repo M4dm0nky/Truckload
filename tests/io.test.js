@@ -860,10 +860,13 @@ test('lkws: null gilt wie fehlendes Feld; lkws: [] übersteht den Roundtrip', ()
   assert.deepEqual(res.plans[0], p);
   assert.deepEqual(res.repairs, []);
 });
-test('checkPlan: Gewerke-Liste höchstens CATEGORIES.length Einträge, jeder höchstens MAX_LABEL Zeichen', () => {
+test('checkPlan: Gewerke-Liste höchstens 32 Einträge (feste Schranke, unabhängig von CATEGORIES), jeder höchstens MAX_LABEL Zeichen', () => {
   const l = categories => lkwPlan({ lkws: [{ id: 'L1', name: 'A', truckId: 't', categories }] });
   assert.doesNotThrow(() => checkPlan(l(CATEGORIES.map(c => c.name))));
-  assert.throws(() => checkPlan(l([...CATEGORIES.map(c => c.name), 'Extra'])), /LKW/);
+  // Ein später entferntes Gewerk darf die Datei nicht unlesbar machen: mehr Einträge als CATEGORIES ist ok.
+  assert.doesNotThrow(() => checkPlan(l([...CATEGORIES.map(c => c.name), 'Extra'])));
+  assert.doesNotThrow(() => checkPlan(l(Array.from({ length: 32 }, (_, i) => `G${i}`))));
+  assert.throws(() => checkPlan(l(Array.from({ length: 33 }, (_, i) => `G${i}`))), /LKW/);
   assert.throws(() => checkPlan(l(['G'.repeat(MAX_LABEL + 1)])), /LKW/);
   assert.doesNotThrow(() => checkPlan(l(['G'.repeat(MAX_LABEL)])));
 });
