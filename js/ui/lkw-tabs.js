@@ -4,17 +4,9 @@
 // Aktionen laufen über Rückrufe. Kein Zugriff auf den Store.
 import { esc } from './dom.js';
 import { MAX_LKW } from '../model/limits.js';
-import { lkwsOf } from '../model/lkw.js';
-import { unassignedByCategory } from '../model/lkw-distribute.js';
-import { NO_LKW, piecesOf } from '../app/core.js';
-
-const stueck = n => (n === 1 ? '1 Stück' : `${n} Stücke`);
+import { lkwsOf, NO_LKW, piecesOf } from '../model/lkw.js';
+import { unassignedLines, stueck } from '../model/lkw-distribute.js';
 const weightOf = c => (c && typeof c.weight === 'number' && Number.isFinite(c.weight) && c.weight > 0 ? c.weight : 0);
-
-// Zeilen für „ohne LKW“, z. B. „12 Stücke ohne LKW (Strom)“; ein unbekannter Case eigens.
-export const unassignedLines = (plan, caseById) =>
-  unassignedByCategory(plan, caseById).map(({ category, count }) =>
-    (category === null ? `${stueck(count)} mit unbekanntem Case` : `${stueck(count)} ohne LKW (${category})`));
 
 // Modell der Leiste. `active` ist der gültige Reiter (activeLkwOf). Liefert null für Ein-LKW-Pläne.
 // Gewicht: Summe der Case-Gewichte; Stücke ohne Gewicht zählen 0 und werden genannt (nichts erfunden).

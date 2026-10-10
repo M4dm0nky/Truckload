@@ -16,6 +16,11 @@ import { placementToUnplaced } from './actions.js';
 import { MAX_LKW, NAME_MAX } from './limits.js';
 import { CATEGORIES } from '../data/categories.js';
 
+// Pseudo-ID des Reiters „Ohne LKW“ (nicht zugeordnete Stücke); nie eine echte LKW-ID (UUIDs).
+export const NO_LKW = '__ohne-lkw';
+// Alles, was ein Plan an Stücken führt: platzierte und Ablage.
+export const piecesOf = plan => [...plan.placements, ...plan.unplaced];
+
 export const lkwsOf = plan => (Array.isArray(plan?.lkws) ? plan.lkws : []);
 export const isMultiLkw = plan => lkwsOf(plan).length > 0;
 

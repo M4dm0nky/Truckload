@@ -105,6 +105,15 @@ export function packAllLkws(plan, ctx) {
   return p;
 }
 
+// „1 Stück“ / „n Stücke“ – eine Quelle für alle Hinweistexte zu LKW.
+export const stueck = n => (n === 1 ? '1 Stück' : `${n} Stücke`);
+
+// Hinweiszeilen zu nicht zugeordneten Stücken: „12 Stücke ohne LKW (Strom)“, unbekannter Case:
+// „n Stücke mit unbekanntem Case“. Ein-LKW-Plan: leer.
+export const unassignedLines = (plan, caseById) =>
+  unassignedByCategory(plan, caseById).map(({ category, count }) =>
+    (category === null ? `${stueck(count)} mit unbekanntem Case` : `${stueck(count)} ohne LKW (${category})`));
+
 // Nicht zugeordnete Stücke je Gewerk für den Hinweis der Oberfläche („12 Stücke ohne LKW (Strom)“):
 // [{ category, count }] in CATEGORIES-Reihenfolge. Case ohne Gewerk zählt als „Sonstiges“, ein
 // fehlender Case als { category: null }. Ein-LKW-Plan: leer.

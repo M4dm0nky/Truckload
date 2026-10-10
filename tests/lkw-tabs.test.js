@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lkwTabsModel, sumText, tabsHtml, unassignedLines } from '../js/ui/lkw-tabs.js';
+import { lkwTabsModel, sumText, tabsHtml } from '../js/ui/lkw-tabs.js';
+import { unassignedLines } from '../js/model/lkw-distribute.js';
 import { deleteQuestion, CATEGORY_HINT, LAST_LKW_MESSAGE } from '../js/ui/lkw-editor.js';
-import { NO_LKW } from '../js/app/core.js';
+import { NO_LKW } from '../js/model/lkw.js';
 import { MAX_LKW } from '../js/model/limits.js';
 import { mkCase, mkTruck, byId } from './fixtures.js';
 

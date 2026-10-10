@@ -4,16 +4,16 @@ import { memoLast } from '../model/memo.js';
 import { validatePlan } from '../model/validate.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { stamp } from '../model/stamp.js';
-import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView } from '../model/lkw.js';
-import { packAllLkws, unassignedByCategory } from '../model/lkw-distribute.js';
+import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView, NO_LKW, piecesOf } from '../model/lkw.js';
+import { packAllLkws, unassignedLines, stueck } from '../model/lkw-distribute.js';
 import { packAll, placementToUnplaced } from '../model/actions.js';
 
 export const caseByIdOf = memoLast(cases => new Map(cases.map(c => [c.id, c])));
 
 // ---- Mehrere LKW: gewählter Reiter -------------------------------------------------------
 
-// Pseudo-ID des Reiters „Ohne LKW“ (nicht zugeordnete Stücke). Nie eine echte LKW-ID (UUIDs).
-export const NO_LKW = '__ohne-lkw';
+// NO_LKW und piecesOf leben in js/model/lkw.js (auch für js/ui); hier erneut ausgeführt.
+export { NO_LKW, piecesOf };
 const knownLkwIds = plan => new Set(lkwsOf(plan).map(l => l.id));
 export const hasUnassigned = plan => {
   const known = knownLkwIds(plan);
@@ -111,10 +111,8 @@ export function repointTruck(plan, truckId, fallbackId = DEFAULT_TRUCK_ID) {
 
 // Hinweise nach dem Packen. Einzel-LKW: wie bisher die Ablage. Alle-LKW-Verteilung: Stücke ohne LKW
 // (je Gewerk; unbekannter Case eigens) und Stücke, die in ihrem LKW keinen Platz fanden.
-const stueck = n => (n === 1 ? '1 Stück' : `${n} Stücke`);
 export function distributionNotices(plan, caseById) {
-  const lines = unassignedByCategory(plan, caseById).map(({ category, count }) =>
-    (category === null ? `${stueck(count)} mit unbekanntem Case` : `${stueck(count)} ohne LKW (${category})`));
+  const lines = unassignedLines(plan, caseById);
   const known = knownLkwIds(plan);
   const left = plan.unplaced.filter(u => known.has(u.lkw)).length;
   if (left) lines.push(`${stueck(left)} ${left === 1 ? 'passt' : 'passen'} nicht in den LKW und ${left === 1 ? 'bleibt' : 'bleiben'} in „Noch nicht geladen“`);
@@ -133,8 +131,6 @@ export const deriveOf = (s, newId) => derived(s.plan, s.cases, s.trucks, newId, 
 // Aktueller Plan (falls vorhanden) plus alle übrigen gespeicherten, ohne Dublette.
 export const allPlansOf = s => [s.plan, ...s.plans.filter(p => p.id !== s.plan?.id)].filter(Boolean);
 
-// Alles, was ein Plan an Stücken führt: platzierte und Ablage.
-export const piecesOf = plan => [...plan.placements, ...plan.unplaced];
 
 // In wie vielen Plänen kommt der Case / das Fahrzeug vor?
 export const usage = (s, caseId) =>
