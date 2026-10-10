@@ -12,11 +12,10 @@ Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 s
 Dolly „Drohne“ hatten kein oder nur ein einzelnes Maß. Bei dreien steht in der Quelle eine
 einzelne Zahl, aus der sich kein Case bauen lässt. Der Nutzer wollte sie selbst nachtragen.
 
-**Vier 19″-Racks sind aus der Auswahl genommen.** 1, 4, 5 und 16 HE hatten keine Maße (Höhe aus
-der Höheneinheit gerechnet, Breite und Tiefe mit 60 × 60 geschätzt). Auf Nutzerwunsch (2026-10-10) sind
-sie `legacy`: nicht mehr wählbar, alte Pläne laden sie weiter. Mit echten Maßen ließen sie sich
-wieder freigeben. Auch bei 2 und 6 HE sind Breite und Tiefe (60 × 60) geschätzt; die Höhe ist dort
-gemessen. Die Racks mit 3 HE sind komplett gemessen.
+**Sechs 19″-Racks ohne echte Maße sind aus der Auswahl genommen.** Bei 1, 4, 5 und 16 HE war auch die
+Höhe aus der Höheneinheit gerechnet, bei 2 und 6 HE nur Breite und Tiefe (60 × 60) geschätzt. Auf
+Nutzerwunsch (2026-10-10) sind alle sechs `legacy`: nicht mehr wählbar, alte Pläne laden sie weiter.
+Mit echten Maßen ließen sie sich wieder freigeben. Nur 3 HE (komplett gemessen) ist wählbar.
 
 **Der Mindest-Case-Anteil von 15 kg überzeichnet kleine Cases.** Bei `SF TourHazer II`
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`

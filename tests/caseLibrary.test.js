@@ -330,11 +330,9 @@ test('JDC-1 Cube: Maße getauscht, IDs, Namen, Gewichte und Hinweise unveränder
     ['JDC-1 Cube -RentALL', 60, 60, 58, 25, 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case']);
 });
 
-test('Nutzerwunsch 2026-10-10: die vier ganz gerechneten Racks sind legacy, die gemessenen nicht', () => {
-  for (const name of ['19" 1HE -CAB', '19" 4HE -CAB', '19" 5HE -CAB', '19" 16HE on wheels-CAB']) {
+test('Nutzerwunsch 2026-10-10: alle Racks mit geschätzten Maßen sind legacy, nur 3 HE (gemessen) nicht', () => {
+  for (const name of ['19" 1HE -CAB', '19" 2HE -CAB', '19" 4HE -CAB', '19" 5HE -CAB', '19" 6HE -CAB', '19" 16HE on wheels-CAB']) {
     assert.equal(byName(name).legacy, true, name);
   }
-  for (const name of ['19" 2HE -CAB', '19" 3HE -CAB', '19" 6HE -CAB']) {
-    assert.notEqual(byName(name).legacy, true, name);
-  }
+  assert.notEqual(byName('19" 3HE -CAB').legacy, true);
 });
