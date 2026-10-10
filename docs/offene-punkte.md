@@ -168,7 +168,6 @@ geblieben ist, mit Begründung:
 
 ## Ideen, die noch niemand beauftragt hat
 
-- Mehrere Trucks je Show, mit Verteilung der Cases auf die Fahrzeuge (Teilprojekt 3, siehe oben).
 - Das Gewicht im Inspector lässt sich nur für eigene Cases und Firmen-Vorlagen ändern; bei
   Standardvorlagen und Traversenwagen bleibt es lesbar (Vorlage: „Kopieren“ in der Material-
   verwaltung). Ob Standardvorlagen direkt überschreibbar sein sollen, ist nicht entschieden.
