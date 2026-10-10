@@ -73,6 +73,7 @@ const belongsTogether = (a, ca, b, cb) =>
 // Stapels (x entlang dx, y entlang dy): das Stück kommt in der aktuellen Reihe rechts an das letzte
 // (Orientierung wie bisher, sonst um 90° gedreht); passt es dort nicht, beginnt eine neue Reihe im
 // Abstand der tiefsten Stücke der bisherigen; passt auch das nicht, ist der Stapel ungeeignet.
+// Die Zeile `row` ist relativ zum obersten Hauptstück; ox/oy im Ergebnis sind Versätze in der Stapelfläche.
 // Liefert { o, ox, oy, row } (o = ggf. gedrehte Orientierung, row = neuer Reihenzustand) oder null.
 function capFits(s, it, c, o, truck) {
   const n = s.cap ? s.cap.n : s.items.length;
@@ -97,17 +98,19 @@ function capFits(s, it, c, o, truck) {
   // Wie beim Stapel-Swap in placeStacks: ein um 90° gedrehter Deckel kann die Rollenrichtung zur
   // Tür verlieren; hier geht Grundfläche vor Rollenrichtung.
   const swapped = { ...o, rot: (o.rot + 90) % 360, d: { dx: o.d.dy, dy: o.d.dx, dz: o.d.dz } };
-  const W = s.dx, D = s.dy, row = s.cap?.row ?? null, eps = 1e-6;
+  // Fläche = Grundfläche des obersten Hauptstücks (ein hochgestuftes Deckstück, s. promote in
+  // buildStacks, hat dort einen Versatz ox/oy in der Stapelfläche; für alle anderen ist er 0).
+  const W = top.o.d.dx, D = top.o.d.dy, bx = top.ox ?? 0, by = top.oy ?? 0, row = s.cap?.row ?? null, eps = 1e-6;
   if (row) for (const cand of [o, swapped]) {
     const { dx: a, dy: b } = cand.d;
     if (row.x + a <= W + eps && row.y + b <= D + eps) {
-      return { o: cand, ox: row.x, oy: row.y, row: { y: row.y, x: row.x + a, depth: Math.max(row.depth, b) } };
+      return { o: cand, ox: bx + row.x, oy: by + row.y, row: { y: row.y, x: row.x + a, depth: Math.max(row.depth, b) } };
     }
   }
   const y = row ? row.y + row.depth : 0;
   for (const cand of [o, swapped]) {
     const { dx: a, dy: b } = cand.d;
-    if (a <= W + eps && y + b <= D + eps) return { o: cand, ox: 0, oy: y, row: { y, x: a, depth: b } };
+    if (a <= W + eps && y + b <= D + eps) return { o: cand, ox: bx, oy: by + y, row: { y, x: a, depth: b } };
   }
   return null;
 }
@@ -153,7 +156,8 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
   // Deckschicht (= Höhe des Hauptstapels), row: Zustand des Regalverfahrens (capFits) }. Die Deckstücke
   // stehen in `s.items` hinter den Hauptstücken, alle auf z = cap.z, mit Versatz ox/oy in der
   // Stapelfläche. Die Stapelhöhe wächst nur bis zum höchsten Deckstück; die Grundfläche bleibt.
-  const pushCap = (s, it, c, { o, ox, oy, row }) => {
+  const pushCap = (s, it, c, { o, ox, oy, row, promote }) => {
+    if (promote) s.cap = null; // das einzelne Deckstück wird oberstes Stück, hier beginnt eine neue Deckschicht
     s.cap ??= { n: s.items.length, z: s.height, row: null };
     s.cap.row = row;
     s.items.push({ it, c, o, z: s.cap.z, ox, oy });
@@ -188,6 +192,14 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
           for (const s of stacks) {
             if (s.sort >= sort || !sameSelectorRank(rules, s.block, group)) continue;
             fit = capFits(s, it, c, o, truck);
+            // Passt es nicht neben die vorhandenen Deckstücke und trägt die Deckschicht genau EIN Stück,
+            // darf dieses als oberstes Stück des Stapels gelten und das neue darauf als nächste Deckschicht
+            // (das bisherige Stapeln von Deckstück auf Deckstück). Erst „nebeneinander“, dann „übereinander“.
+            // capFits ändert nichts am Stapel; scheitert auch das, bleibt s unverändert (kein Rückbau nötig).
+            if (!fit && s.cap && s.items.length === s.cap.n + 1) {
+              fit = capFits({ ...s, cap: null }, it, c, o, truck);
+              if (fit) fit.promote = true;
+            }
             if (fit) { cap = s; break; }
           }
           if (cap) { pushCap(cap, it, c, fit); continue; }

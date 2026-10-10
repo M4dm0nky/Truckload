@@ -128,6 +128,12 @@ export const FIXTURES = {
     const sm = mkCase('sm', 60, 40, 40, { weight: 15, category: 'Audio' });
     return { items: [...many(big, 2, 'big'), ...many(sm, 8, 'sm')], truck: mkTruck({ l: 500 }), opts: { mixTop: true } };
   },
+  // Deckstück auf Deckstück: nebeneinander passt hier nichts (110 × 70 auf 120 × 80), also bleibt es senkrecht.
+  mixTopCapCap() {
+    const big = mkCase('big', 120, 80, 60, { weight: 120, category: 'Audio' });
+    const cap = mkCase('cap', 110, 70, 40, { weight: 30, category: 'Audio' });
+    return { items: [piece(big, 'b1'), ...many(cap, 3, 'c')], truck: mkTruck(), opts: { mixTop: true } };
+  },
   obstacles() {
     const a = mkCase('a', 100, 60, 80, { weight: 70 }), b = mkCase('b', 60, 60, 60, { weight: 30 });
     const obstacle = { x0: 0, y0: 0, z0: 0, x1: 150, y1: 120, z1: 100 };

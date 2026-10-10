@@ -794,11 +794,33 @@ test('F1: eine Traverse wird selbst nie als Deckschicht auf ein fremdes Case ges
   }
 });
 
-test('Deckschicht nebeneinander statt übereinander: zwei kleine Stücke liegen nebeneinander auf dem großen', () => {
+test('Deckschicht: nebeneinander bevorzugt, sonst übereinander – zwei kleine Stücke liegen nebeneinander auf dem großen', () => {
   const r = autoPack([...items(bigC, 1, 'b'), ...items(smallC, 2, 's')], mkTruck(), { mixTop: true });
   assert.equal(onBase(r, 'smallC', 'bigC'), 2, 'beide in der Deckschicht (120 × 60 trägt 2 × 60 × 60), nicht in Lage 3');
   assert.deepEqual(r.placements.filter(p => p.caseId === 'smallC').map(p => p.z), [80, 80]);
   assert.deepEqual(placementIssues(validatePlan(plan(r.placements), byId(bigC, smallC), mkTruck())), []);
+});
+
+test('Deckschicht: passt nichts daneben, bleibt Deckstück auf Deckstück (wie vor „nebeneinander“)', () => {
+  const big = topBig(), cap = mkCase('cp', 110, 70, 40, { weight: 30, category: 'Audio' });
+  const list = [...items(big, 1, 'b'), ...items(cap, 3, 'c')];
+  const r = autoPack(list, mkTruck(), { mixTop: true });
+  assert.deepEqual(r.placements.map(p => [p.id, p.x, p.y, p.z]), [['b1', 0, 0, 0], ['c1', 0, 0, 60], ['c2', 0, 0, 100], ['c3', 0, 0, 140]]);
+  const s = buildStacks(list, mkTruck(), { mixTop: true }).stacks[0];
+  assert.equal(s.height, 180); assert.equal(s.weight, 120 + 90);
+  assert.deepEqual(placementIssues(validatePlan(plan(r.placements), byId(big, cap), mkTruck())), []);
+});
+
+test('Deckschicht: Hochstufen ist atomar – scheitert auch das Stapeln, bleibt der Stapel unverändert', () => {
+  // c1 (110 × 70 × 40, 30 kg) liegt als einziges Deckstück; h (105 × 65, 31 kg) passt weder daneben noch ist es
+  // leicht genug für c1 → der Stapel bleibt genau wie ohne h, h steht woanders.
+  const big = topBig(), c1 = mkCase('c1', 110, 70, 40, { weight: 30, category: 'Audio' });
+  const h = mkCase('hv', 105, 65, 30, { weight: 31, category: 'Audio' });
+  const before = buildStacks([...items(big, 1, 'b'), ...items(c1, 1, 'x')], mkTruck(), { mixTop: true }).stacks[0];
+  const after = buildStacks([...items(big, 1, 'b'), ...items(c1, 1, 'x'), ...items(h, 1, 'h')], mkTruck(), { mixTop: true });
+  assert.equal(before.cap.n, 1);
+  assert.deepEqual(after.stacks[0], before);
+  assert.ok(after.stacks.slice(1).some(st => st.items.some(i => i.it.id === 'h1')));
 });
 
 test('Deckschicht, Eigenschaft: keine neuen Placement-Fehler, nichts geht verloren, nichts Schweres auf Leichtem', () => {
@@ -954,12 +976,36 @@ test('Deckschicht nebeneinander: Lagen je Stück gelten (Deckschicht liegt in La
   assert.equal(onBase(r, 'ts', 'tb'), 0, 'nur Lage 1 erlaubt');
 });
 
-test('Deckschicht nebeneinander: ein Stapel mit Deckschicht trägt nichts mehr obendrauf und nimmt keine eigene Sorte an', () => {
-  // 12 kleine, 2 große: die Deckschicht trägt höchstens vier, der Rest steht auf dem Boden/anderen Stapeln – nie in Lage 3 über einem Deckstück.
+test('Deckschicht nebeneinander: eine Deckschicht mit mehreren Stücken trägt nichts mehr obendrauf', () => {
+  // 12 kleine auf 1 großes: die Deckschicht trägt vier (zwei Reihen); das fünfte darf nicht auf das letzte
+  // Deckstück (nur eine Deckschicht mit genau EINEM Stück darf hochgestuft werden).
   const r = autoPack([...items(topBig(), 1, 'b'), ...items(topSm(), 12, 's')], mkTruck(), { mixTop: true });
   assert.deepEqual(r.unplaced, []);
+  assert.equal(onBase(r, 'ts', 'tb'), 4, 'genau vier Deckstücke über dem großen, keines davon wiederum mit etwas obendrauf');
   assert.equal(r.placements.filter(p => p.z === 60).length, 4);
-  assert.ok(!r.placements.some(p => p.z === 100 && p.caseId === 'ts' && at(r, 'b1').x === p.x && at(r, 'b1').y === p.y), 'keine Deckstücke übereinander');
+});
+
+test('Deckschicht nebeneinander: ein Stapel mit Deckschicht nimmt kein Stück der eigenen Sorte mehr an', () => {
+  // Sorte A: ein großes Stück (Stapel S). Sorte B: x1 (nur Lage 2, getippt → kleinere Grundfläche) wird Deckstück auf S,
+  // x2 (nur Lage 3, Grundfläche wie S) würde S als „letzten Stapel der vorigen Sorte“ sonst auffüllen und läge über dem Deckstück.
+  const a = mkCase('a', 120, 80, 60, { weight: 120, category: 'Audio' });
+  const x = mkCase('x', 120, 80, 40, { weight: 20, category: 'Audio', tippable: true, layers: [1, 2, 3, 4] });
+  const list = [...items(a, 1, 'a'), { ...mkItem(x, 'x1'), tipped: true, layers: [2] }, { ...mkItem(x, 'x2'), tipped: false, layers: [3] }];
+  const r = autoPack(list, mkTruck(), { mixTop: true });
+  assert.equal(at(r, 'x1').z, 60, 'x1 ist Deckstück auf a1');
+  assert.deepEqual(r.unplaced.map(u => u.id), ['x2'], 'x2 darf nicht auf das Deckstück (Lage 3), also bleibt es übrig');
+});
+
+test('Deckschicht nebeneinander: eine neue Reihe beginnt unter dem tiefsten Stück der Reihe, nicht unter dem letzten', () => {
+  const top = mkCase('top', 120, 80, 60, { weight: 200, category: 'Audio' });
+  const A = mkCase('A', 50, 50, 40, { weight: 10, category: 'Audio' });   // tief
+  const B = mkCase('B', 50, 30, 40, { weight: 10, category: 'Audio' });   // flach, steht rechts daneben
+  const C = mkCase('C', 100, 30, 10, { weight: 10, category: 'Audio' });  // passt nicht mehr in die Reihe
+  const r = autoPack([...items(top, 1, 't'), ...items(A, 1, 'a'), ...items(B, 1, 'b'), ...items(C, 1, 'c')], mkTruck(), { mixTop: true });
+  assert.deepEqual(rel(r, 'a1', 't1'), [0, 0, 60]);
+  assert.deepEqual(rel(r, 'b1', 't1'), [50, 0, 60]);
+  assert.deepEqual(rel(r, 'c1', 't1'), [0, 50, 60], 'neue Reihe bei y = 50 (Tiefe von A), nicht 30');
+  assertCapsOnTop(r, byId(top, A, B, C), 't1', ['a1', 'b1', 'c1'], 'Reihen');
 });
 
 test('Deckschicht nebeneinander: ohne mixTop unverändert, auch mit vielen kleinen Stücken', () => {
@@ -1009,5 +1055,22 @@ test('Deckschicht nebeneinander: ungedreht und gedreht, auch mit gedrehten Decks
     const caps = r.placements.filter(p => p.z === 120).map(p => p.id);
     assert.ok(caps.length >= 2, 'mindestens zwei Deckstücke');
     assertCapsOnTop(r, cases, 'b2', caps, truck.w === 130 ? 'gedreht' : 'ungedreht');
+  }
+});
+
+test('Deckschicht: hochgestufte Kette in einem im Grundriss gedrehten Stapel liegt Stück für Stück vollständig auf dem darunter', () => {
+  const big = topBig(), cap = mkCase('cp', 110, 70, 40, { weight: 30, category: 'Audio' });
+  const truck = mkTruck({ l: 300, w: 130 });
+  const obstacles = [{ x0: 0, y0: 85, z0: 0, x1: 300, y1: 130, z1: 270 }];
+  const list = [...items(big, 1, 'b'), ...items(cap, 3, 'c')];
+  const { stacks } = buildStacks(list, truck, { mixTop: true });
+  assert.equal(placeStacks(stacks, truck, obstacles).placed.find(p => p.stack.capped).swap, true, 'Vorbedingung: gedreht');
+  const r = autoPack(list, truck, { mixTop: true, obstacles });
+  assert.deepEqual(r.unplaced, []);
+  const cases = byId(big, cap);
+  const chain = ['b1', 'c1', 'c2', 'c3'].map(id => boxOf(cases.get(at(r, id).caseId), at(r, id)));
+  for (let i = 1; i < chain.length; i++) {
+    assert.equal(chain[i].z0, chain[i - 1].z1);
+    assert.ok(insideXY(chain[i], chain[i - 1]), `Stück ${i} liegt auf Stück ${i - 1}`);
   }
 });
