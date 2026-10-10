@@ -1,4 +1,4 @@
-import { applyViewBox } from './zoom2d.js';
+import { applyViewBox, zoomFactor } from './zoom2d.js';
 import { caseIdAt, safeColor, svgEl, toSvg } from './dom.js';
 import { project, unproject, drawOrder, wheelStripRect } from './projection.js';
 import { wheelFace, isTruss } from '../model/geometry.js';
@@ -27,6 +27,14 @@ const LABEL_MIN = 6;
 const LABEL_MAX = 16;
 const LABEL_RATIO = 0.32;
 const LABEL_PAD = 3;
+
+// Schriftgröße der Beschriftung. Bei Zoom 1 die feste Spanne 6–16 cm (Stand 0.14.0, pixelgleich);
+// beim Hineinzoomen darf die Obergrenze mit wachsen (LABEL_MAX × Zoom), aber nie über das hinaus,
+// was in den Case passt (kleinere Seite × LABEL_RATIO). `zoom` unter 1 oder ungültig zählt als 1.
+export function labelFontSize(w, h, zoom = 1) {
+  const z = zoom >= 1 ? zoom : 1;
+  return Math.max(LABEL_MIN, Math.min(LABEL_MAX * z, Math.min(w, h) * LABEL_RATIO));
+}
 
 // Gitterstruktur eines Traversenwagens im 2D-Kasten: liegt die Traversenlänge in der Ansicht,
 // zwei Gurte mit Zickzack-Diagonalen („längs“); sieht man auf ihr Ende, ein Kasten mit vier
@@ -147,24 +155,62 @@ function labelPaint(bodyColor) {
   return `fill:${fill};stroke:${fill === DARK_TEXT ? '#fff' : '#000'}`;
 }
 
-function drawLabel(g, labelRect, it, measure, bodyColor) {
+// Pro Text-Element die Größen des Label-Rechtecks und der Volltext – für refitLabels(). Eine
+// WeakMap statt data-Attribute, damit das Markup bei Zoom 1 unverändert bleibt.
+const labelInfo = new WeakMap();
+
+function drawLabel(g, labelRect, it, measure, bodyColor, zoom) {
   const paint = labelPaint(bodyColor);
   const w = labelRect.u1 - labelRect.u0, h = labelRect.v1 - labelRect.v0;
-  const fontSize = Math.max(LABEL_MIN, Math.min(LABEL_MAX, Math.min(w, h) * LABEL_RATIO));
+  const fontSize = labelFontSize(w, h, zoom);
   const label = svgEl('text', {
     x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2,
     class: 'label', style: `font-size:${fontSize}px;${paint}`,
   }, g);
   label.textContent = truncateToWidth(it.label, Math.max(0, w - LABEL_PAD * 2), text => measure(text, fontSize));
+  labelInfo.set(label, { full: it.label, w, h, paint });
 
   const seqSize = Math.max(LABEL_MIN, fontSize * 0.55);
-  svgEl('text', {
+  const seq = svgEl('text', {
     x: labelRect.u0 + LABEL_PAD, y: labelRect.v0 + LABEL_PAD,
     class: 'label-seq', style: `font-size:${seqSize}px;${paint}`,
-  }, g).textContent = it.seq;
+  }, g);
+  seq.textContent = it.seq;
+  labelInfo.set(seq, { w, h, paint, seq: true });
 }
 
-function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure }) {
+// Passt alle Beschriftungen an die aktuelle Zoomstufe an (Größe und Kürzung), ohne neu zu zeichnen.
+export function refitLabels(svg) {
+  const zoom = zoomFactor(svg);
+  const measure = textMeasurer(svg, 700);
+  for (const el of svg.querySelectorAll('.label, .label-seq')) {
+    const info = labelInfo.get(el);
+    if (!info) continue;
+    const fontSize = labelFontSize(info.w, info.h, zoom);
+    if (info.seq) {
+      el.setAttribute('style', `font-size:${Math.max(LABEL_MIN, fontSize * 0.55)}px;${info.paint}`);
+    } else {
+      el.setAttribute('style', `font-size:${fontSize}px;${info.paint}`);
+      el.textContent = truncateToWidth(info.full, Math.max(0, info.w - LABEL_PAD * 2), text => measure(text, fontSize));
+    }
+  }
+}
+
+// Ein truckzoom-Listener je svg, per requestAnimationFrame gebündelt (Mausrad feuert dicht).
+const fitListening = new WeakSet();
+function listenForZoom(svg) {
+  if (fitListening.has(svg)) return;
+  fitListening.add(svg);
+  let pending = false;
+  svg.addEventListener('truckzoom', () => {
+    if (typeof requestAnimationFrame !== 'function') return refitLabels(svg);
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { pending = false; refitLabels(svg); });
+  });
+}
+
+function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure, zoom }) {
   const r = project(it.box, mode, truck);
   svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'hit' }, g);
 
@@ -191,7 +237,7 @@ function drawCase(g, it, mode, truck, { colorMode, labels, weightSpan, measure }
     labelRect = bodyRect;
   }
 
-  if (labels) drawLabel(g, labelRect, it, measure, bodyColor);
+  if (labels) drawLabel(g, labelRect, it, measure, bodyColor, zoom);
   svgEl('title', {}, g).textContent = it.title;
 }
 
@@ -202,6 +248,8 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
   // Ganzer Truck samt Rand – oder der gezoomte Ausschnitt dieser Ansicht (zoom2d.js).
   applyViewBox(svg, { x: -PAD, y: -PAD, w: W + 2 * PAD, h: H + 2 * PAD });
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  listenForZoom(svg);
+  const zoom = zoomFactor(svg);
 
   svgEl('rect', { x: 0, y: 0, width: W, height: H, class: 'truck' }, svg);
   const grid = svgEl('g', { class: 'grid' }, svg);
@@ -232,7 +280,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
       ...it,
       seq: result.sequence.get(it.id),
       title: `${result.sequence.get(it.id)}. ${it.label}${it.c.content ? ` – ${it.c.content}` : ''}`,
-    }, mode, truck, { colorMode, labels, weightSpan, measure });
+    }, mode, truck, { colorMode, labels, weightSpan, measure, zoom });
     if (bad) {
       const r = project(it.box, mode, truck);
       svgEl('rect', { x: r.u0, y: r.v0, width: r.u1 - r.u0, height: r.v1 - r.v0, class: 'alert' }, g);

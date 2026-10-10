@@ -55,9 +55,19 @@ function current(svg) {
   const full = { x, y, w, h };
   return { full, vb: resolveViewBox(states.get(svg), full) };
 }
+// Zoomstufe: ganze Truck-Breite / sichtbare Breite, mindestens 1. Die Beschriftung (view2d.js)
+// richtet ihre Schriftgröße danach.
+export function zoomFactor(svg) {
+  const { full, vb } = current(svg);
+  return vb.w > 0 ? Math.max(1, full.w / vb.w) : 1;
+}
+// Setzt die viewBox und meldet eine geänderte Zoomstufe per `truckzoom` auf dem svg (zoom2d kennt
+// view2d nicht; view2d hört zu). Verschieben ändert die Breite nicht und meldet nichts.
 function set(svg, vb, full) {
+  const before = Number(svg.getAttribute('viewBox')?.split(' ')[2]);
   if (vb.w >= full.w - 1e-9) states.delete(svg); else states.set(svg, { full, vb });
   svg.setAttribute('viewBox', vbAttr(vb));
+  if (!(Math.abs(before - vb.w) < 1e-9)) svg.dispatchEvent(new CustomEvent('truckzoom'));
 }
 // Maßstab Bildschirm-Pixel -> viewBox-Einheiten (für Verschieben um Pixel-Beträge).
 const unitsPerPx = svg => { const m = svg.getScreenCTM(); return 1 / (m?.a || 1); };
