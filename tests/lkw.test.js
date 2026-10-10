@@ -5,6 +5,7 @@ import {
   convertToMulti, addLkw, updateLkw, removeLkw, moveToLkw,
 } from '../js/model/lkw.js';
 import { MAX_LKW, NAME_MAX } from '../js/model/limits.js';
+import { checkPlan } from '../js/store/io.js';
 import { plan, P, counter } from './fixtures.js';
 
 const noStamp = p => { const { updatedAt, ...rest } = p; return rest; };
@@ -225,4 +226,19 @@ test('Eigenschaft: Stückzahl und IDs bleiben nach beliebigen Folgen erhalten (2
       }
     }
   }
+});
+
+test('addLkw/updateLkw: truckId bleibt ein nichtleerer String (Rückfall: erster LKW, sonst plan.truckId)', () => {
+  const nid = counter('L');
+  const m = addLkw(multi(), { name: 'x' }, nid);
+  assert.equal(m.lkws[2].truckId, 't1');
+  assert.equal(addLkw(multi(), { name: 'x', truckId: '' }, nid).lkws[2].truckId, 't1');
+  assert.equal(addLkw(multi(), { name: 'x', truckId: 5 }, nid).lkws[2].truckId, 't1');
+  assert.equal(addLkw(plan([]), {}, nid).lkws[1].truckId, 't');
+  for (const bad of ['', 7, null, {}]) {
+    assert.equal(updateLkw(multi(), 'L2', { truckId: bad }).lkws[1].truckId, 't2');
+  }
+  assert.equal(updateLkw(multi(), 'L2', { truckId: 'tZ' }).lkws[1].truckId, 'tZ');
+  assert.doesNotThrow(() => checkPlan(m));
+  assert.doesNotThrow(() => checkPlan(addLkw(plan([]), {}, nid)));
 });

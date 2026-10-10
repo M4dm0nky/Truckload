@@ -23,6 +23,7 @@ const knownIds = plan => new Set(lkwsOf(plan).map(l => l.id));
 const findLkw = (plan, id) => lkwsOf(plan).find(l => l.id === id);
 const withLkw = (x, id) => ({ ...x, lkw: id });
 const withoutLkw = x => { const { lkw: _drop, ...rest } = x; return rest; };
+const validTruck = t => typeof t === 'string' && t !== '';
 const defaultId = () => crypto.randomUUID();
 
 // Gewerke: nur bekannte Namen aus CATEGORIES, ohne Duplikate, in Eingabereihenfolge.
@@ -122,7 +123,8 @@ export function addLkw(plan, { name, truckId, categories } = {}, newId = default
   const lkw = {
     id: newId(),
     name: cleanName(name, `LKW ${base.lkws.length + 1}`),
-    truckId,
+    // Fahrzeug immer ein nichtleerer String (der Import lehnt sonst ab): Rückfall erster LKW.
+    truckId: validTruck(truckId) ? truckId : base.lkws[0].truckId,
     categories: cleanCategories(categories),
   };
   return stamp(syncTruck({ ...base, lkws: [...base.lkws, lkw] }));
@@ -135,7 +137,7 @@ export function updateLkw(plan, id, patch = {}) {
   const next = {
     ...cur,
     ...(patch.name !== undefined ? { name: cleanName(patch.name, cur.name) } : {}),
-    ...(patch.truckId !== undefined ? { truckId: patch.truckId } : {}),
+    ...(validTruck(patch.truckId) ? { truckId: patch.truckId } : {}),
     ...(patch.categories !== undefined ? { categories: cleanCategories(patch.categories) } : {}),
   };
   return stamp(syncTruck({ ...plan, lkws: plan.lkws.map(l => (l.id === id ? next : l)) }));
