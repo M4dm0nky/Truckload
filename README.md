@@ -285,7 +285,7 @@ Neben dem Knopf „Drucken“ steht, was gedruckt wird:
 
 Etiketten drucken auf A4 hoch und randlos, Ladeplan, Abhakliste und Ausladeliste auf A4 quer. Vor dem ersten
 Etikettenbogen einen Testdruck auf normalem Papier machen und gegen einen Bogen halten — der
-senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (siehe
+senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (nur Shopseiten gesichtet, siehe
 [docs/offene-punkte.md](docs/offene-punkte.md)).
 
 ## Mitgelieferte Cases

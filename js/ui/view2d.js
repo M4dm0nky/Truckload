@@ -28,12 +28,33 @@ const LABEL_MAX = 16;
 const LABEL_RATIO = 0.32;
 const LABEL_PAD = 3;
 
-// Schriftgröße der Beschriftung. Bei Zoom 1 die feste Spanne 6–16 cm (Stand 0.14.0, pixelgleich);
-// beim Hineinzoomen darf die Obergrenze mit wachsen (LABEL_MAX × Zoom), aber nie über das hinaus,
-// was in den Case passt (kleinere Seite × LABEL_RATIO). `zoom` unter 1 oder ungültig zählt als 1.
-export function labelFontSize(w, h, zoom = 1) {
-  const z = zoom >= 1 ? zoom : 1;
-  return Math.max(LABEL_MIN, Math.min(LABEL_MAX * z, Math.min(w, h) * LABEL_RATIO));
+// Schriftgröße der Beschriftung. Grundgröße (Zoom 1, Stand 0.14.0, pixelgleich): 6–16 cm nach der
+// kleineren Case-Seite. Beim Hineinzoomen wächst die Schrift nur, solange der GANZE Name noch in
+// die Breite passt: bis min(LABEL_MAX × Zoom, kleinere Seite × LABEL_RATIO) und höchstens so groß,
+// dass der ungekürzte Text in (w − 2 × LABEL_PAD) liegt. Passt er nicht, bleibt es bei der
+// Grundgröße und der Name wird wie bisher gekürzt. `textWidthAt(size)` misst den Volltext (die
+// Breite wächst linear mit der Größe, daher genügt eine Messung bei großer Größe). Ohne
+// `textWidthAt` gilt nur die Case-Grenze. `zoom` unter 1 oder ungültig zählt als 1.
+export function labelFontSize(w, h, zoom = 1, textWidthAt = null) {
+  const base = Math.max(LABEL_MIN, Math.min(LABEL_MAX, Math.min(w, h) * LABEL_RATIO));
+  if (!(zoom > 1)) return base;
+  const cap = Math.min(LABEL_MAX * zoom, Math.min(w, h) * LABEL_RATIO);
+  if (cap <= base) return base;
+  let grown = cap;
+  if (textWidthAt) {
+    const avail = Math.max(0, w - LABEL_PAD * 2);
+    const per = textWidthAt(100) / 100;
+    if (!(per > 0)) return Math.max(base, grown);
+    grown = Math.min(cap, (avail / per) * 0.995); // 0,5 % Luft gegen Messrauschen
+    // Echte Messung bei der Zielgröße: Schrift-Hinting macht die Breite nicht ganz linear.
+    for (let i = 0; i < 4; i++) {
+      const width = textWidthAt(grown);
+      if (width <= avail) return Math.max(base, grown);
+      grown *= (avail / width) * 0.999;
+    }
+    return base;
+  }
+  return Math.max(base, grown);
 }
 
 // Gitterstruktur eines Traversenwagens im 2D-Kasten: liegt die Traversenlänge in der Ansicht,
@@ -162,7 +183,7 @@ const labelInfo = new WeakMap();
 function drawLabel(g, labelRect, it, measure, bodyColor, zoom) {
   const paint = labelPaint(bodyColor);
   const w = labelRect.u1 - labelRect.u0, h = labelRect.v1 - labelRect.v0;
-  const fontSize = labelFontSize(w, h, zoom);
+  const fontSize = labelFontSize(w, h, zoom, size => measure(it.label, size));
   const label = svgEl('text', {
     x: (labelRect.u0 + labelRect.u1) / 2, y: (labelRect.v0 + labelRect.v1) / 2,
     class: 'label', style: `font-size:${fontSize}px;${paint}`,
@@ -176,7 +197,7 @@ function drawLabel(g, labelRect, it, measure, bodyColor, zoom) {
     class: 'label-seq', style: `font-size:${seqSize}px;${paint}`,
   }, g);
   seq.textContent = it.seq;
-  labelInfo.set(seq, { w, h, paint, seq: true });
+  labelInfo.set(seq, { full: it.label, w, h, paint, seq: true });
 }
 
 // Passt alle Beschriftungen an die aktuelle Zoomstufe an (Größe und Kürzung), ohne neu zu zeichnen.
@@ -186,7 +207,7 @@ export function refitLabels(svg) {
   for (const el of svg.querySelectorAll('.label, .label-seq')) {
     const info = labelInfo.get(el);
     if (!info) continue;
-    const fontSize = labelFontSize(info.w, info.h, zoom);
+    const fontSize = labelFontSize(info.w, info.h, zoom, size => measure(info.full, size));
     if (info.seq) {
       el.setAttribute('style', `font-size:${Math.max(LABEL_MIN, fontSize * 0.55)}px;${info.paint}`);
     } else {

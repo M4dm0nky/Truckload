@@ -103,8 +103,9 @@ geblieben ist, mit Begründung:
   (`pieceLayers`) verhindert nur, dass ein Stück mehr darf als sein Typ.
 - **Zoom: Linien wachsen mit, die Schrift nur, wenn sie ins Case passt.** Linien sind in
   Truck-Einheiten gezeichnet und werden beim Hineinzoomen dicker. Die Schrift wächst seit
-  V 0.14.1 mit, bis sie die Fläche des Cases ausfüllt (Obergrenze nach Case-Größe); bei sehr
-  starkem Zoom bleibt sie dann stehen.
+  V 0.14.1 mit, solange der ganze Name noch in die Breite des Cases passt (Obergrenze: kleinere
+  Case-Seite × 0,32); passt er nicht, bleibt sie auf der Grundgröße und der Name wird wie
+  bisher mit „…“ gekürzt.
 
 ## Aus den Pack-Regeln (2026-09-30) offen
 
@@ -166,8 +167,8 @@ geblieben ist, mit Begründung:
 - Die 3D-Beschriftung rundet das Seitenverhältnis auf 0,25-Schritte (Cache-Schlüssel), damit
   bleibt eine Restverzerrung von bis zu 33 % auf schmalen Flächen.
 - Der senkrechte Rand der Avery-Bögen 3425 und 3474 ist nicht aus Herstellerangaben belegt —
-  die öffentlich auffindbaren Quellen nennen ihn nicht, und die eine mit Zahlen widerspricht
-  sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es
+  eine Websuche in Shopseiten (Post-Shop, alltron) fand nur das Format, keinen senkrechten
+  Rand; die eine Quelle mit Zahlen widerspricht sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es
   eindeutig (2 × 105 = 3 × 70 = 210 mm = A4-Breite). Sitzt der Druck auf einem echten Bogen
   daneben, ist `align-content` in `css/print.css` die Stellschraube.
   Recherche 2026-10-10: Webquellen nennen nur Format (3425: 105 × 57 mm, 3474: 70 × 37 mm),

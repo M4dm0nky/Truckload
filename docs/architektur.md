@@ -760,8 +760,8 @@ breit. Mausrad und Trackpad-Wischen unterscheidet `attachZoom` an der Schrittgr�
 (Zeilen-Modus oder `|deltaY| ≥ 50` ohne `deltaX` gilt als Mausrad), Pinch kommt als `wheel`
 mit `ctrlKey`. Seit V 0.14.1 entscheidet `classifyWheel` (mit Gestenzustand; Strg zählt nicht mit),
 und der Umschalter „Rad: Auto/Zoom/Schieben“ (`localStorage` `truckload.scrollMode`) kann die
-Erkennung übersteuern. Die Schrift der Beschriftung wächst mit dem Zoom, begrenzt auf die
-Case-Fläche; Linien wachsen unbegrenzt mit. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
+Erkennung übersteuern. Die Schrift der Beschriftung wächst mit dem Zoom, solange der ganze Name noch in die
+Case-Breite passt (`labelFontSize`, Obergrenze kleinere Seite × 0,32; sonst bleibt es bei der Grundgröße und der Name wird gekürzt); Linien wachsen unbegrenzt mit. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
 
 Welche Farbe ein Case bekommt, entscheidet `caseColors(c, mode, itemColor)` in
 `js/ui/caseStyle.js` — gemeinsam für 2D, 3D und Druck. Die Dreier-Signatur ist ein eigens

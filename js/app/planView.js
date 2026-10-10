@@ -141,7 +141,7 @@ export function mountPlanView(deps) {
     const mode = getScrollMode();
     document.querySelectorAll('.zoom [data-z="scroll"]').forEach(b => {
       b.textContent = SCROLL_SHORT[mode];
-      b.setAttribute('aria-label', `Scrollen: ${SCROLL_LABELS[mode]} – Klick wechselt`);
+      b.setAttribute('aria-label', `${SCROLL_SHORT[mode]} – Scrollverhalten (${SCROLL_LABELS[mode]}), Klick wechselt`);
     });
   }
   syncScrollButtons();

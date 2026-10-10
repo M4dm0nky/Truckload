@@ -7,7 +7,8 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 **Schrift wächst beim Zoomen mit, Mausrad und Trackpad robuster erkannt.**
 
 - **Schrift beim Zoomen:** Beim Hineinzoomen in die 2D-Ansichten wird die Beschriftung der Cases
-  größer, solange sie noch in das Case passt. Bei Zoom 1 sieht alles aus wie vorher; Linien
+  größer, solange der ganze Name noch hineinpasst; sonst bleibt sie so groß wie vorher und der
+  Name wird wie bisher gekürzt. Bei Zoom 1 sieht alles aus wie vorher; Linien
   wachsen weiter mit.
 - **Mausrad und Trackpad:** Die Erkennung ist robuster (Zeilenmodus, Rastschritte, zusammenhängende
   Wischgesten). Neben den Zoomknöpfen steht jetzt ein Umschalter „Rad: Auto/Zoom/Schieben“ als
