@@ -4,14 +4,13 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 
 ## V 0.15.0 – 2026-10-10
 
-**Vier Racks mit geschätzten Maßen sind aus der Auswahl genommen.**
+**Racks mit geschätzten Maßen sind aus der Auswahl genommen.**
 
-- **19″-Racks 1 HE, 4 HE, 5 HE und 16 HE** werden nicht mehr zur Auswahl angeboten: Ihre Maße
-  waren aus der Höheneinheit gerechnet und die Breite und Tiefe (60 × 60 cm) nur geschätzt. Sie sind
-  nicht gelöscht – bestehende Pläne laden sie unverändert weiter. Sobald es echte Maße gibt, lassen
-  sie sich wieder freigeben.
-- Die Racks mit 2 HE und 6 HE (Höhe gemessen, Breite und Tiefe 60 × 60 geschätzt) sowie 3 HE
-  (komplett gemessen) bleiben vorerst in der Auswahl.
+- **19″-Racks 1 HE, 2 HE, 4 HE, 5 HE, 6 HE und 16 HE** werden nicht mehr zur Auswahl angeboten:
+  Bei allen war die Breite und Tiefe (60 × 60 cm) nur geschätzt, bei 1, 4, 5 und 16 HE zusätzlich die
+  Höhe aus der Höheneinheit gerechnet. Sie sind nicht gelöscht – bestehende Pläne laden sie
+  unverändert weiter. Sobald es echte Maße gibt, lassen sie sich wieder freigeben.
+- Das Rack mit 3 HE (komplett gemessen) bleibt in der Auswahl.
 
 ## V 0.14.1 – 2026-10-10
 
