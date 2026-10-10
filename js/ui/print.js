@@ -72,6 +72,13 @@ export function buildChecklist(root, { plan, truck, result }) {
   listDoc(root, { plan, truck, result }, { title: '', reversed: false });
 }
 
+// Vierte Druckart: die Ausladeliste – dieselbe Liste wie die Abhakliste, aber in umgekehrter
+// Ladereihenfolge (das zuletzt Eingeladene steht oben und wird zuerst ausgeladen), mit der
+// Überschrift „Ausladeliste“. Kopfangaben, Lage und Seitenregel (A4 quer) wie bei der Abhakliste.
+export function buildUnloadList(root, { plan, truck, result }) {
+  listDoc(root, { plan, truck, result }, { title: 'Ausladeliste – ', reversed: true });
+}
+
 function listDoc(root, { plan, truck, result }, { title, reversed }) {
   const h = headInfo({ plan, truck, result });
   const rows = sortedBySequence(result);
