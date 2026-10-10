@@ -21,9 +21,9 @@ const isPreset = c => c?.builtin === true && String(c.id).startsWith('preset-');
 
 // Zahlenfeld (kg) für ein editierbares Gewicht, sonst der Wert als Text plus – bei Standardvorlagen –
 // der Hinweis, wie man ihn ändert.
-function weightField(c) {
+export function weightField(c) {
   if (weightEditable(c)) {
-    return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg`;
+    return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">gilt für alle Stücke dieses Typs</small>`;
   }
   return `${esc(c.weight)} kg`;
 }
