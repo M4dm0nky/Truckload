@@ -15,7 +15,12 @@ export function trussProfileName(width) {
 // Zahlen einheitlich: deutsch, höchstens eine Nachkommastelle, ohne unnötige Nullen
 // („12,5“, „20“, „45,5“). Eigene Entscheidung: Rundung auf eine Stelle statt Rohwert, weil
 // Maße und Gewichte so überall gleich aussehen.
-export const fmtNum = n => Number(n).toLocaleString('de-DE', { maximumFractionDigits: 1, useGrouping: false });
+export function fmtNum(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '–';
+  const s = v.toLocaleString('de-DE', { maximumFractionDigits: 1, useGrouping: false });
+  return s === '-0' ? '0' : s; // -0,04 rundet sonst zu „-0“
+}
 
 // Gemeinsamer Kern von caseLine und caseDetail: Traverse = Profil, Länge, Stückzahl, Wagenbreite,
 // Gewicht (c.weight ist bei Traversenwagen das Gewicht des ganzen Wagens); sonst Maße und Gewicht.

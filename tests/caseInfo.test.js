@@ -59,3 +59,11 @@ test('caseLine und caseDetail nennen bei Traversen und Cases dieselben Angaben (
   const t = CASES.find(x => x.name === 'truss').c;
   assert.equal(caseDetail(t), caseLine({ ...t, company: undefined }));
 });
+test('fmtNum: nicht endlich -> „–“, kein „-0“', () => {
+  assert.equal(fmtNum(NaN), '–');
+  assert.equal(fmtNum(undefined), '–');
+  assert.equal(fmtNum(Infinity), '–');
+  assert.equal(fmtNum(-0.04), '0');
+  assert.equal(fmtNum(-0), '0');
+  assert.equal(fmtNum(-1.5), '-1,5');
+});
