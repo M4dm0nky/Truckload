@@ -89,6 +89,7 @@ body > *:not(#print-root) { display: none !important; }
 #print-root.doc-all .checklist .num { flex: 0 0 auto; width: 7mm; font-weight: 600; }
 #print-root.doc-all .checklist .swatch { width: 5mm; height: 5mm; border-radius: 1mm; flex: 0 0 auto; }
 #print-root.doc-all .checklist .label { flex: 1 1 auto; overflow: hidden; }
-#print-root.doc-all .checklist .label small { color: #555; }
-#print-root.doc-all .checklist .layer { flex: 0 0 auto; font-size: 9pt; color: #555; white-space: nowrap; }
+#print-root.doc-all .checklist .label small,
+#print-root.doc-all .checklist .layer { color: #555; }
+#print-root.doc-all .checklist .layer { flex: 0 0 auto; font-size: 9pt; white-space: nowrap; }
 #print-root.doc-all .checklist .tick { flex: 0 0 auto; width: 5mm; height: 5mm; border: 0.4mm solid #000; margin-left: 2mm; }
