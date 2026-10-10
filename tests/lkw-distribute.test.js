@@ -63,14 +63,14 @@ test('Überlauf eines LKW geht an den zweiten zulässigen LKW', () => {
   const WIDE = mkTruck({ id: 'wide', l: 400, w: 100, h: 100, payload: 24000 });
   const cases = [cat('c', 'Licht', 60, 60, 100, { stackable: false })];
   const p = multiPlan([L('A', 'small', ['Licht']), L('B', 'wide', ['Licht'])],
-    ['p1', 'p2', 'p3', 'p4', 'p5'].map(id => U(id, 'c')));
+    ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].map(id => U(id, 'c')));
   const ctx = mkCtx(cases, [SMALL, WIDE]);
-  assert.deepEqual(assignment(distributeLkws(p, ctx)), { p1: 'A', p2: 'B', p3: 'B', p4: 'B', p5: 'A' });
+  assert.deepEqual(assignment(distributeLkws(p, ctx)), { p1: 'A', p2: 'B', p3: 'B', p4: 'B', p5: 'B', p6: 'A' });
   const r = packAllLkws(p, ctx);
   assert.equal(r.unplaced.length, 0, 'alles verladen');
   assert.equal(r.placements.filter(x => x.lkw === 'A').length, 1);
-  assert.equal(r.placements.filter(x => x.lkw === 'B').length, 4);
-  assert.deepEqual(allIds(r), ['p1', 'p2', 'p3', 'p4', 'p5']);
+  assert.equal(r.placements.filter(x => x.lkw === 'B').length, 5);
+  assert.deepEqual(allIds(r), ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']);
 });
 
 test('was auch beim zweiten LKW nicht passt, bleibt in der Ablage seines ersten LKW', () => {
