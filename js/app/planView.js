@@ -14,7 +14,7 @@ import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
 import { createView3d } from '../ui/view3d.js';
-import { attachZoom, zoomIn, zoomOut, resetZoom } from '../ui/zoom2d.js';
+import { attachZoom, zoomIn, zoomOut, resetZoom, getScrollMode, setScrollMode, nextScrollMode, SCROLL_LABELS } from '../ui/zoom2d.js';
 import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, repointTruck, distributionNotices } from './core.js';
 import { lkwsOf, isMultiLkw, addLkw, updateLkw, removeLkw, moveToLkw } from '../model/lkw.js';
 import { mountLkwTabs, lkwTabsModel } from '../ui/lkw-tabs.js';
