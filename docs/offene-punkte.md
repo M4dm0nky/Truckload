@@ -150,10 +150,6 @@ geblieben ist, mit Begründung:
 - **Restrisiko Service-Worker-Mischstand.** Siehe unter „Kleinigkeiten“ (Versionsmix bei langsamem
   Netz); der Schutz „ein Stand pro Seitenaufruf“ (`docs/architektur.md`, „Service Worker und
   Ladefehler“) schließt ihn nicht aus. Bewusst akzeptiert, der Ladefehler-Hinweis fängt den Rest.
-- **Zahlenformate in Case-Texten.** `caseLine` (Wizard, Materialseite) und `caseDetail` (Seitenleiste)
-  in `js/ui/caseInfo.js` geben Zahlen unformatiert aus (kein Runden, Punkt als Dezimaltrennzeichen), `trussLabel` schreibt die Länge dagegen mit Komma („2,40 m“). Auch inhaltlich weichen die
-  beiden Zeilen für dasselbe Case ab (Traverse: `kg/Stück` und Wagenbreite hier, Profil und Länge dort).
-  Vereinheitlichen wäre eine sichtbare Textänderung.
 
 ## Kleinigkeiten
 
@@ -163,8 +159,6 @@ geblieben ist, mit Begründung:
 - Der Wizard schreibt jedem Stück eine ausdrückliche Farbe, auch wenn sie der Gewerkfarbe
   entspricht. Ändert man später das Gewerk oder die Case-Farbe, bleiben die Stücke auf dem
   alten Wert.
-- Die Truss-Zeile im Wizard schreibt „X kg/Stück“, obwohl `c.weight` das Gesamtgewicht des
-  Wagens ist.
 - Der Inspector kann bei stehenden Cases „Stehend, 180°“ anzeigen — richtig, aber für den
   Nutzer verwirrend.
 - Tippen kann Nachbarn überlappen, weil nur `z` nachgeführt wird, nicht `x`/`y`. Das
