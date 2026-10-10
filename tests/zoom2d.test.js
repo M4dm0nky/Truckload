@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { zoomAt, panBy, resolveViewBox, MIN_VIEW_W } from '../js/ui/zoom2d.js';
+import { zoomAt, panBy, resolveViewBox, MIN_VIEW_W, classifyWheel, nextScrollMode, SCROLL_MODES, loadScrollMode, saveScrollMode } from '../js/ui/zoom2d.js';
 
 // Zoom/Verschieben der 2D-Ansichten: reine Rechnung auf der viewBox { x, y, w, h }. `full` ist der
 // ganze Truck samt Rand – weiter heraus geht es nicht, der Ausschnitt bleibt immer darin.
@@ -101,4 +101,71 @@ test('truckzoom kommt nur, wenn sich die Breite ändert (Verschieben löst es ni
   // hier genügt: ein Zoom, der an der Grenze nichts ändert, meldet nichts.
   zoomBy(svg, 1e9); zoomBy(svg, 1e9);
   assert.equal(n, 1); // das erste erreicht MIN_VIEW_W, das zweite ändert nichts
+});
+
+// --- Mausrad oder Trackpad? (Umschalter: auto / zoom / pan) ---
+const W = (o) => ({ deltaMode: 0, deltaX: 0, deltaY: 0, wheelDeltaY: 0, ...o });
+
+test('classifyWheel: Maus mit 120er-Schritten = Rad', () => {
+  assert.equal(classifyWheel(W({ deltaY: 100, wheelDeltaY: -120 }), {}, 0), 'wheel');
+});
+test('classifyWheel: Zeilenmodus = Rad', () => {
+  assert.equal(classifyWheel(W({ deltaMode: 1, deltaY: 3, deltaX: 2 }), {}, 0), 'wheel');
+});
+test('classifyWheel: feines Rad (kleine Schritte, wheelDeltaY Vielfaches von 120) = Rad', () => {
+  assert.equal(classifyWheel(W({ deltaY: 4, wheelDeltaY: -120 }), {}, 0), 'wheel');
+  assert.equal(classifyWheel(W({ deltaY: 4, wheelDeltaY: 0 }), {}, 0), 'pad');
+});
+test('classifyWheel: bisherige Größenregel bleibt (deltaX 0, |deltaY| >= 50)', () => {
+  assert.equal(classifyWheel(W({ deltaY: 60 }), {}, 0), 'wheel');
+  assert.equal(classifyWheel(W({ deltaY: 60, deltaX: 1 }), {}, 0), 'pad');
+});
+test('classifyWheel: Trackpad-Strom mit kleinen Schritten und deltaX = pad', () => {
+  const st = {};
+  let t = 0;
+  for (const [dx, dy] of [[1, 3], [0, 5], [2, 8], [0, 12], [1, 9]]) {
+    assert.equal(classifyWheel(W({ deltaX: dx, deltaY: dy, wheelDeltaY: -dy * 3 }), st, t), 'pad');
+    t += 16;
+  }
+});
+test('classifyWheel: Einstufung bleibt innerhalb einer Geste (150 ms) stehen', () => {
+  const st = {};
+  assert.equal(classifyWheel(W({ deltaX: 1, deltaY: 4 }), st, 0), 'pad');
+  // Ausläufer: reines deltaY >= 50 mitten in der Geste kippt nicht um
+  assert.equal(classifyWheel(W({ deltaY: 55 }), st, 16), 'pad');
+  assert.equal(classifyWheel(W({ deltaY: 60, wheelDeltaY: -180 }), st, 32), 'pad');
+  const st2 = {};
+  assert.equal(classifyWheel(W({ deltaY: 100, wheelDeltaY: -120 }), st2, 0), 'wheel');
+  assert.equal(classifyWheel(W({ deltaX: 1, deltaY: 3 }), st2, 100), 'wheel');
+});
+test('classifyWheel: nach mehr als 150 Pause wird neu eingestuft', () => {
+  const st = {};
+  assert.equal(classifyWheel(W({ deltaX: 1, deltaY: 4 }), st, 0), 'pad');
+  assert.equal(classifyWheel(W({ deltaY: 100, wheelDeltaY: -120 }), st, 400), 'wheel');
+  assert.equal(classifyWheel(W({ deltaX: 1, deltaY: 4 }), st, 900), 'pad');
+});
+test('classifyWheel: Trägheitsausläufer nach dem Wischen bleibt pad', () => {
+  const st = {};
+  let t = 0;
+  for (const dy of [10, 12, 9, 6, 4, 2, 1]) { assert.equal(classifyWheel(W({ deltaY: dy }), st, t), 'pad'); t += 16; }
+});
+
+test('Umschalter: reihum auto -> zoom -> pan -> auto', () => {
+  assert.deepEqual(SCROLL_MODES, ['auto', 'zoom', 'pan']);
+  assert.equal(nextScrollMode('auto'), 'zoom');
+  assert.equal(nextScrollMode('zoom'), 'pan');
+  assert.equal(nextScrollMode('pan'), 'auto');
+  assert.equal(nextScrollMode('quatsch'), 'auto');
+});
+test('Umschalter: Speicher mit Rückfall, auch wenn localStorage fehlt oder wirft', () => {
+  const store = { v: null, getItem() { return this.v; }, setItem(k, v) { this.v = v; } };
+  assert.equal(loadScrollMode(store), 'auto');
+  saveScrollMode('pan', store);
+  assert.equal(loadScrollMode(store), 'pan');
+  store.v = 'mist';
+  assert.equal(loadScrollMode(store), 'auto');
+  const boom = { getItem() { throw new Error('x'); }, setItem() { throw new Error('x'); } };
+  assert.equal(loadScrollMode(boom), 'auto');
+  assert.doesNotThrow(() => saveScrollMode('zoom', boom));
+  assert.equal(loadScrollMode(undefined), 'auto');
 });
