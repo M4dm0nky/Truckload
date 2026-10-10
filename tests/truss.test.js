@@ -516,3 +516,56 @@ test('trussDims: ohne wagonW bleibt die Automatik (alte Daten laden unverändert
 test('trussDims: Wagenbreite schmaler als zwei Stücke nebeneinander wirft', () => {
   assert.throws(() => trussDims({ length: 300, width: 29, count: 4, wagonW: 50 }));
 });
+
+// Task 3.4: findMatchingWagon – vorhandenen Wagen-Typ wiederverwenden
+import { findMatchingWagon } from '../js/model/truss.js';
+import { buildWagonCaseType } from '../js/ui/truss-wizard.js';
+import { applyStockTarget } from '../js/model/material.js';
+{
+  const mk = (id, over = {}, target = { inStock: true, company: 'CAB' }, count = 4, wagonW) =>
+    ({ ...applyStockTarget(buildWagonCaseType(id, '34er', 300, 29, count, wagonW), target), ...over });
+  const spec = { width: 29, length: 300, count: 4, company: 'CAB', inStock: true };
+  test('findMatchingWagon: gleicher Wagen derselben Firma wird gefunden', () => {
+    const a = mk('a');
+    assert.equal(findMatchingWagon([mk('x', {}, { inStock: true, company: 'CAB' }, 6), a], spec), a);
+  });
+  test('findMatchingWagon: andere Firma, Länge, Stückzahl, Profil oder Wagenbreite -> kein Treffer', () => {
+    const a = mk('a');
+    assert.equal(findMatchingWagon([a], { ...spec, company: 'Andere' }), undefined);
+    assert.equal(findMatchingWagon([a], { ...spec, company: '' }), undefined);
+    assert.equal(findMatchingWagon([a], { ...spec, length: 250 }), undefined);
+    assert.equal(findMatchingWagon([a], { ...spec, count: 6 }), undefined);
+    assert.equal(findMatchingWagon([a], { ...spec, width: 20 }), undefined);
+    assert.equal(findMatchingWagon([a], { ...spec, wagonW: 70 }), undefined);
+  });
+  test('findMatchingWagon: Wagenbreite zählt wie trussDims sie ergibt (Automatik 60 = explizit 60)', () => {
+    const a = mk('a');
+    assert.equal(findMatchingWagon([a], { ...spec, wagonW: 60 }), a);
+    assert.equal(findMatchingWagon([a], { ...spec, wagonW: 80 }), undefined);
+    const b = mk('b', {}, { inStock: true, company: 'CAB' }, 4, 70);
+    assert.equal(findMatchingWagon([a, b], { ...spec, wagonW: 70 }), b);
+  });
+  test('findMatchingWagon: legacy und Pre-Rig (standing) werden nie genommen', () => {
+    assert.equal(findMatchingWagon([mk('a', { legacy: true })], spec), undefined);
+    const st = mk('s'); st.truss = { ...st.truss, standing: true };
+    assert.equal(findMatchingWagon([st], spec), undefined);
+    assert.equal(findMatchingWagon([{ id: 'k', kind: undefined, l: 1, w: 1, h: 1 }], spec), undefined);
+  });
+  test('findMatchingWagon mit Häkchen: onlyInPlan wird übergangen, Standardliste passt nur zu Spec ohne Firma', () => {
+    const plan = mk('p', {}, { inStock: false });
+    assert.equal(findMatchingWagon([plan], spec), undefined);
+    assert.equal(findMatchingWagon([plan], { ...spec, company: '' }), undefined);
+    const std = mk('d', {}, { inStock: true, company: '' });
+    assert.equal(findMatchingWagon([std], { ...spec, company: '' }), std);
+    assert.equal(findMatchingWagon([std], spec), undefined);
+  });
+  test('findMatchingWagon ohne Häkchen: nimmt nur onlyInPlan-Wagen, nie Bestand (auch nicht fremder Firmen)', () => {
+    const loadOnly = { ...spec, inStock: false, company: '' };
+    const stock = mk('a');
+    const stockStd = mk('d', {}, { inStock: true, company: '' });
+    assert.equal(findMatchingWagon([stock, stockStd], loadOnly), undefined);
+    const plan = mk('p', {}, { inStock: false });
+    assert.equal(findMatchingWagon([stock, plan], loadOnly), plan);
+    assert.equal(findMatchingWagon([mk('p', { legacy: true }, { inStock: false })], loadOnly), undefined);
+  });
+}
