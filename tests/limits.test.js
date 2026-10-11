@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, layersValid } from '../js/model/limits.js';
+import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, layersValid } from '../js/model/limits.js';
 import { MAX_TRUSS_WIDTH } from '../js/model/truss.js';
+import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
 
 test('TRUSS_LIMITS.width entspricht der abgeleiteten MAX_TRUSS_WIDTH', () => {
   assert.equal(TRUSS_LIMITS.width, MAX_TRUSS_WIDTH);
@@ -29,4 +30,14 @@ test('layersValid: leer, doppelt, außerhalb 1–4, keine Ganzzahl, kein Array',
   assert.equal(layersValid([1.5]), false);
   assert.equal(layersValid(undefined), false);
   assert.equal(layersValid('1'), false);
+});
+
+test('NAME_MAX entspricht dem maxlength der Namensfelder (Case, Fahrzeug, Ladeplan)', () => {
+  assert.equal(NAME_MAX, 80);
+});
+
+test('COORD_MAX: mindestens das Doppelte der größten mitgelieferten Fahrzeugabmessung', () => {
+  const largest = Math.max(...PRESET_TRUCKS.flatMap(t => [t.l, t.w, t.h]));
+  assert.ok(COORD_MAX >= 2 * largest, `${COORD_MAX} < 2 × ${largest}`);
+  assert.equal(COORD_MAX, 2 * largest);
 });

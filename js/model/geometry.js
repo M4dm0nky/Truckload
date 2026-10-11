@@ -82,6 +82,15 @@ export function nextTip(orientation, rot) {
   return { orientation: next, rot: dyDim === nB ? 0 : 90 };
 }
 
+// Taste T / Häkchen „getippt“: getippt -> zurück auf standing (rot bleibt); stehend -> erste
+// mögliche getippte Lage (nextTip von standing). Nicht tippbar / Traverse: leeres Patch.
+// Liefert ein Patch für das Placement, ändert das Stück nicht.
+export function toggleTip(piece, c) {
+  if (!canTip(c)) return {};
+  if (piece.orientation !== 'standing') return { orientation: 'standing', tipped: false };
+  return { ...nextTip('standing', piece.rot), tipped: true };
+}
+
 export function effectiveDims(c, p) {
   const orientation = c.kind === 'truss' ? 'standing' : p.orientation;
   const { a, b, c: h } = localDims(c, orientation);

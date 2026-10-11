@@ -16,7 +16,7 @@ bleibt alles bei IndexedDB.
 | `getAll(store)` | `Promise<Array>` aller Datensätze des Stores |
 | `put(store, value)` | `Promise<void>`, `value.id` ist ein nicht leerer String |
 | `del(store, id)` | `Promise<void>` |
-| `putMany(items)` | `Promise<void>`, `items = [{ store, value }, …]` |
+| `writeMany({ puts, deletes })` | `Promise<void>`, `puts = [{ store, value }, …]`, `deletes = [{ store, id }, …]` |
 
 Fehler kommen als abgelehnte Promise mit `Error`. Typische Meldungen sind „Kein Projekt offen.“
 und „Das Projekt wurde gewechselt – Truckload lädt neu.“
@@ -30,8 +30,10 @@ Wo NYX speichert:
 | `cases`, `trucks`, `ruleSets` | projektübergreifend (`~/.lpm/lpm_types.db`) |
 | `plans` | in der Projektdatei |
 
-`putMany` ist in NYX je Datei eine Transaktion, über beide Dateien hinweg aber **nicht** atomar
-(zuerst die projektübergreifenden Stores, dann die Pläne).
+`db.putMany` und `db.writeMany` gehen beide über `writeMany` des Hosts. Puts und Deletes einer
+Datei landen in NYX in einer Transaktion (alles oder nichts, wie bei IndexedDB). Über beide
+Dateien hinweg ist der Aufruf aber **nicht** atomar (zuerst die projektübergreifenden Stores,
+dann die Pläne). „Firma löschen“ betrifft nur `cases` und ist damit vollständig atomar.
 
 Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab.
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildChecklist, buildLabels, printHTML, pageRuleFor } from '../js/ui/print.js';
+import { buildChecklist, buildUnloadList, buildLabels, printHTML, pageRuleFor } from '../js/ui/print.js';
 import { validatePlan } from '../js/model/validate.js';
 import { APP_VERSION } from '../js/version.js';
 import { mkCase, mkTruck, P, plan, byId } from './fixtures.js';
@@ -213,4 +213,40 @@ test('pageRuleFor: nur Etiketten brauchen eine eigene Seitenvorschrift', () => {
   assert.equal(pageRuleFor('checklist'), null);
   assert.match(pageRuleFor('labels'), /@page\s*\{[^}]*A4 portrait/);
   assert.match(pageRuleFor('labels'), /margin:\s*0/);
+});
+
+test('Abhakliste: jede Zeile nennt die Lage wie result.layers', () => {
+  const c = mkCase('c1', 50, 50, 50);
+  const placements = [P('p1', 'c1', 0, 0, 0), P('p2', 'c1', 0, 0, 50)];
+  const { truck, plan: p, result } = buildResult({ cases: [c], placements });
+  const root = FAKE_ROOT();
+  buildChecklist(root, { plan: p, truck, result });
+  const layers = [...root.innerHTML.matchAll(/class="layer">Lage (\d+)</g)].map(m => Number(m[1]));
+  const bySeq = [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
+  assert.deepEqual(layers, bySeq.map(it => result.layers.get(it.id)));
+  assert.deepEqual([...layers].sort(), [1, 2]);
+});
+
+test('Ausladeliste: umgekehrte Ladereihenfolge, Überschrift, Lage und Kopf wie die Abhakliste', () => {
+  const c = mkCase('c1', 50, 50, 50, { weight: 42 });
+  const placements = [P('p3', 'c1', 300, 0, 0), P('p1', 'c1', 0, 0, 0), P('p2', 'c1', 150, 0, 0)];
+  const { truck, plan: p, result } = buildResult({ cases: [c], placements });
+  const check = FAKE_ROOT(), unload = FAKE_ROOT();
+  buildChecklist(check, { plan: p, truck, result });
+  buildUnloadList(unload, { plan: p, truck, result });
+  const nums = h => [...h.matchAll(/class="num">(\d+)</g)].map(m => Number(m[1]));
+  assert.deepEqual(nums(check.innerHTML), [1, 2, 3]);
+  assert.deepEqual(nums(unload.innerHTML), [3, 2, 1]);
+  assert.ok(unload.innerHTML.includes('<h1>Ausladeliste – Test</h1>'));
+  assert.ok(!check.innerHTML.includes('Ausladeliste'));
+  assert.equal((unload.innerHTML.match(/class="layer">Lage 1</g) ?? []).length, 3);
+  const head = h => h.match(/<p>[^<]*Truckload V[^<]*<\/p>/)[0];
+  assert.equal(head(unload.innerHTML), head(check.innerHTML));
+  assert.ok(unload.innerHTML.includes('Entladen von'));
+  assert.ok(!unload.innerHTML.includes('Geladen von'));
+  assert.ok(check.innerHTML.includes('Geladen von'));
+});
+
+test('Ausladeliste: A4 quer wie die Abhakliste (keine eigene Seitenregel)', () => {
+  assert.equal(pageRuleFor('unload'), null);
 });

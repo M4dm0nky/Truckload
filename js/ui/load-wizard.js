@@ -3,10 +3,10 @@ import { CATEGORIES, colorFor } from '../data/categories.js';
 import { layersOf, canTip } from '../model/geometry.js';
 import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
 import { caseLine } from './caseInfo.js';
-import { MAX_LABEL } from '../model/limits.js';
+import { MAX_LABEL, NAME_MAX } from '../model/limits.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
-import { searchInOptionsHtml, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
+import { searchInOptionsHtml, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, autoPackAfterStacked, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
 
 const MAX_ITEMS = 500;
 
@@ -42,7 +42,7 @@ export async function openLoadWizard(dlg, opts = {}) {
       <h2>Load zusammenstellen</h2>
       <div class="wiz-progress">${steps.map(() => '<span class="wiz-dot"></span>').join('')}</div>
       <section class="wiz-step" data-step="load">
-        <label>Name<input name="loadName" required maxlength="80"></label>
+        <label>Name<input name="loadName" required maxlength="${NAME_MAX}"></label>
         <label>Fahrzeug<select name="truckId">${trucks.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
       </section>
       <section class="wiz-step" data-step="cases" hidden>
@@ -88,6 +88,9 @@ export async function openLoadWizard(dlg, opts = {}) {
 
   const form = dlg.querySelector('form');
   const f = form.elements;
+  // „change“ feuert nur bei Bedienung durch den Nutzer, nicht beim Setzen per Skript.
+  let autoPackTouched = false;
+  f.autoPack.addEventListener('change', () => { autoPackTouched = true; });
   const sections = new Map([...dlg.querySelectorAll('.wiz-step')].map(el => [el.dataset.step, el]));
   const dots = [...dlg.querySelectorAll('.wiz-dot')];
   const tabBtns = [...dlg.querySelectorAll('.case-tabs button')];
@@ -222,6 +225,8 @@ export async function openLoadWizard(dlg, opts = {}) {
     const res = await openTrussDialog(opts.trussDlg, { cases, onNewTruss: opts.onNewTruss, stock: stockOpt() });
     if (!res) return;
     for (const nc of res.newCases) created.add(nc.id);
+    // Auch wiederverwendete Wagen (nur in additions) müssen trotz Filter in der Liste stehen.
+    for (const a of res.additions) created.add(a.caseId);
     if (res.newCases.length) cases = [...cases.filter(c => !res.newCases.some(nc => nc.id === c.id)), ...res.newCases];
     // Dieselbe MAX_ITEMS-Grenze wie addNewCase() oben – anders als dort kann eine einzelne Addition
     // aber weit mehr als 1 Stück bringen (z. B. alle gleich besetzten Wagen eines „Gesamtstückzahl“-
@@ -232,7 +237,7 @@ export async function openLoadWizard(dlg, opts = {}) {
       if (room <= 0) break;
       counts.set(caseId, (counts.get(caseId) ?? 0) + Math.min(n, room));
     }
-    if (res.gestapelt) f.autoPack.checked = true;
+    if (res.gestapelt) f.autoPack.checked = autoPackAfterStacked(f.autoPack.checked, autoPackTouched);
     renderCompanyOptions();
     renderCaseList();
   }
@@ -243,7 +248,7 @@ export async function openLoadWizard(dlg, opts = {}) {
   // Stepper ausgelöst. Der erzeugte Dolly-Stack-Case-Typ erscheint als eigene Zeile mit normalem
   // +/−-Stepper (kein dollyPrompt), weitere gleiche Stacks kommen also per „+“ ohne neuen Dialog.
   async function addDollyStack(baseCase) {
-    const res = await openDollyDialog(opts.dollyDlg, { baseCase, onNewDollyStack: opts.onNewDollyStack, stock: stockOpt() });
+    const res = await openDollyDialog(opts.dollyDlg, { baseCase, existingCases: cases, onNewDollyStack: opts.onNewDollyStack, stock: stockOpt() });
     if (!res) return;
     created.add(res.newCase.id);
     cases = [...cases.filter(c => c.id !== res.newCase.id), res.newCase];

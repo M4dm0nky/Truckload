@@ -1,9 +1,10 @@
 # Offene Punkte
 
-Stand V 0.13.10. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
-Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10 und aus Hinweisen des Nutzers. Nichts davon
-blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der Nützlichkeit. Erledigtes ist raus.
-Die Befunde der Meilenstein-Review V 0.6.0 stehen in `docs/code-review-2026-09-21.md`.
+Stand V 0.15.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
+des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
+Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
+`docs/code-review-2026-09-21.md`.
 
 ## Daten aus der Casemaße-Tabelle
 
@@ -11,36 +12,35 @@ Die Befunde der Meilenstein-Review V 0.6.0 stehen in `docs/code-review-2026-09-2
 Dolly „Drohne“ hatten kein oder nur ein einzelnes Maß. Bei dreien steht in der Quelle eine
 einzelne Zahl, aus der sich kein Case bauen lässt. Der Nutzer wollte sie selbst nachtragen.
 
-**Vier 19″-Racks sind gerechnet.** 1, 4, 5 und 16 HE hatten keine Maße; die Höhe kommt aus
-der Höheneinheit (4,45 cm je HE plus 5,68 cm Aufschlag, abgeleitet aus den drei gemessenen
-Racks), Breite und Tiefe mit 60 × 60 geschätzt. Echte Maße würden das ersetzen.
-
-**`JDC-1 Cube (4)` und `JDC-1 Cube` sehen nach vertauschten Stückzahlen aus.** Das Case mit
-„(4)“ im Namen ist mit 60 × 60 × 58 kleiner als das mit einem Gerät (99 × 60 × 58). Die
-Stückzahl kommt allein aus dem Namen; das Gewicht der beiden Zeilen ist entsprechend
-fraglich.
-
-**Drei Motorcases sind 240 cm breit** (`D8+ 0,5t CAB x4/x8/x12`). Sie passen nur in die
-großen Fahrzeuge und erzeugen anderswo zwangsläufig eine Überstand-Warnung. In der Quelle
-sehen Länge und Breite vertauscht aus.
+**Sechs 19″-Racks ohne echte Maße sind aus der Auswahl genommen.** Bei 1, 4, 5 und 16 HE war auch die
+Höhe aus der Höheneinheit gerechnet, bei 2 und 6 HE nur Breite und Tiefe (60 × 60) geschätzt. Auf
+Nutzerwunsch (2026-10-10) sind alle sechs `legacy`: nicht mehr wählbar, alte Pläne laden sie weiter.
+Mit echten Maßen ließen sie sich wieder freigeben. Nur 3 HE (komplett gemessen) ist wählbar.
 
 **Der Mindest-Case-Anteil von 15 kg überzeichnet kleine Cases.** Bei `SF TourHazer II`
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`
 offengelegt, aber für kleine Cases zu konservativ.
+
+## Aus „Mehrere LKW“ (V 0.14.0) offen
+
+- **Verteilt wird nur bei „Alles neu packen“.** Neues Material (Wizard, Ablage) und manuelle
+  Änderungen werden nicht automatisch auf die LKW umverteilt; sie bleiben nicht zugeordnet bzw.
+  im gewählten LKW, bis der Nutzer neu packt oder im Inspector zuweist.
+- **Die Gewerkegrenzen werden nicht optimiert.** Wie viele Stücke eines Gewerks auf welchen LKW
+  gehen, hängt allein von der Reihenfolge (größte zuerst) und der Auslastung ab; ob ein
+  anderer Zuschnitt weniger LKW oder weniger Rest bräuchte, wird nicht gesucht.
+- **Das Verteilmaß ist eine Heuristik (eigene Entscheidung).** Auslastung = größerer Wert aus
+  Grundfläche/Bodenfläche und Gewicht/Nutzlast; Höhe, Stapeln und Pack-Regeln gehen nicht ein. Die
+  Weitergabe nicht passender Reste läuft nur einmal, ein dritter LKW wird dabei unter Umständen nicht
+  mehr erreicht. Gegen den Praxisfall mit echten Plänen ist das nicht geprüft.
+- **Seitenumbruch und Spalten des Mehr-LKW-Drucks** sind per PDF-Ausgabe des Browsers
+  (Print-Medium) geprüft, nicht an einem echten Drucker.
 
 ## Aus der Meilenstein-Review V 0.6.0 (2026-09-21) bewusst offen gelassen
 
 Die Befunde aus `docs/code-review-2026-09-21.md` sind abgearbeitet. Was davon bewusst offen
 geblieben ist, mit Begründung:
 
-- **2D/3D: Schriftfarbe der Beschriftung** (UI-N1). 2D ist fest weiß mit schwarzer Kontur
-  (`css/app.css`), 3D leitet sie aus dem Hintergrund ab (`textColorFor` in `view3d.js`). Auf
-  einem hellen Case (z. B. Gewerkfarbe Gelb) sieht das unterschiedlich aus; die Kontur rettet
-  die Lesbarkeit in beiden Fällen. Der Vorschlag (`textColorFor` nach `caseStyle.js`, in 2D als
-  `style`-Attribut setzen) berührt sowohl die Bildschirm- als auch die Druckdarstellung –
-  zusammen mit der Kontur-Wechselwirkung ist das mehr als eine Zeile und bräuchte eine eigene
-  Browser-Abnahme auf mehreren Case-Farben und im Ausdruck. Nutzen (Konsistenz zwischen
-  Ansichten) gegen Risiko (Lesbarkeitsregression im Ausdruck) abgewogen: zurückgestellt.
 - **Eine Textmetrik für 2D und 3D** (UI-S3). 2D kürzt Beschriftungen einzeilig mit „…“, 3D
   bricht sie mehrzeilig um und verkleinert die Schrift — zwei sichtbar unterschiedliche
   Ergebnisse für denselben Text. Eine Zusammenführung des eigentlichen Verfahrens (Kürzung vs.
@@ -55,44 +55,6 @@ geblieben ist, mit Begründung:
   Änderungen, genau die Fehlerklasse von UI-B1) oder so fein, dass der Gewinn gegenüber dem
   heutigen `innerHTML`-Aufbau klein wird. Ohne Performance-Beschwerde aus der Praxis nicht
   angefasst.
-- **`layerMap`-Rückfall `?? 1` ist ungetestet** (Nachtrag Controller). Ein Mutationslauf zeigt,
-  dass `?? 1` → `?? 0` in `js/model/validate.js` unbemerkt bliebe. Der Zweig ist über die
-  öffentliche API (`validatePlan`) nach heutigem Kenntnisstand nicht erreichbar: `layerMap`
-  verarbeitet Items nach `z0` aufsteigend sortiert, und ein Unterstützer liegt per Definition
-  (`supportersOf`) immer bei einem `z1`, das dem `z0` des gestützten Items entspricht – er
-  wurde also schon verarbeitet, bevor das gestützte Item an der Reihe ist, und trägt bereits
-  einen Eintrag in der Map. `layerMap` ist bewusst nicht exportiert; ihn nur für diesen Test
-  zu exportieren widerspräche dem.
-- **Import: Verweisprüfung kennt nur die eingebauten Vorlagen, nicht den lokalen
-  Zustand** (Daten-21). `parseBundle` (`js/store/io.js`) meldet in `warnings`, wenn ein Plan
-  auf ein Case oder Fahrzeug verweist, das weder im Bundle noch unter `CASE_LIBRARY`/
-  `PRESET_TRUCKS` bekannt ist. Ein Plan, der auf ein eigenes (nicht mitgeliefertes) Case
-  verweist, das lokal existiert, aber nicht im Bundle enthalten ist, erzeugt dadurch eine
-  falsch-positive Warnung. `io.js` hat keinen Zugriff auf den App-Zustand; eine Prüfung nach
-  dem Mischen (in `js/app/importExport.js`) wäre die genauere Lösung. `warnings` wird dort
-  aktuell nicht gelesen (rein additiv).
-- **Keine Obergrenzen für `name`-Textlängen und Platzierungskoordinaten (`x`/`y`/`z`), keine
-  Prüfung doppelter IDs innerhalb derselben Liste** über die bereits vorhandene planweite
-  Eindeutigkeitsprüfung hinaus. Keiner der drei Punkte ist ein Absturz- oder
-  Einschleusungspfad; eine absurd lange Zeichenkette bläht höchstens die Anzeige auf.
-- **`js/store/db.js`: eine einmal abgelehnte `dbPromise` bleibt dauerhaft abgelehnt.**
-  Schlägt `indexedDB.open()` einmal fehl, versucht derselbe Tab es später nicht erneut — die
-  App bleibt für den Rest der Sitzung im (funktionierenden, aber ungesicherten) Fallback-
-  Modus. Kein belegter Datenverlustpfad, nur ein fehlender Wiederholungsversuch.
-- **Keine „3D-Ansicht veraltet“-Markierung**, wenn die 3D-Ansicht nach einem Fehler in
-  `update()` einfach stehen bleibt, statt neu aufgebaut zu werden — der Nutzer sieht dann
-  einen möglicherweise nicht mehr aktuellen Stand, ohne Hinweis.
-- **Kein `autosave.flush()`-Await vor `repo.deletePlan`.** Eine noch ausstehende Änderung an
-  genau dem Plan, der gerade gelöscht wird, geht beim Löschen ohne Rückfrage unter — praktisch
-  selten (derselbe Plan müsste im selben Moment geändert und gelöscht werden), aber nicht
-  ausgeschlossen.
-- **`touch()` (`js/model/actions.js`) und `stamp()` (`js/store/repo.js`) sind dieselbe
-  Ein-Zeiler-Funktion in zwei Modulen.** `js/app.js` und `js/app/` benutzen `stamp()`,
-  `actions.js` intern `touch()`. Die Dopplung ist nur Politur.
-- **Modellschicht — mehrfach berechnete Auflage (`supportersOf`).** `layerMap`, `validatePlan`
-  und `stackAbove` rufen `supportersOf` je für sich noch einmal über alle Items auf (dreimal
-  O(n²) statt einmal). Bei den heutigen Plangrößen (einstellige bis niedrige zweistellige
-  Stückzahl je Fahrzeug) nicht spürbar; erst relevant, falls Pläne je dreistellig werden.
 - **Modellschicht — `caseShape(c, p, box)`/`trussShape(c, p, box)` erzwingen `box === boxOf(c,
   p)` nicht.** Ein Vorgabewert (`box = boxOf(c, p)`) würde die Zusage in die Signatur schreiben,
   ohne die heutigen Aufrufer (die die Box schon haben) zu verlangsamen. Bisher hat kein
@@ -114,59 +76,25 @@ geblieben ist, mit Begründung:
   den heutigen Plangrößen unkritisch; falls die Placement-Zahl dreistellig wird, ist die
   Kollisionsprüfung (O(n²)) die Stelle, die zuerst spürbar wird. Kein Gitter/Index gebaut,
   solange kein realer Plan das braucht.
-- **Modellschicht — kein Eigenschaftstest über die ganze Schicht.** Ein Lauf über z. B. 50
-  zufällige Case-Mischungen mit der Zusicherung „`autoPack` erzeugt nie einen Plan mit
-  Placement-Fehlern, und die Summe aus `placements` und `unplaced` ist die Eingabe“ würde
-  einen ganzen Klasse von Randfällen auf einmal abdecken. Aufwendig genug, um als eigener
-  Task behandelt zu werden, statt beiläufig in Task 9 entstanden zu sein.
-
-## Aus der Gesamt-Review vor dem Merge (2026-09-23) offen gelassen
-
-- **Import-Grenzen, die die App selbst bis V 0.6 nicht erzeugen konnte, aber theoretisch
-  entstehen könnten.** `CASE_LIBRARY` und die Obergrenzen `weight`/`stock`/`maxTopLoad`
-  (`CASE_LIMITS`) sind erst in V 0.7 entstanden; der Case-Editor hatte für diese drei Felder
-  bis V 0.6 kein `max`-Attribut. Ein Case mit `weight: 60000` o. ä. würde heute die ganze
-  Importdatei ablehnen, genauso wie die schon behobenen Fälle bei Beschriftung und
-  Rollenhöhe. Die Alltagswahrscheinlichkeit ist deutlich geringer (kein Editor-Weg, der
-  solche Werte plausibel erzeugt), und ein automatisches Kürzen wäre hier eine erfundene
-  Zahl statt einer Reparatur — deshalb zurückgestellt statt automatisch repariert. Sauberer
-  wäre, diese drei Obergrenzen beim Import als Warnung statt als Abbruch zu behandeln.
-- **`repairWheelH` (`js/store/io.js`) normalisiert nebenbei ein ungültiges `wheels`.** Ein
-  Bundle mit `h:12, wheelH:16, wheels: {...}` (kein Boolean) wird angenommen, weil die
-  Reparatur `wheels` auf `false` setzt — `checkCase` würde ein solches Case sonst verwerfen.
-  Es wird nichts eingeschleust, aber die Reparatur greift weiter als die Meldung an den
-  Nutzer sagt (die nennt nur die Rollenhöhe).
-- **Ein kaputtes `updatedAt` wird beim Laden nur in der Kopie im Store bereinigt, nicht in
-  IndexedDB selbst.** Weil die Bereinigung bei jedem Start erneut läuft, kehrt das Symptom
-  nicht zurück – der Datensatz in der Datenbank bleibt aber technisch weiterhin fehlerhaft,
-  bis er einmal neu gespeichert wird.
 
 ## Aus dem Leerer-Start/Truss-Wizard-Branch (2026-09-23) offen gelassen
 
-- **„Gestapelt“-Häkchen im Truss-hinzufügen-Dialog überschreibt eine bewusste
-  Nutzer-Entscheidung.** Ist die „danach automatisch packen“-Checkbox im Wizard-Schritt
-  „Beschriften“ vom Nutzer absichtlich abgewählt, setzt „gestapelt“ sie beim Bestätigen
-  trotzdem wieder auf an (`js/ui/load-wizard.js`). Da Auto-Pack ohnehin per Vorgabe an ist,
-  gewinnt man dadurch nichts, verliert aber eine getroffene Entscheidung.
 - **Stiller `preventDefault()` im Truss-Dialog, falls `splitWagons` wirft**
   (`js/ui/truss-wizard.js`). Heute nicht erreichbar, weil die nativen `required`/`min="1"`-
   Formularprüfungen vorher greifen — falls diese Grenzen je gelockert werden, sähe der
   blockierte Knopf ohne Meldung wie ein Fehler aus.
-- **Traversenwagen-Case-Typen aus dem Truss-Dialog werden nicht dedupliziert.** Zweimal
-  identisch angelegt (gleiches Profil/Länge/Stückzahl je Wagen) erzeugt zwei separate
-  Case-Typen mit demselben Namen in „Eigene Cases“ — auch ein abgebrochener Durchlauf
-  hinterlässt seinen Typ dauerhaft. Entspricht dem Verhalten von „+ Neues Case“ (sofort
-  speichern, Aufräumen über 🗑), ist hier aber wahrscheinlicher, weil der Dialog auf
-  wiederholte Nutzung über mehrere Loads hinweg ausgelegt ist. Eine Wiederverwendung
-  vorhandener, exakt passender Case-Typen wäre eine sinnvolle Folge-Aufgabe.
+- **Ein abgebrochener Traversen-Dialog hinterlässt seinen Wagen-Typ.** Ein passender vorhandener
+  Typ wird inzwischen wiederverwendet (`findMatchingWagon`), neu angelegt bleibt der Typ aber
+  auch bei Abbruch in „Eigene Cases“ — wie bei „+ Neues Case“, Aufräumen über 🗑.
 
 ## Aus V 0.7.15 bis V 0.8.0 (2026-09-25 bis 2026-09-27) offen gelassen
 
-- **Mausrad oder Trackpad wird an der Schrittgröße erkannt** (`attachZoom`, `js/ui/zoom2d.js`).
-  Zeilen-Modus oder große, rein senkrechte Schritte gelten als Mausrad (zoomen), alles andere
-  als Trackpad-Wischen (verschieben). Mäuse mit sehr feinem Scrollen würden den Ausschnitt
-  deshalb verschieben statt zoomen. Geprüft ist das nur mit simulierten Eingaben, nicht an
-  echter Hardware. Die Knöpfe „−“/„+“ funktionieren in jedem Fall.
+- **Mausrad oder Trackpad wird an der Schrittgröße erkannt** (`classifyWheel`, `js/ui/zoom2d.js`).
+  Seit V 0.14.1 robuster (Zeilenmodus, 120er-Rastschritte, 150-ms-Geste, Strg/Pinch zählt nicht
+  mit). Als Ausweg gibt es neben den Zoomknöpfen den Umschalter „Rad: Auto/Zoom/Schieben“. Geprüft
+  ist das weiterhin nur mit simulierten Eingaben, nicht an echter Hardware; ein Trackpad-Ereignis
+  mit `deltaX` 0 und `wheelDeltaY` als Vielfaches von 120 kann als erstes einer Geste noch als
+  Rad gelten. Die Knöpfe „−“/„+“ funktionieren in jedem Fall.
 - **Die Dolly-Breite der Pre-Rig-Traversen ist geschätzt.** Belegt ist nur, dass die Traverse
   das breiteste Teil ist (Nutzerangabe). Der Einzug von 2 cm je Seite (`STAND_DOLLY_INSET`) ist
   eine optische Annahme ohne Einfluss aufs Packen. Ein echtes Maß würde ihn ersetzen.
@@ -174,15 +102,24 @@ geblieben ist, mit Begründung:
   seit V 0.7.15 nicht mehr alle erlaubten Lagen umfasst. Erlaubt ein Case-Typ später mehr oder
   weniger Lagen, kommt das bei diesen Stücken nicht an; die Schnittmengenregel
   (`pieceLayers`) verhindert nur, dass ein Stück mehr darf als sein Typ.
-- **Zoom: Beschriftungen und Linien wachsen mit.** Sie sind in Truck-Einheiten gezeichnet und
-  werden beim Hineinzoomen entsprechend größer bzw. dicker. Beim Prüfen der Abstände hilft das
-  eher, bei sehr starkem Zoom verdeckt die Schrift aber mehr vom Case.
+- **Zoom: Linien wachsen mit, die Schrift nur, wenn sie ins Case passt.** Linien sind in
+  Truck-Einheiten gezeichnet und werden beim Hineinzoomen dicker. Die Schrift wächst seit
+  V 0.14.1 mit, solange der ganze Name noch in die Breite des Cases passt (Obergrenze: kleinere
+  Case-Seite × 0,32); passt er nicht, bleibt sie auf der Grundgröße und der Name wird wie
+  bisher mit „…“ gekürzt.
 
 ## Aus den Pack-Regeln (2026-09-30) offen
 
-- **Eine Ebene trägt nur ein Stück.** Die Deckschicht (seit V 0.8.6) stellt kleine Cases nie
-  nebeneinander auf ein großes, auch wenn nebeneinander noch Platz wäre (eigene Entscheidung,
-  YAGNI) — Nutzen gegen Aufwand einer echten Bin-Packing-Lösung innerhalb einer Lage abgewogen.
+- **Das Regalverfahren der Deckschicht ist keine optimale Packung.** Mehrere kleine Cases stehen
+  seit V 0.13.12 nebeneinander auf einem großen (Reihen in Ankunftsreihenfolge, eigene
+  Entscheidung). Das ist eine Heuristik: Sie probiert „nebeneinander“ zuerst und fällt nur bei einem
+  einzelnen Deckstück auf „Deckstück auf Deckstück“ zurück. In einem Vergleich mit dem alten Packer
+  an 20.000 synthetischen, für die Deckschicht günstigen Fällen (Abschlussprüfung, kein Teil der
+  Testsuite) wich das Ergebnis in 2.787 ab: 423-mal blieb mehr unverladen, 382-mal weniger; bei
+  gleicher Ablage wurden in 145 Fällen weniger, in 21 mehr Lademeter gebraucht. Eine volle
+  Deckschicht aus mehreren Stücken trägt nichts mehr, wo senkrechtes Stapeln Fläche gespart hätte.
+  Deshalb bleibt der Schalter „Deckschicht mischen“ optional; ein Vergleich von Fläche und Höhe
+  statt der festen Reihenfolge wäre denkbar; eigene Entscheidung: nicht umgesetzt.
 - **0-kg-Cases mischen nicht.** Ein Case ohne Gewichtsangabe kommt weder als Deckschicht auf ein
   fremdes Case, noch trägt es eine fremde Deckschicht — 0 kg heißt unbekannt, nicht leicht.
 - **Die Lagen-Vorgabe 1+2 begrenzt die Deckschicht.** Der Wizard hakt Lage 1 und 2 vor; ein
@@ -200,34 +137,12 @@ geblieben ist, mit Begründung:
   nicht). Benennt man eine Gruppe oder ein Gewerk danach um, greift die Regel nicht mehr — der
   Dialog zeigt sie dann ausgegraut mit „(nicht in diesem Load)“, löscht sie aber nicht
   automatisch.
-- **Regelsets überschreiben sich beim Speichern unter demselben Namen ohne Rückfrage** (eigene
-  Entscheidung).
-- **Ein Regelset löschen passiert ohne Rückfrage und lässt sich nicht rückgängig machen**
-  (eigene Entscheidung).
 
 ## Aus dem Aufräumen vor V 0.13.10 bewusst offen gelassen
 
-- **Packer bei überfüllter Ladung.** Passen sehr viele Stücke nicht in den Truck (gemessen in der
-  Code-Review vom 2026-10-09 mit einem Wegwerfskript, nicht per Test im Repo: 1.000 kleine Stücke
-  aus 20 Typen, davon 399 platziert), braucht „Alles neu packen“ rund 0,7 s statt ~35 ms. Ursache:
-  jeder nicht passende Stapel durchsucht alle Positionen erneut. Mögliche Abhilfe: gescheiterte
-  Grundfläche je Sortierung merken und Punkte nur einmal sortieren. Für normale Ladungen ohne
-  Bedeutung.
-- **Slug-Kollision bei Firmennamen.** Die Dolly-ID trägt `slug(firma)` (`dolly-<slug>-<basis>-<n>`,
-  `js/model/audioDolly.js`). Zwei verschiedene Firmennamen mit gleichem Slug (z. B. „Müller“ und
-  „Mueller“, oder „A B“ und „A-B“) führen bei gleicher Basis und Stückzahl zur selben ID; es gibt
-  keine Prüfung darauf.
-- **„Firma löschen“ läuft nicht in einer Transaktion.** `deleteCompany` (`js/app/persistence.js`)
-  schreibt die Überlagerungen gesammelt per `repo.saveCases`, entfernt eigene Cases aber einzeln per
-  `repo.deleteCase`. Schlägt ein Löschen mittendrin fehl, meldet die App „Firma konnte nicht gelöscht werden“
-  und zieht den Store nicht nach, die Datenbank kann aber schon teilweise gelöscht sein.
 - **Restrisiko Service-Worker-Mischstand.** Siehe unter „Kleinigkeiten“ (Versionsmix bei langsamem
   Netz); der Schutz „ein Stand pro Seitenaufruf“ (`docs/architektur.md`, „Service Worker und
   Ladefehler“) schließt ihn nicht aus. Bewusst akzeptiert, der Ladefehler-Hinweis fängt den Rest.
-- **Zahlenformate in Case-Texten.** `caseLine` (Wizard, Materialseite) und `caseDetail` (Seitenleiste)
-  in `js/ui/caseInfo.js` geben Zahlen unformatiert aus (kein Runden, Punkt als Dezimaltrennzeichen), `trussLabel` schreibt die Länge dagegen mit Komma („2,40 m“). Auch inhaltlich weichen die
-  beiden Zeilen für dasselbe Case ab (Traverse: `kg/Stück` und Wagenbreite hier, Profil und Länge dort).
-  Vereinheitlichen wäre eine sichtbare Textänderung.
 
 ## Kleinigkeiten
 
@@ -237,20 +152,10 @@ geblieben ist, mit Begründung:
 - Der Wizard schreibt jedem Stück eine ausdrückliche Farbe, auch wenn sie der Gewerkfarbe
   entspricht. Ändert man später das Gewerk oder die Case-Farbe, bleiben die Stücke auf dem
   alten Wert.
-- Die Truss-Zeile im Wizard schreibt „X kg/Stück“, obwohl `c.weight` das Gesamtgewicht des
-  Wagens ist.
 - Der Inspector kann bei stehenden Cases „Stehend, 180°“ anzeigen — richtig, aber für den
   Nutzer verwirrend.
 - Tippen kann Nachbarn überlappen, weil nur `z` nachgeführt wird, nicht `x`/`y`. Das
   verhält sich seit jeher wie „Drehen“, und die Prüfung meldet es.
-- **Die Taste T (`cycleTip`) stellt ein vom Packer getipptes Case nicht immer auf**, sondern
-  kippt es über die jeweils andere Achse weiter. `nextTip` (`js/model/geometry.js`) ist ein
-  gerichteter „einen Schritt weiter“-Sprung, kein Umschalter zwischen „getippt“ und
-  „stehend“ — bei einem selbst über T erreichten Zustand landet Zweimal-Tippen zwar wieder
-  bei `standing` (docs/architektur.md), aber ein vom Packer erzeugtes `tipLong` mit `rot 0`
-  z. B. kippt beim ersten T-Druck stattdessen in die andere getippte Lage. Das „getippt“-
-  Häkchen im Inspector (`setPieceTipped`) geht diesen Umweg nicht mit und stellt zuverlässig
-  auf.
 - Im Wizard neu angelegte Cases bleiben in der Bibliothek, auch wenn man den Wizard danach
   abbricht. Entspricht dem Verhalten des Case-Editors.
 - `toPiece` in `js/model/actions.js` listet die Stück-Felder einzeln auf. Ein künftiges
@@ -262,18 +167,15 @@ geblieben ist, mit Begründung:
   gedruckte Beschriftungen können ihren Kasten um rund ein Zeichen überragen.
 - Die 3D-Beschriftung rundet das Seitenverhältnis auf 0,25-Schritte (Cache-Schlüssel), damit
   bleibt eine Restverzerrung von bis zu 33 % auf schmalen Flächen.
-- Der 3D-Ansicht fehlt ein `disposed`-Flag; ein doppelter `dispose()`-Aufruf ist nicht
-  gesondert abgesichert (heute nicht erreichbar, weil unter `js/app/` nichts `dispose()` der
-  3D-Ansicht aufruft).
 - Der senkrechte Rand der Avery-Bögen 3425 und 3474 ist nicht aus Herstellerangaben belegt —
-  die öffentlich auffindbaren Quellen nennen ihn nicht, und die eine mit Zahlen widerspricht
-  sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es
+  eine Websuche in Shopseiten (Post-Shop, alltron) fand nur das Format, keinen senkrechten
+  Rand; die eine Quelle mit Zahlen widerspricht sich selbst. Das Etikettenraster wird deshalb senkrecht zentriert. Waagerecht ist es
   eindeutig (2 × 105 = 3 × 70 = 210 mm = A4-Breite). Sitzt der Druck auf einem echten Bogen
   daneben, ist `align-content` in `css/print.css` die Stellschraube.
+  Recherche 2026-10-10: Webquellen nennen nur Format (3425: 105 × 57 mm, 3474: 70 × 37 mm),
+  keinen senkrechten Rand; Annahme „zentriert“ bleibt.
 - Andere Haftpapier-Formate als 3425 und 3474 gibt es nicht. Ein weiteres Format braucht einen
   Eintrag in `#print-label-size`, eine Rasterregel in `css/print.css` und dessen Maße.
-- Die Abhakliste nennt keine Lage und keine Position. Auf der Rampe reicht die Ladereihenfolge;
-  ob jemand dort zusätzlich die Lage sehen will, ist nicht geklärt.
 - Die Lagen-Auswahl endet bei „bis 3“. Für den vorgesehenen Bereich reicht das (ab Lage 5 warnt
   `validate.js`), aber in einem Load mit 5 Lagen – der gewarnt, nicht verhindert wird – lassen
   sich die Lagen 1–4 nicht gemeinsam freistellen.
@@ -284,11 +186,9 @@ geblieben ist, mit Begründung:
 
 ## Ideen, die noch niemand beauftragt hat
 
-- Gewichte im Inspector schnell nachtragen können, ohne den Case-Editor zu öffnen.
-- Mehrere Trucks je Show, mit Verteilung der Cases auf die Fahrzeuge.
-- Ladereihenfolge nach Ausladereihenfolge statt nach Position.
-- Grund fürs Liegenbleiben in der Ablage anzeigen. Mit der Vorgabe „getippt“ landet ein
-  tippbares Case, das nur stehend passt, nach „Alles neu packen“ ohne erkennbaren Grund in
-  der Ablage (`piece.tipped:true` erzwingt tipLong/tipShort, `chooseOrientation` liefert dann
-  `null`, obwohl „stehend“ gepasst hätte) — der Nutzer sieht nur, dass es nicht platziert
-  wurde, nicht warum. Die Ablage könnte den Grund benennen.
+- Das Gewicht im Inspector lässt sich nur für eigene Cases und Firmen-Vorlagen ändern; bei
+  Standardvorlagen und Traversenwagen bleibt es lesbar (Vorlage: „Kopieren“ in der Material-
+  verwaltung). Ob Standardvorlagen direkt überschreibbar sein sollen, ist nicht entschieden.
+- Der Grund in der Ablage nennt nur, was aus den Maßen folgt („zu groß für den Laderaum“, „auf
+  getippt/nicht tippen gesetzt, passt aber nur …“). Nutzlast, Lagen-Einschränkung und
+  Pack-Regeln benennt er nicht — „kein Platz“ wäre geraten, deshalb steht dann kein Grund da.

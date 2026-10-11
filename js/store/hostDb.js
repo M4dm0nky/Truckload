@@ -29,4 +29,4 @@ export const getAll = (host, store) => call(() => host.getAll(store)).then(list 
 });
 export const put = (host, store, value) => call(() => host.put(store, value)).then(() => undefined);
 export const del = (host, store, id) => call(() => host.del(store, id)).then(() => undefined);
-export const putMany = (host, items) => call(() => host.putMany(items)).then(() => undefined);
+export const writeMany = (host, { puts, deletes }) => call(() => host.writeMany({ puts, deletes })).then(() => undefined);

@@ -1,24 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  edgeBars, latchBoxes, speakerUnits, speakerDollyFrame, speakerUnitParts, faceZigzag, trussPoint, textColorFor,
+  edgeBars, latchBoxes, speakerUnits, speakerDollyFrame, speakerUnitParts, faceZigzag, trussPoint,
 } from '../js/ui/view3d-parts.js';
 
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 1e-9, `${msg ?? ''} ${a} ≠ ${b}`);
 const nearBox = (box, exp) => { for (const k of Object.keys(exp)) near(box[k], exp[k], k); };
-
-test('textColorFor: dunkle Schrift auf hellem, helle auf dunklem Grund', () => {
-  assert.equal(textColorFor('#ffffff'), '#111214');
-  assert.equal(textColorFor('#000000'), '#f5f5f5');
-  assert.equal(textColorFor('#fc0'), '#111214'); // ffcc00: 0,299 + 0,587·0,8 ≈ 0,77 > 0,55
-  assert.equal(textColorFor('#f00'), '#f5f5f5'); // 0,299 < 0,55
-});
-
-test('textColorFor: ohne Farbe gilt Case-Schwarz, kaputte Werte zählen als 0', () => {
-  assert.equal(textColorFor(undefined), '#f5f5f5');
-  assert.equal(textColorFor(''), '#f5f5f5');
-  assert.equal(textColorFor('zzzzzz'), '#f5f5f5');
-});
 
 test('speakerUnits: teilt den Korpus in gleich hohe Einzelboxen', () => {
   assert.deepEqual(speakerUnits({ z0: 10, z1: 130 }, 40), [{ z0: 10, z1: 50 }, { z0: 50, z1: 90 }, { z0: 90, z1: 130 }]);

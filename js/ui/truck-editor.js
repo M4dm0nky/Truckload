@@ -1,4 +1,5 @@
 import { showConfirm } from './confirmDialog.js';
+import { NAME_MAX } from '../model/limits.js';
 
 export async function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
   if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
@@ -12,7 +13,7 @@ export async function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
     <form method="dialog" class="editor">
       <h2>${isNew ? 'Neues Fahrzeug' : 'Fahrzeug bearbeiten'}</h2>
       ${t?.builtin ? '<p class="hint">Vorlage (Richtwert) – Speichern legt ein eigenes Fahrzeug an.</p>' : ''}
-      <label>Name<input name="name" required maxlength="80" placeholder="z. B. Firmen-7,5-Tonner"></label>
+      <label>Name<input name="name" required maxlength="${NAME_MAX}" placeholder="z. B. Firmen-7,5-Tonner"></label>
       <fieldset><legend>Laderaum innen (cm)</legend>
         <div class="row"><label>Länge<input type="number" name="l" min="50" max="2000" required></label>
         <label>Breite<input type="number" name="w" min="50" max="300" required></label>

@@ -5,8 +5,12 @@ import * as A from '../model/actions.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { ruleTargets } from '../model/packRules.js';
 import { openLoadWizard } from '../ui/load-wizard.js';
+import { NAME_MAX } from '../model/limits.js';
 import { guarded } from './guarded.js';
-import { piecesOf } from './core.js';
+import { piecesOf, activeLkwOf } from './core.js';
+import { isMultiLkw } from '../model/lkw.js';
+
+export const MULTI_ADDED_NOTICE = 'Das neue Material ist noch keinem LKW zugeordnet. „Alles neu packen“ verteilt es auf die LKW.';
 
 const $ = sel => document.querySelector(sel);
 
@@ -18,22 +22,40 @@ export function switchPlanState(s, plan) {
     plans: [...(s.plan ? [s.plan] : []), ...s.plans.filter(p => p.id !== s.plan?.id && p.id !== plan.id)],
     plan,
     selectedId: null,
+    // Reiter: erster LKW des neuen Plans (null bei Ein-LKW-Plänen).
+    activeLkw: activeLkwOf(plan, null),
   };
 }
+
+// Name der Kopie: „(Kopie)“ anhängen, den Originalnamen aber so weit kürzen, dass das Ergebnis in
+// NAME_MAX passt – sonst wäre die eigene Sicherung nicht importierbar.
+const COPY_SUFFIX = ' (Kopie)';
+export const copyName = name => `${name.slice(0, NAME_MAX - COPY_SUFFIX.length)}${COPY_SUFFIX}`;
 
 // Nach dem Löschen des aktiven Plans: ein übriger Plan wird aktiv, der letzte führt zurück zum
 // Startbildschirm (plan: null) statt automatisch einen leeren Plan anzulegen.
 export function deletePlanState(s) {
   const rest = s.plans.filter(p => p.id !== s.plan.id);
   const next = rest[0] ?? null;
-  return { ...s, plans: rest.filter(p => p.id !== next?.id), plan: next, selectedId: null };
+  return { ...s, plans: rest.filter(p => p.id !== next?.id), plan: next, selectedId: null, activeLkw: activeLkwOf(next, null) };
 }
 
-// deps: store, edit, ctx, autosave, repo, stamp, uid, showAlert/showConfirm/showPrompt,
+// Löscht den Plan in der Datenbank. Zuerst `autosave.flush()`: eine ausstehende Änderung wird
+// fertig geschrieben, bevor gelöscht wird – sonst schriebe der Autosave-Timer sie danach wieder
+// hinein. Erst NACH dem erfolgreichen Löschen `forget` (schlüge deletePlan fehl, bliebe der Plan
+// bestehen und sein ausstehender Stand ginge verloren).
+export async function removePlanPersisted(planId, { autosave, repo, showAlert }) {
+  await autosave.flush();
+  const r = await guarded('Löschen fehlgeschlagen', () => repo.deletePlan(planId), { showAlert });
+  if (r.ok) autosave.forget(planId);
+  return r;
+}
+
+// deps: store, editWhole, ctx, autosave, repo, stamp, uid, showAlert/showConfirm/showPrompt,
 // warnIfUnplaced, saveCase, newCaseForWizard, openMaterialFromWizard.
 // Liefert { switchPlan, runLoadWizard }.
 export function wirePlans(deps) {
-  const { store, edit, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,
+  const { store, edit, editWhole, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,
     warnIfUnplaced, saveCase, newCaseForWizard, openMaterialFromWizard } = deps;
 
   // Ein reiner Wechsel zu einem schon bekannten Plan ist keine Änderung AN ihm: markKnown()
@@ -71,7 +93,10 @@ export function wirePlans(deps) {
     });
     if (!res) return;
     if (mode === 'new') switchPlan(A.emptyPlan(uid(), res.name, res.truckId));
-    edit((p, c) => {
+    // Planweit: neues Material ist bei Mehr-LKW-Plänen keinem LKW zugeordnet (Spec), auch nicht dem
+    // gewählten Reiter. Ein-LKW-Plan: wie bisher.
+    const multi = isMultiLkw(store.get().plan);
+    editWhole((p, c) => {
       let next = res.items.reduce((pl, it) =>
         A.addUnplaced(pl, it.caseId, 1, uid, {
           labels: it.label ? [it.label] : [],
@@ -80,10 +105,12 @@ export function wirePlans(deps) {
           tipped: it.tipped,
           group: it.group,
         }), p);
-      if (res.autoPack) next = A.packRest(next, c);
+      if (res.autoPack && !multi) next = A.packRest(next, c);
       return next;
     });
-    if (res.autoPack) await warnIfUnplaced();
+    // Mehr-LKW: neues Material ist immer unzugeordnet (auch ohne Autopack) – das sagt der Hinweis.
+    if (multi && res.items.length) await showAlert(MULTI_ADDED_NOTICE);
+    else if (res.autoPack) await warnIfUnplaced();
   }
 
   $('#plan-select').onchange = e => {
@@ -92,24 +119,21 @@ export function wirePlans(deps) {
   };
   $('#plan-new').onclick = () => runLoadWizard('new');
   $('#plan-rename').onclick = async () => {
-    const name = await showPrompt('Neuer Name:', store.get().plan.name);
+    const name = await showPrompt('Neuer Name:', store.get().plan.name, { maxlength: NAME_MAX });
     if (name?.trim()) edit(p => stamp({ ...p, name: name.trim() }));
   };
   $('#plan-dup').onclick = () => {
     const p = store.get().plan;
-    switchPlan(stamp({ ...structuredClone(p), id: uid(), name: `${p.name} (Kopie)` }));
+    switchPlan(stamp({ ...structuredClone(p), id: uid(), name: copyName(p.name) }));
   };
   $('#plan-del').onclick = async () => {
     const s = store.get();
     if (!await showConfirm(`Ladeplan „${s.plan.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return;
-    if (!(await guarded('Löschen fehlgeschlagen', () => repo.deletePlan(s.plan.id), { showAlert })).ok) return;
-    // Erst NACH dem erfolgreichen Löschen die ausstehende Speicherung verwerfen: schlüge
-    // deletePlan fehl, bliebe der Plan bestehen und sein ausstehender Stand ginge verloren.
-    autosave.forget(s.plan.id);
+    if (!(await removePlanPersisted(s.plan.id, { autosave, repo, showAlert })).ok) return;
     // Nur plans/plan aus dem Schnappschuss vor dem await übernehmen; der übrige aktuelle Zustand bleibt.
     const after = deletePlanState(s);
     if (after.plan) autosave.markKnown(after.plan);
-    store.update(st => ({ ...st, plans: after.plans, plan: after.plan, selectedId: null }));
+    store.update(st => ({ ...st, plans: after.plans, plan: after.plan, selectedId: null, activeLkw: after.activeLkw }));
     store.resetHistory();
   };
 

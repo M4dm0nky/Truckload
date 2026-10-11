@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dollyStackCase, dollyStackId, maxDollyCount, upgradeDollyStack, dollyDepth, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
+import { NAME_MAX } from '../js/model/limits.js';
+import { dollyStackCase, dollyName, dollyStackId, uniqueDollySlug, maxDollyCount, upgradeDollyStack, dollyDepth, DOLLY_WEIGHT_KG, DOLLY_HEIGHT_CM } from '../js/model/audioDolly.js';
 import { checkCase, exportBundle, parseBundle } from '../js/store/io.js';
 import { outerDims } from '../js/model/geometry.js';
 import { mkCase } from './fixtures.js';
@@ -214,4 +215,65 @@ test('dollyStackCase: Firma wird gesetzt', () => {
 test('dollyStackId: dieselbe Box mit und ohne Firma ergibt verschiedene IDs', () => {
   const k2 = { id: 'preset-k2' };
   assert.notEqual(dollyStackId(k2, 2, 'CAB'), dollyStackId(k2, 2));
+});
+
+test('dollyName: kurzer Name unverändert, langer Basisname wird mit „…“ auf NAME_MAX gekürzt, Zusatz bleibt', () => {
+  assert.equal(dollyName('K2', 4), 'K2 4er (auf Dolly)');
+  const exact = 'B'.repeat(NAME_MAX - ' 2er (auf Dolly)'.length);
+  assert.equal(dollyName(exact, 2), `${exact} 2er (auf Dolly)`);
+  const long = dollyName('B'.repeat(200), 12);
+  assert.equal(long.length, NAME_MAX);
+  assert.ok(long.endsWith('… 12er (auf Dolly)'));
+  const base = { ...mkCase('preset-x', 80, 60, 20, { name: 'N'.repeat(150), weight: 10 }) };
+  assert.equal(dollyStackCase(base, 3).name.length, NAME_MAX);
+});
+
+// --- 2.5: Dolly-ID-Kollision zwischen Firmen mit gleichem Slug ---------------------------------
+const dollyOf = (id, company) => ({ id, company });
+test('uniqueDollySlug: ohne andere Firma mit gleichem Slug bleibt es beim reinen Slug (auch ohne Cases)', () => {
+  assert.equal(uniqueDollySlug('CAB Berlin'), 'cab-berlin');
+  assert.equal(uniqueDollySlug('CAB Berlin', []), 'cab-berlin');
+  assert.equal(uniqueDollySlug('CAB Berlin', [dollyOf('dolly-xyz-k2-2', 'XYZ'), { id: 'x', company: 'CAB Berlin' }]), 'cab-berlin');
+});
+test('uniqueDollySlug: der Slug einer ANDEREN Firma bekommt ein Suffix, weitere zählen weiter', () => {
+  const a = dollyOf('dolly-cab-berlin-k2-2', 'CAB Berlin');
+  assert.equal(uniqueDollySlug('CAB-Berlin', [a]), 'cab-berlin-2');
+  const b = dollyOf('dolly-cab-berlin-2-k2-2', 'CAB-Berlin');
+  assert.equal(uniqueDollySlug('CAB_Berlin', [a, b]), 'cab-berlin-3');
+});
+test('uniqueDollySlug: eine Firma behält ihren bisherigen Slug – auch den mit Suffix', () => {
+  const a = dollyOf('dolly-cab-berlin-k2-2', 'CAB Berlin');
+  const b = dollyOf('dolly-cab-berlin-2-k2-2', 'CAB-Berlin');
+  assert.equal(uniqueDollySlug('CAB Berlin', [a, b]), 'cab-berlin');
+  assert.equal(uniqueDollySlug('CAB-Berlin', [a, b]), 'cab-berlin-2');
+});
+test('uniqueDollySlug: Firmen mit ähnlichem, aber verschiedenem Slug stören sich nicht', () => {
+  const cab2 = dollyOf('dolly-cab-2-k2-2', 'CAB 2');
+  assert.equal(uniqueDollySlug('CAB', [cab2]), 'cab');
+  assert.equal(uniqueDollySlug('CAB 2', [dollyOf('dolly-cab-k2-2', 'CAB')]), 'cab-2');
+});
+test('dollyStackId/dollyStackCase: Altdatensatz ohne Kollision behält seine ID, mit Kollision entsteht eine andere', () => {
+  const k2 = { id: 'preset-k2', name: 'K2', category: 'Ton', l: 138, w: 40, h: 35, weight: 56 };
+  const old = [dollyStackCase(k2, 2, {}, 'CAB Berlin'), dollyOf('dolly-sonst-k2-2', 'Sonst')];
+  assert.equal(old[0].id, 'dolly-cab-berlin-k2-2');
+  // dieselbe Firma, dieselbe Box: unverändert (wird wie bisher überschrieben)
+  assert.equal(dollyStackId(k2, 2, 'CAB Berlin', old), 'dolly-cab-berlin-k2-2');
+  assert.equal(dollyStackCase(k2, 3, {}, 'CAB Berlin', old).id, 'dolly-cab-berlin-k2-3');
+  // andere Firma mit gleichem Slug: eigener ID-Raum, der Altbestand bleibt unberührt
+  assert.equal(dollyStackId(k2, 2, 'CAB-Berlin', old), 'dolly-cab-berlin-2-k2-2');
+  assert.equal(dollyStackCase(k2, 2, {}, 'CAB-Berlin', old).id, 'dolly-cab-berlin-2-k2-2');
+  // ohne Firma: nie ein Suffix
+  assert.equal(dollyStackId(k2, 2, '', old), 'dolly-k2-2');
+});
+
+test('uniqueDollySlug: Annahme „Basis-IDs beginnen nicht mit <Zahl>-“ – ein solches Case einer Firma wird dem Suffix-Slug zugerechnet', () => {
+  // Dokumentiert die Grenze (eigene Entscheidung, kein Fehler im Normalfall): die ID `dolly-cab-2-foo-3`
+  // der Firma „CAB“ (Basisbox `2-foo`) ist nicht von einem Case der Firma „CAB-2“-artigen Suffix-Slug
+  // `cab-2` zu unterscheiden. Die längste Übereinstimmung gewinnt, also gilt für „CAB“ nun `cab-2`.
+  const k2 = { id: '2-foo' };
+  const own = [{ id: dollyStackId(k2, 3, 'CAB'), company: 'CAB' }];
+  assert.equal(own[0].id, 'dolly-cab-2-foo-3');
+  assert.equal(uniqueDollySlug('CAB', own), 'cab-2');
+  // Normale Basis-IDs (Buchstaben/Ziffern ohne führendes „<Zahl>-“) sind nicht betroffen.
+  assert.equal(uniqueDollySlug('CAB', [{ id: 'dolly-cab-k2-3', company: 'CAB' }]), 'cab');
 });

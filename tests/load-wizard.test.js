@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor, refreshWizardCases } from '../js/ui/wizard-items.js';
+import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, autoPackAfterStacked, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor, refreshWizardCases } from '../js/ui/wizard-items.js';
 import { caseKind, NEUTRAL_COMPANY } from '../js/ui/caseGroups.js';
 import { mkCase } from './fixtures.js';
 
@@ -153,4 +153,11 @@ test('refreshWizardCases: nach der Materialverwaltung frische Liste, Stückzahl 
   const out = refreshWizardCases(counts, fresh);
   assert.equal(out, fresh);
   assert.deepEqual([...counts], [['a', 2]]);
+});
+
+test('autoPackAfterStacked: „gestapelt“ schaltet ein, außer der Nutzer hat das Häkchen selbst geändert', () => {
+  assert.equal(autoPackAfterStacked(false, false), true);  // Standard ohne Eingriff: ein
+  assert.equal(autoPackAfterStacked(true, false), true);
+  assert.equal(autoPackAfterStacked(false, true), false);  // vom Nutzer abgewählt: bleibt aus
+  assert.equal(autoPackAfterStacked(true, true), true);    // vom Nutzer angewählt: bleibt an
 });

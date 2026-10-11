@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { validatePlan } from '../js/model/validate.js';
 import { archBoxes } from '../js/model/geometry.js';
 import { buildItems, aboveLayer } from '../js/model/items.js';
-import { mkCase, mkTruck, SPRINTER, P, plan, byId } from './fixtures.js';
+import { mkCase, mkTruck, SPRINTER, P, plan, byId, counter } from './fixtures.js';
+import * as A from '../js/model/actions.js';
 
 const K = mkCase('k', 120, 60, 60);
 const codes = (r, id) => (r.byPlacement.get(id) ?? []).map(i => i.code).sort();
@@ -388,4 +389,38 @@ test('aboveLayer: das ausgewählte Stück ist nie oberhalb', () => {
 // damit sichtbar — lieber ein Stück zu viel zeigen als eines verschwinden lassen.
 test('aboveLayer: ein Stück ohne bekannte Lage gilt als Lage 1', () => {
   assert.equal(aboveLayer(new Map(), 'unbekannt', 1, null), false);
+});
+
+test('layerMap: ein hauchdünnes Auflager im Toleranzfenster (z0 knapp über dem Stück) bricht die Lage nicht zu NaN', () => {
+  // Y (z0 = 10) hat als EINZIGES Auflager X (0,2 cm hoch, z0 = 10,2, z1 = 10,4 – innerhalb EPS). X kommt in
+  // der nach z0 sortierten Schleife erst NACH Y; es greift der Rückfall `?? 1` (eigene Entscheidung,
+  // s. validate.js): Y bekommt Lage 2. Ohne Rückfall wäre die Lage NaN, mit `?? 0` Lage 1, mit `?? 2` Lage 3.
+  const Y = mkCase('y', 100, 100, 10), X = mkCase('x', 100, 100, 0.2);
+  const r = validatePlan(plan([P('Y','y',0,0,10), P('X','x',0,0,10.2)]), byId(Y, X), mkTruck());
+  assert.equal(r.layers.get('Y'), 2);
+  assert.ok([...r.layers.values()].every(Number.isFinite));
+});
+
+test('Deckschicht nebeneinander (gepackt): keine Fehlalarme, Last auf dem Hauptstück ist die Summe', () => {
+  const big = mkCase('big', 120, 60, 40, { weight: 100, category: 'Audio' });
+  const small = mkCase('small', 40, 30, 30, { weight: 20, category: 'Audio' });
+  const truck = mkTruck({ l: 300, w: 120, h: 200 });
+  const cm = byId(big, small);
+  const input = { ...plan([], [{ id: 'b1', caseId: 'big' }, { id: 's1', caseId: 'small' }, { id: 's2', caseId: 'small' }, { id: 's3', caseId: 'small' }]), mixTop: true };
+  const packed = A.packAll(input, { truck, caseById: cm, newId: counter('n') });
+  assert.equal(packed.unplaced.length, 0);
+  const caps = packed.placements.filter(p => p.caseId === 'small');
+  assert.equal(caps.length, 3);
+  assert.ok(caps.every(p => p.z === 40), 'alle drei nebeneinander auf dem großen Case');
+  const r = validatePlan(packed, cm, truck);
+  // 'imbalance' ist ein Hinweis zur Gewichtsverteilung im Fahrzeug und hat mit der Deckschicht nichts zu tun.
+  assert.deepEqual(r.issues.map(i => i.code).filter(c => c !== 'imbalance'), [], 'kein Alarm für eine gültige Deckschicht');
+  const b = packed.placements.find(p => p.caseId === 'big');
+  assert.equal(r.load.get(b.id), 60, 'Last auf dem Hauptstück = Summe der Deckstücke');
+  for (const p of caps) assert.equal(r.layers.get(p.id), 2);
+  // Gegenprobe: dürfte das große Case nur 50 kg tragen, meldet die Prüfung die Summe (60 kg) als Überlast.
+  const weak = byId({ ...big, maxTopLoad: 50 }, small);
+  const bad = validatePlan(packed, weak, truck).issues.filter(i => i.code === 'overload');
+  assert.equal(bad.length, 1);
+  assert.equal(bad[0].placementId, b.id);
 });

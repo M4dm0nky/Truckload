@@ -2,13 +2,13 @@
 // schreiben, danach den Store nachziehen. Schlägt das Schreiben fehl, bleibt der Store
 // unverändert und es erscheint genau eine Meldung. Kein Import von js/app.js.
 import { guarded } from './guarded.js';
-import { usage } from './core.js';
+import { usage, repointTruck } from './core.js';
 import { casesOf, deletionFor, renameCompany } from '../model/material.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 
 const NO_BUILTIN_DELETE = 'Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.';
 
-// `repo`: saveCase/deleteCase/saveCases/saveRuleSet/deleteRuleSet/saveTruck/deleteTruck/savePlan.
+// `repo`: saveCase/deleteCase/saveCases/saveAndDelete/saveRuleSet/deleteRuleSet/saveTruck/deleteTruck/savePlan.
 // `stamp`: setzt den Änderungszeitpunkt. `uid`: neue IDs (nur für Regelsets).
 export function createPersistence({ repo, store, showAlert, showConfirm, stamp, uid = () => crypto.randomUUID() }) {
   const run = (label, fn) => guarded(label, fn, { showAlert });
@@ -54,11 +54,9 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     if (ds.includes(null)) { await showAlert(NO_BUILTIN_DELETE); return false; }
     const saves = ds.filter(d => d.save).map(d => stamp(d.save));
     const removes = ds.filter(d => d.remove).map(d => d.remove);
-    const r = await run('Firma konnte nicht gelöscht werden', async () => {
-      // Überlagerungen gesammelt in einer Transaktion; das Entfernen läuft getrennt davon.
-      await repo.saveCases(saves);
-      for (const id of removes) await repo.deleteCase(id);
-    });
+    // Überlagerungen und Entfernungen in EINER Transaktion: bei einem Fehler bleibt die Datenbank
+    // (und damit der Store) unverändert, statt halb gelöscht zu sein.
+    const r = await run('Firma konnte nicht gelöscht werden', () => repo.saveAndDelete({ saves, removeIds: removes }));
     if (!r.ok) return false;
     const savedIds = new Set(saves.map(c => c.id)), gone = new Set(removes);
     store.update(st => ({ ...st, cases: [...st.cases.filter(x => !savedIds.has(x.id) && !gone.has(x.id)), ...saves] }));
@@ -67,6 +65,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
 
   async function saveRuleSet(name, rules, mixTop) {
     const existing = store.get().ruleSets.find(r => r.name.toLowerCase() === name.toLowerCase());
+    if (existing && !await showConfirm(`Regelset „${existing.name}“ überschreiben?`, { okLabel: 'Überschreiben', danger: true })) return undefined;
     const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
     const r = await run('Regelset konnte nicht gespeichert werden', () => repo.saveRuleSet(value));
     if (!r.ok) return undefined;
@@ -75,6 +74,8 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
 
   async function deleteRuleSet(id) {
+    const set = store.get().ruleSets.find(x => x.id === id);
+    if (set && !await showConfirm(`Regelset „${set.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return false;
     const r = await run('Regelset konnte nicht gelöscht werden', () => repo.deleteRuleSet(id));
     if (!r.ok) return false;
     store.update(s => ({ ...s, ruleSets: s.ruleSets.filter(x => x.id !== id) }));
@@ -91,13 +92,13 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
 
   // Löscht das Fahrzeug und biegt alle ANDEREN Pläne (nicht den aktuellen – das macht der
-  // Aufrufer über edit()) auf den Standardtruck um, sonst schöbe ctx() ihnen
+  // Aufrufer über edit()) und deren LKW (plan.lkws) auf den Standardtruck um, sonst schöbe ctx() ihnen
   // still den Sattelauflieger unter. Liefert false, wenn das Löschen selbst scheiterte.
   async function deleteTruck(truckId) {
     const r = await run('Fahrzeug konnte nicht gelöscht werden', () => repo.deleteTruck(truckId));
     if (!r.ok) return false;
     const s1 = store.get();
-    const fixPlan = p => (p.truckId === truckId ? stamp({ ...p, truckId: DEFAULT_TRUCK_ID }) : p);
+    const fixPlan = p => repointTruck(p, truckId, DEFAULT_TRUCK_ID);
     const fixedOthers = s1.plans.map(fixPlan);
     const changedOthers = fixedOthers.filter((p, i) => p !== s1.plans[i]);
     store.update(s => ({ ...s, trucks: s.trucks.filter(t => t.id !== truckId), plans: fixedOthers }));

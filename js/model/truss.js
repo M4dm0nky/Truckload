@@ -34,6 +34,26 @@ export function trussDims({ length, width, count, standing, height, wagonW }) {
   return { l: length, w, h };
 }
 
+// Sucht einen vorhandenen Traversenwagen-Case-Typ, der zu `spec` passt, damit der Dialog keinen
+// zweiten gleichen anlegt. spec: { width (Profil), length, count (Stück je Wagen), wagonW?,
+// company, inStock }. Eigene Entscheidung zur Wiederverwendung:
+// - Ein Treffer ist immer ein Wagen (kind 'truss', nicht standing), nie `legacy`, nie `onlyInPlan`,
+//   mit gleichem Profil, gleicher Länge, gleicher Stückzahl und gleicher Wagenbreite (wie
+//   trussDims sie ergäbe) und genau der Firma der Spec (keine Firma = Standardliste).
+// - Ohne Häkchen „im Materialbestand“ (spec.inStock falsch) gibt es nie einen Treffer: onlyInPlan-
+//   Case-Typen sind global, zwei Loads würden sich einen Typ teilen, und „Case bearbeiten“ im
+//   einen Load änderte unbemerkt die Maße im anderen.
+export function findMatchingWagon(cases, spec) {
+  if (!spec.inStock) return undefined;
+  const w = trussDims({ length: spec.length, width: spec.width, count: spec.count, wagonW: spec.wagonW }).w;
+  const company = spec.company || '';
+  return cases.find(c => {
+    if (c.kind !== 'truss' || !c.truss || c.truss.standing || c.legacy || c.onlyInPlan) return false;
+    if (c.truss.width !== spec.width || c.truss.length !== spec.length || c.truss.count !== spec.count || c.w !== w) return false;
+    return (c.company || '') === company;
+  });
+}
+
 export const DOLLY_L = 60;         // Länge eines Rollwagens (cm)
 const DOLLY_WHEEL_D = 10;   // Rollen-Durchmesser am Wagen (cm)
 export const TUBE_R_RATIO = 0.085; // Gurtrohr-Radius = Traversenbreite × Faktor (F34: 50 mm Ø / 29 cm)

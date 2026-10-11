@@ -1,7 +1,7 @@
 import { esc } from './dom.js';
 import { QUICK_LENGTHS, trussProfileName } from './caseInfo.js';
 import { isTruss } from '../model/geometry.js';
-import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons } from '../model/truss.js';
+import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons, findMatchingWagon } from '../model/truss.js';
 import { colorFor } from '../data/categories.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
@@ -164,13 +164,18 @@ export function openTrussDialog(dlg, opts = {}) {
         const newCases = [];
         const additions = [];
         for (const n of distinct) {
+          const count = wagons.filter(x => x === n).length;
+          // Vorhandenen passenden Wagen-Typ nehmen statt einen zweiten anzulegen (findMatchingWagon).
+          const wagonW = Number(f.wagonW.value);
+          const existing = findMatchingWagon(opts.cases ?? [], { width, length, count: n, wagonW, company: target.company, inStock: target.inStock });
+          if (existing) { additions.push({ caseId: existing.id, n: count }); continue; }
           const caseType = applyStockTarget(
-            buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, Number(f.wagonW.value)),
+            buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, wagonW),
             target);
           const saved = await opts.onNewTruss?.(caseType);
           if (!saved) continue;
           newCases.push(saved);
-          additions.push({ caseId: saved.id, n: wagons.filter(x => x === n).length });
+          additions.push({ caseId: saved.id, n: count });
         }
         resolve(additions.length ? { newCases, additions, gestapelt: false } : null);
       } else {

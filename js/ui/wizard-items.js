@@ -86,3 +86,7 @@ export function bulkState(entries, key) {
   if (vals.every(Boolean)) return 'on';
   return vals.some(Boolean) ? 'mixed' : 'off';
 }
+
+// „Gestapelt“ (Pre-Rig im Traversen-Dialog) schaltet „danach automatisch packen“ ein – aber nur,
+// solange der Nutzer das Häkchen nicht selbst angefasst hat; eine bewusste Abwahl bleibt bestehen.
+export const autoPackAfterStacked = (current, userTouched) => (userTouched ? current : true);

@@ -56,10 +56,19 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
       await saveCase(res.value);
     },
     onDelete: id => persistence.removeFromStock(store.get().cases.find(x => x.id === id)),
-    onNewTruss: company => openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCase, stock: { mode: 'fixed', company } }),
+    onNewTruss: async company => {
+      const res = await openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCase, stock: { mode: 'fixed', company } });
+      // Gibt es den Wagen in dieser Firma schon, legt der Dialog nichts an – das nicht stumm lassen.
+      const created = new Set((res?.newCases ?? []).map(c => c.id));
+      for (const a of res?.additions ?? []) {
+        const existing = created.has(a.caseId) ? null : store.get().cases.find(c => c.id === a.caseId);
+        if (existing) await showAlert(`Diesen Traversenwagen gibt es in dieser Firma schon: ${existing.name}.`);
+      }
+      return res;
+    },
     onNewDolly: async company => {
       const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
-      if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, onNewDollyStack: saveCase, stock: { mode: 'fixed', company } });
+      if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, existingCases: store.get().cases, onNewDollyStack: saveCase, stock: { mode: 'fixed', company } });
     },
     onCopy: async id => {
       const firm = await pickFirm();

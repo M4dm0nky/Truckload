@@ -11,7 +11,7 @@ function fakeHost(over = {}) {
     getAll: async store => { calls.push(['getAll', store]); return [{ id: 'a' }]; },
     put: async (store, value) => { calls.push(['put', store, value]); },
     del: async (store, id) => { calls.push(['del', store, id]); },
-    putMany: async items => { calls.push(['putMany', items]); },
+    writeMany: async arg => { calls.push(['writeMany', arg]); },
     ...over,
   };
   return host;
@@ -30,14 +30,15 @@ test('getAll lehnt Nicht-Liste ab (sonst sähe der Bestand gelöscht aus)', asyn
   }
 });
 
-test('put, del und putMany reichen unverändert durch und lösen ohne Wert auf', async () => {
+test('put, del und writeMany reichen unverändert durch und lösen ohne Wert auf', async () => {
   const h = fakeHost();
   const value = { id: 'p1', name: 'Plan' };
   assert.equal(await hostDb.put(h, 'plans', value), undefined);
   assert.equal(await hostDb.del(h, 'cases', 'c1'), undefined);
-  const items = [{ store: 'cases', value: { id: 'c2' } }, { store: 'plans', value }];
-  assert.equal(await hostDb.putMany(h, items), undefined);
-  assert.deepEqual(h.calls, [['put', 'plans', value], ['del', 'cases', 'c1'], ['putMany', items]]);
+  const puts = [{ store: 'cases', value: { id: 'c2' } }, { store: 'plans', value }];
+  const deletes = [{ store: 'cases', id: 'c3' }];
+  assert.equal(await hostDb.writeMany(h, { puts, deletes }), undefined);
+  assert.deepEqual(h.calls, [['put', 'plans', value], ['del', 'cases', 'c1'], ['writeMany', { puts, deletes }]]);
 });
 
 test('synchroner Wurf des Hosts wird zur Ablehnung mit Error', async () => {
@@ -50,8 +51,8 @@ test('synchroner Wurf des Hosts wird zur Ablehnung mit Error', async () => {
 test('Ablehnung ohne Error-Objekt wird zu Error mit lesbarer Meldung', async () => {
   const h1 = fakeHost({ del: async () => { throw 'Kein Projekt offen.'; } });
   await assert.rejects(hostDb.del(h1, 'plans', 'x'), err => err instanceof Error && err.message === 'Kein Projekt offen.');
-  const h2 = fakeHost({ putMany: async () => { throw { error: 'voll' }; } });
-  await assert.rejects(hostDb.putMany(h2, []), err => err instanceof Error && /voll/.test(err.message));
+  const h2 = fakeHost({ writeMany: async () => { throw { error: 'voll' }; } });
+  await assert.rejects(hostDb.writeMany(h2, { puts: [], deletes: [] }), err => err instanceof Error && /voll/.test(err.message));
   const h3 = fakeHost({ getAll: async () => { throw null; } });
   await assert.rejects(hostDb.getAll(h3, 'cases'), err => err instanceof Error && err.message === 'NYX-Speicher nicht erreichbar');
 });

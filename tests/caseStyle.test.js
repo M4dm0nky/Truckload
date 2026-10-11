@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CASE_BLACK, COLOR_MODES, caseColors, DETAIL_MIN, CORNER_R, cornerCenters3d, weightRange, weightColor } from '../js/ui/caseStyle.js';
+import { CASE_BLACK, COLOR_MODES, caseColors, DETAIL_MIN, CORNER_R, cornerCenters3d, weightRange, weightColor, textColorFor } from '../js/ui/caseStyle.js';
 import { mkCase } from './fixtures.js';
 
 const C = mkCase('k', 120, 60, 80, { color: '#ff8800' });
@@ -115,4 +115,22 @@ test('weightRange lässt Traversenwagen aus, weil sie ihre Markenfarbe behalten'
 
 test('weightRange: ein Load nur aus Traversenwagen hat keine Spanne', () => {
   assert.equal(weightRange([{ c: { weight: 100, kind: 'truss' } }]), null);
+});
+
+test('textColorFor: dunkle Schrift auf hellem, helle auf dunklem Grund', () => {
+  assert.equal(textColorFor('#ffffff'), '#111214');
+  assert.equal(textColorFor('#000000'), '#f5f5f5');
+  assert.equal(textColorFor('#fc0'), '#111214'); // ffcc00: 0,299 + 0,587·0,8 ≈ 0,77 > 0,55
+  assert.equal(textColorFor('#f00'), '#f5f5f5'); // 0,299 < 0,55
+});
+
+test('textColorFor: ohne Farbe gilt Case-Schwarz, kaputte Werte zählen als 0', () => {
+  assert.equal(textColorFor(undefined), '#f5f5f5');
+  assert.equal(textColorFor(''), '#f5f5f5');
+  assert.equal(textColorFor('zzzzzz'), '#f5f5f5');
+});
+
+test('textColorFor: Grenzwert der Helligkeit 0,55 (#8c8c8c hell auf dunkel, #8d8d8d dunkel auf hell)', () => {
+  assert.equal(textColorFor('#8c8c8c'), '#f5f5f5');
+  assert.equal(textColorFor('#8d8d8d'), '#111214');
 });

@@ -45,3 +45,9 @@ test('Auswahlwechsel plus Planänderung: baut', () => {
   const b = mk({ selectedId: 'x', plan: { placements: a.plan.placements, unplaced: [{}] } });
   assert.equal(libraryRenderMode(a, b, 'unplaced'), 'full');
 });
+
+test('Fahrzeugwechsel baut neu (Gründe der Ablage hängen am Fahrzeug)', () => {
+  const a = { ...mk(), truck: { id: 'a' } };
+  assert.equal(libraryRenderMode(a, { ...a, truck: { id: 'b' } }, 'unplaced'), 'full');
+  assert.equal(libraryRenderMode(a, { ...a }, 'unplaced'), 'none');
+});

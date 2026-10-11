@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.13.10. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.15.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -33,7 +33,7 @@ Daten als Argumente und liefern reine Ergebnisobjekte zurück (`openCaseEditor`,
 
 ### js/app/ — die Verdrahtung
 
-- `core.js` — reine Zustandshelfer (`ctxOf`, `deriveOf`, `allPlansOf`, `piecesOf`, Nutzungszähler).
+- `core.js` — reine Zustandshelfer (`ctxOf`, `deriveOf`, `allPlansOf`, `piecesOf` und `activeLkwOf` für Mehr-LKW-Pläne, Nutzungszähler).
 - `screens.js` — Bildschirmwahl (`screenOf`: Material hat Vorrang, ohne gewählten Plan ist Start, sonst Plan) und Startbildschirm.
   Der Startbildschirm (`renderStartScreen`) zeigt „Neuen Load erstellen“, „Material“, die gespeicherten
   Ladepläne nach Name sortiert (oder „Noch keine gespeicherten Ladepläne.“), „Sicherung importieren“ und
@@ -128,7 +128,7 @@ Beide Felder lassen sich danach im Inspector je Stück ändern (`A.setPieceLayer
 `A.setPieceTipped`, `js/ui/inspector.js`), nach derselben Reduktionsregel wie
 `reduceWizardItem` im Wizard: Lagen, die genau dem Case-Typ entsprechen, werden nicht
 gespeichert, `tipped` gibt es nur für tippbare Case-Typen, und Aufstellen (`tipped:false`
-auf einem platzierten Stück) geht direkt auf `standing`, nicht über `cycleTip`. `A.unloadAll`
+auf einem platzierten Stück) geht direkt auf `standing` (beides über `toggleTip`). `A.unloadAll`
 (Knopf „Truck entladen“) legt alle Placements zurück in die Ablage und behält dabei Label,
 Farbe, `layers` und `tipped` je Stück.
 
@@ -143,6 +143,16 @@ vorbelegten Wert (Wizard, Duplizieren) nicht erfasst.
 `buildItems()` in `js/model/items.js` führt beides zu `items` zusammen und legt
 `it.label` und `it.color` mit Rückfall auf Case-Name und Gewerkfarbe frei. **Alle**
 Ansichten, der Inspector und der Druck lesen von dort — nicht selbst aus dem Case.
+
+**Grund in der Ablage (`unplacedReason`, `js/model/unplacedReason.js`).** Die Seitenleiste nennt
+bei einem Stück in „Noch nicht geladen“ den Grund, aber nur einen, der allein aus den Maßen folgt:
+`chooseOrientation` (dieselbe Auswahl wie im Packer) findet für das Stück keine Lage im Laderaum,
+und zwar entweder weil es schlicht zu groß ist, oder weil `tipped: true` bzw. `tipped: false` die
+einzig passende Lage ausschließt. Nutzlast, Lagen-Einschränkung und Pack-Regeln prüft die Funktion
+nicht; passt das Stück geometrisch, liefert sie `null`, und es steht kein Grund da — „kein Platz“
+wäre geraten, denn die Ablage füllt sich auch durch „In Ablage“, „Truck entladen“ oder einen
+Wizard ohne Packen. `js/ui/library.js` berechnet die Gründe je Stand von Ablage, Cases und Fahrzeug
+einmal (`reasonOf`).
 
 Der Packer arbeitet auf Stück-Objekten, nicht auf Case-Typen, und übernimmt `id`, `label`
 und `color` in die erzeugten Platzierungen. Wer das ändert, verliert beim „Alles neu
@@ -175,21 +185,17 @@ sonst `+x`, `+y`, `-x` oder `-y`. `DOOR_FACE` ist `+x`, also die Trucktür.
 `rotForWheelFace(orientation, face)` ist die Umkehrung und liefert `null`, wenn die
 Richtung für diese Ausrichtung nicht erreichbar ist.
 
-**Manuelles Tippen (`cycleTip`, seit V 0.7.3):** kippt relativ zur aktuellen Lage nach vorn/
-hinten (Fahrtrichtung) — die Case-Kante, die gerade auf der x-Achse liegt, kippt nach oben
-bzw. unten, die Seitenkante (y-Achse) bleibt unverändert. `nextTip(orientation, rot)`
-(`geometry.js`) rechnet das rein symbolisch anhand der Dimensions-Namen (Länge/Breite/Höhe),
-nicht anhand fester `rot`-Werte — welche der beiden getippten Lagen (`tipLong`/`tipShort`)
-dabei herauskommt, hängt davon ab, ob gerade Länge oder Breite in Fahrtrichtung steht. Zweimal
-in Folge Tippen landet deshalb wieder bei `standing` (Hin und zurück), nicht bei der jeweils
-dritten Lage — die ist nur über eine Drehung (`rotate`, Taste R) vor dem Tippen erreichbar.
-Das gilt für einen über Tippen selbst erreichten Zustand; bei einer vom Packer erzeugten
-Ausgangslage (z. B. `tipLong` mit `rot 0`) kann `nextTip` stattdessen über die jeweils andere
-Achse kippen, weil der Schritt gerichtet ist, nicht auf `standing` zielt (docs/offene-punkte.md,
-„Kleinigkeiten“). Verlässlich steht das Case über das „getippt“-Häkchen im Inspector
-(`setPieceTipped`, s. u.), das für `tipped:false` immer direkt `standing` setzt statt `cycleTip`
-aufzurufen.
-Bis V 0.7.2 setzte `cycleTip` `rot` bei jedem Übergang stattdessen fest so, dass die Rollen zur
+**Manuelles Tippen (`toggleTip`, seit Abschluss Teil 1; vorher der Schritt-Weiter `cycleTip`):**
+Taste T und das „getippt“-Häkchen im Inspector (`setPieceTipped`) laufen über dieselbe reine
+Funktion `toggleTip(piece, case)` (`geometry.js`, als Aktion `A.toggleTipPiece`). Getippt (egal wie
+erreicht, auch `tipLong`/`rot 0` vom Packer) -> `standing`, `rot` bleibt; stehend -> die erste
+mögliche getippte Lage, die `nextTip(orientation, rot)` von `standing` aus liefert: sie kippt
+relativ zur aktuellen Lage nach vorn (Fahrtrichtung) — die Case-Kante, die gerade auf der x-Achse
+liegt, geht nach oben, die Seitenkante (y-Achse) bleibt. `nextTip` rechnet rein symbolisch anhand
+der Dimensions-Namen, nicht anhand fester `rot`-Werte; welche der beiden getippten Lagen
+(`tipLong`/`tipShort`) herauskommt, hängt davon ab, ob Länge oder Breite in Fahrtrichtung steht.
+Nicht tippbare Cases und Traversen bleiben unverändert.
+Bis V 0.7.2 setzte das Tippen `rot` bei jedem Übergang stattdessen fest so, dass die Rollen zur
 Tür zeigen, unabhängig von der Ausgangsdrehung — stand die lange Seite in Fahrtrichtung, kippte
 das Case dadurch sichtbar zur Seite statt nach vorn (Nutzer-Feedback 2026-09-23). Die
 Rollenrichtung ist nach dem Tippen nicht mehr garantiert; `setWheelFace` (Taste W) dreht sie bei
@@ -257,28 +263,70 @@ beginnt an der letzten Reihe der vorhandenen Ladung (`startX` = größtes x0 der
 0.8.4 stellt `placeStacks` jeden Stapel zuerst im Spurraster seiner Sorte ab der linken Wand (y = k
 · Stapelbreite) und fällt nur, wenn dort nichts passt (Radkästen), auf die freie Eckensuche zurück –
 sonst übernahm eine Sorte die Spurlage der vorigen, und 62er-Wagen passten neben 60er-Spuren nur zu
-dritt statt zu viert. Spec:
+dritt statt zu viert. Bei überfüllter Ladung merkt sich `placeStacks` je Sorte die gescheiterten Grundflächen samt Höhe
+und lehnt einen Stapel mit identischer Grundfläche (auch um 90° getauscht) und mindestens gleicher
+Höhe ohne neue Suche ab; die Merkliste verfällt nach jeder Platzierung. Eine bloß größere Grundfläche
+genügt nicht, weil das Spurraster von der Stapelbreite abhängt. Die Punkte werden nur nach einer
+Platzierung neu sortiert. Die Ausgabe bleibt unverändert (Vergleich mit dem alten Packer,
+`tests/packer-golden.test.js`, `tests/packer-property.test.js`). Spec:
 `docs/superpowers/specs/2026-09-28-sortenrein-packen-design.md`.
 
-**Deckschicht (seit V 0.8.6):** optionaler Schalter `plan.mixTop` (`mixTopFor(plan)`,
-`js/model/packRules.js`), umgesetzt in `buildStacks` (`js/model/packer.js`). Für jedes Stück
-probiert `addTo` vier Wege der Reihe nach: (1) den letzten offenen Stapel des vorigen Blocks
-auffüllen (`prevLast`, wie bisher), (2) einen eigenen Stapel gleicher Grundfläche (wie bisher),
-(3) nur bei `mixTop`, wenn beides scheitert: als Deckschicht auf einen Stapel eines **früheren**
-Blocks, (4) sonst ein neuer Stapel am Boden. Kandidaten für (3) sind die Stapel früherer Blöcke
-in Entstehungsreihenfolge; es gewinnt der erste passende (näher an der Stirnwand) – deshalb
-können mehrere kleine Cases auf demselben großen landen, statt sich zu verteilen (README,
+**Deckschicht (seit V 0.8.6, mehrere Stücke nebeneinander seit V 0.13.12):** optionaler Schalter
+`plan.mixTop` (`mixTopFor(plan)`, `js/model/packRules.js`), umgesetzt in `buildStacks`
+(`js/model/packer.js`). Für jedes Stück probiert `addTo` vier Wege der Reihe nach: (1) den letzten
+offenen Stapel des vorigen Blocks auffüllen (`prevLast`, wie bisher), (2) einen eigenen Stapel gleicher
+Grundfläche (wie bisher), (3) nur bei `mixTop`, wenn beides scheitert: als Deckstück auf einen Stapel
+eines **früheren** Blocks, (4) sonst ein neuer Stapel am Boden. Kandidaten für (3) sind die Stapel
+früherer Blöcke in Entstehungsreihenfolge; es gewinnt der erste passende (näher an der Stirnwand) –
+deshalb können mehrere kleine Cases auf demselben großen landen, statt sich zu verteilen (README,
 Abschnitt „Deckschicht mischen“).
 
-`capFits(s, it, c, o, truck)` prüft, ob ein Stück als Deckschicht auf Stapel `s` passt:
-`belongsTogether(a, ca, b, cb)` (beide mit Gruppe → gleiche Gruppe, beide ohne → gleiches
+*Datenstruktur.* Die Deckschicht ist **eine** Lage auf dem **obersten Hauptstück** des Stapels.
+`s.cap = { n, z, row }`: `n` = Anzahl der Hauptstücke, `z` = Unterkante der Deckschicht (= Höhe des
+Hauptstapels), `row` = Zustand des Regalverfahrens. Die Deckstücke stehen in `s.items` hinter den
+Hauptstücken, alle auf `z = cap.z`, mit Versatz `ox`/`oy` in der Fläche des ungedrehten Stapels
+(`pushCap`). Die Stapelhöhe ist Oberkante des Hauptstapels plus höchstes Deckstück, `weight` die Summe
+aller Stücke, die Grundfläche bleibt die des Hauptstapels. Ein Stapel mit Deckschicht
+(`s.capped = true`) nimmt kein Stück seiner eigenen Sorte mehr an, trägt nichts obendrauf und gilt wie
+ein aufgefüllter Stapel als `mixed` (steht innerhalb seines Blocks zuletzt).
+
+*Prüfung.* `capFits(s, it, c, o, truck)` entscheidet, ob ein Stück als weiteres Deckstück auf Stapel
+`s` passt: `belongsTogether(a, ca, b, cb)` (beide mit Gruppe → gleiche Gruppe, beide ohne → gleiches
 Gewerk, gemischt → nein) zwischen dem Stück und dem Gründungsstück des Stapels,
-`sameSelectorRank(rules, a, b)` (`packRules.js` – für jede Auswahlregel derselbe Rang wie der
-Block des Stapels, sonst könnte eine Deckschicht ein „zuletzt“ unterlaufen), keine Traversen auf
-keiner Seite, beide Gewichte bekannt (`> 0`, 0 kg = unbekannt) und nicht schwerer als das oberste
-Stück, sowie dieselben Grenzen wie beim normalen Stapeln (`canAddToStack`, `pieceLayers`, 4
-Lagen). Ein Stapel mit Deckschicht (`s.capped = true`) nimmt kein Stück seiner eigenen Sorte mehr
-an und gilt wie ein aufgefüllter Stapel als `mixed` (steht innerhalb seines Blocks zuletzt).
+`sameSelectorRank(rules, a, b)` (`packRules.js` – für jede Auswahlregel derselbe Rang wie der Block des
+Stapels, sonst könnte eine Deckschicht ein „zuletzt“ unterlaufen), keine Traversen auf keiner Seite,
+alle Gewichte bekannt (`> 0`, 0 kg = unbekannt), das oberste Hauptstück stapelbar, `pieceLayers` und
+höchstens 4 Lagen, Oberkante der Deckschicht höchstens Fahrzeughöhe. Gewicht: Die **Summe** der Deckgewichte (mit dem
+neuen Stück) darf die `maxTopLoad` des obersten Hauptstücks und jeder Stücke darunter (Kette, jeweils
+mit dem Gewicht der Stücke darüber) nicht überschreiten (wie beim Stapeln, nur mit der Summe). Eigene
+Entscheidung: Zusätzlich darf die Summe das Gewicht des obersten Hauptstücks nicht übersteigen
+(„nichts Schweres auf Leichtes“ für die Lage als Ganzes).
+
+*Regalverfahren.* Deterministisch in Ankunftsreihenfolge, im Koordinatensystem des ungedrehten Stapels
+(x entlang `dx`, y entlang `dy`): Das Stück kommt in der aktuellen Reihe rechts an das letzte (erst
+Orientierung wie gewählt, sonst um 90° gedreht); passt es dort nicht, beginnt eine neue Reihe im Abstand
+der Tiefe der tiefsten Stücke der bisherigen; passt auch das nicht, ist der Stapel für dieses Stück
+ungeeignet und die Suche geht zum nächsten früheren Stapel weiter. Die Reihe ist kein optimales
+Packen, sondern ein einfaches, nachvollziehbares Verfahren (eigene Entscheidung, siehe
+`docs/offene-punkte.md`).
+
+*Versatz im Stapel.* `autoPack` rechnet die Deckstück-Positionen in Weltkoordinaten um:
+`x = box.x0 + (swap ? oy : ox)`, `y = box.y0 + (swap ? ox : oy)`. Hat `placeStacks` den Stapel im
+Grundriss um 90° gedreht (`swap`), ist er transponiert – die Versätze tauschen deshalb wie die Maße,
+die `rot + 90°` vertauscht. Ohne diese Transposition würden Deckstücke eines gedrehten Stapels
+überstehen (der Eigenschaftstest in `tests/packer-property.test.js` schlägt an, wenn die Transposition fehlt).
+
+*Rückfall (Hochstufen).* Scheitert „nebeneinander“ und trägt die Deckschicht des Stapels genau **ein**
+Stück (`s.items.length === s.cap.n + 1`), versucht `buildStacks` das neue Stück auf diesem Deckstück
+(`capFits({ ...s, cap: null }, …)`: das einzelne Deckstück gilt als oberstes Hauptstück, mit seinem
+Versatz `ox`/`oy` als Fläche); gelingt das, setzt `pushCap` `s.cap = null` („Hochstufen“) und beginnt
+eine neue Deckschicht auf ihm. Das ist das frühere Verhalten (Deckstück auf Deckstück). Deckschichten
+mit zwei oder mehr Stücken werden nie hochgestuft. Erst „nebeneinander“, dann „übereinander“ ist eine
+eigene Entscheidung.
+
+*Validierung.* `validatePlan` braucht keine Sonderfälle: Auflage, Lagen und Last laufen über die
+Geometrie der Platzierungen, die Last auf dem obersten Hauptstück ist daher die Summe der Deckstücke
+(`tests/validate.test.js`, „Deckschicht nebeneinander (gepackt)“).
 
 ## Traversenwagen
 
@@ -304,6 +352,12 @@ zwei Traversen nebeneinander ist neben ihnen kein Platz — deshalb tragen die L
 seitlich zu führen. `trussShape()` liefert `dollies` (das volle Wagenvolumen, gebraucht für
 die Beschriftungsfläche), `boards`, `rails`, `wheels` und `pieces`. Traversenwagen sind nie
 tippbar.
+
+Legt der Traversen-Dialog einen Wagen-Typ an, den es mit „im Materialbestand ablegen“ schon gibt,
+wird er wiederverwendet (`findMatchingWagon`, `js/model/truss.js`): gleiches Profil, gleiche Länge,
+Stückzahl und Wagenbreite, gleiche Firma, weder `legacy` noch `onlyInPlan`. Ohne das Häkchen gibt
+es nie einen Treffer, weil `onlyInPlan`-Typen global sind und sich zwei Loads sonst einen Typ
+teilen würden.
 
 ### Pre-Rig-Traversen (`standing: true`)
 
@@ -366,6 +420,13 @@ die Einseitigkeitswarnung greift, sobald **eine** der beiden Schätzungen (nach 
 nach Volumen) einseitig ausfällt — eine Warnung darf durch zusätzliche Information nie
 verschwinden.
 
+**Gewicht im Inspector (`weightEditable`/`weightField`, `js/ui/inspector.js`).** Das Gewicht ist
+eine Eigenschaft des Case-Typs, nicht des Stücks. Der Inspector zeigt es für eigene Cases und
+Firmen-Vorlagen (`lib-`, als Überlagerung gespeichert) als Zahlenfeld mit dem Hinweis „gilt für
+alle Stücke dieses Typs“; Änderungen laufen über denselben Speicherpfad wie der Case-Editor.
+Standardvorlagen (`preset-`) bleiben lesbar mit Verweis auf „Kopieren“, Traversenwagen ebenfalls
+(ihr Gewicht ergibt sich aus der Konstruktion).
+
 ## Materialbestand
 
 Die Materialverwaltung (V 0.12.5) hat keine eigene Tabelle und keinen `DB_VERSION`-Sprung.
@@ -395,7 +456,10 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   laufen also durch Sicherung und Import.
 - **Dolly-IDs je Firma**: `dolly-<slug(firma)>-<basis>-<n>`, weil die Wagenmaße
   firmenabhängig sind. Ohne Firma bleibt es bei `dolly-<basis>-<n>`; bestehende IDs ändern
-  sich nie. Traversenwagen tragen `company` nur mit (ihre IDs sind UUIDs).
+  sich nie. Teilen zwei Firmen denselben Slug („CAB Berlin“, „CAB-Berlin“), bekommt die später
+  hinzugekommene ein Suffix (`dolly-cab-berlin-2-…`); `uniqueDollySlug(firma, vorhandeneCases)`
+  entscheidet das als reine Funktion, eine Firma behält dabei ihren bisherigen Slug (eigene
+  Entscheidung). Traversenwagen tragen `company` nur mit (ihre IDs sind UUIDs).
 - **Ablageziel** (`js/ui/stock-target.js`, `applyStockTarget`): Case-Editor, Traversen- und
   Dolly-Dialog teilen den Block „Im Materialbestand ablegen“. Im Wizard (`mode: 'choose'`)
   Häkchen plus Ziel, auf der Materialseite (`mode: 'fixed'`) die vorgegebene Firma. Ohne
@@ -409,6 +473,113 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   (`#material-screen`, Schalter `materialOpen`). Solange er offen ist, kehrt der
   `keydown`-Handler aus `js/app/keyboard.js` sofort zurück, damit Entf, Pfeile oder Rückgängig nicht
   den dahinterliegenden Plan verändern.
+
+## Mehrere LKW (seit V 0.14.0)
+
+Ein Plan kann mehrere Fahrzeuge tragen. Das ist eine Erweiterung, kein neues Modell: Ein Plan
+ohne `lkws` ist weiter ein gewöhnlicher Ein-LKW-Plan, es gibt keine Migration.
+
+**Datenmodell.** `plan.lkws?: [{ id, name, truckId, categories }]` (`js/model/lkw.js`). Fehlt das
+Feld oder ist die Liste leer, gilt `plan.truckId` wie bisher. Mit `lkws` trägt jedes Stück
+(Platzierung und Ablage-Eintrag) optional `lkw: <lkw.id>`; ohne oder mit unbekannter ID ist es
+**nicht zugeordnet**. `lkw` gehört nicht zu `PIECE_FIELDS`. `plan.truckId` bleibt das Fahrzeug
+des ersten LKW (Rückfallwert für alte Programmstände); `addLkw`/`updateLkw`/`removeLkw` halten das
+ein. `categories` sind Gewerk-Namen; ein LKW mit leerer Liste ist der **Rest-LKW**. Grenzen:
+höchstens `MAX_LKW` = 12 LKW (`js/model/limits.js`). Die Oberfläche verbietet, den letzten LKW zu
+löschen (`removeLkw` auf dem letzten würde `lkws` entfernen und den Plan zum Ein-LKW-Plan machen).
+
+**Ansicht und Zurückschreiben.** Packer, Aktionen, `validatePlan`, Ansichten und Inspector kennen
+LKW nicht. Stattdessen liefert `lkwView(plan, lkwId)` einen normalen Ein-LKW-Plan (ohne `lkws`,
+`truckId` des LKW, nur dessen Platzierungen und Ablage-Einträge, ohne das Feld `lkw`).
+`mergeLkwView` schreibt das Ergebnis zurück und setzt `lkw` an allen Stücken dieses LKW; Stücke der
+anderen LKW und die nicht zugeordneten bleiben unberührt. Auf einem Ein-LKW-Plan ist `lkwView`
+der Plan selbst. Eine veraltete LKW-ID (Reiter nach Rückgängig oder Löschen) fällt in `lkwView`,
+`mergeLkwView`, `updateLkw` und beim Ziel von `moveToLkw` auf den ersten LKW (`resolveLkwId`);
+`removeLkw` mit unbekannter ID tut dagegen nichts, weil Löschen zerstörend ist.
+
+In `js/app/core.js` hängt daran die Verdrahtung: `activeLkwOf` (gewählter Reiter, fällt bei
+ungültigem Wert auf den ersten LKW), `ctxOf`/`deriveOf`/`applyEdit` arbeiten auf der Ansicht des
+gewählten Reiters, und `applyEdit` schreibt sie in **einem** Rückgängig-Schritt zurück.
+`applyEditWhole` wirkt auf den ganzen Plan („Alles neu packen“, Zuordnung im Inspector,
+Löschen eines Fahrzeugs). Der gewählte Reiter (`activeLkw`) liegt im Store, wird nicht gespeichert
+und ist nicht Teil von Rückgängig. `js/ui` importiert nichts aus `js/app/`; die dafür nötigen
+Hilfen (`NO_LKW`, `piecesOf`, `stueck`, `unassignedLines`) liegen im Modell.
+
+**Verteilung** (`js/model/lkw-distribute.js`), nur bei „Alles neu packen“ und nur ab zwei LKW.
+Bei genau einem LKW wird nur dessen Ansicht gepackt, nichts umverteilt; Ein-LKW-Pläne gehen
+unverändert durch `packAll`.
+
+1. Alle Stücke (Platzierungen und Ablage, auch nicht zugeordnete) werden neu verteilt.
+2. Zulässig für ein Stück sind die LKW, die sein Gewerk angehakt haben **und** deren Fahrzeug es in
+   irgendeiner Orientierung aufnehmen kann (`chooseOrientation`). Ist keiner zulässig, nehmen die
+   tauglichen Rest-LKW es. Gibt es auch die nicht, bleibt das Stück nicht zugeordnet (Ablage, mit
+   Hinweis). Ein Case ohne Gewerk gilt als „Sonstiges“; ein Stück ohne bekannten Case bleibt nicht
+   zugeordnet.
+3. Gleichmäßig je Gewerk (**eigene Entscheidung**, eine Heuristik): Gewerke in der Reihenfolge von
+   `CATEGORIES`, darin die Stücke nach Volumen absteigend (Gleichstand: Ablagereihenfolge); jedes
+   Stück geht an den zulässigen LKW mit der kleinsten Auslastung, `max(Grundfläche der bisher
+   zugeteilten Stücke / Bodenfläche des Laderaums, Gewicht der bisher zugeteilten Stücke /
+   Nutzlast)`; Gleichstand: der frühere LKW. Die Auslastung zählt über alle Gewerke hinweg.
+   Gewicht 0 zählt 0 (unbekannt, nichts erfunden). Die Grundfläche ist die der Packorientierung.
+4. Jeder LKW wird mit `packAll` auf seiner Ansicht gepackt (Pack-Regeln und „Deckschicht mischen“
+   stammen aus dem Plan und gelten für jeden LKW). Was nicht passt, wird **einmal** an die übrigen
+   zulässigen LKW weitergegeben (`packRest`, in Listenreihenfolge); was auch dann nicht passt,
+   bleibt in der Ablage seines ersten LKW.
+5. Ergebnis deterministisch; die Reihenfolge der LKW ist die Listenreihenfolge.
+
+Die Weitergabe läuft nur einmal: Ein Stück kann in der Ablage bleiben, obwohl ein dritter LKW Platz
+gehabt hätte. „Rest einpacken“, „Truck entladen“, Ziehen, Tastatur und Inspector wirken nur auf den
+gewählten LKW; es wird **nichts** automatisch umverteilt.
+
+**Oberfläche** (`js/ui/lkw-tabs.js`, `js/ui/lkw-editor.js`, verdrahtet in `js/app/planView.js`).
+Die Reiterleiste erscheint nur bei Plänen mit `lkws`: je LKW „Name · Fahrzeug (n)“, ein Reiter
+„Ohne LKW (n)“ nur bei nicht zugeordneten Stücken, „+ LKW“ und „LKW bearbeiten“, darunter eine
+Summenzeile (Gesamtzahl, Gewicht mit Zahl der Stücke ohne Gewicht, nicht zugeordnete je Gewerk).
+Ein Ein-LKW-Plan hat in der Kopfleiste den Knopf „Mehrere LKW“, der den Dialog „Neuer LKW“
+öffnet und den Plan erst beim Speichern umwandelt (`convertToMulti`: ein LKW „LKW 1“ mit dem
+bisherigen Fahrzeug, ohne Haken, alle Stücke ihm zugeordnet); Abbrechen ändert nichts. Fahrzeugauswahl, „Fahrzeug
+bearbeiten“ und Seitenleiste wirken auf den gewählten LKW; im Inspector verschiebt das Feld „LKW“
+ein Stück (`moveToLkw`: eine Platzierung wandert in die Ablage des Ziel-LKW, „Ohne LKW“ ist wählbar,
+der Reiter folgt dem Ziel). Eigene Entscheidungen:
+
+- Der Reiter „Ohne LKW“ hat keine 2D-/3D-Ansicht, nur einen Hinweistext und die Ablage; Fahrzeugwahl,
+  „Fahrzeug bearbeiten“, „Rest einpacken“ und „Truck entladen“ ruhen dort. Bearbeiten in der Ablage
+  läuft über `mergeUnassignedView` (Platzierungen mit ungültigem Verweis wandern per
+  `placementToUnplaced` in die Ablage).
+- Beim Löschen eines LKW (mit Rückfrage) werden seine Stücke nicht zugeordnet, Platzierungen
+  wandern in die Ablage.
+- Der Lade-Wizard fügt bei einem Mehr-LKW-Plan das Material **nicht zugeordnet** hinzu und
+  packt nicht automatisch; ein Hinweis nennt das. „Alles neu packen“ verteilt es später.
+- „Alles neu packen“ fragt bei Mehr-LKW-Plänen mit vorhandenen Stücken nach und meldet danach
+  Zeilen wie „12 Stücke ohne LKW (Strom)“, „n Stücke mit unbekanntem Case“ und „n Stücke passen
+  nicht in den LKW …“.
+- `.stage` ist ein Spaltenlayout (Reiterleiste oben).
+
+**Fahrzeug löschen.** `deleteTruck` (`js/app/persistence.js`) biegt nicht nur `plan.truckId`,
+sondern auch die `truckId` der LKW **aller** Pläne auf das Standardfahrzeug um; ein Verweis auf
+ein fehlendes Fahrzeug fällt auch in der Verteilung auf das Standardfahrzeug zurück (ein LKW, dessen
+Fahrzeug gar nicht aufzulösen ist, ist nicht packbar, seine Stücke bleiben in der Ablage).
+
+**Druck** (`js/ui/print.js`, `js/app/chrome.js`). Neben der Dokumentenauswahl steht bei
+Mehr-LKW-Plänen der Umschalter `#print-scope` „dieser LKW / alle LKW“; er springt beim Planwechsel
+auf „dieser LKW“. „Dieser LKW“ druckt wie bisher die Ansicht. „Alle LKW“ (`buildPrintAll`,
+`buildChecklistAll`, `buildUnloadListAll`, `buildLabelsAll`, Abschnitte aus `printSectionsOf`) baut je
+LKW einen Abschnitt `p-lkw` (ab dem zweiten mit `p-break`, Seitenumbruch) mit „Plan – LKW-Name“ und
+Fahrzeug im Kopf. Nicht zugeordnete Stücke stehen als letzter Abschnitt „Ohne LKW“ (im Ladeplan nur als
+Liste, ohne Zeichnung, Ladenummer „–“, „nicht geladen“; Beschriftung und Farbe fallen auf den Case zurück). Im
+Reiter „Ohne LKW“ druckt „dieser LKW“ nur diesen Abschnitt (eigene Entscheidung). Etiketten aller LKW
+laufen in einem Raster, die Nummer zählt je LKW, der LKW-Name steht in einer eigenen Zeile. Das
+Markup eines Ein-LKW-Plans ist unverändert (Baseline `tests/baselines/print-single.json`). Alle
+Namen gehen durch `esc()`.
+
+**Import** (`js/store/io.js`). `checkPlan` lehnt ab: mehr als 12 LKW, doppelte LKW-IDs, Felder
+falschen Typs, zu lange Namen, mehr als 32 Gewerke je LKW, nicht-Text bei `piece.lkw`. Gewerke
+werden nur als Text geprüft, nicht gegen `CATEGORIES` (eine spätere Umbenennung macht Dateien
+nicht unlesbar). Repariert und in `repairs` gemeldet wird: ein `lkw`-Verweis auf einen unbekannten
+LKW wird entfernt (auch in Plänen ohne `lkws`); in Mehr-LKW-Plänen wandern Platzierungen ohne gültigen
+Verweis in die Ablage; weicht `plan.truckId` vom Fahrzeug des ersten LKW ab, wird es angeglichen;
+`lkws: null` gilt als fehlend. Alte Sicherungen ohne `lkws` laden unverändert (Regressionstests mit
+Altschema-Plänen in `tests/lkw.test.js` und `tests/io.test.js`).
 
 ## Speicherung und Austausch
 
@@ -437,6 +608,28 @@ Import nicht verlieren (Materialverwaltung). Beim Zusammenführen gewinnt der ne
 aber nur wenn **beide** Seiten einen String-Zeitstempel tragen — ein kaputter oder fehlender
 Zeitstempel verliert immer gegen einen gültigen.
 
+Import-Regeln (Abschluss Teil 1):
+- Namen: `NAME_MAX` (= 80, `js/model/limits.js`) gilt für Case-, Fahrzeug- und Ladeplan-Namen und
+  entspricht den `maxlength`-Attributen der Editoren (das Umbenennen-Feld des Plans hatte vorher
+  keine; Kopien kürzen den Namen via `copyName` in `js/app/plans.js`). Ein Name von Ladeplan, Case
+  oder Fahrzeug über 80 Zeichen aus einer älteren Sicherung (bis V 0.13.10 möglich, z. B. ein
+  Dolly-Stack aus einem langen Namen mit bis zu 91 Zeichen) wird beim Import gekürzt und gemeldet
+  (eigene Entscheidung, damit eigene alte Sicherungen importierbar bleiben); bei Dolly-Namen bleibt
+  der Zusatz „N er (auf Dolly)“ erhalten, die ID ändert sich nicht. `checkCase`/`checkTruck`/
+  `checkPlan` selbst lehnen zu lange Namen weiter ab. Neue Dolly-Namen kürzt `dollyName`
+  (`audioDolly.js`).
+- Doppelte IDs innerhalb derselben Liste (Cases, Fahrzeuge, Pläne, Regelsets) lehnen die Datei ab.
+- Koordinaten: `COORD_MAX` (= 2724 cm = 2 × größte mitgelieferte Fahrzeugabmessung, eigene
+  Entscheidung). Eine Platzierung mit |x|, |y| oder |z| über `max(COORD_MAX, 2 × größte Abmessung
+  der Fahrzeuge in der Datei)` wird nicht abgelehnt, sondern in die Ablage verschoben (Label,
+  Farbe, Lagen, Tippen, Gruppe bleiben) und unter „Beim Import angepasst“ gemeldet, weil die App
+  Koordinaten selbst nirgends begrenzt.
+- Gewicht, Auflast und Bestand über `CASE_LIMITS` lehnen nicht ab: der Wert bleibt, `parseBundle`
+  liefert ihn in `overLimit`. Verweise auf unbekannte Cases/Fahrzeuge liefert es als `unknownRefs`
+  (IDs); `js/app/importExport.js` bildet daraus nach dem Mischen die Warntexte, filtert sie gegen
+  den lokalen Bestand und die Gewinner des Abgleichs und zeigt höchstens 10 Zeilen.
+- `repairWheelH` meldet Rollenhöhe und Rollen-Angabe (`wheels`) gemeinsam.
+
 Vor jedem Import lädt `js/app/importExport.js` still eine Sicherung des bisherigen Stands herunter
 (`preImportBackupFileName()`, gleicher Name wie `backupFileName()` plus `-vor-import`), bevor
 irgendetwas in IndexedDB überschrieben wird. Das Mischen läuft synchron innerhalb eines
@@ -446,6 +639,15 @@ Stand vor dem Import zurückgesetzt und der Nutzer kann die eben heruntergeladen
 erneut anfordern. `js/store/autosave.js` nimmt den betroffenen Plan für die Dauer des Imports
 per `exclude()`/`include()` aus der eigenen Buchhaltung, damit ein parallel laufender
 Autosave-Schreibvorgang den Import nicht überholt oder rückgängig macht.
+
+Weitere Speicher-Details (Abschluss Teil 1): `loadAll` schreibt Datensätze mit kaputtem `updatedAt`
+bereinigt zurück (`sanitizeAndWriteBack`, ein `putMany`, Fehler nur geloggt). `db.open()` setzt
+eine abgelehnte Promise zurück, der nächste Zugriff versucht es erneut. Plan löschen:
+`removePlanPersisted` in `js/app/plans.js` (erst `autosave.flush()`, dann `deletePlan`, dann
+`forget`). „Firma löschen“ schreibt Überlagerungen und Entfernungen mit `repo.saveAndDelete({ saves,
+removeIds })` in einer einzigen IndexedDB-Transaktion (`db.writeMany`, wie `putMany`, nur mit
+Deletes); ein Fehler lässt Datenbank und Store unverändert. Der Änderungszeitpunkt wird nur von `stamp()` in `js/model/stamp.js` gesetzt (früher
+`touch` in `actions.js` und `stamp` in `repo.js`).
 
 Ist die App in einem zweiten Tab oder Fenster gleichzeitig offen, meldet ein
 `BroadcastChannel('truckload')` das den beteiligten Tabs — es gibt (Stand V 0.7.0) keinen
@@ -494,6 +696,10 @@ Stücke), umschaltbar zwischen „Noch nicht geladen“ und „Alles Material“
 den Katalog.
 
 ## Darstellung
+
+Zahlen in Case-Zeilen und -Details formatiert `fmtNum` (`js/ui/caseInfo.js`): deutsch, höchstens
+eine Nachkommastelle, ohne unnötige Nullen; nicht endliche Werte erscheinen als „–“, ein
+gerundetes `-0` als „0“. Die einheitliche Rundung auf eine Stelle ist eine eigene Entscheidung.
 
 `js/ui/projection.js` bildet eine 3D-Box auf die drei 2D-Ansichten ab (Draufsicht, Seite
 von links, Rückansicht von der Tür). Die beiden Ansichten haben seit V 0.9.2 getrennte Aufgaben:
@@ -556,7 +762,10 @@ Sonderfall. Die Rechnung (`zoomAt`, `panBy`, `resolveViewBox`) ist rein und gete
 Ausschnitt bleibt immer innerhalb des ganzen Trucks und ist mindestens `MIN_VIEW_W` (40 cm)
 breit. Mausrad und Trackpad-Wischen unterscheidet `attachZoom` an der Schrittgröße
 (Zeilen-Modus oder `|deltaY| ≥ 50` ohne `deltaX` gilt als Mausrad), Pinch kommt als `wheel`
-mit `ctrlKey`. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
+mit `ctrlKey`. Seit V 0.14.1 entscheidet `classifyWheel` (mit Gestenzustand; Strg zählt nicht mit),
+und der Umschalter „Rad: Auto/Zoom/Schieben“ (`localStorage` `truckload.scrollMode`) kann die
+Erkennung übersteuern. Die Schrift der Beschriftung wächst mit dem Zoom, solange der ganze Name noch in die
+Case-Breite passt (`labelFontSize`, Obergrenze kleinere Seite × 0,32; sonst bleibt es bei der Grundgröße und der Name wird gekürzt); Linien wachsen unbegrenzt mit. Der Druck (`js/ui/print.js`) nutzt eigene SVGs ohne Zoom-Zustand.
 
 Welche Farbe ein Case bekommt, entscheidet `caseColors(c, mode, itemColor)` in
 `js/ui/caseStyle.js` — gemeinsam für 2D, 3D und Druck. Die Dreier-Signatur ist ein eigens
@@ -581,10 +790,10 @@ auseinanderlaufen; das ausgewählte Stück ist dort immer ausgenommen. Die Spann
 Gewichtsmodus läuft weiter über ALLE Stücke — sonst spränge die Farbskala beim Umschalten
 der Lagen um.
 
-`js/ui/print.js` erzeugt drei Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
-SVG-Ansichten), `buildChecklist` (Abhakliste) und `buildLabels` (Etiketten). Welches gilt,
-steuert `js/app/chrome.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`,
-bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle drei schreiben
+`js/ui/print.js` erzeugt vier Dokumente in dasselbe `#print-root`: `buildPrint` (Ladeplan, mit
+SVG-Ansichten), `buildChecklist` (Abhakliste), `buildUnloadList` (Ausladeliste, dieselbe Zeilenlogik `listDoc` mit umgekehrter Reihenfolge, Titel „Ausladeliste – …“ und Unterschriftszeile „Entladen von“) und `buildLabels` (Etiketten). Welches gilt,
+steuert `js/app/chrome.js` über eine Klasse am Wurzelelement (`doc-plan`/`doc-checklist`/`doc-labels`; die Ausladeliste trägt `doc-checklist doc-unload`,
+bei Etiketten zusätzlich `size-large`/`size-small`), die `css/print.css` auswertet. Alle vier schreiben
 nur `root.innerHTML`, brauchen dafür also kein echtes DOM, sondern nur eine Attrappe – deshalb
 sind sie ohne jsdom testbar (`tests/print.test.js`). Allein `buildPrint` greift danach über
 `root.querySelector` auf das DOM zu, um die SVGs einzuhängen. Die Seitenvorschrift hängt an der Druckart:

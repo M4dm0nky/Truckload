@@ -1,12 +1,33 @@
 import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
-import { outerDims, wheelFace, layersOf, pieceLayers, canTip } from '../model/geometry.js';
-import { MAX_LABEL } from '../model/limits.js';
+import { outerDims, wheelFace, layersOf, pieceLayers, canTip, isTruss } from '../model/geometry.js';
+import { MAX_LABEL, CASE_LIMITS } from '../model/limits.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
 // (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die
 // gegenüberliegende (großes y) als „rechts“ (siehe js/ui/projection.js / view2d.js).
 const WHEEL_FACE_ORDER = ['+x', '-x', '-y', '+y'];
 const WHEEL_FACE_LABEL = { '+x': 'Tür', '-x': 'Front', '-y': 'links', '+y': 'rechts' };
+
+// Darf der Inspector das Gewicht dieses Case-Typs ändern? Eigene Cases (nicht builtin) und
+// Firmen-Vorlagen (`lib-`, werden als Überlagerung mit gleicher ID gespeichert, siehe
+// js/model/material.js) ja; Standardvorlagen (`preset-`) nur lesbar – dort führt „Kopieren“ in der
+// Materialverwaltung zum eigenen Case; Traversenwagen nie, ihr Gewicht ergibt sich aus der Konstruktion.
+export function weightEditable(c) {
+  if (!c || isTruss(c)) return false;
+  return !c.builtin || String(c.id).startsWith('lib-');
+}
+const PRESET_WEIGHT_HINT = 'Standardvorlage – über „Kopieren“ in der Materialverwaltung ändern';
+const isPreset = c => c?.builtin === true && String(c.id).startsWith('preset-');
+
+// Zahlenfeld (kg) für ein editierbares Gewicht, sonst der Wert als Text plus – bei Standardvorlagen –
+// der Hinweis, wie man ihn ändert.
+export function weightField(c) {
+  if (weightEditable(c)) {
+    return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">gilt für alle Stücke dieses Typs</small>`;
+  }
+  return `${esc(c.weight)} kg`;
+}
+const weightHint = c => (isPreset(c) ? `<p class="hint insp-weight-hint">${PRESET_WEIGHT_HINT}</p>` : '');
 
 // Block „Laden“ – für ein platziertes Stück (piece = das Placement, tippedOn aus der
 // Orientierung) genauso wie für ein Ablage-Stück (piece = der Ablage-Eintrag, tippedOn aus
@@ -29,7 +50,19 @@ function loadBlock(piece, c, tippedOn) {
     </div>`;
 }
 
-export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [] }) {
+// Auswahlfeld „LKW“ je Stück (nur bei Plänen mit mehreren LKW): verschiebt das Stück zu einem LKW oder
+// auf „Ohne LKW“. `lkw` = { options: [{ id, name }], current: id | null } oder null (Ein-LKW-Plan).
+export function lkwField(lkw) {
+  if (!lkw) return '';
+  return `<label class="insp-lkw">LKW<select name="lkw">
+          <option value="" ${lkw.current ? '' : 'selected'}>Ohne LKW</option>
+          ${lkw.options.map(o => `<option value="${esc(o.id)}" ${o.id === lkw.current ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}
+        </select></label>`;
+}
+
+// `lkw` (optional): Mehr-LKW-Plan, siehe lkwField; zusätzlich `name` (gewählter LKW, für die Überschrift
+// der Summen) und `none` (Reiter „Ohne LKW“: keine Fahrzeugsummen).
+export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [], lkw = null }) {
   const t = result.totals;
   const pct = t.payload > 0 ? Math.min(100, Math.round(t.weight / t.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
@@ -53,12 +86,14 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <label>Farbe<input type="color" name="color" value="${esc(selected.color)}"></label>
         <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selected.p.group ?? '')}"></label>
       </div>
+      ${lkwField(lkw)}
       <dl>
         <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
         <dt>Maße stehend</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
         <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
-        <dt>Gewicht</dt><dd>${esc(selected.c.weight)} kg · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
+        <dt>Gewicht</dt><dd>${weightField(selected.c)} · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
       </dl>
+      ${weightHint(selected.c)}
       ${wheelRow}
       ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
@@ -79,6 +114,9 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <label>Farbe<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
         <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
       </div>
+      ${lkwField(lkw)}
+      <p class="insp-weight-row">Gewicht: ${weightField(selectedUnplaced.c)}</p>
+      ${weightHint(selectedUnplaced.c)}
       ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
       <div class="btns">
         <button data-act="edit-case">Case bearbeiten</button>
@@ -86,10 +124,9 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       </div>
     </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>');
 
-  const html = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
-    ${sel}
+  const totalsAndIssues = lkw?.none ? '' : `
     <section class="insp-totals">
-      <h3>Ladung – ${esc(truck.name)}</h3>
+      <h3>Ladung – ${lkw?.name ? `${esc(lkw.name)} · ` : ''}${esc(truck.name)}</h3>
       <div class="bar ${t.weight > t.payload ? 'over' : ''}"><span style="width:${pct}%"></span></div>
       <p>${Math.round(t.weight).toLocaleString('de-DE')} / ${t.payload.toLocaleString('de-DE')} kg Nutzlast${t.withoutWeight ? ` · <span class="hint">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig</span>` : ''}</p>
       <dl>
@@ -104,7 +141,9 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       ${result.issues.map(i => `<p class="issue" ${i.placementId ? `data-select="${esc(i.placementId)}"` : ''}>${
         i.placementId && result.sequence.has(i.placementId) ? `<b>${result.sequence.get(i.placementId)}.</b> ` : ''}${esc(i.message)}</p>`).join('')
         || '<p class="ok">Alles in Ordnung.</p>'}
-    </section>
+    </section>`;
+  const html = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+    ${sel}${totalsAndIssues}
     <p class="hint">Tasten: R drehen · T tippen · W Rollenrichtung · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
   if (html === el.__lastHtml) return;
   const focus = captureFocus(el);

@@ -1,5 +1,6 @@
 import { esc, swatch, icon } from './dom.js';
 import { caseDetail } from './caseInfo.js';
+import { unplacedReason } from '../model/unplacedReason.js';
 
 // Was muss die Seitenleiste bei einer Zustandsänderung tun? 'full' = Inhalt neu bauen,
 // 'sel' = nur die Auswahl-Klasse umschalten, 'none' = nichts. In „Noch nicht geladen“ zählt nur
@@ -9,7 +10,7 @@ export function libraryRenderMode(prev, next, view) {
   const planChanged = view === 'all'
     ? prev.plan.placements !== next.plan.placements || prev.plan.unplaced !== next.plan.unplaced
     : prev.plan.unplaced !== next.plan.unplaced;
-  if (prev.cases !== next.cases || planChanged) return 'full';
+  if (prev.cases !== next.cases || prev.truck !== next.truck || planChanged) return 'full';
   return prev.selectedId !== next.selectedId ? 'sel' : 'none';
 }
 
@@ -38,6 +39,14 @@ export function mountLibrary(el, h) {
   const content = el.querySelector('.lib-content');
   let view = VIEWS[0].id; // 'unplaced'
   let last = null;
+  // Gründe der Ablage-Stücke, je Stand von Ablage/Cases/Fahrzeug einmal berechnet.
+  let reasons = null;
+  const reasonOf = u => {
+    if (!reasons || reasons.unplaced !== last.plan.unplaced || reasons.cases !== last.cases || reasons.truck !== last.truck)
+      reasons = { unplaced: last.plan.unplaced, cases: last.cases, truck: last.truck, map: new Map() };
+    if (!reasons.map.has(u.id)) reasons.map.set(u.id, unplacedReason(u, last.byId.get(u.caseId), last.truck));
+    return reasons.map.get(u.id);
+  };
 
   for (const btn of viewBtns) btn.addEventListener('click', () => {
     view = btn.dataset.view;
@@ -66,9 +75,10 @@ export function mountLibrary(el, h) {
         ${swatch(color)}
         <span class="lib-text">${esc(label)}</span></div>`;
     }
+    const reason = reasonOf(u);
     return `<div class="lib-item${selCls}" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
       ${swatch(color)}
-      <span class="lib-text">${esc(label)}</span>
+      <span class="lib-text">${esc(label)}${reason ? `<small class="lib-reason">${esc(reason)}</small>` : ''}</span>
       <button data-act="tray-remove" title="Entfernen" aria-label="Entfernen">−</button></div>`;
   }
 
@@ -126,9 +136,9 @@ export function mountLibrary(el, h) {
   });
 
   return {
-    update(state) {
-      const mode = libraryRenderMode(last, state, view);
-      const next = { cases: state.cases, plan: state.plan, selectedId: state.selectedId,
+    update(state, truck) {
+      const mode = libraryRenderMode(last, { ...state, truck }, view);
+      const next = { cases: state.cases, plan: state.plan, selectedId: state.selectedId, truck,
         byId: mode === 'full' ? new Map(state.cases.map(c => [c.id, c])) : last.byId };
       last = next;
       if (mode === 'full') renderContent();

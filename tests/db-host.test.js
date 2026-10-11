@@ -14,11 +14,11 @@ function fakeHost() {
     getAll: async store => { calls.push(['getAll', store]); return []; },
     put: async (store, value) => { calls.push(['put', store, value.id]); },
     del: async (store, id) => { calls.push(['del', store, id]); },
-    putMany: async items => { calls.push(['putMany', items.length]); },
+    writeMany: async ({ puts, deletes }) => { calls.push(['writeMany', puts.length, deletes.length]); },
   };
 }
 
-test('mit Host gehen getAll/put/del/putMany an den Host, IndexedDB bleibt unberührt', async () => {
+test('mit Host gehen getAll/put/del/putMany/writeMany an den Host, IndexedDB bleibt unberührt', async () => {
   const host = fakeHost();
   globalThis.truckloadHost = host;
   try {
@@ -26,20 +26,25 @@ test('mit Host gehen getAll/put/del/putMany an den Host, IndexedDB bleibt unber�
     await db.put('plans', { id: 'p1' });
     await db.del('cases', 'c1');
     await db.putMany([{ store: 'cases', value: { id: 'c2' } }]);
+    // „Firma löschen“ (repo.saveAndDelete): Überlagerungen und Entfernungen in EINEM Aufruf.
+    await db.writeMany({ puts: [{ store: 'cases', value: { id: 'c3' } }], deletes: [{ store: 'cases', id: 'c4' }, { store: 'cases', id: 'c5' }] });
+    await db.writeMany({ deletes: [{ store: 'cases', id: 'c6' }] });
     assert.equal(await db.open(), null);
     await db.persist();
-    assert.deepEqual(host.calls, [['getAll', 'cases'], ['put', 'plans', 'p1'], ['del', 'cases', 'c1'], ['putMany', 1]]);
+    assert.deepEqual(host.calls, [['getAll', 'cases'], ['put', 'plans', 'p1'], ['del', 'cases', 'c1'], ['writeMany', 1, 0], ['writeMany', 1, 2], ['writeMany', 0, 1]]);
     assert.equal(idbOpens, 0);
   } finally {
     delete globalThis.truckloadHost;
   }
 });
 
-test('putMany leer ruft den Host nicht', async () => {
+test('putMany und writeMany leer rufen den Host nicht', async () => {
   const host = fakeHost();
   globalThis.truckloadHost = host;
   try {
     await db.putMany([]);
+    await db.writeMany({});
+    await db.writeMany({ puts: [], deletes: [] });
     assert.deepEqual(host.calls, []);
   } finally {
     delete globalThis.truckloadHost;

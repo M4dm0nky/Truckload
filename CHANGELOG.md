@@ -2,6 +2,108 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.15.0 – 2026-10-10
+
+**Racks mit geschätzten Maßen sind aus der Auswahl genommen.**
+
+- **19″-Racks 1 HE, 2 HE, 4 HE, 5 HE, 6 HE und 16 HE** werden nicht mehr zur Auswahl angeboten:
+  Bei allen war die Breite und Tiefe (60 × 60 cm) nur geschätzt, bei 1, 4, 5 und 16 HE zusätzlich die
+  Höhe aus der Höheneinheit gerechnet. Sie sind nicht gelöscht – bestehende Pläne laden sie
+  unverändert weiter. Sobald es echte Maße gibt, lassen sie sich wieder freigeben.
+- Das Rack mit 3 HE (komplett gemessen) bleibt in der Auswahl.
+
+## V 0.14.1 – 2026-10-10
+
+**Schrift wächst beim Zoomen mit, Mausrad und Trackpad robuster erkannt.**
+
+- **Schrift beim Zoomen:** Beim Hineinzoomen in die 2D-Ansichten wird die Beschriftung der Cases
+  größer, solange der ganze Name noch hineinpasst; sonst bleibt sie so groß wie vorher und der
+  Name wird wie bisher gekürzt. Bei Zoom 1 sieht alles aus wie vorher; Linien
+  wachsen weiter mit.
+- **Mausrad und Trackpad:** Die Erkennung ist robuster (Zeilenmodus, Rastschritte, zusammenhängende
+  Wischgesten). Neben den Zoomknöpfen steht jetzt ein Umschalter „Rad: Auto/Zoom/Schieben“ als
+  Ausweg, falls ein Gerät trotzdem falsch erkannt wird; die Wahl wird gemerkt.
+- **Ehrlicher Hinweis:** Die Rad-Erkennung ist nur mit simulierten Ereignissen geprüft, nicht an
+  echter Maus oder echtem Trackpad. Im Zweifel hilft der Umschalter.
+
+## V 0.14.0 – 2026-10-10
+
+**Mehrere LKW in einem Plan.** Ein Plan kann jetzt mehrere Fahrzeuge tragen, jedes mit eigenem
+Reiter, eigener 2D- und 3D-Ansicht und eigener Ablage.
+
+- **Umstellen und anlegen:** Knopf „Mehrere LKW“ in der Kopfleiste, danach „+ LKW“ und „LKW
+  bearbeiten“ (Name, Fahrzeug, Gewerke-Haken). Ein LKW ohne Haken ist der Rest-LKW und nimmt alles,
+  was kein anderer annimmt. Nicht zugeordnete Stücke stehen im Reiter „Ohne LKW“, mit Hinweis wie
+  „12 Stücke ohne LKW (Strom)“.
+- **Verteilen:** „Alles neu packen“ verteilt die Stücke je Gewerk gleichmäßig auf die zulässigen
+  LKW (nach Fläche und Nutzlast, Gewicht 0 zählt 0) und packt jeden LKW. Das ist eine Heuristik.
+  Von Hand geht es im Inspector über das Feld „LKW“.
+- **Drucken:** „dieser LKW“ oder „alle LKW“ – bei „alle“ ein Abschnitt je LKW, zuletzt „Ohne LKW“.
+- **Lade-Wizard:** Bei Plänen mit mehreren LKW kommt neues Material nicht zugeordnet in den Plan
+  und wird nicht automatisch gepackt.
+- **Fahrzeug löschen:** LKW, die darauf zeigten, wechseln in allen Plänen auf das Standardfahrzeug.
+- **Bestehende Pläne bleiben Ein-LKW-Pläne; Verteilung erst bei „Alles neu packen“.** Ein-LKW-Pläne
+  packen, prüfen, exportieren und drucken wie vorher (gegen den alten Packer an über 6.000
+  zufälligen Plänen verglichen, ohne Unterschied). Alte Sicherungen laden unverändert; beim Import
+  werden Verweise auf unbekannte LKW repariert und gemeldet.
+
+## V 0.13.12 – 2026-10-10
+
+**Deckschicht mischen: mehrere kleine Cases nebeneinander.** Mit dem Schalter „Deckschicht mischen“
+dürfen mehrere kleine Cases **nebeneinander** oben auf einem großen stehen (vorher höchstens eines
+je Lage). Passt nichts mehr daneben, gilt wie bisher Deckstück auf Deckstück. Die bisherigen Regeln
+bleiben: gleiche Gruppe bzw. gleiches Gewerk, Gewichte bekannt, nichts Schweres auf Leichtes (die
+Summe der Deckgewichte darf das Gewicht des Case darunter nicht übersteigen), Auflast, höchstens
+4 Lagen, Fahrzeughöhe.
+
+- **Bestehende Pläne ändern sich nicht von selbst.** Erst beim nächsten „Alles neu packen“ greift
+  die neue Regel. Ohne den Schalter packt alles wie vorher (gegen den alten Packer an über 150.000
+  zufälligen Fällen verglichen).
+- Das Regalverfahren ist eine Heuristik: In künstlichen Tests mit sehr vielen kleinen Cases
+  war das Ergebnis mal besser, mal schlechter als vorher (Zahlen in `docs/offene-punkte.md`),
+  deshalb bleibt der Schalter optional.
+
+## V 0.13.11 – 2026-10-10
+
+Abschluss der offenen Punkte, Teil 1.
+
+**Neu**
+- **Ausladeliste:** viertes Druckdokument, dieselbe Liste wie die Abhakliste in umgekehrter
+  Reihenfolge (zuletzt Eingeladenes zuerst), mit Lage und „Entladen von“.
+- **Abhakliste** zeigt jetzt die Lage je Stück.
+- **Grund in der Ablage:** Ein nicht geladenes Stück nennt seinen Grund, wenn er aus den Maßen
+  folgt (zu groß für den Laderaum; auf „getippt“ gesetzt, passt aber nur stehend; auf „nicht
+  tippen“ gesetzt, passt aber nur getippt). Mehr wird bewusst nicht behauptet.
+- **Gewicht im Inspector:** Das Gewicht des Case-Typs lässt sich direkt ändern (eigene und
+  Firmen-Cases; Standardvorlagen mit Hinweis auf „Kopieren“).
+- **Schriftfarbe in 2D und im Druck** passt sich dem Case an (dunkle Schrift auf hellen Cases),
+  wie in 3D.
+- **Zahlen einheitlich:** Seitenleiste, Wizard und Materialverwaltung zeigen Maße und Gewichte
+  gleich formatiert; Traversenwagen zeigen „kg/Wagen“.
+- **Taste T** schaltet zuverlässig zwischen „stehend“ und „getippt“ um, auch bei vom Packer
+  getippten Cases.
+- **Regelsets:** Rückfrage beim Überschreiben und beim Löschen.
+- **Traversenwagen** (Profil, Länge, Stückzahl, Wagenbreite, Firma) werden aus dem Bestand
+  wiederverwendet statt doppelt angelegt.
+- „Gestapelt“ im Traversen-Dialog überschreibt ein abgewähltes „danach automatisch packen“ nicht.
+- 3D: Hinweis „3D-Ansicht nicht aktuell“, wenn der Aufbau fehlschlägt.
+
+**Robuster**
+- **Import:** Hinweise zu fehlenden Verweisen erscheinen erst nach dem Zusammenführen und nur
+  für wirklich fehlende; zu schwere Cases sind eine Warnung statt eines Abbruchs; zu lange
+  Namen (Ladeplan, Case, Fahrzeug) werden gekürzt und gemeldet; Stücke weit außerhalb des
+  Fahrzeugs wandern in die Ablage; doppelte IDs werden abgelehnt.
+- Datenbank: ein fehlgeschlagenes Öffnen wird beim nächsten Zugriff wiederholt; ein kaputter
+  Zeitstempel wird auch in der Datenbank repariert; „Plan löschen“ speichert vorher.
+- „Firma löschen“ läuft in einer Transaktion; Dolly-IDs verschiedener Firmen kollidieren nicht.
+- Packer: bei überfüllter Ladung deutlich schneller, Ergebnis unverändert (gegen den alten
+  Packer an über 270.000 zufälligen Fällen verglichen).
+
+**Maße korrigiert (bitte beachten):** `D8+ 0,5t CAB x4/x8/x12` (Länge und Breite getauscht) und
+`JDC-1 Cube (4)` / `JDC-1 Cube` (Maße der beiden Zeilen getauscht), jeweils auf Wunsch, nicht
+nachgemessen. **Bestehende Pläne mit diesen Cases danach neu packen**, sonst melden Kollisions-
+und Überstand-Prüfung Abweichungen.
+
 ## V 0.13.10 – 2026-10-09
 
 Aufräumen Teil 6 (Abschluss) – Kommentare im Code gekürzt (der Verlauf steht in der

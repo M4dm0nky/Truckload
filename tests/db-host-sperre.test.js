@@ -16,7 +16,7 @@ function fakeHost(getAll) {
     getAll,
     put: async (store, value) => { calls.push(['put', store, value.id]); },
     del: async (store, id) => { calls.push(['del', store, id]); },
-    putMany: async items => { calls.push(['putMany', items.length]); },
+    writeMany: async ({ puts, deletes }) => { calls.push(['writeMany', puts.length, deletes.length]); },
   };
 }
 
@@ -32,7 +32,7 @@ test('Kontrolle (vor dem Ladefehler): mit gesundem Host erreicht put den Host', 
   }
 });
 
-test('nach gescheitertem Lesen sperrt db.js put, del und putMany, putMany([]) bleibt frei', async () => {
+test('nach gescheitertem Lesen sperrt db.js put, del, putMany und writeMany, leere Aufrufe bleiben frei', async () => {
   const fehler = new Error('Lesen kaputt');
   const host = fakeHost(async () => { throw fehler; });
   globalThis.truckloadHost = host;
@@ -42,7 +42,9 @@ test('nach gescheitertem Lesen sperrt db.js put, del und putMany, putMany([]) bl
     await assert.rejects(db.put('cases', { id: 'c' }), sperre);
     await assert.rejects(db.del('plans', 'p'), sperre);
     await assert.rejects(db.putMany([{ store: 'cases', value: { id: 'c' } }]), sperre);
+    await assert.rejects(db.writeMany({ deletes: [{ store: 'cases', id: 'c' }] }), sperre);
     await db.putMany([]);
+    await db.writeMany({});
     assert.deepEqual(host.calls, []);
   } finally {
     delete globalThis.truckloadHost;

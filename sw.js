@@ -4,7 +4,7 @@
 // läuft der Abruf im Hintergrund weiter und frischt den Cache auf.
 // Ein Stand pro Seitenaufruf: Lief bei einem Client ein Abruf in den Timeout, kommen alle weiteren
 // Dateien dieses Clients sofort aus dem Cache – sonst mischen sich alte und neue Module.
-const CACHE = 'truckload-v0.13.10';
+const CACHE = 'truckload-v0.15.0';
 const ASSETS = [
   './',
   'index.html',
@@ -37,13 +37,17 @@ const ASSETS = [
   'js/model/geometry.js',
   'js/model/items.js',
   'js/model/limits.js',
+  'js/model/lkw-distribute.js',
+  'js/model/lkw.js',
   'js/model/material.js',
   'js/model/memo.js',
   'js/model/packer.js',
   'js/model/packRules.js',
   'js/model/pieceFields.js',
   'js/model/slug.js',
+  'js/model/stamp.js',
   'js/model/truss.js',
+  'js/model/unplacedReason.js',
   'js/model/validate.js',
   'js/store/autosave.js',
   'js/store/db.js',
@@ -62,6 +66,8 @@ const ASSETS = [
   'js/ui/instanceMatrix.js',
   'js/ui/labelTexture.js',
   'js/ui/library.js',
+  'js/ui/lkw-editor.js',
+  'js/ui/lkw-tabs.js',
   'js/ui/load-wizard.js',
   'js/ui/material.js',
   'js/ui/pack-rules.js',

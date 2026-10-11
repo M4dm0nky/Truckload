@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.13.10** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.15.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -99,16 +99,31 @@ seiner Grundfläche (ungedreht oder um 90° gedreht) vollständig darauf passen.
 (0 kg) mischen nicht – weder als Deckschicht auf ein fremdes Case, noch tragen sie eine fremde
 Deckschicht, weil dort das Gewicht unbekannt ist.
 
-Die Lagen je Stück gelten dabei weiter: Mit der Wizard-Vorgabe Lage 1 und 2 ist ein Stapel aus
-zwei gleichen Cases schon voll, eine Deckschicht bräuchte dann Lage 3. Die Regel greift also vor
-allem dort, wo ein Stapel niedriger bleibt als die Truckhöhe – bei nicht stapelbaren Sorten auf
-nur einer Lage, bei einer ungeraden letzten Reihe, oder wenn die kleinen Cases Lage 3 bzw. 4
-erlauben. Auch mit Deckschicht bleiben die Pack-Regeln gewahrt (eine Deckschicht wandert nie vor
-einen Block, der laut Rangliste eigentlich zuletzt kommen soll), trägt eine Ebene nur ein Stück
-(keine kleinen Cases nebeneinander auf einem großen), und Traversenwagen tragen nie etwas Fremdes
-und stehen nie auf einer Deckschicht. Da es dabei immer der erste passende Stapel gewinnt, kann es
-vorkommen, dass sich mehrere kleine Cases auf demselben großen Case stapeln, statt sich auf
+Mehrere kleine Cases dürfen nebeneinander auf einem großen stehen. Alle liegen auf der Fläche des
+obersten Stücks des Stapels und stehen nie über: Das erste kommt in eine Ecke der Fläche, die
+nächsten daneben; ist die Reihe voll, beginnt dahinter eine neue. Ein Stück passt dabei
+ungedreht oder um 90° gedreht. Reihenfolge der Versuche: erst nebeneinander auf diesen Stapel; geht
+das nicht und trägt der Stapel erst ein einziges Deckstück, wird dieses wie bisher zum Träger und
+das neue Stück stellt sich auf ihn (Deckstück auf Deckstück). Sind es schon zwei oder mehr
+nebeneinander, trägt der Stapel nichts mehr obendrauf; weitere Stücke suchen den nächsten Stapel
+oder eine eigene Bodenfläche.
+
+Gewicht und Lagen: Die Summe der Gewichte aller Deckstücke darf weder die zulässige Auflast des
+obersten Stücks und der Stücke darunter noch das Gewicht des obersten Stücks überschreiten (die
+zweite Grenze ist eine eigene Entscheidung: „nichts Schweres auf Leichtes“ gilt für die Lage als
+Ganzes). Jedes Deckstück darf einzeln nicht schwerer sein als das Stück unter ihm. Die Lagen je
+Stück gelten weiter: Mit der Wizard-Vorgabe Lage 1 und 2 ist ein Stapel aus zwei gleichen Cases
+schon voll, eine Deckschicht bräuchte dann Lage 3. Die Regel greift also vor allem dort, wo ein
+Stapel niedriger bleibt als die Truckhöhe – bei nicht stapelbaren Sorten auf nur einer Lage, bei
+einer ungeraden letzten Reihe, oder wenn die kleinen Cases Lage 3 bzw. 4 erlauben. Auch mit
+Deckschicht bleiben die Pack-Regeln gewahrt (eine Deckschicht wandert nie vor einen Block, der
+laut Rangliste eigentlich zuletzt kommen soll), und Traversenwagen tragen nie etwas Fremdes und
+stehen nie auf einer Deckschicht. Da es dabei immer der erste passende Stapel gewinnt, kann es
+vorkommen, dass sich mehrere kleine Cases auf demselben großen Case sammeln, statt sich auf
 mehrere große Cases zu verteilen.
+
+Bestehende Pläne bleiben, wie sie sind: Gespeicherte Platzierungen ändern sich nicht. Erst beim
+nächsten „Alles neu packen“ gilt die neue Anordnung.
 
 Der Schalter gilt je Load und wandert, wie die Rangliste selbst, mit einem gespeicherten
 Regelset mit.
@@ -124,6 +139,16 @@ belegen und den letzten, nicht vollen Stapel auffüllen – weiter vorn wird nie
 Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im Inspector ändern
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
 Zeile in der Seitenleiste anklicken).
+
+Bei einem Stück in „Noch nicht geladen“ steht, wenn es sich aus den Maßen ergibt, der Grund dabei,
+etwa „zu groß für den Laderaum“ oder „auf ‚getippt‘ gesetzt, passt aber nur stehend“. Gründe, die
+nicht aus den Maßen folgen (Nutzlast, Lagen-Einschränkung, Pack-Regeln), nennt die App nicht –
+dann steht dort nichts.
+
+Das **Gewicht** eines Case-Typs lässt sich im Inspector direkt ändern (Zahlenfeld in kg, gilt für
+alle Stücke dieses Typs). Das gilt für eigene Cases und Firmen-Vorlagen; bei Standardvorlagen
+legt „Kopieren“ in der Materialverwaltung eine änderbare Version an, und das Gewicht von
+Traversenwagen ergibt sich aus der Konstruktion.
 
 ## Materialverwaltung
 
@@ -171,6 +196,9 @@ genau zu prüfen, wie die Cases stehen:
 - **Verschieben:** mit zwei Fingern wischen oder auf freier Fläche ziehen. Ziehen auf einem
   Case verschiebt weiterhin das Case.
 - **Ganzer Truck:** Doppelklick auf freie Fläche oder der Knopf „Alles“.
+- **Schrift und Rad:** Die Beschriftung wächst beim Zoomen mit, solange sie ins Case passt.
+  Erkennt die App Maus oder Trackpad falsch, stellt „Rad: Auto/Zoom/Schieben“ neben den
+  Zoomknöpfen um.
 
 Cases lassen sich auch gezoomt verschieben und aus der Liste hineinziehen. Beim
 Hineinziehen rastet ein Case, wie beim Verschieben, an den Kanten der Nachbarn und an den
@@ -200,7 +228,44 @@ werden lesbar, der Zusammenhang bleibt aber sichtbar, weil nichts verschwindet. 
 ergibt das einen sauberen Schnitt durch die Ladung. Das ausgewählte Case bleibt in beiden
 Fällen sichtbar. Der Ausdruck zeigt immer alle Lagen.
 
-## Drucken: Ladeplan, Abhakliste, Etiketten
+## Mehrere LKW in einem Plan
+
+Reicht ein Fahrzeug nicht, kann ein Plan mehrere LKW tragen. Ein bestehender Plan bleibt ein
+normaler Ein-LKW-Plan, bis du ihn umstellst.
+
+- **Umstellen:** In der Kopfleiste „Mehrere LKW“. Es öffnet sich „Neuer LKW“; erst beim Speichern
+  wird der Plan umgewandelt: Der bisherige Inhalt bildet „LKW 1“ (mit dem bisherigen Fahrzeug), dein
+  neuer LKW kommt dazu. Abbrechen ändert nichts. Danach gibt es „+ LKW“ in der Reiterleiste.
+- **Reiter:** Über den Ansichten steht je LKW ein Reiter „Name · Fahrzeug“. Alles darunter –
+  2D, 3D, Ablage, Fahrzeugwahl, „Rest einpacken“, „Truck entladen“, Ziehen, Tastatur – wirkt auf den
+  gewählten LKW. Eine Summenzeile zeigt Gesamtzahl, Gesamtgewicht (Stücke ohne Gewicht werden
+  genannt, nicht mitgeschätzt) und was keinem LKW zugeordnet ist.
+- **Gewerke zuweisen:** „LKW bearbeiten“ (Name, Fahrzeug, Gewerke-Haken, Löschen). Ein LKW **ohne**
+  Haken ist der **Rest-LKW**: Er nimmt alles, was kein anderer LKW annimmt. Gibt es keinen
+  Rest-LKW, bleiben Stücke ohne passenden LKW nicht zugeordnet; es erscheint der Reiter „Ohne LKW“
+  und ein Hinweis, z. B. „12 Stücke ohne LKW (Strom)“. Höchstens 12 LKW; der letzte LKW lässt sich
+  nicht löschen. Löschst du einen anderen, werden seine Stücke keinem LKW mehr zugeordnet.
+- **Verteilen:** Das passiert **nur bei „Alles neu packen“** (ab zwei LKW), nicht beim Anlegen
+  eines LKW und nicht von allein bei manuellen Änderungen. Je Gewerk wird gleichmäßig verteilt:
+  die größten Stücke zuerst, jedes auf den zulässigen LKW mit der geringsten Auslastung (Bodenfläche
+  oder Nutzlast, je nachdem, was mehr belegt ist; Gewicht 0 zählt 0). Das ist eine Heuristik, keine
+  optimale Aufteilung. Was in „seinem“ LKW nicht mehr passt, wird einmal an die übrigen
+  zulässigen LKW des Gewerks weitergegeben, sonst bleibt es in der Ablage. Die Pack-Regeln des Plans
+  und „Deckschicht mischen“ gelten für jeden LKW.
+- **Von Hand zuordnen:** Im Inspector steht je Stück das Feld „LKW“; dort verschiebst du ein
+  Stück auf einen anderen LKW (eine Platzierung wandert in dessen Ablage) oder auf „Ohne LKW“.
+- **Reiter „Ohne LKW“:** Zeigt nur die nicht zugeordneten Stücke, ohne 2D-/3D-Ansicht. „Alles neu
+  packen“ verteilt sie, oder du weist sie im Inspector zu.
+- **Neues Material (Lade-Wizard):** Bei einem Mehr-LKW-Plan kommt es **nicht zugeordnet** in den
+  Plan und wird nicht automatisch gepackt; ein Hinweis sagt das. „Alles neu packen“ verteilt es.
+- **Drucken:** Neben der Dokumentenauswahl steht dann „dieser LKW / alle LKW“. „Alle LKW“ druckt
+  je LKW einen Abschnitt (neue Seite, LKW-Name im Kopf) und zuletzt „Ohne LKW“, falls es solche
+  Stücke gibt. Im Reiter „Ohne LKW“ druckt „dieser LKW“ nur diese Stücke.
+- **Fahrzeug löschen:** Alle LKW aller Pläne, die darauf zeigten, wechseln auf das Standardfahrzeug.
+- **Alte Daten:** Pläne und Sicherungen ohne LKW-Liste laden unverändert. Beim Import werden
+  Verweise auf unbekannte LKW repariert und gemeldet.
+
+## Drucken: Ladeplan, Abhakliste, Ausladeliste, Etiketten
 
 Neben dem Knopf „Drucken“ steht, was gedruckt wird:
 
@@ -211,14 +276,16 @@ Neben dem Knopf „Drucken“ steht, was gedruckt wird:
   Zweispaltig; rund 40 Cases passen auf ein Blatt. Liegt noch etwas in „Noch nicht geladen“,
   sagt der Kopf das ausdrücklich — eine abgehakte Liste heißt sonst, alles sei verladen,
   obwohl Cases in der Halle stehen. Warnungen aus dem Packergebnis stehen ebenfalls darauf.
+- **Ausladeliste** – dieselbe Liste wie die Abhakliste, aber in umgekehrter Reihenfolge (zuletzt
+  Geladenes zuerst) und mit der Unterschriftszeile „Entladen von“, für die Ankunft am Zielort.
 - **Etiketten** – ein Bogen zum Ausdrucken und Zerschneiden, je Stück ein Etikett mit großer
   Ladenummer, Beschriftung, Farbbalken und „3 von 17“. Zwei Größen zur Wahl, beide auf
   gängiges Haftpapier abgestimmt: **Avery Zweckform 3425** (105 × 57 mm, 10 je Bogen) und
   **Avery Zweckform 3474** (70 × 37 mm, 24 je Bogen).
 
-Etiketten drucken auf A4 hoch und randlos, Ladeplan und Abhakliste auf A4 quer. Vor dem ersten
+Etiketten drucken auf A4 hoch und randlos, Ladeplan, Abhakliste und Ausladeliste auf A4 quer. Vor dem ersten
 Etikettenbogen einen Testdruck auf normalem Papier machen und gegen einen Bogen halten — der
-senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (siehe
+senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (nur Shopseiten gesichtet, siehe
 [docs/offene-punkte.md](docs/offene-punkte.md)).
 
 ## Mitgelieferte Cases
@@ -264,7 +331,7 @@ jederzeit nachtragen.
 | Taste | Aktion |
 |-------|--------|
 | **R** | Gedrehte Case um 90° drehen |
-| **T** | Case tippen (tipLong / tipShort wechseln) |
+| **T** | Case tippen: ein stehendes Case wird auf die Seite getippt, ein getipptes wieder aufgestellt |
 | **W** | Rollenseite (Richtung) wechseln |
 | **D** | Case duplizieren |
 | **Entf** | Case löschen |

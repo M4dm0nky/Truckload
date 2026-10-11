@@ -135,8 +135,12 @@ export const CASE_LIBRARY = [
   C('Dolly 6-Bar silber -CAB', 'Licht', 215, 60, 193, 'CAB', 'Generic'),
   C('X4-Bar 20 -BBM', 'Licht', 130, 60, 58, 'BBM', 'GLP', { weight: 35, note: 'Gewicht geschätzt: 1 × X4 Bar 20 à 16 kg + Case' }),
   C('JDC-1 lang -Motion', 'Licht', 118, 55, 50, 'Motion', 'GLP', { weight: 25, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
-  C('JDC-1 Cube (4) -RentALL', 'Licht', 60, 60, 58, 'RentAll', 'GLP', { weight: 60, note: 'Gewicht geschätzt: 4 × JDC-1 à 11.6 kg + Case' }),
-  C('JDC-1 Cube -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { weight: 25, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
+  // Maße der beiden Cube-Zeilen auf Nutzerwunsch 2026-10-09 vertauscht: vier Geräte passen nicht
+  // in 60 × 60, 99 × 60 × 58 ist die Größe von „JDC-1 lang (6)“. Namen, Gewichte, Hinweistexte und
+  // IDs blieben (die Gewichte passen zur Gerätezahl im Namen); eigene Entscheidung, nicht nachgemessen.
+  // Siehe docs/casemasse-gewichte.md.
+  C('JDC-1 Cube (4) -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { weight: 60, note: 'Gewicht geschätzt: 4 × JDC-1 à 11.6 kg + Case' }),
+  C('JDC-1 Cube -RentALL', 'Licht', 60, 60, 58, 'RentAll', 'GLP', { weight: 25, note: 'Gewicht geschätzt: 1 × JDC-1 à 11.6 kg + Case' }),
   C('JDC-1 lang (6) -RentALL', 'Licht', 99, 60, 58, 'RentAll', 'GLP', { weight: 85, note: 'Gewicht geschätzt: 6 × JDC-1 à 11.6 kg + Case' }),
   C('GLP X4-Bar-20 x4 -CAB', 'Licht', 131, 60, 58, 'CAB', 'GLP', { weight: 80, note: 'Gewicht geschätzt: 4 × X4 Bar 20 à 16 kg + Case' }),
   C('JDC-1 x6 -CAB', 'Licht', 120, 60, 58, 'CAB', 'GLP', { weight: 85, note: 'Gewicht geschätzt: 6 × JDC-1 à 11.6 kg + Case' }),
@@ -185,9 +189,10 @@ export const CASE_LIBRARY = [
   C('D8 2t CAB', 'Rigging', 80, 60, 60, 'CAB', 'Motor', { weight: 55, note: 'Gewicht geschätzt: 1 × D8 2t à 39 kg + Case' }),
   C('D8+ 0,25t CAB', 'Rigging', 60, 50, 56, 'CAB', 'Motor', { weight: 25, note: 'Gewicht geschätzt: 1 × D8+ 0,25t à 10.2 kg + Case' }),
   C('D8+ 0,5t CAB', 'Rigging', 60, 50, 56, 'CAB', 'Motor', { weight: 30, note: 'Gewicht geschätzt: 1 × D8+ 0,5t à 17 kg + Case' }),
-  C('D8+ 0,5t CAB x12', 'Rigging', 150, 240, 56, 'CAB', 'Motor', { weight: 285, note: 'Gewicht geschätzt: 12 × D8+ 0,5t à 17 kg + Case' }),
-  C('D8+ 0,5t CAB x4', 'Rigging', 50, 240, 56, 'CAB', 'Motor', { weight: 95, note: 'Gewicht geschätzt: 4 × D8+ 0,5t à 17 kg + Case' }),
-  C('D8+ 0,5t CAB x8', 'Rigging', 100, 240, 56, 'CAB', 'Motor', { weight: 190, note: 'Gewicht geschätzt: 8 × D8+ 0,5t à 17 kg + Case' }),
+  // Länge/Breite der drei x4/x8/x12-Cases auf Nutzerwunsch 2026-10-09 getauscht (240 cm ist die Länge).
+  C('D8+ 0,5t CAB x12', 'Rigging', 240, 150, 56, 'CAB', 'Motor', { weight: 285, note: 'Gewicht geschätzt: 12 × D8+ 0,5t à 17 kg + Case' }),
+  C('D8+ 0,5t CAB x4', 'Rigging', 240, 50, 56, 'CAB', 'Motor', { weight: 95, note: 'Gewicht geschätzt: 4 × D8+ 0,5t à 17 kg + Case' }),
+  C('D8+ 0,5t CAB x8', 'Rigging', 240, 100, 56, 'CAB', 'Motor', { weight: 190, note: 'Gewicht geschätzt: 8 × D8+ 0,5t à 17 kg + Case' }),
   C('D8+ 1t PlusLite -cab', 'Rigging', 69, 60, 71, 'CAB', 'Motor', { weight: 45, note: 'Gewicht geschätzt: 1 × D8+ 1t à 31 kg + Case' }),
   // Auf Nutzerwunsch 2026-09-30 aus der Auswahl entfernt (überflüssig).
   C('63A VT Haube -BBM', 'Ton', 60, 60, 73, 'BBM', '', { legacy: true }),
@@ -196,18 +201,22 @@ export const CASE_LIBRARY = [
   // (h_gemessen − HE × 4,45 cm): 2 HE → 15 − 8,9 = 6,1 cm; 3 HE → 19 − 13,35 = 5,65 cm;
   // 6 HE → 32 − 26,7 = 5,3 cm. Mittelwert ≈ 5,68 cm, also h = HE × 4,45 + 5,68.
   //
+  // Alle Racks mit geschätzter Breite/Tiefe (1, 2, 4, 5, 6, 16 HE; bei 1, 4, 5, 16 HE zusätzlich die
+  // Höhe gerechnet) sind seit Nutzerwunsch 2026-10-10 `legacy`: nicht mehr wählbar, alte Pläne laden
+  // sie weiter. Nur 3 HE (komplett gemessen) bleibt wählbar.
+  //
   // Diese kleinen Racks haben keine Rollen (nur der 16-HE-Eintrag heißt „on wheels“, weil der
   // Zusatz auf die anderen nicht zutrifft). Die gemessenen Werte bestätigen das: ein 2-HE-Case mit
   // 15 cm Gesamthöhe hätte bei 13 cm Rollenhöhe nur 2 cm Korpus, ein 3-HE-Case mit 19 cm nur 6 cm.
   // Daher `wheels: false, wheelH: 0`; das erlaubt auch für 1 HE den abgeleiteten Wert statt einer
   // künstlichen Mindesthöhe.
-  C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 76.9, 'CAB'),  // 16 HE: h = 16 * 4,45 + 5,68, l/w geschätzt 60 x 60 – hat Rollen (Name)
-  C('19" 1HE -CAB', 'Ton', 60, 60, 10.1, 'CAB', '', { wheels: false, wheelH: 0 }),  // 1 HE: h = 1 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
-  C('19" 2HE -CAB', 'Ton', 60, 60, 15, 'CAB', '', { wheels: false, wheelH: 0 }),  // 2 HE: h = 15 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen
+  C('19" 16HE on wheels-CAB', 'Ton', 60, 60, 76.9, 'CAB', '', { legacy: true }),  // 16 HE: h = 16 * 4,45 + 5,68, l/w geschätzt 60 x 60 – hat Rollen (Name)
+  C('19" 1HE -CAB', 'Ton', 60, 60, 10.1, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 1 HE: h = 1 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
+  C('19" 2HE -CAB', 'Ton', 60, 60, 15, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 2 HE: h = 15 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen
   C('19" 3HE -CAB', 'Ton', 63, 54, 19, 'CAB', '', { wheels: false, wheelH: 0 }),  // 3 HE: gemessen (Quelle), keine Rollen
-  C('19" 4HE -CAB', 'Ton', 60, 60, 23.5, 'CAB', '', { wheels: false, wheelH: 0 }),  // 4 HE: h = 4 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
-  C('19" 5HE -CAB', 'Ton', 60, 60, 27.9, 'CAB', '', { wheels: false, wheelH: 0 }),  // 5 HE: h = 5 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
-  C('19" 6HE -CAB', 'Ton', 60, 60, 32, 'CAB', '', { wheels: false, wheelH: 0 }),  // 6 HE: h = 32 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen
+  C('19" 4HE -CAB', 'Ton', 60, 60, 23.5, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 4 HE: h = 4 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
+  C('19" 5HE -CAB', 'Ton', 60, 60, 27.9, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 5 HE: h = 5 * 4,45 + 5,68, l/w geschätzt 60 x 60, keine Rollen
+  C('19" 6HE -CAB', 'Ton', 60, 60, 32, 'CAB', '', { wheels: false, wheelH: 0, legacy: true }),  // 6 HE: h = 32 cm gemessen (Quelle), l/w geschätzt 60 x 60, keine Rollen
   // Leere Rack-/Dolly-Gehäuse ohne festen Geräteinhalt (Nutzerangabe 2026-09-30): Standardgewicht
   // 75 kg/m³, Herleitung siehe docs/casemasse-gewichte.md „Nachrecherche 2026-09-30“.
   C('Rack 16HE Deckel -CAB', 'Ton', 75, 60, 95, 'CAB', '', { weight: 30, note: 'Gewicht geschätzt: leeres Rack, Standard 75 kg/m³' }),
