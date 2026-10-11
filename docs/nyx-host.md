@@ -85,6 +85,25 @@ sondern über den Host (`js/app/hostPrint.js`):
 
 Etiketten (`doc: 'labels'`) bekommen keinen Rahmen und keinen geänderten Rand.
 
+Was NYX dabei wissen muss:
+
+- **Container:** `kopf` landet in `<div class="host-print-kopf">` als erstes Kind von
+  `#print-root`, `abschluss` in `<div class="host-print-abschluss">` als letztes. Beide tragen
+  keine Truckload-Klassen. Gestylt werden sie von NYX, aber die Regeln aus `css/print.css`
+  wirken trotzdem hinein, vor allem `#print-root svg` (`width: 100%`, `max-height: 55mm`) und
+  `#print-root h1`. Ein Logo im Kopf muss das selbst überstimmen.
+- **Spalten:** Checkliste und Ausladeliste setzen `#print-root.doc-checklist` auf zwei Spalten.
+  Der Kopf steht dann in Spalte 1, der Abschluss am Ende des Spaltenflusses. Wer den Kopf über
+  die volle Breite will, setzt `column-span: all` auf `.host-print-kopf`.
+- **Mehr-LKW-Pläne:** Bei „alle LKW“ trägt `#print-root` zusätzlich `doc-all`, und jeder
+  LKW-Abschnitt nach dem ersten beginnt mit `.p-break` auf einer neuen Seite. Der Kopf steht
+  nur einmal vorn, der Abschluss nur einmal am Ende. Seitenbezogenes gehört deshalb in NYX'
+  Fußzeile. Der `titel` nennt den Umfang: `Plan – alle LKW`, `Plan – <LKW>`, `Plan – Ohne LKW`,
+  bei Ein-LKW-Plänen wie bisher `Plan – <Fahrzeug>`.
+- **Druckarten:** `doc` ist `plan`, `checklist`, `unload` (Ausladeliste) oder `labels`. Eine neue
+  Druckart braucht in NYX eine Bezeichnung für Kopf und Dateinamen.
+- **Ein Druck zur Zeit:** Solange `print` läuft, ignoriert Truckload weitere Klicks auf „Drucken“.
+
 ## Neue Version in NYX übernehmen
 
 Auf NYX-Seite: `git submodule update --remote truckload`, Tests, Handtest, Commit. NYX übernimmt
