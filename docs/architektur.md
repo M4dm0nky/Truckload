@@ -14,6 +14,10 @@ js/app/      Verdrahtung in kleinen Modulen (Zustandshelfer, Bildschirme, Speich
 js/app.js    Startdatei: lädt die Daten, erzeugt den Store und ruft die Module aus js/app/ auf
 ```
 
+`js/store/db.js` hat zwei Backends: IndexedDB und, wenn NYX `globalThis.truckloadHost`
+bereitstellt, `js/store/hostDb.js`. Die Wahl fällt je Aufruf; `repo.js` und alles darüber
+merken nichts davon. Einzelheiten in [nyx-host.md](nyx-host.md).
+
 Die Richtung ist strikt: `ui` benutzt `model`, nie umgekehrt. Module unter `model/` haben
 keinen DOM-Zugriff und sind damit vollständig testbar. Wo aus einem UI-Modul rechenbare
 Geometrie herausfällt, wandert sie in ein reines Modul — so entstanden
