@@ -2,6 +2,23 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.16.0 – 2026-10-11
+
+**Truckload läuft als Tab in NYX.** In der Web-App ändert sich nichts.
+
+- **Speicher über NYX:** Läuft Truckload in NYX, speichert es nicht in IndexedDB, sondern über
+  NYX. Cases, Fahrzeuge und Regelsätze liegen dort projektübergreifend, die Ladepläne in der
+  Projektdatei. Scheitert das Laden, nimmt Truckload bis zum Neuladen keine Änderungen an, damit
+  nichts gegen einen ungesehenen Bestand geschrieben wird. „Firma löschen“ bleibt auch dort
+  eine einzige Transaktion.
+- **Erscheinungsbild:** Farben, Schrift und hell/dunkel lassen sich über Gestaltungs-Tokens
+  setzen. NYX übernimmt so sein Aussehen, auch beim Umschalten zur Laufzeit. Die 3D-Ansicht
+  liest Auswahl- und Fehlerfarbe daraus.
+- **Drucken in NYX:** Ladeplan, Abhakliste, Ausladeliste und Etiketten werden in NYX als PDF
+  erzeugt, mit NYX-Kopf und -Fußzeile. Das gilt für dieser LKW, alle LKW und Ohne LKW. Ein
+  zweiter Klick auf „Drucken“ während eines laufenden Drucks wird ignoriert.
+- Was NYX voraussetzt, steht in [docs/nyx-host.md](docs/nyx-host.md).
+
 ## V 0.15.0 – 2026-10-10
 
 **Racks mit geschätzten Maßen sind aus der Auswahl genommen.**

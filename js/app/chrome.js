@@ -8,6 +8,8 @@ import {
 } from '../ui/print.js';
 import { isMultiLkw, lkwsOf, NO_LKW } from '../model/lkw.js';
 import { printSectionsOf } from './core.js';
+import { druckeMitHost, druckTitel, createDruckSperre } from './hostPrint.js';
+import { showAlert } from '../ui/confirmDialog.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -118,9 +120,9 @@ export function registerServiceWorker() {
 // Die Seitenvorschrift hängt an der Druckart (pageRuleFor in js/ui/print.js): Etiketten wollen
 // A4 hoch und randlos, Ladeplan und Abhakliste A4 quer. Sie wird NACH dem Druck wieder
 // entfernt, sonst druckte der nächste Ladeplan im Hochformat.
-function setPrintPage(doc) {
+function setPrintPage(doc, randUntenMm = null) {
   clearPrintPage();
-  const rule = pageRuleFor(doc);
+  const rule = pageRuleFor(doc, { randUntenMm });
   if (!rule) return;
   const el = document.createElement('style');
   el.id = 'print-page';
@@ -150,7 +152,12 @@ export function wirePrint({ store, derive }) {
   store.subscribe(syncScope);
   syncScope(store.get());
   window.addEventListener('afterprint', clearPrintPage);
+  // Der Host-Druck ist asynchron (PDF in NYX). Ein zweiter Klick währenddessen baute #print-root
+  // unter dem laufenden Druck neu auf und räumte dessen Seitenregel weg – deshalb abweisen, bis
+  // der erste fertig ist. window.print() blockiert ohnehin, dort greift die Sperre nie.
+  const sperre = createDruckSperre();
   $('#print').onclick = () => {
+    if (sperre.laeuft) return;
     const s = store.get(), d = derive(s);
     const root = $('#print-root');
     const doc = $('#print-doc').value;
@@ -196,6 +203,24 @@ export function wirePrint({ store, derive }) {
     } else {
       root.className = 'print-root doc-plan';
       buildPrint(root, { plan: d.view, truck: d.truck, result: d.result, colorMode: s.caseColors, lkw });
+    }
+    const host = globalThis.truckloadHost;
+    if (host?.print) {
+      const lkwName = onFree ? 'Ohne LKW' : lkw?.name;
+      sperre.lauf(() => druckeMitHost({
+        host, doc, titel: druckTitel(doc, { plan: s.plan, truck: d.truck, lkwName, alle: all }),
+        einsetzen: (kopf, abschluss) => {
+          // HTML von NYX (gleiches Haus, eigenes Protokoll), eigene Container ohne Truckload-Klassen
+          const k = document.createElement('div'); k.className = 'host-print-kopf'; k.innerHTML = kopf;
+          const a = document.createElement('div'); a.className = 'host-print-abschluss'; a.innerHTML = abschluss;
+          root.prepend(k); root.append(a);
+          return () => { k.remove(); a.remove(); };
+        },
+        setPage: setPrintPage,
+        clearPage: clearPrintPage,
+        zeigeFehler: m => showAlert(`Drucken fehlgeschlagen: ${m}`),
+      }));
+      return;
     }
     setPrintPage(doc);
     window.print();

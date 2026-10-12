@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.15.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.16.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -17,6 +17,8 @@ js/app.js    Startdatei: lädt die Daten, erzeugt den Store und ruft die Module 
 `js/store/db.js` hat zwei Backends: IndexedDB und, wenn NYX `globalThis.truckloadHost`
 bereitstellt, `js/store/hostDb.js`. Die Wahl fällt je Aufruf; `repo.js` und alles darüber
 merken nichts davon. Einzelheiten in [nyx-host.md](nyx-host.md).
+Gestaltung und Drucken für einen Host stehen ebenfalls in [nyx-host.md](nyx-host.md)
+(`js/ui/themeTokens.js`, `js/ui/themeColors.js`, `js/app/hostPrint.js`).
 
 Die Richtung ist strikt: `ui` benutzt `model`, nie umgekehrt. Module unter `model/` haben
 keinen DOM-Zugriff und sind damit vollständig testbar. Wo aus einem UI-Modul rechenbare

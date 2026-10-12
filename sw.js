@@ -4,7 +4,7 @@
 // läuft der Abruf im Hintergrund weiter und frischt den Cache auf.
 // Ein Stand pro Seitenaufruf: Lief bei einem Client ein Abruf in den Timeout, kommen alle weiteren
 // Dateien dieses Clients sofort aus dem Cache – sonst mischen sich alte und neue Module.
-const CACHE = 'truckload-v0.15.0';
+const CACHE = 'truckload-v0.16.0';
 const ASSETS = [
   './',
   'index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
   'js/app/chrome.js',
   'js/app/core.js',
   'js/app/guarded.js',
+  'js/app/hostPrint.js',
   'js/app/importExport.js',
   'js/app/keyboard.js',
   'js/app/materialScreen.js',
@@ -75,11 +76,13 @@ const ASSETS = [
   'js/ui/projection.js',
   'js/ui/stock-target.js',
   'js/ui/textMetrics.js',
+  'js/ui/themeTokens.js',
   'js/ui/truck-editor.js',
   'js/ui/truss-wizard.js',
   'js/ui/view2d.js',
   'js/ui/wizard-items.js',
   'js/ui/zoom2d.js',
+  'js/ui/themeColors.js',
   'js/ui/view3d-parts.js',
   'js/ui/view3d.js',
   'vendor/three.module.min.js',

@@ -1,4 +1,5 @@
 import { safeColor } from './dom.js';
+import { readThemeColors } from './themeColors.js';
 import { archBoxes, isTruss } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { caseShape, wheelAxes } from '../model/caseShape.js';
@@ -33,15 +34,8 @@ export async function createView3d(container) {
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
-  const readBg = () => getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#0f172a';
-  scene.background = new THREE.Color(readBg());
-  // `--bg` wird bei jedem Wechsel hell/dunkel (css/app.css, `@media (prefers-color-scheme: light)`)
-  // neu gelesen, sonst bliebe der 3D-Hintergrund stehen, während Oberfläche und 2D mitziehen. Ein
-  // `render()` ist nötig, weil sich ohne neuen `update()`-Aufruf sonst nichts an der Szene ändert,
-  // das einen Frame anstößt.
-  themeQuery = window.matchMedia('(prefers-color-scheme: light)');
-  onThemeChange = () => { scene.background = new THREE.Color(readBg()); render(); };
-  themeQuery.addEventListener('change', onThemeChange);
+  const farben = () => readThemeColors(n => getComputedStyle(document.body).getPropertyValue(n));
+  scene.background = new THREE.Color(farben().bg);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 20000);
   camera.up.set(0, 0, 1); // Truck-Koordinaten: z = oben
   scene.add(new THREE.HemisphereLight(0xffffff, 0x606060, 3));
@@ -78,7 +72,7 @@ export async function createView3d(container) {
   const shared = mat => { mat.userData.shared = true; return mat; };
   const MAT_FLOOR = shared(new THREE.MeshLambertMaterial({ color: 0x9aa1aa }));
   const MAT_ROOM_EDGE = shared(new THREE.LineBasicMaterial({ color: 0x8b95a3 }));
-  const MAT_FRONT = shared(new THREE.MeshLambertMaterial({ color: 0xf0a500, transparent: true, opacity: 0.35 }));
+  const MAT_FRONT = shared(new THREE.MeshLambertMaterial({ color: farben().selection, transparent: true, opacity: 0.35 }));
   const MAT_ARCH = shared(new THREE.MeshLambertMaterial({ color: 0x444a52 }));
   const ALU_HEX = '#c9ced4';
   const MAT_ALU = shared(new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 0.25, roughness: 0.45 }));
@@ -86,8 +80,8 @@ export async function createView3d(container) {
   const MAT_WHEEL = shared(new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.9 }));
   const MAT_HUB = shared(new THREE.MeshStandardMaterial({ color: 0xd0d5db, metalness: 0.4, roughness: 0.5 }));
   const MAT_EDGE_ALU = shared(new THREE.LineBasicMaterial({ color: 0xb8bec6 }));
-  const MAT_EDGE_SEL = shared(new THREE.LineBasicMaterial({ color: 0xf0a500 }));
-  const MAT_EDGE_ERR = shared(new THREE.LineBasicMaterial({ color: 0xe5484d }));
+  const MAT_EDGE_SEL = shared(new THREE.LineBasicMaterial({ color: farben().selection }));
+  const MAT_EDGE_ERR = shared(new THREE.LineBasicMaterial({ color: farben().danger }));
 
   // Flightcase-Look: Alu-Profilstäbe (je Sorte ein InstancedMesh, Farbe je Instanz für Auswahl/Fehler),
   // Kugelecken, Deckelfuge/Butterfly-Verschlüsse, Schalengriffe.
@@ -101,11 +95,26 @@ export async function createView3d(container) {
   // unauffälligen Case-Rollen; übrige Lautsprecher-Materialien weiter unten bei GEO_WEDGE.
   const MAT_WHEEL_SPEAKER = shared(new THREE.MeshStandardMaterial({ color: 0xf2a900, roughness: 0.6 }));
   const COL_PROFILE_N = new THREE.Color(0xc9ced4);
-  const COL_PROFILE_SEL = new THREE.Color(0xf0a500);
-  const COL_PROFILE_BAD = new THREE.Color(0xe5484d);
+  const COL_PROFILE_SEL = new THREE.Color(farben().selection);
+  const COL_PROFILE_BAD = new THREE.Color(farben().danger);
   // Auswahl hat Vorrang vor Fehler, sonst Normalfarbe.
   const edgeMaterial = (selected, bad) => (selected ? MAT_EDGE_SEL : bad ? MAT_EDGE_ERR : MAT_EDGE_ALU);
   const profileColor = (selected, bad) => (selected ? COL_PROFILE_SEL : bad ? COL_PROFILE_BAD : COL_PROFILE_N);
+
+  // Hell/Dunkel-Wechsel (`--bg` & Co. ändern sich) und NYX' `tl-theme`: Hintergrund und Bedeutungsfarben
+  // neu lesen. Die Profilfarben stecken in den Instanzpuffern, die `update()` je Aufruf neu baut; ein
+  // bloßes `render()` färbte sie nicht um, deshalb wird die zuletzt gezeichnete Szene neu aufgebaut.
+  // Erst hier (hinter den Materialien) zugewiesen, sonst liefe der Handler gegen ungesetzte Konstanten.
+  onThemeChange = () => {
+    const f = farben();
+    scene.background = new THREE.Color(f.bg);
+    MAT_FRONT.color.set(f.selection); MAT_EDGE_SEL.color.set(f.selection); COL_PROFILE_SEL.set(f.selection);
+    MAT_EDGE_ERR.color.set(f.danger); COL_PROFILE_BAD.set(f.danger);
+    if (lastArgs) update(lastArgs); else render();
+  };
+  themeQuery = window.matchMedia('(prefers-color-scheme: light)');
+  themeQuery.addEventListener('change', onThemeChange);
+  window.addEventListener('tl-theme', onThemeChange);
 
   // Feine Körnung für den Laminat-Korpus – einmal prozedural erzeugt, geteilt über alle Cases.
   function makeLaminateTexture() {
@@ -558,6 +567,7 @@ export async function createView3d(container) {
     if (disposed) return; // zweiter Aufruf wäre ein doppeltes Freigeben von Renderer und Texturen
     disposed = true;
     themeQuery.removeEventListener('change', onThemeChange);
+    window.removeEventListener('tl-theme', onThemeChange);
     resizeObserver.disconnect();
     controls.dispose();
     clear();
@@ -580,8 +590,11 @@ export async function createView3d(container) {
   }
 
   let framedFor = null;
-  function update({ truck, result, selectedId, colorMode = 'black', layerLimit = null }) {
+  let lastArgs = null;
+  function update(args) {
     if (disposed) return;
+    lastArgs = args;
+    const { truck, result, selectedId, colorMode = 'black', layerLimit = null } = args;
     clear();
     usedLabelKeys = new Set();
     usedBodyMatKeys = new Set();
@@ -712,6 +725,7 @@ export async function createView3d(container) {
   return { update, dispose };
   } catch (err) {
     themeQuery?.removeEventListener('change', onThemeChange);
+    window.removeEventListener('tl-theme', onThemeChange);
     renderer.dispose();
     renderer.forceContextLoss();
     throw err;
