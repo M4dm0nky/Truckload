@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { reduceWizardItem, defaultWizardLayers, setLayerForAll, setTippedForAll, bulkState, autoPackAfterStacked, countWithoutLayer, capToRoom, searchInOptionsHtml, stockDefaultFor, refreshWizardCases } from '../js/ui/wizard-items.js';
 import { caseKind, NEUTRAL_COMPANY } from '../js/ui/caseGroups.js';
 import { mkCase } from './fixtures.js';
+import { withBuiltins } from '../js/model/collections.js';
 
 // Seit V 0.13.2 eigener Reiter „Lautsprecher“ (Nutzerwunsch 2026-10-09), vorher im „cases“-Tab.
 test('dollyPrompt-Cases stehen im Reiter „Lautsprecher“', () => {
@@ -131,20 +132,20 @@ test('countWithoutLayer zählt Stücke ohne angehakte Lage', () => {
   assert.equal(countWithoutLayer([entry([1])]), 0);
 });
 
-test('„Suchen in“: Standardkatalog ist Vorgabe, dann kompletter Bestand, dann je Firma', () => {
-  const html = searchInOptionsHtml(['CAB'], NEUTRAL_COMPANY);
-  const options = [...html.matchAll(/<option value="([^"]*)"( selected)?>([^<]*)<\/option>/g)]
-    .map(m => ({ value: m[1], selected: !!m[2], label: m[3] }));
-  assert.deepEqual(options, [
-    { value: NEUTRAL_COMPANY, selected: true, label: 'Standardkatalog' },
-    { value: '', selected: false, label: 'Kompletter Bestand' },
-    { value: 'CAB', selected: false, label: 'nur CAB' },
-  ]);
+test('searchInOptionsHtml: Standardkatalog, Kompletter Bestand, dann jede Sammlung als Baum', () => {
+  const cols = withBuiltins([{ id: 't', name: 'TSE' }, { id: 'r', name: 'Robe', parentId: 't' }]);
+  const html = searchInOptionsHtml(cols, NEUTRAL_COMPANY);
+  assert.match(html, /value="__neutral__" selected>Standardkatalog/);
+  assert.match(html, /value="">Kompletter Bestand/);
+  assert.match(html, /value="t">nur TSE/);
+  assert.match(html, /value="r">nur – Robe/);
 });
-test('stockDefaultFor: Firma nur bei Firmenwahl', () => {
-  assert.equal(stockDefaultFor('CAB'), 'CAB');
-  assert.equal(stockDefaultFor(''), '');
-  assert.equal(stockDefaultFor(NEUTRAL_COMPANY), '');
+test('stockDefaultFor: Name der gewählten eigenen Sammlung, sonst leer', () => {
+  const cols = withBuiltins([{ id: 't', name: 'TSE' }]);
+  assert.equal(stockDefaultFor('t', cols), 'TSE');
+  assert.equal(stockDefaultFor('meine', cols), '');
+  assert.equal(stockDefaultFor(NEUTRAL_COMPANY, cols), '');
+  assert.equal(stockDefaultFor('', cols), '');
 });
 
 test('refreshWizardCases: nach der Materialverwaltung frische Liste, Stückzahl gelöschter Cases fällt weg', () => {

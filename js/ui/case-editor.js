@@ -116,7 +116,7 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
     </form>`;
   const form = dlg.querySelector('form');
   const f = form.elements;
-  wireStockTarget(form);
+  wireStockTarget(form, stock?.collections ?? []);
   f.name.value = fromTemplate ? `${v.name} (eigenes)` : v.name;
   f.content.value = v.content;
   f.category.value = v.category;

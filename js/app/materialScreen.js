@@ -6,7 +6,10 @@ import { openCaseEditor } from '../ui/case-editor.js';
 import { openTrussDialog } from '../ui/truss-wizard.js';
 import { openDollyDialog } from '../ui/dolly-wizard.js';
 import { showAlert, showPick } from '../ui/confirmDialog.js';
-import { companyList, isInStock, copyToCompany, applyStockTarget } from '../model/material.js';
+import { isInStock, copyToCompany, applyStockTarget } from '../model/material.js';
+import { userCollectionNames, collectionIdOf, MEINE_ID, STANDARD_ID } from '../model/collections.js';
+import { parseCollectionFile, exportCollectionFile, collectionFileName } from '../store/io.js';
+import { downloadJSON } from './download.js';
 import { usage } from './core.js';
 
 const $ = sel => document.querySelector(sel);
@@ -31,16 +34,24 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
     return new Promise(resolve => { materialReturn = resolve; openMaterial(); });
   }
 
-  // Zielfirma: '' = Standardliste (Wert ''), sonst Firmenname; null = abgebrochen.
-  const pickFirm = () => showPick('In welche Firma?', [{ value: '', label: 'Standardliste' }, ...companyList(store.get().cases).map(f => ({ value: f.name, label: f.name }))]);
+  // Name der Sammlung zu einer ID: '' für „Meine Sammlung“ und „Standard“ (kein Firmenname am Case).
+  const nameOf = id => {
+    const c = store.get().collections.find(x => x.id === id);
+    return c && c.id !== MEINE_ID && c.id !== STANDARD_ID ? c.name : '';
+  };
+  // Zielsammlung für „Kopieren“/„In Bestand übernehmen“: Wert = Name ('' = Meine Sammlung); null = abgebrochen.
+  const pickCollection = () => showPick('In welche Sammlung?', [
+    { value: '', label: 'Meine Sammlung' },
+    ...userCollectionNames(store.get().collections).map(n => ({ value: n, label: n })),
+  ]);
 
   const material = mountMaterial(el, {
     onBack: () => {
       store.update(s => ({ ...s, materialOpen: false }));
       if (materialReturn) { const back = materialReturn; materialReturn = null; back(store.get().cases); }
     },
-    onNewCase: async company => {
-      const res = await openCaseEditor($('#dlg-case'), null, { stock: { mode: 'fixed', company } });
+    onNewCase: async collectionId => {
+      const res = await openCaseEditor($('#dlg-case'), null, { stock: { mode: 'fixed', company: nameOf(collectionId) } });
       if (res?.action === 'save') await saveCase(res.value);
     },
     onEdit: async id => {
@@ -56,31 +67,56 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
       await saveCase(res.value);
     },
     onDelete: id => persistence.removeFromStock(store.get().cases.find(x => x.id === id)),
-    onNewTruss: async company => {
-      const res = await openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCase, stock: { mode: 'fixed', company } });
-      // Gibt es den Wagen in dieser Firma schon, legt der Dialog nichts an – das nicht stumm lassen.
+    onNewTruss: async collectionId => {
+      const res = await openTrussDialog($('#dlg-truss'), { cases: store.get().cases, onNewTruss: saveCase, stock: { mode: 'fixed', company: nameOf(collectionId) } });
+      // Gibt es den Wagen in dieser Sammlung schon, legt der Dialog nichts an – das nicht stumm lassen.
       const created = new Set((res?.newCases ?? []).map(c => c.id));
       for (const a of res?.additions ?? []) {
         const existing = created.has(a.caseId) ? null : store.get().cases.find(c => c.id === a.caseId);
-        if (existing) await showAlert(`Diesen Traversenwagen gibt es in dieser Firma schon: ${existing.name}.`);
+        if (existing) await showAlert(`Diesen Traversenwagen gibt es in dieser Sammlung schon: ${existing.name}.`);
       }
       return res;
     },
-    onNewDolly: async company => {
+    onNewDolly: async collectionId => {
       const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
-      if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, existingCases: store.get().cases, onNewDollyStack: saveCase, stock: { mode: 'fixed', company } });
+      if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, existingCases: store.get().cases, onNewDollyStack: saveCase, stock: { mode: 'fixed', company: nameOf(collectionId) } });
     },
     onCopy: async id => {
-      const firm = await pickFirm();
+      const firm = await pickCollection();
       if (firm != null) await saveCase(copyToCompany(store.get().cases.find(c => c.id === id), firm, uid()));
     },
     onAdopt: async id => {
-      const firm = await pickFirm();
+      const firm = await pickCollection();
       if (firm != null) await saveCase(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
     },
-    // Platzhalter bis Task 6 (Sammlungs-Oberfläche): renameCompany/deleteCompany gibt es nicht mehr.
-    onRename: async () => { await showAlert('Diese Funktion wird gerade umgebaut.'); return false; },
-    onDeleteCompany: async () => { await showAlert('Diese Funktion wird gerade umgebaut.'); return false; },
+    onCreateCollection: persistence.createCollection,
+    onRenameCollection: persistence.renameCollection,
+    onMoveCollection: persistence.moveCollection,
+    onDeleteCollection: persistence.deleteCollection,
+    onMoveCase: persistence.moveCaseTo,
+    onExportCollection: id => {
+      const st = store.get();
+      const meta = st.collections.find(c => c.id === id);
+      if (!meta) return;
+      const cases = st.cases.filter(c => collectionIdOf(c) === id);
+      downloadJSON(collectionFileName(meta.name), exportCollectionFile(meta, cases));
+    },
+    // Bricht der Nutzer den Dateidialog ab, feuert kein `change`; die Promise bleibt offen, der
+    // Aufrufer blockiert dadurch nichts.
+    onImportCollection: () => new Promise(resolve => {
+      const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'application/json,.json' });
+      input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return resolve(null);
+        try {
+          resolve(await persistence.importCollectionFile(parseCollectionFile(await file.text())));
+        } catch (err) {
+          await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
+          resolve(null);
+        }
+      };
+      input.click();
+    }),
   });
 
   // Case aus Bibliothek oder Inspector bearbeiten (caseId null: neues Case).

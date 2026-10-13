@@ -2,6 +2,7 @@
 // Bibliothek (library.js) und im Lade-Wizard (load-wizard.js), damit sich
 // beide Listen gleich anfühlen und Such-/Gewerk-/Firmenfilter identisch wirken.
 import { isTruss } from '../model/geometry.js';
+import { descendantIds, collectionIdOf } from '../model/collections.js';
 
 // Sentinel für den Firmen-Filter: „nur Cases OHNE company“ – der Vorgabewert im Lade-Wizard
 // (Nutzerwunsch 2026-10-06: firmen-gebrandete Cases wie „-CAB“ sollen nie von selbst
@@ -40,10 +41,13 @@ export function caseKind(c) {
 // verschwinden, sobald eine Firma gewählt ist. Mit NEUTRAL_COMPANY ist es
 // umgekehrt: nur Cases OHNE `company` bleiben durch. `keep: Set<id>` = in diesem Wizard-Durchlauf
 // angelegte Cases: sie umgehen alle Filter (Suche, Gewerk, Firma, onlyInPlan) und landen nach
-// ihren übrigen Eigenschaften in der passenden Gruppe.
-export function groupCases(cases, { q = '', cat = '', company = '', keep = new Set() } = {}) {
+// ihren übrigen Eigenschaften in der passenden Gruppe. `collection` (ID) = Sammlung mit ihren
+// Untersammlungen, gegen `collections` aufgelöst; sie hat Vorrang vor `company`.
+export function groupCases(cases, { q = '', cat = '', company = '', collection = '', collections = [], keep = new Set() } = {}) {
   const needle = q.trim().toLowerCase();
-  const matchCompany = c => company === NEUTRAL_COMPANY ? !c.company : (!company || c.company === company);
+  const ids = collection ? descendantIds(collections, collection) : null;
+  const matchCompany = c => (ids ? ids.has(collectionIdOf(c))
+    : company === NEUTRAL_COMPANY ? !c.company : (!company || c.company === company));
   const match = c => keep.has(c.id) || (!c.onlyInPlan
     && (!cat || c.category === cat)
     && matchCompany(c)

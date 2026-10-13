@@ -2,14 +2,20 @@ import { esc } from './dom.js';
 import { layersOf, canTip } from '../model/geometry.js';
 import { NEUTRAL_COMPANY } from './caseGroups.js';
 import { MAX_LABEL } from '../model/limits.js';
+import { collectionRows, STANDARD_ID, MEINE_ID } from '../model/collections.js';
 
-// Optionen der Auswahl „Suchen in“: Standardkatalog (Vorgabe), kompletter Bestand, je Firma.
-export function searchInOptionsHtml(companies, selected) {
+// Optionen der Auswahl „Suchen in“: Standardkatalog (Vorgabe), kompletter Bestand, je Sammlung
+// (als Baum eingerückt; eine Eltern-Sammlung schließt ihre Untersammlungen ein, groupCases).
+export function searchInOptionsHtml(collections, selected) {
   const opt = (v, label) => `<option value="${esc(v)}"${v === selected ? ' selected' : ''}>${esc(label)}</option>`;
-  return opt(NEUTRAL_COMPANY, 'Standardkatalog') + opt('', 'Kompletter Bestand') + companies.map(n => opt(n, `nur ${n}`)).join('');
+  return opt(NEUTRAL_COMPANY, 'Standardkatalog') + opt('', 'Kompletter Bestand') + collectionRows(collections).map(({ collection, depth }) => opt(collection.id, `nur ${'– '.repeat(depth)}${collection.name}`)).join('');
 }
-// Vorgabe-Ablageziel für neue Cases: die gewählte Firma, sonst keine.
-export const stockDefaultFor = v => (v && v !== NEUTRAL_COMPANY ? v : '');
+// Vorgabe-Ablageziel für neue Cases: der Name der gewählten eigenen Sammlung, sonst keiner
+// (= „Meine Sammlung“).
+export const stockDefaultFor = (v, collections = []) => {
+  const c = collections.find(x => x.id === v);
+  return c && c.id !== STANDARD_ID && c.id !== MEINE_ID ? c.name : '';
+};
 
 // Rückkehr aus der Materialverwaltung (Knopf „Material“ im Wizard, Nutzerwunsch 2026-10-09): die
 // Auswahl bleibt, die Case-Liste kommt frisch aus dem Store. Stückzahlen von Cases, die dort

@@ -151,3 +151,13 @@ test('caseKind: Line-Array-Boxen, Subs (dollyPrompt) und Boxen-Dollys (kind spea
   assert.equal(caseKind({ category: 'Ton', kind: 'speaker' }), 'lautsprecher');
   assert.equal(caseKind({ category: 'Ton' }), 'cases');
 });
+
+test('groupCases: collection schließt Untersammlungen ein, andere Sammlungen fallen weg', () => {
+  const collections = [{ id: 't', name: 'TSE' }, { id: 'r', name: 'Robe', parentId: 't' }, { id: 'x', name: 'Andere' }];
+  const mk = (id, collectionId) => ({ id, name: id, collectionId });
+  const cases = [mk('a', 't'), mk('b', 'r'), mk('c', 'x'), mk('d', 'meine')];
+  const ids = g => g.own.map(c => c.id).sort();
+  assert.deepEqual(ids(groupCases(cases, { collection: 't', collections })), ['a', 'b']);
+  assert.deepEqual(ids(groupCases(cases, { collection: 'r', collections })), ['b']);
+  assert.deepEqual(ids(groupCases(cases, {})), ['a', 'b', 'c', 'd']);
+});

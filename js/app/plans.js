@@ -79,6 +79,7 @@ export function wirePlans(deps) {
     const res = await openLoadWizard($('#dlg-wizard'), {
       mode,
       cases: s.cases,
+      getCollections: () => store.get().collections,
       trucks: s.trucks,
       defaultTruckId: s.plan ? ctx().truck.id : DEFAULT_TRUCK_ID,
       defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,

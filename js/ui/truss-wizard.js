@@ -68,7 +68,7 @@ export function openTrussDialog(dlg, opts = {}) {
         <label>Länge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
         <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
         <label>Wagenbreite (cm)<input type="number" name="wagonW" min="20" max="200" step="1" required></label>
-        <p class="hint">Wagen unterscheiden sich je Firma – die Breite hier an den echten Wagen anpassen.</p>
+        <p class="hint">Wagen unterscheiden sich je Sammlung – die Breite hier an den echten Wagen anpassen.</p>
         <div class="row">
           <label>Gesamtstückzahl<input type="number" name="total" min="1" step="1" required></label>
           <label>Stück pro Wagen<input type="number" name="perWagon" min="1" max="12" step="1" required></label>
@@ -93,7 +93,7 @@ export function openTrussDialog(dlg, opts = {}) {
 
   const form = dlg.querySelector('form');
   const f = form.elements;
-  wireStockTarget(form);
+  wireStockTarget(form, stock?.collections ?? []);
   const kindInputs = [...dlg.querySelectorAll('input[name="kind"]')];
   const classicOnly = dlg.querySelector('.classic-only');
   const prerigOnly = dlg.querySelector('.prerig-only');
