@@ -19,16 +19,17 @@ offenen Punkte in [docs/offene-punkte.md](docs/offene-punkte.md).
 - **Eine einzige Versionsnummer überall.** Quelle ist `js/version.js`; `package.json`,
   `README.md`, `index.html`, der Cache-Name in `sw.js` und der oberste CHANGELOG-Eintrag
   müssen übereinstimmen. `tests/version.test.js` erzwingt das.
-- **Die Offline-Asset-Liste in `sw.js` muss vollständig sein.** Jede neue Datei unter `js/`
-  oder `css/` gehört dort hinein, sonst fehlt sie im Offline-Betrieb.
+- **Die Offline-Asset-Liste in `sw.js` muss vollständig sein.** Jede neue Datei unter `js/`,
+  `css/`, `data/`, `icons/` oder `vendor/` gehört dort hinein, sonst fehlt sie im Offline-Betrieb.
   `tests/pwa.test.js` prüft das.
 - **Alte Daten müssen weiter laden.** Fehlende Felder bedeuten Vorgabewerte; bestehende
   Cases dürfen ihre Maße nicht unbemerkt ändern. Jede Änderung am Datenmodell braucht
   einen Regressionstest mit einem Datensatz im alten Schema.
 - **Truckload läuft auch in NYX.** Was NYX voraussetzt (Speicher nur über `js/store/db.js`,
   relative Pfade, kein Netz zur Laufzeit, keine nativen Dialoge, `vendor/LICENSE-three.txt`),
-  steht in [docs/nyx-host.md](docs/nyx-host.md). Vor Änderungen an `js/store/`, `sw.js` oder
-  `vendor/` lesen.
+  steht in [docs/nyx-host.md](docs/nyx-host.md); zu den Sammlungen (Store `collections`, ein
+  Datensatz je Sammlung) in [docs/nyx-sammlungen.md](docs/nyx-sammlungen.md). Vor Änderungen an
+  `js/store/`, `sw.js`, `data/` oder `vendor/` lesen.
 
 ## Ablauf
 

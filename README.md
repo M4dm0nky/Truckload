@@ -31,6 +31,7 @@ npm test
 - [CLAUDE.md](CLAUDE.md) – wie in diesem Projekt gearbeitet wird: Regeln, Prüfablauf, Veröffentlichung
 - [docs/architektur.md](docs/architektur.md) – Datenmodell, Schichten und die Invarianten, die man vorher kennen muss
 - [docs/offene-punkte.md](docs/offene-punkte.md) – bekannte Schwächen und Ideen, nach Nützlichkeit sortiert
+- [docs/nyx-host.md](docs/nyx-host.md) und [docs/nyx-sammlungen.md](docs/nyx-sammlungen.md) – was NYX für Speicher, Sammlungen, Gestaltung und Drucken voraussetzt
 - [docs/code-review-2026-09-21.md](docs/code-review-2026-09-21.md) – vollständige Code-Review zum Meilenstein V 0.6.0
 - [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md) – Herleitung und Quellen der geschätzten Case-Gewichte
 - [docs/mlt-truss-gewichte.md](docs/mlt-truss-gewichte.md) – Maße, Gewichte und Quellen der Pre-Rig-Traversen (MLT/S36PR)
@@ -148,7 +149,7 @@ nicht aus den Maßen folgen (Nutzlast, Lagen-Einschränkung, Pack-Regeln), nennt
 dann steht dort nichts.
 
 Das **Gewicht** eines Case-Typs lässt sich im Inspector direkt ändern (Zahlenfeld in kg, gilt für
-alle Stücke dieses Typs). Das gilt für eigene Cases und Firmen-Vorlagen; bei Standardvorlagen
+alle Stücke dieses Typs). Das gilt für eigene Cases und Listen-Vorlagen; bei Standardvorlagen
 legt „Kopieren“ in der Materialverwaltung eine änderbare Version an, und das Gewicht von
 Traversenwagen ergibt sich aus der Konstruktion.
 
@@ -298,10 +299,12 @@ senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (nur Sho
 ## Mitgelieferte Cases
 
 In der Bibliothek und im Wizard gibt es neben „Eigene Cases“ und den Vorlagen einen
-eigenen Abschnitt „Cases aus deiner Liste“ mit 122 Cases – übernommen aus der privaten
+eigenen Abschnitt „Cases aus deiner Liste“ mit 116 Cases – übernommen aus der privaten
 Excel-Tabelle „Casemaße Complete.xlsx“ (Blatt „Data Cases“), in der die Maße über Jahre
-gepflegt wurden. Jeder Eintrag zeigt den Hersteller im Feld „Inhalt“ sowie die Firma, und
-beide Listen lassen sich zusätzlich nach Firma filtern.
+gepflegt wurden. Sie liegen in `data/meine.json` und gehören zur Sammlung „Meine Sammlung“;
+die Vorlagen liegen in `data/standard.json` („Standard“, nur lesbar). Jeder Eintrag zeigt den
+Hersteller im Feld „Inhalt“ sowie die Firma, und beide Listen lassen sich zusätzlich nach
+Sammlung filtern (siehe „Materialverwaltung“).
 
 Leere Standard-Pack- und Kabelcases gibt es je Maß nur einmal, als „Packcase L×B×H“ mit
 einem Standardgewicht (120×60×80, das Standard-Packcase 120×60×60 plus Rollen, = 100 kg,
@@ -329,7 +332,7 @@ Für 89 dieser Cases gibt es ein recherchiertes oder mit dem Nutzer abgestimmtes
 (Netto-Gerätegewicht plus Case-Anteil, bei leeren Rack-/Dolly-Gehäusen ein Standardwert nach
 Volumen, nachvollziehbar mit Quellen in [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md)).
 Zwei weitere Cases (die beiden FR10-Zeilen) tragen ihr unverändertes Originalgewicht aus
-der Tabelle und zählen ausdrücklich nicht als Schätzung. Die restlichen 31 stehen bewusst
+der Tabelle und zählen ausdrücklich nicht als Schätzung. Die restlichen 25 stehen bewusst
 bei 0 kg – lieber ehrlich 0 kg als eine erfundene Zahl – und lassen sich im Inspector
 jederzeit nachtragen.
 
