@@ -1,0 +1,109 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+globalThis.indexedDB = { open() { throw new Error('IndexedDB benutzt'); } };
+const repo = await import('../js/store/repo.js');
+const { PRESET_CASES } = await import('../js/data/preset-cases.js');
+const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+
+function memoryHost(seed = {}) {
+  const data = { cases: [], collections: [], trucks: [], plans: [], ruleSets: [], ...seed };
+  const put = (s, v) => { data[s] = [...data[s].filter(x => x.id !== v.id), structuredClone(v)]; };
+  return {
+    data,
+    getAll: async s => structuredClone(data[s]),
+    put: async (s, v) => put(s, v),
+    del: async (s, id) => { data[s] = data[s].filter(x => x.id !== id); },
+    writeMany: async ({ puts = [], deletes = [] }) => {
+      for (const { store, value } of puts) put(store, value);
+      for (const { store, id } of deletes) data[store] = data[store].filter(x => x.id !== id);
+    },
+  };
+}
+async function withHost(host, fn) {
+  globalThis.truckloadHost = host;
+  try { return await fn(); } finally { delete globalThis.truckloadHost; }
+}
+const own = (id, extra = {}) => ({ id, name: id, builtin: false, l: 60, w: 60, h: 60, weight: 1, ...extra });
+
+test('loadAll: leere Datenbank liefert Standard, Meine, alle mitgelieferten Cases', async () => {
+  const host = memoryHost();
+  const d = await withHost(host, () => repo.loadAll());
+  assert.deepEqual(d.collections.map(c => c.id), ['standard', 'meine']);
+  assert.equal(d.cases.length, PRESET_CASES.length + CASE_LIBRARY.length);
+  assert.equal(host.data.collections.length, 0, 'nichts zu migrieren, nichts geschrieben');
+});
+
+test('Migration: eigene Cases aus dem alten Store landen in „Meine Sammlung“, in einem Schreibvorgang; alter Store bleibt', async () => {
+  const host = memoryHost({ cases: [own('a'), own('lib-x', { company: 'CAB', legacy: true })] });
+  const d = await withHost(host, () => repo.loadAll());
+  const rec = host.data.collections.find(r => r.id === 'meine');
+  assert.deepEqual(rec.cases.map(c => c.id).sort(), ['a', 'lib-x']);
+  assert.equal(host.data.cases.length, 2, 'alter Store wird nicht gelöscht');
+  assert.equal(d.cases.find(c => c.id === 'a').collectionId, 'meine');
+  assert.equal(d.cases.find(c => c.id === 'lib-x').legacy, true);
+  assert.equal(d.cases.filter(c => c.id === 'lib-x').length, 1, 'Überlagerung ersetzt die mitgelieferte Vorlage');
+});
+
+test('Migration scheitert: App startet trotzdem, das nächste Speichern verliert nichts', async () => {
+  const host = memoryHost({ cases: [own('a'), own('b')] });
+  const realWrite = host.writeMany;
+  host.writeMany = async () => { throw new Error('Platte voll'); };
+  const d = await withHost(host, () => repo.loadAll());
+  assert.deepEqual(d.cases.filter(c => c.collectionId === 'meine' && !c.builtin).map(c => c.id).sort(), ['a', 'b']);
+  assert.equal(host.data.collections.length, 0);
+  host.writeMany = realWrite;
+  await withHost(host, () => repo.writeCases({ upserts: [{ ...own('c'), collectionId: 'meine' }], collections: d.collections }));
+  const rec = host.data.collections.find(r => r.id === 'meine');
+  assert.deepEqual(rec.cases.map(c => c.id).sort(), ['a', 'b', 'c']);
+});
+
+test('Datensätze gewinnen: ist „meine“ da, wird der alte Store nicht mehr gelesen', async () => {
+  const host = memoryHost({
+    cases: [own('alt')],
+    collections: [{ id: 'meine', name: 'Meine Sammlung', cases: [own('neu')] }, { id: 't', name: 'TSE', cases: [own('t1')] }],
+  });
+  const d = await withHost(host, () => repo.loadAll());
+  const ids = d.cases.filter(c => !c.builtin).map(c => [c.id, c.collectionId]);
+  assert.deepEqual(ids.sort(), [['neu', 'meine'], ['t1', 't']]);
+  assert.deepEqual(d.collections.map(c => c.id), ['standard', 'meine', 't']);
+});
+
+test('writeCases: Case wandert, collectionId wird nicht gespeichert, ein einziger writeMany', async () => {
+  const host = memoryHost({ collections: [{ id: 'meine', name: 'Meine Sammlung', cases: [own('a')] }] });
+  let calls = 0;
+  const wm = host.writeMany;
+  host.writeMany = async arg => { calls++; return wm(arg); };
+  const collections = [{ id: 'standard', name: 'Standard', readOnly: true }, { id: 'meine', name: 'Meine Sammlung' }, { id: 't', name: 'TSE' }];
+  await withHost(host, () => repo.writeCases({ upserts: [{ ...own('a'), collectionId: 't', company: 'TSE' }], collections }));
+  assert.equal(calls, 1);
+  const t = host.data.collections.find(r => r.id === 't');
+  assert.deepEqual(t.cases.map(c => c.id), ['a']);
+  assert.equal('collectionId' in t.cases[0], false);
+  assert.deepEqual(host.data.collections.find(r => r.id === 'meine').cases, []);
+});
+
+test('writeCases: deleteCollectionIds löscht den Datensatz in derselben Transaktion', async () => {
+  const host = memoryHost({ collections: [{ id: 't', name: 'TSE', cases: [own('x')] }] });
+  const collections = [{ id: 'standard', name: 'Standard', readOnly: true }, { id: 'meine', name: 'Meine Sammlung' }];
+  await withHost(host, () => repo.writeCases({
+    upserts: [{ ...own('lib-y', { legacy: true }), collectionId: 'meine' }], deleteCollectionIds: ['t'], collections,
+  }));
+  assert.deepEqual(host.data.collections.map(r => r.id), ['meine']);
+});
+
+test('Alter Datensatz im alten Schema (Cases mit company, Überlagerung, onlyInPlan) lädt vollständig', async () => {
+  const host = memoryHost({ cases: [
+    own('a', { company: 'TSE' }), own('lib-k', { company: 'CAB', builtin: false }), own('tmp', { onlyInPlan: true }),
+  ] });
+  const d = await withHost(host, () => repo.loadAll());
+  for (const id of ['a', 'lib-k', 'tmp']) assert.ok(d.cases.some(c => c.id === id), id);
+  assert.equal(d.cases.find(c => c.id === 'a').company, 'TSE', 'company bleibt ein gewöhnliches Feld');
+  assert.equal(d.cases.find(c => c.id === 'tmp').onlyInPlan, true);
+});
+
+test('loadAllFallback: Standard und Meine, keine eigenen Cases', () => {
+  const f = repo.loadAllFallback();
+  assert.deepEqual(f.collections.map(c => c.id), ['standard', 'meine']);
+  assert.equal(f.cases.length, PRESET_CASES.length + CASE_LIBRARY.length);
+});

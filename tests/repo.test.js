@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, buildCaseItems, saveCases, sanitizeUpdatedAt, pickLatestPlan, sanitizeAndWriteBack } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, sanitizeUpdatedAt, pickLatestPlan, sanitizeAndWriteBack } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
@@ -99,6 +99,7 @@ test('normalizeOwnCases: ein kaputtes Traversen-Case (Breite > 40) reißt nicht 
 test('loadAllFallback: liefert nur Vorlagen, keine eigenen Daten, App bleibt bedienbar', () => {
   const data = loadAllFallback();
   assert.deepEqual(data.plans, []);
+  assert.deepEqual(data.collections.map(c => c.id), ['standard', 'meine']);
   assert.deepEqual(data.trucks, PRESET_TRUCKS);
   assert.ok(data.cases.length > 0);
   assert.ok(data.cases.every(c => c.builtin || c.id.startsWith('preset-') || c.id.startsWith('lib-')),
@@ -223,6 +224,7 @@ test('mergeImportedBundle: plan null (Startbildschirm) – Datei ohne jeden Plan
 // Browser verifizierbar (siehe CDP-Szenarien im Task-Bericht).
 
 test('buildImportWinnerItems: jeder Gewinner wird seinem eigenen Object Store zugeordnet', () => {
+  // Cases laufen nicht mehr hierüber, sondern als Sammlungs-Datensätze (saveImportWinners).
   const winners = {
     cases: [{ id: 'c1' }, { id: 'c2' }],
     trucks: [{ id: 't1' }],
@@ -230,8 +232,6 @@ test('buildImportWinnerItems: jeder Gewinner wird seinem eigenen Object Store zu
   };
   const items = buildImportWinnerItems(winners);
   assert.deepEqual(items, [
-    { store: 'cases', value: { id: 'c1' } },
-    { store: 'cases', value: { id: 'c2' } },
     { store: 'trucks', value: { id: 't1' } },
     { store: 'plans', value: { id: 'p1' } },
   ]);
@@ -300,7 +300,8 @@ test('buildImportWinnerItems: nur die tatsächlichen Gewinner landen in der List
   const bundle = { cases: [{ id: 'new-from-file' }], trucks: [], plans: [] };
   const merge = mergeImportedBundle(state, bundle);
   const items = buildImportWinnerItems(merge.winners);
-  assert.deepEqual(items.map(i => i.value.id), ['new-from-file'], 'nur das neue Case aus der Datei, nicht das lokale');
+  assert.deepEqual(merge.winners.cases.map(c => c.id), ['new-from-file'], 'nur das neue Case aus der Datei, nicht das lokale');
+  assert.deepEqual(items, [], 'Cases erscheinen nicht mehr in der Liste, nur trucks/plans/ruleSets');
 });
 
 test('mergeImportedBundle: Regelsets per ID, neuerer Stand gewinnt, Gewinner werden gemeldet', () => {
@@ -368,18 +369,6 @@ test('parseBundle: altes eigenes Case mit legacy (keine lib-ID) kommt sichtbar a
   assert.equal(cases[0].legacy, undefined);
 });
 
-// --- saveCases: alle Cases in EINER Transaktion (db.putMany), z. B. beim Firma-Umbenennen ---
-test('buildCaseItems: jeder Eintrag geht in den Object Store „cases“', () => {
-  assert.deepEqual(buildCaseItems([{ id: 'a' }, { id: 'b' }]), [
-    { store: 'cases', value: { id: 'a' } },
-    { store: 'cases', value: { id: 'b' } },
-  ]);
-  assert.deepEqual(buildCaseItems([]), []);
-});
-test('saveCases: leere Liste schreibt nichts und löst auf', async () => {
-  await saveCases([]);
-});
-
 // --- 1.4: bereinigte Datensätze werden zusätzlich zurück in die Datenbank geschrieben ---
 
 test('sanitizeAndWriteBack: schreibt NUR bereinigte Datensätze, in einem putMany über alle Stores', async () => {
@@ -420,14 +409,4 @@ test('sanitizeAndWriteBack: ein Schreibfehler wird nur geloggt, das bereinigte E
     assert.equal(logged.length, 1);
     assert.match(String(logged[0][1]?.message ?? logged[0][0]), /Quota|bereinigt/);
   } finally { console.error = orig; }
-});
-
-// --- saveAndDelete: Überlagerungen und Entfernungen in EINER Transaktion (db.writeMany) --------
-import { buildSaveAndDelete } from '../js/store/repo.js';
-test('buildSaveAndDelete: Cases in den Store „cases“, Löschungen als {store, id}', () => {
-  assert.deepEqual(buildSaveAndDelete({ saves: [{ id: 'a' }], removeIds: ['b', 'c'] }), {
-    puts: [{ store: 'cases', value: { id: 'a' } }],
-    deletes: [{ store: 'cases', id: 'b' }, { store: 'cases', id: 'c' }],
-  });
-  assert.deepEqual(buildSaveAndDelete({}), { puts: [], deletes: [] });
 });
