@@ -6,6 +6,10 @@ des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einsc
 Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
 `docs/code-review-2026-09-21.md`.
 
+**Seit 2026-10-13 stehen alle Punkte als Issues auf GitHub** (#3 bis #32,
+<https://github.com/M4dm0nky/Truckload/issues>). Diese Datei bleibt die ausführliche Begründung;
+wird ein Punkt erledigt, wird das Issue geschlossen und der Absatz hier gestrichen.
+
 ## Daten aus der Casemaße-Tabelle
 
 **Fünf Zeilen fehlen ganz.** Motorsteuerung-Koffer, Bolzenkoffer, FD34 x2, HOF BOLT und
@@ -77,6 +81,10 @@ offengelegt, aber für kleine Cases zu konservativ.
 - **Wird der Store `collections` in NYX nicht freigegeben,** zeigt Truckload die Ersatzansicht
   und sperrt das Schreiben (`docs/nyx-sammlungen.md`). Die Freigabe auf NYX-Seite ist nicht
   Teil dieses Repos.
+- **Ladefehler-Hinweis für zu alte Browser.** Die JSON-Module brauchen Chrome/Electron ≥ 123,
+  Safari ≥ 17.2 oder Firefox ≥ 138 (Herstellerangaben, hier nicht geprüft). Auf älteren
+  Laufzeiten zeigt der Hinweis in `index.html` „Bitte neu laden“, was dort nichts hilft
+  (Issue #32).
 - **Sammlungsdatei ohne Altschema-Reparaturen.** Eine Datei mit Beschriftungen über
   `MAX_LABEL` oder alter Rollenhöhe wird abgelehnt statt repariert (eigene Entscheidung, das
   Format ist neu).
