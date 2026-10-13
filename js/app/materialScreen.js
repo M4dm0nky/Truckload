@@ -6,8 +6,8 @@ import { openCaseEditor } from '../ui/case-editor.js';
 import { openTrussDialog } from '../ui/truss-wizard.js';
 import { openDollyDialog } from '../ui/dolly-wizard.js';
 import { showAlert, showPick } from '../ui/confirmDialog.js';
-import { isInStock, copyToCompany, applyStockTarget } from '../model/material.js';
-import { userCollectionNames, collectionIdOf, MEINE_ID, STANDARD_ID } from '../model/collections.js';
+import { isInStock, copyToCompany } from '../model/material.js';
+import { collectionRows, exportableCases, adoptInto, MEINE_ID, STANDARD_ID } from '../model/collections.js';
 import { parseCollectionFile, exportCollectionFile, collectionFileName } from '../store/io.js';
 import { downloadJSON } from './download.js';
 import { usage } from './core.js';
@@ -26,6 +26,7 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
   const saveCase = persistence.saveCase;
   // Aus dem Lade-Wizard geöffnet: „Zurück“ gibt die frische Case-Liste an den Wizard zurück.
   let materialReturn = null;
+  let pendingImport = null;
 
   function openMaterial() {
     store.update(s => ({ ...s, materialOpen: true, selectedId: s.plan ? null : s.selectedId }));
@@ -39,11 +40,14 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
     const c = store.get().collections.find(x => x.id === id);
     return c && c.id !== MEINE_ID && c.id !== STANDARD_ID ? c.name : '';
   };
-  // Zielsammlung für „Kopieren“/„In Bestand übernehmen“: Wert = Name ('' = Meine Sammlung); null = abgebrochen.
-  const pickCollection = () => showPick('In welche Sammlung?', [
-    { value: '', label: 'Meine Sammlung' },
-    ...userCollectionNames(store.get().collections).map(n => ({ value: n, label: n })),
-  ]);
+  // Zielsammlung für „Kopieren“/„In Bestand übernehmen“: Meta der gewählten Sammlung; null = abgebrochen.
+  const pickCollection = async () => {
+    const cols = store.get().collections;
+    const id = await showPick('In welche Sammlung?', collectionRows(cols)
+      .filter(({ collection }) => !collection.readOnly)
+      .map(({ collection, depth }) => ({ value: collection.id, label: `${'– '.repeat(depth)}${collection.name}` })));
+    return id == null ? null : cols.find(c => c.id === (id || MEINE_ID)) ?? null;
+  };
 
   const material = mountMaterial(el, {
     onBack: () => {
@@ -82,12 +86,12 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
       if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, existingCases: store.get().cases, onNewDollyStack: saveCase, stock: { mode: 'fixed', company: nameOf(collectionId) } });
     },
     onCopy: async id => {
-      const firm = await pickCollection();
-      if (firm != null) await saveCase(copyToCompany(store.get().cases.find(c => c.id === id), firm, uid()));
+      const target = await pickCollection();
+      if (target) await saveCase(adoptInto(copyToCompany(store.get().cases.find(c => c.id === id), '', uid()), target));
     },
     onAdopt: async id => {
-      const firm = await pickCollection();
-      if (firm != null) await saveCase(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
+      const target = await pickCollection();
+      if (target) await saveCase(adoptInto(store.get().cases.find(c => c.id === id), target));
     },
     onCreateCollection: persistence.createCollection,
     onRenameCollection: persistence.renameCollection,
@@ -98,25 +102,32 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
       const st = store.get();
       const meta = st.collections.find(c => c.id === id);
       if (!meta) return;
-      const cases = st.cases.filter(c => collectionIdOf(c) === id);
+      const cases = exportableCases(st.cases, id);
       downloadJSON(collectionFileName(meta.name), exportCollectionFile(meta, cases));
     },
-    // Bricht der Nutzer den Dateidialog ab, feuert kein `change`; die Promise bleibt offen, der
-    // Aufrufer blockiert dadurch nichts.
-    onImportCollection: () => new Promise(resolve => {
-      const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'application/json,.json' });
-      input.onchange = async () => {
-        const file = input.files[0];
-        if (!file) return resolve(null);
-        try {
-          resolve(await persistence.importCollectionFile(parseCollectionFile(await file.text())));
-        } catch (err) {
-          await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
-          resolve(null);
-        }
-      };
-      input.click();
-    }),
+    // Ein einziger, unsichtbarer Dateiauswähler; ein zweiter Klick während der Dialog offen ist,
+    // teilt sich die laufende Promise. Abbruch (`cancel`) löst mit null auf.
+    onImportCollection: () => {
+      if (pendingImport) return pendingImport;
+      const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'application/json,.json', hidden: true });
+      document.body.append(input);
+      pendingImport = new Promise(resolve => {
+        const done = v => { input.remove(); pendingImport = null; resolve(v); };
+        input.addEventListener('cancel', () => done(null));
+        input.addEventListener('change', async () => {
+          const file = input.files[0];
+          if (!file) return done(null);
+          try {
+            done(await persistence.importCollectionFile(parseCollectionFile(await file.text())));
+          } catch (err) {
+            await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
+            done(null);
+          }
+        });
+        input.click();
+      });
+      return pendingImport;
+    },
   });
 
   // Case aus Bibliothek oder Inspector bearbeiten (caseId null: neues Case).

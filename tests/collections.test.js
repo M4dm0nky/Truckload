@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   STANDARD_ID, MEINE_ID, withBuiltins, collectionIdOf, composeRecords, collectionRows, descendantIds,
   depthOf, collectionNameError, parentError, resolveTarget, moveCase, recordsAfterChanges,
-  userCollectionNames, planCollectionImport,
+  userCollectionNames, planCollectionImport, exportableCases, adoptInto,
 } from '../js/model/collections.js';
 
 const stampFn = r => ({ ...r, updatedAt: 'T' });
@@ -167,4 +167,24 @@ test('withBuiltins: Veränderung des Ergebnisses wirkt nicht auf den nächsten A
 test('recordsAfterChanges: stampFn bekommt nur den Datensatz (kein Index als zweites Argument)', () => {
   const out = recordsAfterChanges([], metas, { touchIds: ['t'] }, (r, now = 'X') => ({ ...r, updatedAt: now }));
   assert.equal(out[0].updatedAt, 'X');
+});
+
+test('exportableCases: nur Bestand der Sammlung, kein onlyInPlan/legacy', () => {
+  const cases = [
+    { id: 'a', collectionId: 't' }, { id: 'b', collectionId: 't', onlyInPlan: true },
+    { id: 'c', collectionId: 't', legacy: true }, { id: 'd' }, { id: 'e', collectionId: 'meine', onlyInPlan: true },
+  ];
+  assert.deepEqual(exportableCases(cases, 't').map(c => c.id), ['a']);
+  assert.deepEqual(exportableCases(cases, MEINE_ID).map(c => c.id), ['d']);
+});
+
+test('adoptInto: Plan-Case mit collectionId meine landet in der gewählten Sammlung, onlyInPlan weg', () => {
+  const c = { id: 'p', name: 'X', collectionId: 'meine', onlyInPlan: true };
+  const r = adoptInto(c, tse);
+  assert.equal(r.collectionId, 't');
+  assert.equal(r.company, 'TSE');
+  assert.equal(r.onlyInPlan, undefined);
+  const m = adoptInto({ ...c, company: 'TSE' }, withBuiltins([]).find(x => x.id === MEINE_ID));
+  assert.equal(m.collectionId, MEINE_ID);
+  assert.equal(m.company, undefined);
 });

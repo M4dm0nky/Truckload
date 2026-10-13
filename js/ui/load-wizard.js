@@ -53,7 +53,7 @@ export async function openLoadWizard(dlg, opts = {}) {
         <div class="wiz-cases-head">
           <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
-          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt nur Vorlagen und eigene Cases – firmen-gebrandete Cases erst nach gezielter Wahl des Kompletten Bestands oder einer Sammlung">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
+          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt nur Vorlagen und eigene Cases – Cases aus Sammlungen erst nach gezielter Wahl des Kompletten Bestands oder einer Sammlung">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
         </div>
         <p class="hint wiz-totals">0 Stück · 0 kg</p>
         <div class="wiz-case-list"></div>
@@ -170,7 +170,7 @@ export async function openLoadWizard(dlg, opts = {}) {
     companyFilterSel.innerHTML = searchInOptionsHtml(collections, prev);
     // Rückfall auf „Standardkatalog“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
     // Liste (letztes Case dieser Firma gelöscht), soll der Filter wieder scharf stehen statt
-    // auf einmal firmen-gebrandete Cases zu zeigen, die der Nutzer nie gewählt hat.
+    // auf einmal Cases aus Sammlungen zu zeigen, die der Nutzer nie gewählt hat.
     if (prev !== NEUTRAL_COMPANY && prev !== '' && !collections.some(c => c.id === prev)) companyFilterSel.value = NEUTRAL_COMPANY;
   }
   list.addEventListener('click', e => {

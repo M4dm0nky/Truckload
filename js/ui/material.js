@@ -28,7 +28,7 @@ export function mountMaterial(el, h) {
       <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
       ${readOnly
         ? `<button data-act="copy" title="In eine Sammlung kopieren">Kopieren</button>`
-        : `<button data-act="move-case" title="In eine andere Sammlung verschieben">Verschieben</button>
+        : `${sel === ONLY_IN_PLAN ? '' : '<button data-act="move-case" title="In eine andere Sammlung verschieben">Verschieben</button>'}
            <button data-act="edit" title="Bearbeiten">${icon('pencil-simple')}</button>
            <button data-act="delete" class="danger" title="Löschen">${icon('trash')}</button>`}
       ${sel === ONLY_IN_PLAN ? '<button data-act="adopt">In Bestand übernehmen</button>' : ''}

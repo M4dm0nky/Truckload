@@ -1,4 +1,5 @@
 import { MAX_FIRM } from './limits.js';
+import { isInStock } from './material.js';
 
 // Sammlungen (docs/superpowers/specs/2026-10-13-sammlungen-design.md). Reine Funktionen ohne DOM
 // und ohne Store. Eine Sammlung ist ein Datensatz { id, name, parentId?, updatedAt, cases[] };
@@ -185,6 +186,14 @@ export function recordsAfterChanges(records, metas, { upserts = [], removeIds = 
   for (const id of touchIds) touch(id);
   return [...touched.values()].map(r => stampFn(r));
 }
+
+// Was die Sammlungsdatei und die Liste der Materialverwaltung für `id` zeigen: nur Bestand
+// (kein onlyInPlan, kein legacy), die in genau dieser Sammlung liegen.
+export const exportableCases = (cases, id) => cases.filter(c => isInStock(c) && collectionIdOf(c) === id);
+
+// „In Bestand übernehmen“ / „Kopieren“ in eine Sammlung: holt das Case in den Bestand
+// (onlyInPlan weg) und legt es in `meta` ab (collectionId + company = Name, Meine: keins).
+export const adoptInto = (c, meta) => moveCase({ ...c, onlyInPlan: undefined }, meta);
 
 export const userCollectionNames = collections =>
   collections.filter(c => !isBuiltinId(c.id)).map(c => c.name);
