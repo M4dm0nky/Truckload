@@ -217,3 +217,25 @@ test('deleteCollection: Rückfrage nennt die Verwendung in Ladeplänen', async (
   await p.deleteCollection('t');
   assert.match(confirms[0], /1 Ladeplan\/-plänen verwendet/);
 });
+
+const manyCollections = n => withBuiltins(Array.from({ length: n }, (_, i) => ({ id: `c${i}`, name: `S${i}` })));
+
+test('createCollection: bei 200 Sammlungen eine Meldung, nichts geschrieben; bei 199 geht es', async () => {
+  const full = setup([], manyCollections(200));
+  assert.equal(await full.p.createCollection('Neu', null), null);
+  assert.equal(full.writes.length, 0);
+  assert.deepEqual(full.alerts, ['Höchstens 200 Sammlungen.']);
+  const room = setup([], manyCollections(199));
+  assert.equal(await room.p.createCollection('Neu', null), 'id1');
+  assert.equal(room.writes.length, 1);
+});
+
+test('importCollectionFile: neue Sammlung über der Grenze wird abgelehnt, bekannte Sammlung mischt weiter', async () => {
+  const full = setup([], manyCollections(200));
+  assert.equal(await full.p.importCollectionFile({ collection: { id: 'x', name: 'Robe' }, cases: [own('k1')] }), null);
+  assert.equal(full.writes.length, 0);
+  assert.deepEqual(full.alerts, ['Höchstens 200 Sammlungen.']);
+  const known = await full.p.importCollectionFile({ collection: { id: 'c5', name: 'S5' }, cases: [own('k1')] });
+  assert.equal(known.id, 'c5');
+  assert.equal(full.writes.length, 1);
+});

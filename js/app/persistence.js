@@ -8,12 +8,17 @@ import {
   resolveTarget, moveCase, collectionNameError, parentError, descendantIds, planCollectionImport,
   withBuiltins, collectionIdOf, MEINE_ID,
 } from '../model/collections.js';
+import { MAX_COLLECTIONS } from '../model/limits.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 
 const NO_BUILTIN_MOVE = 'Standardvorlagen lassen sich nicht verschieben – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
 const NO_FIXED_COLLECTION = '„Standard“ und „Meine Sammlung“ lassen sich nicht ändern oder löschen.';
 const NO_FIXED_DELETE = '„Standard“ und „Meine Sammlung“ lassen sich nicht löschen.';
 const NO_BUILTIN_DELETE = 'Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
+
+const TOO_MANY_COLLECTIONS = `Höchstens ${MAX_COLLECTIONS} Sammlungen.`;
+// Eigene Sammlungen ohne „Standard“ und „Meine Sammlung“ – das zählt auch parseBundle.
+const userCollectionCount = collections => collections.filter(c => !c.readOnly && c.id !== MEINE_ID).length;
 
 // `repo`: writeCases/saveRuleSet/deleteRuleSet/saveTruck/deleteTruck/savePlan.
 // `stamp`: setzt den Änderungszeitpunkt. `uid`: neue IDs (Regelsets, Sammlungen).
@@ -82,6 +87,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     const st = store.get();
     const err = collectionNameError(name, st.collections) ?? parentError(st.collections, null, parentId);
     if (err) { await showAlert(err); return null; }
+    if (userCollectionCount(st.collections) >= MAX_COLLECTIONS) { await showAlert(TOO_MANY_COLLECTIONS); return null; }
     const meta = stamp({ id: uid(), name: name.trim(), ...(parentId ? { parentId } : {}) });
     const collections = withBuiltins([...st.collections, meta]);
     const r = await run('Sammlung konnte nicht angelegt werden', () => repo.writeCases({ touchIds: [meta.id], collections }));
@@ -175,6 +181,11 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   const importCollectionFile = file => serial(async () => {
     const st = store.get();
     const plan = planCollectionImport(st.collections, file, uid);
+    // Eine neue Sammlung über der Grenze würde die eigene Sicherung unlesbar machen (parseBundle).
+    if (userCollectionCount(plan.merged) > Math.max(MAX_COLLECTIONS, userCollectionCount(st.collections))) {
+      await showAlert(TOO_MANY_COLLECTIONS);
+      return null;
+    }
     const local = new Map(st.cases.map(c => [c.id, c]));
     const upserts = plan.cases.filter(c => {
       const cur = local.get(c.id);
