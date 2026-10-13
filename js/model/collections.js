@@ -23,7 +23,7 @@ export function withBuiltins(metas) {
       id, name, ...(parentId ? { parentId } : {}), ...(updatedAt ? { updatedAt } : {}),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  return [...BUILTIN, ...own];
+  return [...BUILTIN.map(b => ({ ...b })), ...own];
 }
 
 // Zu welcher Sammlung ein Case gehört: die gesetzte ID; sonst die Standardvorlagen (preset-,
@@ -77,18 +77,23 @@ export function descendantIds(collections, id) {
 export function depthOf(collections, id) {
   let depth = 1;
   let cur = collections.find(c => c.id === id);
-  const seen = new Set();
-  while (cur?.parentId && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    cur = collections.find(c => c.id === cur.parentId);
-    if (cur) depth++;
+  const seen = new Set([id]);
+  while (cur?.parentId) {
+    const next = collections.find(c => c.id === cur.parentId);
+    if (!next || seen.has(next.id)) break;
+    seen.add(next.id);
+    cur = next;
+    depth++;
   }
   return depth;
 }
 
-function subtreeHeight(collections, id) {
+// Höhe des Teilbaums. Ein Zyklus aus fremden Daten bricht ab, statt zu überlaufen.
+function subtreeHeight(collections, id, seen = new Set()) {
+  if (seen.has(id)) return 0;
+  seen.add(id);
   const kids = collections.filter(c => c.parentId === id && c.id !== id);
-  return 1 + (kids.length ? Math.max(...kids.map(k => subtreeHeight(collections, k.id))) : 0);
+  return 1 + (kids.length ? Math.max(...kids.map(k => subtreeHeight(collections, k.id, seen))) : 0);
 }
 
 export function collectionNameError(name, collections, exceptId = null) {
@@ -118,16 +123,18 @@ export function parentError(collections, id, parentId) {
 // (so entsteht „+ Neue Sammlung …“ im Wizard); sonst „Meine Sammlung“.
 export function resolveTarget(c, existing, collections, newId) {
   const writable = id => collections.some(x => x.id === id && !x.readOnly);
-  const own = c.collectionId ?? (existing ? collectionIdOf(existing) : null);
-  if (own && writable(own)) return { id: own };
+  // Eine veraltete (gelöschte, feste) collectionId fällt auf die Sammlung des vorhandenen Cases zurück.
+  const own = [c.collectionId, existing && collectionIdOf(existing)].find(id => id && writable(id));
+  if (own) return { id: own };
   const company = typeof c.company === 'string' ? c.company.trim() : '';
-  if (company && company.toLowerCase() !== MEINE_NAME.toLowerCase()) {
-    const byName = collections.find(x => !x.readOnly && x.id !== MEINE_ID && x.name.toLowerCase() === company.toLowerCase());
-    if (byName) return { id: byName.id };
-    const id = newId();
-    return { id, created: { id, name: company } };
-  }
-  return { id: MEINE_ID };
+  if (!company || company.toLowerCase() === MEINE_NAME.toLowerCase()) return { id: MEINE_ID };
+  const byName = collections.find(x => !x.readOnly && x.id !== MEINE_ID && x.name.toLowerCase() === company.toLowerCase());
+  if (byName) return { id: byName.id };
+  // Der Name einer festen Sammlung (Standard) oder ein unzulässiger Name legt keine Sammlung an.
+  if (collections.some(x => x.readOnly && x.name.toLowerCase() === company.toLowerCase())) return { id: MEINE_ID };
+  if (collectionNameError(company, collections)) return { id: MEINE_ID };
+  const id = newId();
+  return { id, created: { id, name: company } };
 }
 
 // Verschiebt ein Case in eine Sammlung. Eine eigene Sammlung setzt `company` auf ihren Namen (so

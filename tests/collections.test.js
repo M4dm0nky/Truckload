@@ -129,3 +129,37 @@ test('planCollectionImport: gleiche ID mischt in die vorhandene, gleicher Name a
   const fresh = planCollectionImport(metas, { collection: { id: 'neu', name: 'Mac' }, cases: [{ id: 'x' }] }, newId);
   assert.ok(fresh.merged.some(c => c.id === 'neu'));
 });
+
+test('Zyklen aus fremden Daten: parentError und depthOf hängen nicht und laufen nicht über', () => {
+  const cols = withBuiltins([
+    { id: 'A', name: 'A', parentId: 'B' },
+    { id: 'B', name: 'B', parentId: 'A' },
+    { id: 'C', name: 'C' },
+  ]);
+  const err = parentError(cols, 'A', 'C');
+  assert.ok(err === null || typeof err === 'string');
+  assert.equal(depthOf(cols, 'A'), 2);
+});
+
+test('resolveTarget: Name einer festen Sammlung oder reservierter Name wird nicht als neue Sammlung angelegt', () => {
+  let n = 0;
+  const newId = () => `n${++n}`;
+  assert.deepEqual(resolveTarget({ id: 'a', company: 'standard' }, null, metas, newId), { id: 'meine' });
+  assert.deepEqual(resolveTarget({ id: 'a', company: 'Standard' }, null, metas, newId), { id: 'meine' });
+  assert.deepEqual(resolveTarget({ id: 'a', company: '__x__' }, null, metas, newId), { id: 'meine' });
+  assert.equal(n, 0);
+});
+
+test('resolveTarget: veraltete collectionId fällt auf die Sammlung des vorhandenen Cases zurück', () => {
+  const newId = () => 'n1';
+  assert.deepEqual(resolveTarget({ id: 'a', collectionId: 'weg' }, { id: 'a', collectionId: 'r' }, metas, newId), { id: 'r' });
+});
+
+test('withBuiltins: Veränderung des Ergebnisses wirkt nicht auf den nächsten Aufruf', () => {
+  const first = withBuiltins([]);
+  first[0].name = 'Verändert';
+  first[0].readOnly = false;
+  const second = withBuiltins([]);
+  assert.equal(second[0].name, 'Standard');
+  assert.equal(second[0].readOnly, true);
+});
