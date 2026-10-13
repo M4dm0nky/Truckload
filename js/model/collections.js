@@ -183,7 +183,7 @@ export function recordsAfterChanges(records, metas, { upserts = [], removeIds = 
     touch(collectionId).cases.push(rest);
   }
   for (const id of touchIds) touch(id);
-  return [...touched.values()].map(stampFn);
+  return [...touched.values()].map(r => stampFn(r));
 }
 
 export const userCollectionNames = collections =>

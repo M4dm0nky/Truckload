@@ -163,3 +163,8 @@ test('withBuiltins: Veränderung des Ergebnisses wirkt nicht auf den nächsten A
   assert.equal(second[0].name, 'Standard');
   assert.equal(second[0].readOnly, true);
 });
+
+test('recordsAfterChanges: stampFn bekommt nur den Datensatz (kein Index als zweites Argument)', () => {
+  const out = recordsAfterChanges([], metas, { touchIds: ['t'] }, (r, now = 'X') => ({ ...r, updatedAt: now }));
+  assert.equal(out[0].updatedAt, 'X');
+});

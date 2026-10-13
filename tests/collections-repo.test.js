@@ -107,3 +107,70 @@ test('loadAllFallback: Standard und Meine, keine eigenen Cases', () => {
   assert.deepEqual(f.collections.map(c => c.id), ['standard', 'meine']);
   assert.equal(f.cases.length, PRESET_CASES.length + CASE_LIBRARY.length);
 });
+
+test('writeCases: leere Eingabe macht keinen writeMany-Aufruf', async () => {
+  const host = memoryHost();
+  let calls = 0;
+  host.writeMany = async () => { calls++; };
+  await withHost(host, () => repo.writeCases({ collections: [] }));
+  assert.equal(calls, 0);
+});
+
+const metaT = [{ id: 'standard', name: 'Standard', readOnly: true }, { id: 'meine', name: 'Meine Sammlung' }, { id: 't', name: 'TSE' }];
+
+test('saveImportWinners: alte Sicherung ohne collectionId verschiebt kein vorhandenes Case; neues kommt nach Meine', async () => {
+  const host = memoryHost({ collections: [
+    { id: 'meine', name: 'Meine Sammlung', cases: [] }, { id: 't', name: 'TSE', cases: [own('a')] },
+  ] });
+  await withHost(host, () => repo.saveImportWinners(
+    { cases: [own('a', { name: 'neu' }), own('n')], trucks: [], plans: [] }, metaT));
+  const t = host.data.collections.find(r => r.id === 't');
+  const m = host.data.collections.find(r => r.id === 'meine');
+  assert.deepEqual(t.cases.map(c => [c.id, c.name]), [['a', 'neu']]);
+  assert.deepEqual(m.cases.map(c => c.id), ['n']);
+});
+
+test('saveImportWinners: bekannte collectionId bleibt, touchIds, plans und ruleSets in EINEM writeMany', async () => {
+  const host = memoryHost({ collections: [{ id: 'meine', name: 'Meine Sammlung', cases: [own('a')] }] });
+  const args = [];
+  const wm = host.writeMany;
+  host.writeMany = async arg => { args.push(arg); return wm(arg); };
+  await withHost(host, () => repo.saveImportWinners({
+    cases: [{ ...own('a'), collectionId: 't' }],
+    collections: [{ id: 't', name: 'TSE' }, { id: 'ghost', name: 'Weg' }],
+    trucks: [], plans: [{ id: 'p1' }], ruleSets: [{ id: 'r1' }],
+  }, metaT));
+  assert.equal(args.length, 1);
+  assert.deepEqual(args[0].puts.map(p => p.store).sort(), ['collections', 'collections', 'plans', 'ruleSets']);
+  assert.deepEqual(host.data.collections.find(r => r.id === 't').cases.map(c => c.id), ['a']);
+  assert.deepEqual(host.data.collections.find(r => r.id === 'meine').cases, []);
+  assert.equal(host.data.plans.length, 1);
+});
+
+test('saveImportWinners: ohne Sammlungsliste Fehler, ohne Gewinner kein Schreibvorgang', async () => {
+  const host = memoryHost();
+  let calls = 0;
+  host.writeMany = async () => { calls++; };
+  await withHost(host, async () => {
+    await assert.rejects(repo.saveImportWinners({ cases: [], trucks: [], plans: [] }), /Sammlungsliste/);
+    await repo.saveImportWinners({ cases: [], trucks: [], plans: [] }, metaT);
+  });
+  assert.equal(calls, 0);
+});
+
+test('mergeImportedBundle: Sammlungen aus Zustand und Datei, neuerer Stand gewinnt, Gewinner gemeldet', () => {
+  const local = [{ id: 't', name: 'TSE alt', updatedAt: '2026-01-01T00:00:00.000Z' }, { id: 'u', name: 'Lokal', updatedAt: '2026-05-01T00:00:00.000Z' }];
+  const file = [{ id: 't', name: 'TSE neu', updatedAt: '2026-02-01T00:00:00.000Z' }, { id: 'u', name: 'Datei alt', updatedAt: '2026-01-01T00:00:00.000Z' }];
+  const r = repo.mergeImportedBundle(
+    { cases: [], trucks: [], plans: [], plan: null, collections: repo.loadAllFallback().collections.concat(local) },
+    { cases: [], trucks: [], plans: [], collections: file });
+  assert.equal(r.collections.find(c => c.id === 't').name, 'TSE neu');
+  assert.equal(r.collections.find(c => c.id === 'u').name, 'Lokal');
+  assert.deepEqual(r.winners.collections.map(c => c.id), ['t']);
+});
+
+test('Migration/readRecords: null-Einträge im alten Store werden übergangen', async () => {
+  const host = memoryHost({ cases: [own('a'), null] });
+  const d = await withHost(host, () => repo.loadAll());
+  assert.ok(d.cases.some(c => c.id === 'a'));
+});

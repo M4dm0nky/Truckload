@@ -77,6 +77,9 @@ export async function sanitizeAndWriteBack(raw, write = db.putMany) {
   return clean;
 }
 
+// Nur Objekte, `updatedAt` bereinigt: ein null-Eintrag aus fremden Daten darf nichts abbrechen.
+const cleanCases = list => sanitizeUpdatedAt((Array.isArray(list) ? list : []).filter(c => c && typeof c === 'object'));
+
 export async function loadAll() {
   await db.persist();
   const [legacyCases, collRecords, trucks, plans, ruleSets] = await Promise.all([
@@ -89,7 +92,7 @@ export async function loadAll() {
   // das Schreiben, läuft die App mit dem berechneten Stand weiter; writeCases baut den Datensatz
   // dann beim nächsten Speichern aus dem alten Store auf (readRecords), es geht nichts verloren.
   if (legacyCases.length > 0 && !records.some(r => r.id === MEINE_ID)) {
-    const meine = stamp({ id: MEINE_ID, name: MEINE_NAME, cases: sanitizeUpdatedAt(legacyCases) });
+    const meine = stamp({ id: MEINE_ID, name: MEINE_NAME, cases: cleanCases(legacyCases) });
     try {
       await db.writeMany({ puts: [{ store: 'collections', value: meine }] });
     } catch (err) {
@@ -98,7 +101,7 @@ export async function loadAll() {
     records = [...records, meine];
   }
   const { collections, cases: stored } = composeRecords(
-    records.map(r => ({ ...r, cases: sanitizeUpdatedAt(Array.isArray(r.cases) ? r.cases : []) })),
+    records.map(r => ({ ...r, cases: cleanCases(r.cases) })),
   );
   return {
     cases: mergeOwnWithBuiltins(normalizeOwnCases(stored), [...PRESET_CASES, ...CASE_LIBRARY]),
@@ -131,9 +134,9 @@ export function loadAllFallback() {
 // wählt. Bringt die Sicherung keinen Plan mit, bleibt plan null und der Startbildschirm bestehen.
 export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [], collections = withBuiltins([]) }, bundle) {
   const mergedCases = mergeById(cases, bundle.cases);
-  const mergedCollections = withBuiltins(
-    mergeById(collections.filter(c => !c.readOnly && c.id !== MEINE_ID), bundle.collections ?? []),
-  );
+  // withBuiltins baut neue Objekte; für die Gewinnerprüfung (Identität) zählt das Mischergebnis davor.
+  const rawCollections = mergeById(collections.filter(c => !c.readOnly && c.id !== MEINE_ID), bundle.collections ?? []);
+  const mergedCollections = withBuiltins(rawCollections);
   const mergedTrucks = mergeById(trucks, bundle.trucks);
   const mergedPlans = mergeById(plan ? [plan, ...plans] : plans, bundle.plans);
   const mergedRuleSets = mergeById(ruleSets, bundle.ruleSets ?? []);
@@ -153,7 +156,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
     // weil der lokale Stand gewonnen hat).
     winners: {
       cases: bundle.cases.filter(x => mergedCases.find(m => m.id === x.id) === x),
-      collections: (bundle.collections ?? []).filter(x => mergedCollections.find(m => m.id === x.id) === x),
+      collections: (bundle.collections ?? []).filter(x => rawCollections.find(m => m.id === x.id) === x),
       trucks: bundle.trucks.filter(x => mergedTrucks.find(m => m.id === x.id) === x),
       plans: bundle.plans.filter(x => mergedPlans.find(m => m.id === x.id) === x),
       ruleSets: (bundle.ruleSets ?? []).filter(x => mergedRuleSets.find(m => m.id === x.id) === x),
@@ -174,10 +177,9 @@ async function readRecords() {
   const [records, legacy] = await Promise.all([db.getAll('collections'), db.getAll('cases')]);
   const real = records.filter(r => r.id !== STANDARD_ID);
   if (real.some(r => r.id === MEINE_ID) || legacy.length === 0) return real;
-  return [...real, { id: MEINE_ID, name: MEINE_NAME, cases: legacy }];
+  return [...real, { id: MEINE_ID, name: MEINE_NAME, cases: cleanCases(legacy) }];
 }
 
-// (stamp(r) statt stamp: map würde den Index als `now` übergeben.)
 // Alle Case-Schreibvorgänge laufen hier durch, in EINEM writeMany (alles oder nichts).
 // upserts: Cases mit `collectionId`; removeIds: entfallende Cases; touchIds: Sammlungen, deren
 // Datensatz ohne Case-Änderung neu geschrieben wird (Name, Oberebene, neu angelegt);
@@ -187,7 +189,7 @@ export async function writeCases({ upserts = [], removeIds = [], touchIds = [], 
   if (!upserts.length && !removeIds.length && !touchIds.length && !deleteCollectionIds.length) return;
   const records = await readRecords();
   const gone = new Set(deleteCollectionIds);
-  const puts = recordsAfterChanges(records, collections, { upserts, removeIds, touchIds }, r => stamp(r))
+  const puts = recordsAfterChanges(records, collections, { upserts, removeIds, touchIds }, stamp)
     .filter(r => !gone.has(r.id))
     .map(value => ({ store: 'collections', value }));
   const deletes = deleteCollectionIds.map(id => ({ store: 'collections', id }));
@@ -207,16 +209,25 @@ export function buildImportWinnerItems(winners) {
 
 // Schreibt die Gewinner eines Imports (siehe mergeImportedBundle) in EINER Transaktion: alle oder
 // keiner. Cases und Sammlungen gehen als Datensätze; `collections` ist die Meta-Liste nach dem
-// Mischen. Ein Case ohne bekannte `collectionId` kommt nach „Meine Sammlung“ (alte Sicherungen
-// kennen keine Sammlungen).
-export async function saveImportWinners(winners, collections = withBuiltins([])) {
+// Mischen (Pflicht).
+export async function saveImportWinners(winners, collections) {
+  if (!Array.isArray(collections)) throw new Error('saveImportWinners: Sammlungsliste fehlt.');
   const known = new Set(collections.filter(c => !c.readOnly).map(c => c.id));
-  const upserts = winners.cases.map(c => ({
-    ...c, collectionId: c.collectionId && known.has(c.collectionId) ? c.collectionId : MEINE_ID,
-  }));
-  const touchIds = (winners.collections ?? []).map(c => c.id).filter(id => known.has(id));
   const records = await readRecords();
-  const caseWrites = recordsAfterChanges(records, collections, { upserts, touchIds }, r => stamp(r))
+  // Ohne bekannte `collectionId` (alte Sicherung) bleibt ein Case in der Sammlung, in der es lokal
+  // schon liegt; nur ein wirklich neues kommt nach „Meine Sammlung“.
+  const homeOf = new Map();
+  for (const r of records) for (const c of r.cases ?? []) if (c && !homeOf.has(c.id)) homeOf.set(c.id, r.id);
+  const upserts = winners.cases.map(c => {
+    const home = homeOf.get(c.id);
+    const id = c.collectionId && known.has(c.collectionId) ? c.collectionId
+      : (home && known.has(home) ? home : MEINE_ID);
+    return { ...c, collectionId: id };
+  });
+  const touchIds = (winners.collections ?? []).map(c => c.id).filter(id => known.has(id));
+  const caseWrites = recordsAfterChanges(records, collections, { upserts, touchIds }, stamp)
     .map(value => ({ store: 'collections', value }));
-  return db.writeMany({ puts: [...caseWrites, ...buildImportWinnerItems(winners)] });
+  const puts = [...caseWrites, ...buildImportWinnerItems(winners)];
+  if (!puts.length) return;
+  return db.writeMany({ puts });
 }

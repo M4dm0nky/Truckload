@@ -218,9 +218,9 @@ test('mergeImportedBundle: plan null (Startbildschirm) – Datei ohne jeden Plan
 });
 
 // --- Fix-Runde 2 (Task 2): die reine Zuordnung „welcher Gewinner gehört in welchen
-// Object Store“, die repo.saveImportWinners() an db.putMany() übergibt. Das ist die
+// Object Store“, die repo.saveImportWinners() zusammen mit den Sammlungs-Datensätzen an db.writeMany() übergibt. Das ist die
 // „Zuordnung in saveImportWinners“, die sich ohne IndexedDB mit node --test prüfen lässt -
-// der eigentliche Schreibvorgang (db.putMany) braucht echtes IndexedDB und ist nur im
+// der eigentliche Schreibvorgang (db.writeMany) braucht echtes IndexedDB und ist nur im
 // Browser verifizierbar (siehe CDP-Szenarien im Task-Bericht).
 
 test('buildImportWinnerItems: jeder Gewinner wird seinem eigenen Object Store zugeordnet', () => {
