@@ -18,6 +18,7 @@ const ASSETS = [
   'js/app.js',
   'js/app/chrome.js',
   'js/app/core.js',
+  'js/app/download.js',
   'js/app/guarded.js',
   'js/app/hostPrint.js',
   'js/app/importExport.js',

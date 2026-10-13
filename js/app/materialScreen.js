@@ -78,8 +78,9 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
       const firm = await pickFirm();
       if (firm != null) await saveCase(applyStockTarget(store.get().cases.find(c => c.id === id), { inStock: true, company: firm }));
     },
-    onRename: persistence.renameCompany,
-    onDeleteCompany: persistence.deleteCompany,
+    // Platzhalter bis Task 6 (Sammlungs-Oberfläche): renameCompany/deleteCompany gibt es nicht mehr.
+    onRename: async () => { await showAlert('Diese Funktion wird gerade umgebaut.'); return false; },
+    onDeleteCompany: async () => { await showAlert('Diese Funktion wird gerade umgebaut.'); return false; },
   });
 
   // Case aus Bibliothek oder Inspector bearbeiten (caseId null: neues Case).
