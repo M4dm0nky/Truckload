@@ -7,6 +7,13 @@ sind Aufgaben auf NYX-Seite, und sie müssen **vor** der Übernahme dieser Versi
 
 ## Zuerst: was NYX tun muss
 
+0. **Mindestversion der Laufzeit: Chromium ≥ 123, also Electron ≥ 30.** Ab V 0.16.1 lädt Truckload
+   `data/standard.json` und `data/meine.json` über JSON-Module (`import … with { type: 'json' }`,
+   „Import Attributes“). Ältere Chromium-Versionen (Electron ≤ 29) lesen diese Syntax nicht; die
+   App startet dort **nicht** (statt einer Oberfläche erscheint nur der Ladefehler-Hinweis). Für
+   andere Browser gilt: Safari ≥ 17.2, Firefox ≥ 138. Die Zahlen stammen aus den
+   Herstellerangaben, hier nicht geprüft. Vor der Übernahme die Chromium-Version des
+   ausgelieferten NYX-Electron prüfen (`process.versions.chrome`).
 1. **Den Store `collections` freigeben.** NYX lehnt unbekannte Stores ab (siehe
    [nyx-host.md](nyx-host.md), „Ein neuer Store braucht eine Absprache mit NYX“). `collections`
    gehört wie `cases`, `trucks` und `ruleSets` zu den **projektübergreifenden** Stores

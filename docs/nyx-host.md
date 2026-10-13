@@ -47,6 +47,9 @@ Schreiben bis zum Neuladen (siehe [nyx-sammlungen.md](nyx-sammlungen.md)).
 
 ## Was NYX voraussetzt
 
+- Chromium ≥ 123 (Electron ≥ 30) wegen der JSON-Module (`import … with { type: 'json' }`, seit
+  V 0.16.1); Safari ≥ 17.2, Firefox ≥ 138; nach Herstellerangaben, hier nicht geprüft
+  (Details in [nyx-sammlungen.md](nyx-sammlungen.md)).
 - Speicherzugriff nur über `js/store/db.js`, keine zweite Stelle, die `indexedDB` anfasst.
 - Nur relative Pfade. Die App läuft unter `truckload://app/`, nicht unter `/Truckload/`.
 - Der Service Worker registriert sich nur unter `http(s)` (`location.protocol.startsWith('http')`).

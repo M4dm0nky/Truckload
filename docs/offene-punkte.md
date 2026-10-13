@@ -40,11 +40,29 @@ offengelegt, aber für kleine Cases zu konservativ.
   Datensatz und bekommt spätere Korrekturen an `meine.json` nicht mehr; ein Wiederherstellen der
   mitgelieferten Version gibt es nicht.
 - **Der alte Store `cases` wird nicht aufgeräumt.** Er bleibt nach der Migration als
-  Sicherheitsnetz liegen, wird weiter gelesen (und muss in NYX freigegeben bleiben) und nie
-  geleert.
+  Sicherheitsnetz liegen und muss in NYX freigegeben bleiben. Gelesen wird er nur, solange der
+  Datensatz `meine` fehlt (Migration, `readRecords`); danach nicht mehr. Seine Datensätze
+  veralten still (Änderungen landen nur in `collections`), werden nie bereinigt und nie
+  geleert. Eine spätere Aufräumfunktion müsste das berücksichtigen (eigene Entscheidung: kein
+  automatisches Löschen, solange nicht klar ist, dass keine ältere App-Version mehr darauf liest).
 - **Wizard-Filter „Standardkatalog“ = Cases ohne `company`.** Eigene Cases in „Meine Sammlung“
   ohne `company` erscheinen dort also mit, nicht nur die Vorlagen aus „Standard“. Das entspricht
   der alten Regel, ist aber nach der Umbenennung zu „Sammlung“ schwerer zu erklären.
+- **Ein Listen-Case, das in eine benannte Sammlung und zurück nach „Meine Sammlung“ wandert,
+  verliert `company`.** Beim Verschieben nach „Meine Sammlung“ wird `company` entfernt
+  (`moveCase`); die ursprüngliche Firma (z. B. „CAB“) ist an dieser Stelle nicht mehr
+  rekonstruierbar, weil sie am Case nicht gesondert gemerkt wird. Das Case erscheint danach im
+  Wizard-Filter „Standardkatalog“ (Cases ohne `company`) und nicht mehr unter seiner Marke.
+  Eigene Entscheidung: nicht geraten oder aus dem Namen abgeleitet; der Nutzer kann es per
+  „Verschieben“ in eine Sammlung gleichen Namens zurücklegen.
+- **Import mit Sammlungen kann gleichnamige Sammlungen und Oberebenen-Schleifen erzeugen.**
+  Beim Zusammenführen einer Sicherung mit dem lokalen Bestand wird nach `id` gemischt;
+  `parseBundle` repariert Namen und Schleifen nur innerhalb der Datei. Eine importierte Sammlung
+  kann daher denselben Namen wie eine lokale (andere `id`) tragen, und zusammengemischte
+  Oberebenen können eine Schleife bilden. `collectionRows` und `depthOf` vertragen beides
+  (eine Schleife bricht ab, doppelte Namen werden einfach beide angezeigt), `MAX_DEPTH` wird
+  beim Import ebenfalls nicht erzwungen. Eigene Entscheidung: Import überschreibt nichts
+  stillschweigend; aufgeräumt wird per „Umbenennen“/„Verschieben“.
 - **`MAX_DEPTH` (4) gilt nur in der Oberfläche.** Beim Import einer Sicherung prüft `parseBundle`
   Schleifen und unbekannte Oberebenen, nicht die Tiefe; eine tiefere Kette aus fremden Dateien
   lädt und lässt sich nur nicht weiter verschachteln.

@@ -10,6 +10,8 @@ Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Auftei
 
 Nichts installieren, kein Terminal. Nach dem ersten Öffnen läuft die App auch offline.
 
+Die App braucht einen aktuellen Browser (JSON-Module mit `with { type: 'json' }`): Chrome/Edge ≥ 123, Safari ≥ 17.2, Firefox ≥ 138 – nach Herstellerangaben, hier nicht geprüft. In Electron entspricht das Version 30 oder neuer.
+
 **Als App ins Dock (empfohlen):**
 - Safari: Seite öffnen → Menü *Ablage → Zum Dock hinzufügen*
 - Chrome: Seite öffnen → Installieren-Symbol rechts in der Adressleiste
