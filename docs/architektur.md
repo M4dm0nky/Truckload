@@ -436,8 +436,10 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
 
 - **Sammlung statt Firma (seit V 0.16.1).** „Firma“ heißt in der Oberfläche „Sammlung“ und ist
   ein eigener Datensatz (Abschnitt „Sammlungen“ unten). `company` bleibt ein gewöhnliches Case-Feld
-  und ist der Name der **direkten** eigenen Sammlung; bei „Meine Sammlung“ und „Standard“ ist es
-  leer. `companyList()` und `renameCompany()` in `js/model/material.js` stehen noch als reine
+  und ist der Name der Sammlung, in die das Case zuletzt verschoben oder gespeichert wurde (bei
+  eigenen benannten Sammlungen entspricht es deren Namen). Nicht verschobene Listen-Cases
+  (`data/meine.json`, alle mit `company`) und migrierte alte Cases tragen den früheren Firmennamen,
+  obwohl ihr Datensatz `meine` ist; maßgeblich ist der Datensatz, nicht `company`. `companyList()` und `renameCompany()` in `js/model/material.js` stehen noch als reine
   Funktionen, die Oberfläche benutzt sie nicht mehr. Eine leere, neu angelegte Sammlung ist ein
   echter Datensatz und kein UI-Zustand mehr. Was früher die „Standardliste“ war (Cases ohne
   `company`), liegt jetzt in „Meine Sammlung“ bzw. „Standard“.
@@ -531,7 +533,7 @@ Reine Logik (ohne DOM und Store) steht in `js/model/collections.js`, Laden und S
   berechneten Stand weiter und `readRecords` baut den Datensatz beim nächsten Speichern aus dem
   alten Store auf. Alte Daten laden dadurch unverändert (Regressionsfälle in
   `tests/collections-repo.test.js`).
-- **`company` = Name der direkten Sammlung.** `moveCase` setzt es bei einer eigenen Sammlung auf
+- **`company` = Name der Sammlung, in die zuletzt verschoben wurde.** `moveCase` setzt es bei einer eigenen Sammlung auf
   deren Namen (Dolly-IDs, Traversen-Treffer und die Anzeige „· Name“ bleiben so wie bisher), bei
   „Meine Sammlung“ entfernt es das Feld und macht aus einem mitgelieferten Listen-Case eine
   Überlagerung (`builtin: false`, gleiche ID). `renameCollection` zieht `company` der Cases mit.
@@ -771,14 +773,14 @@ eine Sammlung oder den kompletten Bestand wählt. Die Wahl einer Sammlung schlie
 Untersammlungen ein (`descendantIds`, Vorrang vor dem `company`-Filter). Verschwindet die gewählte
 Sammlung aus den Daten, fällt der Filter auf „Standardkatalog“ zurück.
 
-Die 7 Packcases tragen seit V 0.8.6 ein Standardgewicht statt 0 kg: `PACK(l, w, h)` in
-`js/data/preset-cases.js` rechnet `Math.round(PACK_REF_KG * l * w * h / PACK_REF_VOLUME)` mit `PACK_REF_KG = 100` und
+Die 7 Packcases tragen seit V 0.8.6 ein Standardgewicht statt 0 kg. Berechnet wurden sie mit
+`Math.round(PACK_REF_KG * l * w * h / PACK_REF_VOLUME)`, `PACK_REF_KG = 100` und
 `PACK_REF_VOLUME = 120 * 60 * 80` (Referenz: das Standard-Packcase 120×60×60 ohne Rollen, also
 120×60×80 inkl. Rollen, wiegt 100 kg – Nutzerangabe, keine Recherche, dokumentiert in
 `docs/casemasse-gewichte.md`). Alle anderen Packcase-Maße werden danach nach Volumen ab- bzw.
 aufgestuft; die Werte stehen ausgerechnet in `data/standard.json` (der Kommentar mit Formel und
-Referenz steht weiter in `js/data/preset-cases.js`, weil JSON keine Kommentare kann; die Formel
-läuft nicht mehr zur Laufzeit). Mitgelieferte Cases entstehen bei jedem Start neu aus den
+Referenz steht weiter als Kommentar in `js/data/preset-cases.js`, weil JSON keine Kommentare
+kann; die Formel läuft nicht mehr zur Laufzeit). Mitgelieferte Cases entstehen bei jedem Start neu aus den
 JSON-Dateien (`mergeOwnWithBuiltins`) – ein anderer Standard ist eine Änderung der Zahlen in
 `data/standard.json`, ein einzelnes Case ändert man über „Case bearbeiten“ (eigene Kopie). Die `legacy`-Einträge behalten
 ihre alten Gewichte.

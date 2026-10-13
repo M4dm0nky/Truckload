@@ -37,7 +37,7 @@ Weitere Folgen für NYX:
 
 - **Eine Sammlung ist ein größerer Datensatz.** Jede Änderung an einem Case schreibt den ganzen
   Datensatz der betreffenden Sammlung (Lesen, ändern, `put`). Bei einer großen Sammlung („Meine
-  Sammlung“ mit mehreren hundert Cases) sind das einige hundert KB je Speichern.
+  Sammlung“ mit mehreren hundert Cases) sind das bei etwa 350 Byte je Case und einigen hundert Cases rund 100–200 KB je Speichern.
 - **Zwei Clients gleichzeitig** (zwei Fenster, zwei NYX-Instanzen auf demselben Bestand): gewinnt
   der zuletzt schreibende Datensatz ganz; Cases, die der andere Client im selben Datensatz
   geändert hat, gehen damit verloren. Je Case gibt es kein Zusammenführen auf NYX-Seite.
@@ -71,15 +71,19 @@ Weitere Folgen für NYX:
 
 | Feld | Bedeutung |
 |---|---|
-| `id` | nicht leerer String (in Dateien höchstens 64 Zeichen), Primärschlüssel. `meine` ist fest vergeben („Meine Sammlung“); `standard` wird **nie** gespeichert (und ein Datensatz mit dieser `id` wird beim Laden ignoriert). Sonst eine UUID |
+| `id` | nicht leerer String (in Dateien höchstens 64 Zeichen), Primärschlüssel. `meine` ist fest vergeben („Meine Sammlung“); `standard` wird **nie** gespeichert (und ein Datensatz mit dieser `id` wird beim Laden ignoriert). Sonst eine UUID. Die Grenze von 64 Zeichen gilt für Dateien; gespeicherte Datensätze werden dagegen nicht geprüft, NYX darf längere IDs also nicht ablehnen |
 | `name` | Anzeigename, höchstens 80 Zeichen, nicht leer, nicht `__…__` (reserviert), innerhalb eines Bestands eindeutig ohne Beachtung der Groß-/Kleinschreibung (auch gegen „Standard“ und „Meine Sammlung“). Der Datensatz `meine` trägt seinen Namen, die App nimmt ihn aber immer aus dem Code |
-| `parentId` | optional, `id` der Oberebene; fehlt bei Sammlungen der obersten Ebene. Höchstens 4 Ebenen, keine Schleifen |
+| `parentId` | optional, `id` der Oberebene; fehlt bei Sammlungen der obersten Ebene. Höchstens 4 Ebenen, keine Schleifen. Das erzwingt die App beim Anlegen und Verschieben; gespeicherte Datensätze werden beim Laden nicht darauf geprüft, NYX-Zusammenführcode darf tiefere Bäume nicht ablehnen |
 | `updatedAt` | ISO-Zeitstempel (String). Truckload setzt ihn bei jedem Schreiben; ein Wert, der kein String ist, wird beim Laden entfernt |
 | `cases` | die Cases der Sammlung in der Form, in der sie bisher im Store `cases` lagen. Das Feld `collectionId` steht dort **nicht**; es wird beim Laden aus der Zugehörigkeit gesetzt |
 
-Das Feld `company` am Case ist der Name der **direkten** Sammlung (bei „Meine Sammlung“ leer). Es
-ist eine Anzeige- und Zuordnungshilfe (Dolly-IDs, Traversen-Treffer, „· Name“ in Listen), keine
-Verknüpfung; maßgeblich ist, in welchem Datensatz der Case steht.
+Das Feld `company` am Case ist der Name der Sammlung, in die das Case zuletzt verschoben oder
+gespeichert wurde; bei eigenen benannten Sammlungen entspricht es dem Namen der Sammlung. Bei
+nicht verschobenen mitgelieferten Listen-Cases (alle 137 Einträge von `data/meine.json` tragen
+eines, z. B. „CAB“, „BBM“) und bei migrierten alten Cases steht dort der frühere Firmenname, obwohl
+der Datensatz `meine` ist. `company` ist eine Anzeige- und Zuordnungshilfe (Dolly-IDs,
+Traversen-Treffer, „· Name“ in Listen), keine Verknüpfung; **maßgeblich ist der Datensatz, in dem
+das Case steht**, nicht `company`.
 
 Der Datensatz `meine` kann außer eigenen Cases auch **Überlagerungen** mitgelieferter Listen-Cases
 enthalten: ein Case mit einer `lib-…`-ID und `builtin: false`, das ein bearbeitetes, verschobenes
@@ -124,9 +128,11 @@ nicht verloren gehen, sonst taucht die mitgelieferte Version wieder auf.
 - **Sicherung („Sichern“):** trägt zusätzlich das Feld `collections` mit den eigenen Sammlungen,
   je `{ id, name, parentId?, updatedAt? }` (ohne Cases, ohne „Standard“ und „Meine Sammlung“).
   Die Cases stehen weiter flach in `cases`, jedes mit `collectionId`. Alte Sicherungen ohne dieses
-  Feld laden weiter: alle Cases kommen nach „Meine Sammlung“. Beim Einlesen werden doppelte oder
+  Feld laden weiter: neue Cases kommen nach „Meine Sammlung“, ein Case, das lokal schon in einer
+  Sammlung liegt, bleibt dort. Beim Einlesen werden doppelte oder
   reservierte Namen umbenannt, unbekannte Oberebenen und Schleifen auf die oberste Ebene gesetzt
-  und Cases mit unbekannter `collectionId` nach „Meine Sammlung“ gelegt; das meldet Truckload
+  und Cases mit unbekannter `collectionId` wie Cases ohne Angabe behandelt (neue nach „Meine
+  Sammlung“, lokal schon zugeordnete bleiben in ihrer Sammlung); das meldet Truckload
   unter „Beim Import angepasst“. Höchstens 200 Sammlungen je Datei.
 - **Schreibreihenfolge:** Alle Case-Schreibvorgänge laufen in der App nacheinander durch eine
   Warteschlange, damit zwei Vorgänge nicht denselben Datensatz überschreiben. Für den Host heißt

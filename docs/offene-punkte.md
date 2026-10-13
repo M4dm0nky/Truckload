@@ -26,7 +26,9 @@ offengelegt, aber für kleine Cases zu konservativ.
 - **Die Listen-Cases liegen noch gemeinsam in „Meine Sammlung“.** CAB, BBM, Motion … sind nicht je
   Firma in eigene Sammlungen aufgeteilt (Entscheidung: erst Struktur, dann Sortierung). Der Nutzer
   verschiebt sie selbst („Verschieben“).
-- **`company` ist immer der Name der direkten Sammlung.** Eine Oberfirma kennt der Case nicht; wer
+- **`company` ist nur der Name einer einzelnen Sammlung, nicht des Baums.** Es ist der Name der
+  Sammlung, in die das Case zuletzt verschoben wurde (bei unverschobenen Listen-Cases und
+  migrierten Cases der alte Firmenname, während der Datensatz `meine` ist). Eine Oberfirma kennt der Case nicht; wer
   nach Oberfirma filtern will, nimmt den Sammlungsfilter. Das Verschieben einer Sammlung ändert
   die `company` ihrer Cases nicht (sie ändert nur der Name).
 - **Elternsammlungen listen nur eigene Cases.** In der Materialverwaltung zeigt eine Oberebene nur
