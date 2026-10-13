@@ -8,6 +8,7 @@ import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
 import { pickPieceFields } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
+import { MEINE_NAME } from '../model/collections.js';
 import { slug } from '../model/slug.js';
 
 // FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
@@ -179,12 +180,14 @@ export function checkRuleSet(rs) {
     throw new Error(`Regelset „${name || '?'}“ ist ungültig.`);
 }
 
+const MAX_COLLECTION_ID = 64;
+const COLLECTION_RESERVED = /^__.*__$/;
 // Sammlung als Meta (im Bundle): nur Kennung, Name und Oberebene. Die Cases stehen im Bundle
 // flach in `cases` und tragen `collectionId`.
 export function checkCollection(m) {
-  if (!m || typeof m.id !== 'string' || typeof m.name !== 'string') throw new Error('Sammlung ohne ID oder Name in der Datei.');
-  const tooLong = nameTooLong('Sammlung', m);
-  if (tooLong) throw tooLong;
+  if (!m || typeof m.id !== 'string' || typeof m.name !== 'string' || m.id === '') throw new Error('Sammlung ohne ID oder Name in der Datei.');
+  if (m.id.length > MAX_COLLECTION_ID) throw new Error(`Sammlung „${m.name.slice(0, 20)}“: ID zu lang (höchstens ${MAX_COLLECTION_ID} Zeichen).`);
+  if (m.name.length > MAX_FIRM) throw new Error(`Sammlung „${m.name.slice(0, 20)}…“: Name zu lang (höchstens ${MAX_FIRM} Zeichen).`);
   if (!m.name.trim()) throw new Error('Sammlung ohne Namen in der Datei.');
   if (m.parentId !== undefined && typeof m.parentId !== 'string') throw new Error(`Sammlung „${m.name}“ hat eine ungültige Oberebene.`);
   if (!updatedAtOk(m)) throw new Error(`Sammlung „${m.name}“ hat einen ungültigen Zeitstempel.`);
@@ -235,8 +238,11 @@ export function parseBundle(text) {
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
   if (arr(data.collections).length > MAX_COLLECTIONS) throw new Error('Die Datei enthält zu viele Sammlungen.');
-  const rawCollections = arr(data.collections).filter(m => m?.id !== 'standard' && m?.id !== 'meine');
-  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && rawCollections.length === 0)
+  // Feste und mitgelieferte Sammlungen kommen nie aus einer Datei; Null-Einträge bleiben stehen
+  // und lehnt checkCollection ab.
+  const rawCollectionsIn = arr(data.collections).filter(m => m?.id !== 'standard' && m?.id !== 'meine'
+    && !m?.builtin && !m?.readOnly && !(typeof m?.id === 'string' && m.id.startsWith('preset-')));
+  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && rawCollectionsIn.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
 
   // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
@@ -330,7 +336,26 @@ export function parseBundle(text) {
     unplaced: p.unplaced.map(repairPiece),
   }));
 
-  rawCollections.forEach(checkCollection);
+  rawCollectionsIn.forEach(checkCollection);
+  // Nur Kennung, Name, Oberebene, Zeitstempel übernehmen (wie exportBundle); fremde Felder
+  // (readOnly, builtin, cases …) bleiben draußen. Reservierte oder doppelte Namen (ohne
+  // Groß-/Kleinschreibung, auch gegen die festen Sammlungen) werden umbenannt und gemeldet.
+  const takenNames = new Set(['standard', MEINE_NAME.toLowerCase()]);
+  let nameCollectionRepairs = 0;
+  const uniqueName = name => {
+    const base = name.trim();
+    if (!COLLECTION_RESERVED.test(base) && !takenNames.has(base.toLowerCase())) { takenNames.add(base.toLowerCase()); return base; }
+    nameCollectionRepairs++;
+    for (let n = 2; ; n++) {
+      const suffix = ` (${n})`;
+      const cand = base.slice(0, MAX_FIRM - suffix.length).trimEnd().replace(/^_+|_+$/g, '') + suffix;
+      if (!COLLECTION_RESERVED.test(cand) && !takenNames.has(cand.toLowerCase())) { takenNames.add(cand.toLowerCase()); return cand; }
+    }
+  };
+  const rawCollections = rawCollectionsIn.map(({ id, name, parentId, updatedAt }) => ({
+    id, name: uniqueName(name),
+    ...(parentId !== undefined ? { parentId } : {}), ...(updatedAt !== undefined ? { updatedAt } : {}),
+  }));
   // Oberebenen: unbekannte Verweise und Schleifen aus fremden Dateien werden entfernt und gemeldet,
   // statt die Datei abzulehnen (eigene Entscheidung, wie bei LKW-Verweisen).
   const collectionIds = new Set(rawCollections.map(m => m.id));
@@ -385,6 +410,8 @@ export function parseBundle(text) {
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
+  if (nameCollectionRepairs > 0)
+    repairs.push(`${nameCollectionRepairs} Sammlung${nameCollectionRepairs === 1 ? '' : 'en'}: Name doppelt oder reserviert – umbenannt.`);
   if (parentRepairs > 0)
     repairs.push(`${parentRepairs} Sammlung${parentRepairs === 1 ? '' : 'en'}: Oberebene unbekannt oder Schleife – auf die oberste Ebene gesetzt.`);
   if (unknownCollectionRefs > 0)
@@ -416,12 +443,13 @@ export function mergeById(existing, incoming) {
 }
 
 const COLLECTION_FORMAT = 'truckload-collection';
+const COLLECTION_VERSION = 1;
 
 // Eine einzelne Sammlung als eigene Datei: zum Weitergeben (z. B. eine Hersteller-Bibliothek).
 // Mitgelieferte Cases und die interne `collectionId` bleiben draußen.
 export function exportCollectionFile({ id, name }, cases, now = new Date()) {
   return JSON.stringify({
-    format: COLLECTION_FORMAT, version: 1, appVersion: APP_VERSION, exportedAt: now.toISOString(),
+    format: COLLECTION_FORMAT, version: COLLECTION_VERSION, appVersion: APP_VERSION, exportedAt: now.toISOString(),
     collection: { id, name },
     cases: cases.filter(c => !c.builtin).map(({ collectionId: _x, ...rest }) => rest),
   }, null, 2);
@@ -432,12 +460,16 @@ export function parseCollectionFile(text) {
   try { data = JSON.parse(text); } catch { throw new Error('Die Datei ist kein gültiges JSON.'); }
   if (data?.format !== COLLECTION_FORMAT) throw new Error('Keine Sammlungsdatei von Truckload.');
   if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
-  if (data.version > 1) throw new Error('Die Datei stammt aus einer neueren Version.');
+  if (data.version > COLLECTION_VERSION) throw new Error('Die Datei stammt aus einer neueren Version.');
   const m = data.collection;
   if (!m || typeof m.id !== 'string' || typeof m.name !== 'string' || !m.name.trim())
     throw new Error('Die Sammlung in der Datei hat keine ID oder keinen Namen.');
-  if (m.name.length > NAME_MAX) throw new Error(`Sammlungsname zu lang (höchstens ${NAME_MAX} Zeichen).`);
+  if (m.id === '' || m.id.length > MAX_COLLECTION_ID) throw new Error('Die Sammlung in der Datei hat keine gültige ID.');
+  if (m.name.length > MAX_FIRM) throw new Error(`Sammlungsname zu lang (höchstens ${MAX_FIRM} Zeichen).`);
+  if (COLLECTION_RESERVED.test(m.name.trim())) throw new Error('Dieser Sammlungsname ist reserviert.');
   if (!Array.isArray(data.cases)) throw new Error('Das Feld „Cases“ in der Datei ist beschädigt.');
+  // Bewusst ohne die Reparaturen alter Schemata (Beschriftung, Rollenhöhe, Namenslänge): das
+  // Format ist neu, solche Altlasten gibt es hier nicht (Entscheidung, kein Versehen).
   const cases = data.cases.filter(c => !isPreset(c));
   cases.forEach(checkCase);
   const ids = cases.map(c => c.id);

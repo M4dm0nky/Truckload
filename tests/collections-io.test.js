@@ -70,3 +70,62 @@ test('Sammlungsdatei: falsches Format, neuere Version, Fremdes, leer', () => {
   assert.throws(() => parseCollectionFile(JSON.stringify({ format: 'truckload-collection', version: 1, collection: { id: 'a', name: 'A' }, cases: [{ id: 'x' }] })), /Case/);
   assert.throws(() => parseCollectionFile('kein json'), /kein gültiges JSON/);
 });
+
+const bundleOf = collections => JSON.stringify({ format: 'truckload', version: 1, cases: [], trucks: [], plans: [], ruleSets: [], collections });
+
+test('doppelte Sammlungs-IDs lehnen die Datei ab', () => {
+  assert.throws(() => parseBundle(bundleOf([{ id: 'a', name: 'A' }, { id: 'a', name: 'B' }])), /doppelte IDs/);
+});
+
+test('Bundle nur mit Sammlungen ist nicht leer', () => {
+  const b = parseBundle(bundleOf([{ id: 'a', name: 'A' }]));
+  assert.deepEqual(b.collections.map(x => x.id), ['a']);
+});
+
+test('Sammlung als eigene Oberebene wird repariert und gemeldet', () => {
+  const b = parseBundle(bundleOf([{ id: 'a', name: 'A', parentId: 'a' }]));
+  assert.equal(b.collections[0].parentId, undefined);
+  assert.ok(b.repairs.some(r => /Oberebene|Schleife/.test(r)));
+});
+
+test('readOnly, builtin, preset- und fremde Felder kommen nicht in den Bestand', () => {
+  const b = parseBundle(bundleOf([
+    { id: 'r', name: 'R', readOnly: true }, { id: 'b', name: 'B', builtin: true }, { id: 'preset-x', name: 'P' },
+    { id: 'k', name: 'K', cases: [1], evil: 'x', updatedAt: 'T' },
+  ]));
+  assert.deepEqual(b.collections, [{ id: 'k', name: 'K', updatedAt: 'T' }]);
+});
+
+test('null-Eintrag in collections lehnt die Datei ab', () => {
+  assert.throws(() => parseBundle(bundleOf([null])), /Sammlung ohne ID oder Name/);
+});
+
+test('reservierte, doppelte und feste Namen werden umbenannt und gemeldet', () => {
+  const b = parseBundle(bundleOf([
+    { id: 'a', name: '__x__' }, { id: 'b', name: 'Standard' }, { id: 'c', name: 'Meine Sammlung' },
+    { id: 'd', name: 'TSE' }, { id: 'e', name: 'tse' },
+  ]));
+  const names = b.collections.map(x => x.name);
+  assert.equal(new Set(names.map(n => n.toLowerCase())).size, 5);
+  assert.deepEqual(names.slice(3), ['TSE', 'tse (2)']);
+  assert.ok(names.every(n => !/^__.*__$/.test(n) && n !== 'Standard' && n !== 'Meine Sammlung'));
+  assert.equal(b.repairs.filter(r => /Name doppelt oder reserviert/.test(r)).length, 1);
+  assert.ok(b.repairs.some(r => /^4 Sammlungen/.test(r)));
+});
+
+test('Umbenennen hält die Namenslänge ein', () => {
+  const b = parseBundle(bundleOf([{ id: 'a', name: 'x'.repeat(80) }, { id: 'b', name: 'X'.repeat(80) }]));
+  assert.ok(b.collections.every(x => x.name.length <= 80));
+  assert.notEqual(b.collections[0].name, b.collections[1].name);
+});
+
+test('leere und zu lange Sammlungs-IDs werden abgelehnt', () => {
+  assert.throws(() => checkCollection({ id: '', name: 'A' }), /ohne ID oder Name/);
+  assert.throws(() => checkCollection({ id: 'x'.repeat(65), name: 'A' }), /ID zu lang/);
+  assert.doesNotThrow(() => checkCollection({ id: 'x'.repeat(64), name: 'A' }));
+});
+
+test('Sammlungsdatei: reservierter Name wird abgelehnt', () => {
+  const t = JSON.stringify({ format: 'truckload-collection', version: 1, collection: { id: 'a', name: '__x__' }, cases: [] });
+  assert.throws(() => parseCollectionFile(t), /reserviert/);
+});
