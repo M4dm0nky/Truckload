@@ -1,6 +1,6 @@
 // Case-Bibliothek „Meine Sammlung“ (Liste der Verleihfirma des Nutzers).
 //
-// Der Inhalt steht seit V 0.16.1 in data/meine.json. Einträge werden dort gepflegt bzw. neu
+// Der Inhalt steht seit V 0.17.0 in data/meine.json. Einträge werden dort gepflegt bzw. neu
 // erzeugt. Dieses Modul behält nur den alten Namen CASE_LIBRARY für Verbraucher und Tests und
 // enthält selbst keine Daten. Die Begründungen stehen hier, weil JSON keine Kommentare kann.
 //

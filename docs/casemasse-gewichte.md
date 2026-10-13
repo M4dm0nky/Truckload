@@ -56,7 +56,7 @@ In 3D sitzen die Boxen mit der Front bündig an der Dolly-Vorderkante, hinten bl
 Nutzerwunsch: Truckload kannte im Gewerk „Ton“ bisher nur 19″-Racks (`js/data/case-library.js`).
 PA-Lautsprecher fehlten komplett. Recherchiert: L-Acoustics, d&b audiotechnik, Meyer Sound,
 Martin Audio, RCF, Nexo — Line-Array-Elemente und Subwoofer, Maße/Gewichte und übliche
-Transportvarianten. Alle 21 neuen Vorlagen in `js/data/preset-cases.js` (seit V 0.16.1 in `data/standard.json`), Kategorie `'Ton'`,
+Transportvarianten. Alle 21 neuen Vorlagen in `js/data/preset-cases.js` (seit V 0.17.0 in `data/standard.json`), Kategorie `'Ton'`,
 neutral (kein `company`-Feld — das steht für die Verleihfirma des Nutzers, nicht den
 Gerätehersteller).
 
@@ -281,13 +281,13 @@ sind inklusive Rollen gemessen, die Referenz ist deshalb der Eintrag „Packcase
 | 120×80×80 | 0,768 m³ | 133 kg |
 
 Die Werte stehen ausgerechnet in `data/standard.json`; die Formel (`PACK`) bleibt nur als
-Kommentar in `js/data/preset-cases.js` (seit V 0.16.1 steht der Inhalt in `data/standard.json`
+Kommentar in `js/data/preset-cases.js` (seit V 0.17.0 steht der Inhalt in `data/standard.json`
 bzw. `data/meine.json`). Legacy-Einträge (die früheren „Packcase/Kabelcase Truckmaß …“-Vorlagen) sind
 unverändert und behalten ihre alten Gewichte.
 
 # Gewichtsrecherche für die Case-Bibliothek (Task 2, V0.5.0)
 
-Recherchiert am 2026-09-20 für `js/data/case-library.js` (seit V 0.16.1 steht der Inhalt in `data/meine.json`). Formel je Eintrag:
+Recherchiert am 2026-09-20 für `js/data/case-library.js` (seit V 0.17.0 steht der Inhalt in `data/meine.json`). Formel je Eintrag:
 
 ```
 Case-Gewicht = round5( Gerätegewicht_netto × Stückzahl + Case-Anteil )

@@ -1,6 +1,6 @@
 # Offene Punkte
 
-Stand V 0.15.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Stand V 0.17.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
 Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
 des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
 Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
@@ -21,7 +21,7 @@ Mit echten Maßen ließen sie sich wieder freigeben. Nur 3 HE (komplett gemessen
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`
 offengelegt, aber für kleine Cases zu konservativ.
 
-## Aus Sammlungen (V 0.16.1) offen
+## Aus Sammlungen (V 0.17.0) offen
 
 - **Die Listen-Cases liegen noch gemeinsam in „Meine Sammlung“.** CAB, BBM, Motion … sind nicht je
   Firma in eigene Sammlungen aufgeteilt (Entscheidung: erst Struktur, dann Sortierung). Der Nutzer

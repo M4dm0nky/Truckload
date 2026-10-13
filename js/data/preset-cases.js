@@ -1,4 +1,4 @@
-// Standardvorlagen (nur lesbar). Der Inhalt steht seit V 0.16.1 in data/standard.json, einer
+// Standardvorlagen (nur lesbar). Der Inhalt steht seit V 0.17.0 in data/standard.json, einer
 // Sammlung wie jede andere (docs/nyx-sammlungen.md). Dieses Modul behält nur den alten Namen
 // PRESET_CASES für Verbraucher und Tests und enthält selbst keine Daten. Die Begründungen stehen
 // hier, weil JSON keine Kommentare kann. Recherche und Rechenweg der Gewichte: docs/casemasse-

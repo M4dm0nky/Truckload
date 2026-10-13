@@ -1,13 +1,13 @@
 # Sammlungen: was NYX wissen muss
 
-Gilt seit V 0.16.1. Diese Datei ergänzt [nyx-host.md](nyx-host.md) und richtet sich an die
+Gilt seit V 0.17.0. Diese Datei ergänzt [nyx-host.md](nyx-host.md) und richtet sich an die
 NYX-Entwicklung bzw. -Administration, die Truckload als Submodul einbindet. Sie beschreibt den
 neuen Store `collections`. Truckload ändert nichts an NYX; die Punkte unter „Was NYX tun muss“
 sind Aufgaben auf NYX-Seite, und sie müssen **vor** der Übernahme dieser Version erledigt sein.
 
 ## Zuerst: was NYX tun muss
 
-0. **Mindestversion der Laufzeit: Chromium ≥ 123, also Electron ≥ 30.** Ab V 0.16.1 lädt Truckload
+0. **Mindestversion der Laufzeit: Chromium ≥ 123, also Electron ≥ 30.** Ab V 0.17.0 lädt Truckload
    `data/standard.json` und `data/meine.json` über JSON-Module (`import … with { type: 'json' }`,
    „Import Attributes“). Ältere Chromium-Versionen (Electron ≤ 29) lesen diese Syntax nicht; die
    App startet dort **nicht** (statt einer Oberfläche erscheint nur der Ladefehler-Hinweis). Für
@@ -20,7 +20,7 @@ sind Aufgaben auf NYX-Seite, und sie müssen **vor** der Übernahme dieser Versi
    (`~/.lpm/lpm_types.db`), nicht in die Projektdatei wie `plans`. Alle vier Funktionen des
    Hosts (`getAll`, `put`, `del`, `writeMany`) müssen den Namen `collections` annehmen.
 2. **Den Store `cases` weiter freigeben und lesbar halten.** Truckload liest ihn bei jedem Start
-   (Migration, siehe unten) und löscht ihn nie. Schreibt Truckload ab V 0.16.1 Cases, dann nur noch
+   (Migration, siehe unten) und löscht ihn nie. Schreibt Truckload ab V 0.17.0 Cases, dann nur noch
    in `collections`.
 3. **Zusammenführen je Datensatz, nicht je Case.** Eine Sammlung ist **ein** Datensatz; ihre Cases
    stehen als Liste darin. Wer in NYX Sammlungen aus mehreren Quellen vereint, entscheidet je
@@ -120,7 +120,7 @@ nicht verloren gehen, sonst taucht die mitgelieferte Version wieder auf.
   Format `truckload-collection`, Version 1:
 
   ```json
-  { "format": "truckload-collection", "version": 1, "appVersion": "0.16.1",
+  { "format": "truckload-collection", "version": 1, "appVersion": "0.17.0",
     "exportedAt": "2026-10-13T09:30:00.000Z",
     "collection": { "id": "3f6c1c0a-…", "name": "Robe" },
     "cases": [ { "id": "6a1d…", "name": "Robe Pointe", "l": 120, "w": 60, "h": 80, "weight": 100 } ] }

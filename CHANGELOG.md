@@ -2,6 +2,27 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.17.0 – 2026-10-13
+
+**Sammlungen: jede Case-Sammlung ist ein eigenes JSON.**
+
+- **„Firma“ heißt jetzt „Sammlung“** und lässt sich verschachteln (Oberfirma → Hersteller →
+  Geräte). Die Materialverwaltung zeigt einen Baum mit „+ Sammlung“, „+ Untersammlung“,
+  Umbenennen, Verschieben und Löschen; je Case gibt es „Verschieben“.
+- **Jede Sammlung ist ein eigener Datensatz** (neuer Store `collections`) und lässt sich über
+  „Sammlung exportieren“ / „Sammlung importieren“ als eigene Datei weitergeben, zum Beispiel als
+  Bibliothek eines Herstellers.
+- **Mitgeliefert** sind `data/standard.json` (Vorlagen, nur lesbar) und `data/meine.json` (die
+  Listen-Cases). Neue und bisherige eigene Cases liegen in „Meine Sammlung“.
+- **Alte Daten laden weiter:** Beim ersten Start wandern eigene Cases in „Meine Sammlung“, der alte
+  Store bleibt unangetastet liegen. Alte Sicherungen importieren wie bisher, Ladepläne bleiben
+  unverändert.
+- **Voraussetzung:** Die mitgelieferten Sammlungen sind JSON-Module. Das braucht Chrome/Electron
+  ≥ 123 (Electron ≥ 30), Safari ≥ 17.2 oder Firefox ≥ 138 (Herstellerangaben, hier nicht geprüft).
+- **Für NYX:** neuer Store `collections`, Einzelheiten in `docs/nyx-sammlungen.md`.
+- Beim Löschen einer Sammlung bleiben mitgelieferte Listen-Cases als ausgeblendete Überlagerung in
+  „Meine Sammlung“, damit alte Ladepläne ihr Stück behalten.
+
 ## V 0.16.0 – 2026-10-11
 
 **Truckload läuft als Tab in NYX.** In der Web-App ändert sich nichts.

@@ -30,7 +30,7 @@ Wo NYX speichert:
 | `cases`, `collections`, `trucks`, `ruleSets` | projektübergreifend (`~/.lpm/lpm_types.db`) |
 | `plans` | in der Projektdatei |
 
-Sammlungen (Store `collections`, seit V 0.16.1): siehe [nyx-sammlungen.md](nyx-sammlungen.md). Dort
+Sammlungen (Store `collections`, seit V 0.17.0): siehe [nyx-sammlungen.md](nyx-sammlungen.md). Dort
 steht auch, was NYX dafür vorab tun muss und was passiert, wenn der Store fehlt.
 
 `db.putMany` und `db.writeMany` gehen beide über `writeMany` des Hosts. Puts und Deletes einer
@@ -41,14 +41,14 @@ löschen, Sammlungsdatei importieren) betreffen nur `collections` und sind damit
 atomar. Der Import einer Sicherung mischt dagegen `collections` mit `plans` und ist über beide
 Dateien hinweg **nicht** atomar.
 
-Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab. Seit V 0.16.1 gilt
+Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab. Seit V 0.17.0 gilt
 das für `collections`; ohne die Freigabe zeigt Truckload die Ersatzansicht und sperrt das
 Schreiben bis zum Neuladen (siehe [nyx-sammlungen.md](nyx-sammlungen.md)).
 
 ## Was NYX voraussetzt
 
 - Chromium ≥ 123 (Electron ≥ 30) wegen der JSON-Module (`import … with { type: 'json' }`, seit
-  V 0.16.1); Safari ≥ 17.2, Firefox ≥ 138; nach Herstellerangaben, hier nicht geprüft
+  V 0.17.0); Safari ≥ 17.2, Firefox ≥ 138; nach Herstellerangaben, hier nicht geprüft
   (Details in [nyx-sammlungen.md](nyx-sammlungen.md)).
 - Speicherzugriff nur über `js/store/db.js`, keine zweite Stelle, die `indexedDB` anfasst.
 - Nur relative Pfade. Die App läuft unter `truckload://app/`, nicht unter `/Truckload/`.

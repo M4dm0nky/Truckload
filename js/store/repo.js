@@ -87,7 +87,7 @@ export async function loadAll() {
   ]);
   const clean = await sanitizeAndWriteBack({ collections: collRecords, trucks, plans, ruleSets });
   let records = clean.collections.filter(r => r.id !== STANDARD_ID);
-  // Einmalige Migration (V 0.16.1): eigene Cases des alten Stores `cases` werden „Meine Sammlung“.
+  // Einmalige Migration (V 0.17.0): eigene Cases des alten Stores `cases` werden „Meine Sammlung“.
   // Der alte Store bleibt als Sicherheitsnetz liegen und wird danach nicht mehr gelesen. Scheitert
   // das Schreiben, läuft die App mit dem berechneten Stand weiter; writeCases baut den Datensatz
   // dann beim nächsten Speichern aus dem alten Store auf (readRecords), es geht nichts verloren.

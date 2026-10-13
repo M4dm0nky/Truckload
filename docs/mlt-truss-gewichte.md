@@ -1,6 +1,6 @@
 # Gewichtsrecherche für MLT-Traversenwagen (V0.7.2, korrigiert V0.7.3, V0.7.7, V0.7.10, V0.7.17, V0.7.18)
 
-Recherchiert am 2026-09-23 für `js/data/preset-cases.js` (seit V 0.16.1 steht der Inhalt in `data/standard.json`). Alle Stückgewichte sind
+Recherchiert am 2026-09-23 für `js/data/preset-cases.js` (seit V 0.17.0 steht der Inhalt in `data/standard.json`). Alle Stückgewichte sind
 Netto-Herstellerangaben für die Traverse selbst (ohne Grundplatte/Beine/Rollen).
 Formel je Vorlage:
 

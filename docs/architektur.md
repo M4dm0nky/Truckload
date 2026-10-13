@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.16.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.17.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -434,7 +434,7 @@ Standardvorlagen (`preset-`) bleiben lesbar mit Verweis auf „Kopieren“, Trav
 Die Materialverwaltung (V 0.12.5) hat keine eigene Tabelle und keinen `DB_VERSION`-Sprung.
 Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/material.js`.
 
-- **Sammlung statt Firma (seit V 0.16.1).** „Firma“ heißt in der Oberfläche „Sammlung“ und ist
+- **Sammlung statt Firma (seit V 0.17.0).** „Firma“ heißt in der Oberfläche „Sammlung“ und ist
   ein eigener Datensatz (Abschnitt „Sammlungen“ unten). `company` bleibt ein gewöhnliches Case-Feld
   und ist der Name der Sammlung, in die das Case zuletzt verschoben oder gespeichert wurde (bei
   eigenen benannten Sammlungen entspricht es deren Namen). Nicht verschobene Listen-Cases
@@ -488,7 +488,7 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   `keydown`-Handler aus `js/app/keyboard.js` sofort zurück, damit Entf, Pfeile oder Rückgängig nicht
   den dahinterliegenden Plan verändern.
 
-## Sammlungen (seit V 0.16.1)
+## Sammlungen (seit V 0.17.0)
 
 Entwurf: `docs/superpowers/specs/2026-10-13-sammlungen-design.md`; für NYX: `docs/nyx-sammlungen.md`.
 Reine Logik (ohne DOM und Store) steht in `js/model/collections.js`, Laden und Schreiben in
