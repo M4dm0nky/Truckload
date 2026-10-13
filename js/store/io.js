@@ -1,6 +1,6 @@
 import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.js';
-import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, layersValid } from '../model/limits.js';
+import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, MAX_COLLECTIONS, layersValid } from '../model/limits.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
@@ -8,6 +8,7 @@ import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
 import { pickPieceFields } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
+import { slug } from '../model/slug.js';
 
 // FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
 const FORMAT = 'truckload';
@@ -178,14 +179,28 @@ export function checkRuleSet(rs) {
     throw new Error(`Regelset „${name || '?'}“ ist ungültig.`);
 }
 
-export function exportBundle({ cases, trucks, plans, ruleSets = [] }, now = new Date()) {
+// Sammlung als Meta (im Bundle): nur Kennung, Name und Oberebene. Die Cases stehen im Bundle
+// flach in `cases` und tragen `collectionId`.
+export function checkCollection(m) {
+  if (!m || typeof m.id !== 'string' || typeof m.name !== 'string') throw new Error('Sammlung ohne ID oder Name in der Datei.');
+  const tooLong = nameTooLong('Sammlung', m);
+  if (tooLong) throw tooLong;
+  if (!m.name.trim()) throw new Error('Sammlung ohne Namen in der Datei.');
+  if (m.parentId !== undefined && typeof m.parentId !== 'string') throw new Error(`Sammlung „${m.name}“ hat eine ungültige Oberebene.`);
+  if (!updatedAtOk(m)) throw new Error(`Sammlung „${m.name}“ hat einen ungültigen Zeitstempel.`);
+}
+
+export function exportBundle({ cases, trucks, plans, ruleSets = [], collections = [] }, now = new Date()) {
   return JSON.stringify({
     format: FORMAT, version: VERSION, appVersion: APP_VERSION, exportedAt: now.toISOString(),
     cases: cases.filter(c => !c.builtin), trucks: trucks.filter(t => !t.builtin), plans, ruleSets,
+    // Standard und Meine sind fest; nur eigene Sammlungen gehören in die Datei.
+    collections: collections.filter(c => !c.readOnly && c.id !== 'meine')
+      .map(({ id, name, parentId, updatedAt }) => ({ id, name, ...(parentId ? { parentId } : {}), ...(updatedAt ? { updatedAt } : {}) })),
   }, null, 2);
 }
 
-const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets' };
+const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets', collections: 'Sammlungen' };
 
 // Zwei Werte aus älteren Wizard-/Editor-Vorgaben reißen sonst die harte Alles-oder-nichts-Grenze
 // beim Import, obwohl sie reparierbar sind: eine zu lange Beschriftung (früher bis 50 Zeichen,
@@ -211,7 +226,7 @@ export function parseBundle(text) {
   if (data?.format !== FORMAT) throw new Error('Keine Truckload-Datei.');
   if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
   if (data.version > VERSION) throw new Error('Die Datei stammt aus einer neueren Version.');
-  for (const field of ['cases', 'trucks', 'plans', 'ruleSets']) {
+  for (const field of ['cases', 'trucks', 'plans', 'ruleSets', 'collections']) {
     if (data[field] !== undefined && !Array.isArray(data[field]))
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
@@ -219,7 +234,9 @@ export function parseBundle(text) {
   const rawTrucks = arr(data.trucks).filter(t => !isPreset(t));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
-  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0)
+  if (arr(data.collections).length > MAX_COLLECTIONS) throw new Error('Die Datei enthält zu viele Sammlungen.');
+  const rawCollections = arr(data.collections).filter(m => m?.id !== 'standard' && m?.id !== 'meine');
+  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && rawCollections.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
 
   // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
@@ -313,9 +330,38 @@ export function parseBundle(text) {
     unplaced: p.unplaced.map(repairPiece),
   }));
 
+  rawCollections.forEach(checkCollection);
+  // Oberebenen: unbekannte Verweise und Schleifen aus fremden Dateien werden entfernt und gemeldet,
+  // statt die Datei abzulehnen (eigene Entscheidung, wie bei LKW-Verweisen).
+  const collectionIds = new Set(rawCollections.map(m => m.id));
+  let parentRepairs = 0;
+  const collections = rawCollections.map(m => {
+    if (m.parentId === undefined) return m;
+    const seen = new Set([m.id]);
+    let p = m.parentId;
+    let ok = collectionIds.has(p);
+    while (ok && p !== undefined) {
+      if (seen.has(p)) { ok = false; break; }
+      seen.add(p);
+      p = rawCollections.find(x => x.id === p)?.parentId;
+    }
+    if (ok) return m;
+    parentRepairs++;
+    const { parentId: _p, ...rest } = m;
+    return rest;
+  });
+  // collectionId auf eine Sammlung, die die Datei nicht kennt: Feld entfernen (Meine Sammlung).
+  let unknownCollectionRefs = 0;
+  const casesWithCollection = cases.map(c => {
+    if (c.collectionId === undefined || c.collectionId === 'meine' || collectionIds.has(c.collectionId)) return c;
+    unknownCollectionRefs++;
+    const { collectionId: _x, ...rest } = c;
+    return rest;
+  });
+
   cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet);
   // Doppelte IDs in derselben Liste lassen mergeById/winners still Datensätze verschlucken.
-  for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets]]) {
+  for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets], ['collections', collections]]) {
     const dup = list.map(x => x.id).find((id, i, ids) => ids.indexOf(id) !== i);
     if (dup !== undefined) throw new Error(`Die Datei enthält doppelte IDs bei ${FIELD_LABELS[field]} („${dup}“).`);
   }
@@ -339,6 +385,10 @@ export function parseBundle(text) {
   if (labelRepairs > 0)
     repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
 
+  if (parentRepairs > 0)
+    repairs.push(`${parentRepairs} Sammlung${parentRepairs === 1 ? '' : 'en'}: Oberebene unbekannt oder Schleife – auf die oberste Ebene gesetzt.`);
+  if (unknownCollectionRefs > 0)
+    repairs.push(`${unknownCollectionRefs} Case${unknownCollectionRefs === 1 ? '' : 's'}: Sammlung unbekannt – nach „Meine Sammlung“ gelegt.`);
   repairs.push(...planRepairs);
   const nameNote = (n, one, many) =>
     n > 0 && repairs.push(`${n} ${n === 1 ? one : many}: Name länger als ${NAME_MAX} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.`);
@@ -346,7 +396,7 @@ export function parseBundle(text) {
   nameNote(nameRepairs.case, 'Case', 'Cases');
   nameNote(nameRepairs.truck, 'Fahrzeug', 'Fahrzeuge');
 
-  return { cases: cases.map(c => normalizeCase(dropStrayLegacy(c))), trucks, plans, ruleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
+  return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
 }
 
 // Ein lokaler mitgelieferter Eintrag (`builtin: true`) verliert immer: Mitgeliefertes kommt nie
@@ -364,6 +414,42 @@ export function mergeById(existing, incoming) {
   }
   return [...map.values()];
 }
+
+const COLLECTION_FORMAT = 'truckload-collection';
+
+// Eine einzelne Sammlung als eigene Datei: zum Weitergeben (z. B. eine Hersteller-Bibliothek).
+// Mitgelieferte Cases und die interne `collectionId` bleiben draußen.
+export function exportCollectionFile({ id, name }, cases, now = new Date()) {
+  return JSON.stringify({
+    format: COLLECTION_FORMAT, version: 1, appVersion: APP_VERSION, exportedAt: now.toISOString(),
+    collection: { id, name },
+    cases: cases.filter(c => !c.builtin).map(({ collectionId: _x, ...rest }) => rest),
+  }, null, 2);
+}
+
+export function parseCollectionFile(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error('Die Datei ist kein gültiges JSON.'); }
+  if (data?.format !== COLLECTION_FORMAT) throw new Error('Keine Sammlungsdatei von Truckload.');
+  if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
+  if (data.version > 1) throw new Error('Die Datei stammt aus einer neueren Version.');
+  const m = data.collection;
+  if (!m || typeof m.id !== 'string' || typeof m.name !== 'string' || !m.name.trim())
+    throw new Error('Die Sammlung in der Datei hat keine ID oder keinen Namen.');
+  if (m.name.length > NAME_MAX) throw new Error(`Sammlungsname zu lang (höchstens ${NAME_MAX} Zeichen).`);
+  if (!Array.isArray(data.cases)) throw new Error('Das Feld „Cases“ in der Datei ist beschädigt.');
+  const cases = data.cases.filter(c => !isPreset(c));
+  cases.forEach(checkCase);
+  const ids = cases.map(c => c.id);
+  if (new Set(ids).size !== ids.length) throw new Error('Die Datei enthält doppelte Case-IDs.');
+  return {
+    collection: { id: m.id, name: m.name.trim() },
+    cases: cases.map(c => normalizeCase(dropStrayLegacy(c))),
+  };
+}
+
+export const collectionFileName = (name, now = new Date()) =>
+  `sammlung-${slug(name) || 'ohne-namen'}-${now.toISOString().slice(0, 10)}.json`;
 
 export const backupFileName = (now = new Date()) =>
   `truckload-backup-${now.toISOString().slice(0, 10)}.json`;
