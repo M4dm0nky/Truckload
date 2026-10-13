@@ -10,6 +10,9 @@ import {
 } from '../model/collections.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 
+const NO_BUILTIN_MOVE = 'Standardvorlagen lassen sich nicht verschieben – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
+const NO_FIXED_COLLECTION = '„Standard“ und „Meine Sammlung“ lassen sich nicht ändern oder löschen.';
+const NO_FIXED_DELETE = '„Standard“ und „Meine Sammlung“ lassen sich nicht löschen.';
 const NO_BUILTIN_DELETE = 'Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
 
 // `repo`: writeCases/saveRuleSet/deleteRuleSet/saveTruck/deleteTruck/savePlan.
@@ -27,6 +30,9 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     chain = next.catch(() => {});
     return next;
   };
+
+  // Eine eigene (änderbare) Sammlung; „Standard“, „Meine Sammlung“ und unbekannte IDs sind es nicht.
+  const ownMeta = (st, id) => st.collections.find(c => c.id === id && !c.readOnly && c.id !== MEINE_ID);
 
   const setCollections = (st, collections) => (collections === st.collections ? st : { ...st, collections });
 
@@ -59,10 +65,15 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return false;
     }
     return serial(async () => {
-      if (d.save) return !!await saveCaseNow(d.save);
-      const r = await run('Case konnte nicht gelöscht werden', () => repo.writeCases({ removeIds: [d.remove], collections: store.get().collections }));
+      // Frisch lesen: ein vorher eingereihtes Umbenennen/Verschieben darf nicht zurückgedreht werden.
+      const fresh = store.get().cases.find(x => x.id === c.id);
+      if (!fresh) return true;
+      const dNow = deletionFor(fresh);
+      if (!dNow) { await showAlert(NO_BUILTIN_DELETE); return false; }
+      if (dNow.save) return !!await saveCaseNow(dNow.save);
+      const r = await run('Case konnte nicht gelöscht werden', () => repo.writeCases({ removeIds: [dNow.remove], collections: store.get().collections }));
       if (!r.ok) return false;
-      store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== d.remove) }));
+      store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== dNow.remove) }));
       return true;
     });
   }
@@ -81,6 +92,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
 
   const renameCollection = (id, name) => serial(async () => {
     const st = store.get();
+    if (!ownMeta(st, id)) { await showAlert(NO_FIXED_COLLECTION); return false; }
     const err = collectionNameError(name, st.collections, id);
     if (err) { await showAlert(err); return false; }
     const to = name.trim();
@@ -96,6 +108,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
 
   const moveCollection = (id, parentId) => serial(async () => {
     const st = store.get();
+    if (!ownMeta(st, id)) { await showAlert(NO_FIXED_COLLECTION); return false; }
     const err = parentError(st.collections, id, parentId);
     if (err) { await showAlert(err); return false; }
     const collections = withBuiltins(st.collections.map(c => {
@@ -119,14 +132,20 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     };
     // Rückfrage außerhalb der Warteschlange (sie soll Schreibvorgänge nicht aufhalten).
     const pre = store.get();
+    const meta0 = ownMeta(pre, id);
+    if (!meta0) { await showAlert(NO_FIXED_DELETE); return false; }
     const { gone: gone0, inside: inside0 } = insideOf(pre);
-    const name = pre.collections.find(c => c.id === id)?.name;
-    if (!await showConfirm(`Sammlung „${name}“ mit ${inside0.length} Einträgen${gone0.size > 1 ? ` und ${gone0.size - 1} Untersammlungen` : ''} löschen?`, { okLabel: 'Löschen', danger: true })) return false;
+    const used = inside0.reduce((n, c) => n + usage(pre, c.id), 0);
+    const usedNote = used ? ` Die Einträge werden in ${used} Ladeplan/-plänen verwendet.` : '';
+    if (!await showConfirm(`Sammlung „${meta0.name}“ mit ${inside0.length} Einträgen${gone0.size > 1 ? ` und ${gone0.size - 1} Untersammlungen` : ''} löschen?${usedNote}`, { okLabel: 'Löschen', danger: true })) return false;
     return serial(async () => {
       const st = store.get();
+      if (!ownMeta(st, id)) { await showAlert(NO_FIXED_DELETE); return false; }
       const { gone, inside } = insideOf(st);
       const ds = inside.map(deletionFor);
       if (ds.includes(null)) { await showAlert(NO_BUILTIN_DELETE); return false; }
+      // Die Überlagerung behält `company` (Name der gelöschten Sammlung): so bleibt die Anzeige
+      // „· Name“ und die Dolly-/Traversen-Zuordnung alter Pläne erhalten.
       const hidden = ds.filter(d => d.save).map(d => stamp({ ...d.save, collectionId: MEINE_ID }));
       const collections = withBuiltins(st.collections.filter(c => !gone.has(c.id)));
       const r = await run('Sammlung konnte nicht gelöscht werden', () => repo.writeCases({ upserts: hidden, deleteCollectionIds: [...gone], collections }));
@@ -145,7 +164,8 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     const c = st.cases.find(x => x.id === caseId);
     const target = st.collections.find(x => x.id === collectionId && !x.readOnly);
     if (!c || !target) return false;
-    if (c.builtin && c.id.startsWith('preset-')) { await showAlert(NO_BUILTIN_DELETE.replace('lassen sich nicht löschen', 'lassen sich nicht verschieben')); return false; }
+    if (c.builtin && c.id.startsWith('preset-')) { await showAlert(NO_BUILTIN_MOVE); return false; }
+    if (collectionIdOf(c) === target.id) return true;
     return !!await saveCaseNow(stamp(moveCase(c, target)));
   });
 
@@ -219,6 +239,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
 
   return {
+    enqueue: serial,
     saveCase, removeFromStock, createCollection, renameCollection, moveCollection, deleteCollection,
     moveCaseTo, importCollectionFile, saveRuleSet, deleteRuleSet, saveTruck, deleteTruck,
   };

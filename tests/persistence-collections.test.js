@@ -120,3 +120,100 @@ test('Eine fehlgeschlagene Schreibung vergiftet die Warteschlange nicht', async 
   assert.equal((await ctx.p.saveCase(own('b'))).id, 'b');
   assert.match(ctx.alerts[0], /kaputt/);
 });
+
+// --- Fehlerpfade, Rückfragen und Schutz der festen Sammlungen ---
+const failing = () => async () => { throw new Error('voll'); };
+const TSE = withBuiltins([{ id: 't', name: 'TSE' }]);
+
+// Persistenz mit eigener Rückfrage-Attrappe über denselben Store.
+function withConfirm(ctx, confirm) {
+  const confirms = [];
+  const p = createPersistence({
+    repo: { writeCases: async a => { ctx.writes.push(a); } }, store: ctx.store, stamp, uid: () => 'x',
+    showAlert: async m => { ctx.alerts.push(m); },
+    showConfirm: async m => { confirms.push(m); return confirm; },
+  });
+  return { p, confirms };
+}
+
+for (const [name, call] of [
+  ['createCollection', p => p.createCollection('Neu', null)],
+  ['renameCollection', p => p.renameCollection('t', 'Anders')],
+  ['moveCollection', p => p.moveCollection('t', null)],
+  ['deleteCollection', p => p.deleteCollection('t')],
+  ['importCollectionFile', p => p.importCollectionFile({ collection: { id: 'x', name: 'Robe' }, cases: [own('k1')] })],
+]) {
+  test(`${name}: scheitert das Schreiben, bleibt der Store unverändert und es gibt genau eine Meldung`, async () => {
+    const ctx = setup([own('a', { collectionId: 't', company: 'TSE' })], TSE, failing());
+    const before = ctx.store.get();
+    const r = await call(ctx.p);
+    assert.ok(r === false || r === null || r === undefined);
+    assert.equal(ctx.store.get(), before);
+    assert.equal(ctx.alerts.length, 1);
+    assert.match(ctx.alerts[0], /voll/);
+  });
+}
+
+test('deleteCollection: Rückfrage abgelehnt -> kein Schreiben, Store unverändert', async () => {
+  const ctx = setup([own('a', { collectionId: 't' })], TSE);
+  const { p } = withConfirm(ctx, false);
+  const before = ctx.store.get();
+  assert.equal(await p.deleteCollection('t'), false);
+  assert.equal(ctx.writes.length, 0);
+  assert.equal(ctx.store.get(), before);
+});
+
+test('deleteCollection: Standardvorlage im Unterbaum -> eine Meldung, kein Schreiben', async () => {
+  const preset = { id: 'preset-a', builtin: true, name: 'P', collectionId: 't', l: 1, w: 1, h: 1, weight: 1 };
+  const { p, writes, alerts } = setup([preset], TSE);
+  assert.equal(await p.deleteCollection('t'), false);
+  assert.equal(writes.length, 0);
+  assert.equal(alerts.length, 1);
+});
+
+for (const id of ['meine', 'standard', 'gibt-es-nicht']) {
+  test(`feste/unbekannte Sammlung „${id}“: löschen, umbenennen, verschieben -> je eine Meldung, kein Schreiben`, async () => {
+    const ctx = setup([own('a')], TSE);
+    const { p, confirms } = withConfirm(ctx, true);
+    const before = ctx.store.get();
+    assert.equal(await p.deleteCollection(id), false);
+    assert.equal(await p.renameCollection(id, 'X'), false);
+    assert.equal(await p.moveCollection(id, 't'), false);
+    assert.equal(ctx.writes.length, 0);
+    assert.equal(ctx.alerts.length, 3);
+    assert.equal(confirms.length, 0);
+    assert.equal(ctx.store.get(), before);
+  });
+}
+
+test('createCollection: unbekannte Oberebene wird abgelehnt', async () => {
+  const { p, writes, alerts } = setup();
+  assert.equal(await p.createCollection('Neu', 'gibt-es-nicht'), null);
+  assert.equal(writes.length, 0);
+  assert.equal(alerts.length, 1);
+});
+
+test('moveCaseTo: liegt das Case schon dort, wird nichts geschrieben', async () => {
+  const { p, writes } = setup([own('a', { collectionId: 't', company: 'TSE' })], TSE);
+  assert.equal(await p.moveCaseTo('a', 't'), true);
+  assert.equal(writes.length, 0);
+});
+
+test('removeFromStock: liest das Case im Schritt frisch (vorheriges Verschieben bleibt erhalten)', async () => {
+  const { p, store, writes } = setup([own('a')], TSE);
+  const c = store.get().cases[0];
+  const moved = p.moveCaseTo('a', 't');
+  const removed = p.removeFromStock(c, { confirmed: true });
+  await Promise.all([moved, removed]);
+  assert.equal(writes.length, 2);
+  assert.deepEqual(writes[1].removeIds, ['a']);
+  assert.equal(store.get().cases.length, 0);
+});
+
+test('deleteCollection: Rückfrage nennt die Verwendung in Ladeplänen', async () => {
+  const ctx = setup([own('a', { collectionId: 't' })], TSE);
+  ctx.store.update(s => ({ ...s, plans: [{ id: 'p', placements: [{ caseId: 'a' }], unplaced: [] }] }));
+  const { p, confirms } = withConfirm(ctx, false);
+  await p.deleteCollection('t');
+  assert.match(confirms[0], /1 Ladeplan\/-plänen verwendet/);
+});
