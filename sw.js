@@ -37,6 +37,7 @@ const ASSETS = [
   'js/model/actions.js',
   'js/model/audioDolly.js',
   'js/model/caseShape.js',
+  'js/model/collections.js',
   'js/model/geometry.js',
   'js/model/items.js',
   'js/model/limits.js',

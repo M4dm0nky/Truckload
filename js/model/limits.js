@@ -36,6 +36,9 @@ export const COORD_MAX = 2724;
 // Reiter sind in der Oberfläche nicht mehr bedienbar. Der Import lehnt darüber ab (checkPlan).
 // LKW-Namen gelten wie alle Namen bis NAME_MAX; Gewerke stammen aus CATEGORIES (data/categories.js).
 export const MAX_LKW = 12;
+// Höchstzahl eigener Sammlungen. Eigene Entscheidung: großzügig, damit keine reale Datenbank an
+// die Grenze kommt.
+export const MAX_COLLECTIONS = 200;
 // Name eines Regelsets (Pack-Regeln). Zufällig ebenfalls 80, aber eine eigene Bedeutung.
 export const MAX_RULESET_NAME = 80;
 
