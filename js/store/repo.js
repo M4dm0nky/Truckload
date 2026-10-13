@@ -133,7 +133,15 @@ export function loadAllFallback() {
 // (eigene + importierte), welcher geöffnet wird, wie auch loadAll() den zuletzt geänderten Plan
 // wählt. Bringt die Sicherung keinen Plan mit, bleibt plan null und der Startbildschirm bestehen.
 export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [], collections = withBuiltins([]) }, bundle) {
-  const mergedCases = mergeById(cases, bundle.cases);
+  // Eine alte, flache Sicherung kennt keine `collectionId`. Gewinnt ihr Case gegen ein lokales,
+  // behält es dessen Sammlung (saveImportWinners tut dasselbe auf der Platte), sonst zeigte der
+  // Speicher es unter „Meine Sammlung“, während es auf der Platte in der benannten liegt.
+  // Neue Cases bleiben ohne `collectionId` (-> „Meine Sammlung“). Die Gewinner kommen aus
+  // derselben abgebildeten Liste, damit die Identitätsprüfung unten weiter greift.
+  const writableIds = new Set(collections.filter(c => !c.readOnly).map(c => c.id));
+  const localHome = new Map(cases.filter(c => c.collectionId && writableIds.has(c.collectionId)).map(c => [c.id, c.collectionId]));
+  const bundleCases = bundle.cases.map(c => (c.collectionId === undefined && localHome.has(c.id) ? { ...c, collectionId: localHome.get(c.id) } : c));
+  const mergedCases = mergeById(cases, bundleCases);
   // withBuiltins baut neue Objekte; für die Gewinnerprüfung (Identität) zählt das Mischergebnis davor.
   const rawCollections = mergeById(collections.filter(c => !c.readOnly && c.id !== MEINE_ID), bundle.collections ?? []);
   const mergedCollections = withBuiltins(rawCollections);
@@ -155,7 +163,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
     // IndexedDB geschrieben werden – alles andere steht dort schon (oder stand nie drin,
     // weil der lokale Stand gewonnen hat).
     winners: {
-      cases: bundle.cases.filter(x => mergedCases.find(m => m.id === x.id) === x),
+      cases: bundleCases.filter(x => mergedCases.find(m => m.id === x.id) === x),
       collections: (bundle.collections ?? []).filter(x => rawCollections.find(m => m.id === x.id) === x),
       trucks: bundle.trucks.filter(x => mergedTrucks.find(m => m.id === x.id) === x),
       plans: bundle.plans.filter(x => mergedPlans.find(m => m.id === x.id) === x),
@@ -175,7 +183,9 @@ export const deleteRuleSet = id => db.del('ruleSets', id);
 // aus dem alten Store `cases`, damit ein Schreibvorgang nie nur einen Teil des Bestands anlegt.
 async function readRecords() {
   const [records, legacy] = await Promise.all([db.getAll('collections'), db.getAll('cases')]);
-  const real = records.filter(r => r.id !== STANDARD_ID);
+  // Wie in loadAll(): nur Objekte als Cases, `updatedAt` bereinigt; sonst wirft jeder Schreibvorgang
+  // an einem Datensatz mit einem null-Case.
+  const real = records.filter(r => r.id !== STANDARD_ID).map(r => ({ ...r, cases: cleanCases(r.cases) }));
   if (real.some(r => r.id === MEINE_ID) || legacy.length === 0) return real;
   return [...real, { id: MEINE_ID, name: MEINE_NAME, cases: cleanCases(legacy) }];
 }
@@ -187,8 +197,11 @@ async function readRecords() {
 // Änderung (Name und Oberebene kommen von dort).
 export async function writeCases({ upserts = [], removeIds = [], touchIds = [], deleteCollectionIds = [], collections }) {
   if (!upserts.length && !removeIds.length && !touchIds.length && !deleteCollectionIds.length) return;
-  const records = await readRecords();
   const gone = new Set(deleteCollectionIds);
+  // Gelöschte Datensätze verschwinden als Ganzes; sie dürfen nicht in recordsAfterChanges laufen:
+  // ein Case, das daraus in eine andere Sammlung wandert (Überlagerung), würde dort den alten
+  // Datensatz berühren, dessen Meta schon fehlt.
+  const records = (await readRecords()).filter(r => !gone.has(r.id));
   const puts = recordsAfterChanges(records, collections, { upserts, removeIds, touchIds }, stamp)
     .filter(r => !gone.has(r.id))
     .map(value => ({ store: 'collections', value }));

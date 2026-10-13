@@ -174,3 +174,66 @@ test('Migration/readRecords: null-Einträge im alten Store werden übergangen', 
   const d = await withHost(host, () => repo.loadAll());
   assert.ok(d.cases.some(c => c.id === 'a'));
 });
+
+// --- Abschluss-Fixes (Welle „final“) ---
+
+test('writeCases: gelöschte Sammlung mit Überlagerung lib-x, die nach „meine“ wandert, wirft nicht', async () => {
+  const host = memoryHost({ collections: [
+    { id: 'meine', name: 'Meine Sammlung', cases: [] },
+    { id: 't', name: 'TSE', cases: [own('lib-x', { company: 'TSE', legacy: true }), own('eigen')] },
+    { id: 'r', name: 'Robe', parentId: 't', cases: [own('r1')] },
+  ] });
+  const collections = [{ id: 'standard', name: 'Standard', readOnly: true }, { id: 'meine', name: 'Meine Sammlung' }];
+  await withHost(host, () => repo.writeCases({
+    upserts: [{ ...own('lib-x', { company: 'TSE', legacy: true }), collectionId: 'meine' }],
+    deleteCollectionIds: ['t', 'r'], collections,
+  }));
+  assert.deepEqual(host.data.collections.map(r => r.id), ['meine']);
+  const m = host.data.collections[0];
+  assert.deepEqual(m.cases.map(c => c.id), ['lib-x']);
+  assert.equal(m.cases[0].legacy, true);
+});
+
+test('mergeImportedBundle: flache Sicherung über ein Case in einer benannten Sammlung behält dessen collectionId', () => {
+  const local = { ...own('a', { name: 'alt', updatedAt: '2026-01-01T00:00:00.000Z' }), collectionId: 'robe-id' };
+  const file = own('a', { name: 'neu', updatedAt: '2026-02-01T00:00:00.000Z' });
+  const fresh = own('n', { updatedAt: '2026-02-01T00:00:00.000Z' });
+  const r = repo.mergeImportedBundle(
+    { cases: [local], trucks: [], plans: [], plan: null, collections: repo.loadAllFallback().collections.concat([{ id: 'robe-id', name: 'Robe' }]) },
+    { cases: [file, fresh], trucks: [], plans: [], collections: [] });
+  const a = r.cases.find(c => c.id === 'a');
+  assert.equal(a.name, 'neu');
+  assert.equal(a.collectionId, 'robe-id');
+  assert.equal(r.cases.find(c => c.id === 'n').collectionId, undefined, 'neues Case bleibt ohne collectionId');
+  assert.deepEqual(r.winners.cases.map(c => [c.id, c.collectionId]).sort(), [['a', 'robe-id'], ['n', undefined]]);
+  assert.ok(r.winners.cases.every(w => r.cases.includes(w)), 'Gewinner sind Elemente des Mischergebnisses');
+});
+
+test('mergeImportedBundle: unbekannte oder schreibgeschützte lokale Sammlung wird nicht übernommen', () => {
+  const local = { ...own('a', { updatedAt: '2026-01-01T00:00:00.000Z' }), collectionId: 'standard' };
+  const file = own('a', { name: 'neu', updatedAt: '2026-02-01T00:00:00.000Z' });
+  const r = repo.mergeImportedBundle(
+    { cases: [local], trucks: [], plans: [], plan: null, collections: repo.loadAllFallback().collections },
+    { cases: [file], trucks: [], plans: [], collections: [] });
+  assert.equal(r.cases.find(c => c.id === 'a').collectionId, undefined);
+});
+
+test('writeCases: ein null-Case in einem gespeicherten Datensatz wird verworfen, nichts wirft', async () => {
+  const host = memoryHost({ collections: [
+    { id: 'meine', name: 'Meine Sammlung', cases: [own('a'), null, 7] },
+    { id: 't', name: 'TSE', cases: [null, own('t1')] },
+  ] });
+  await withHost(host, () => repo.writeCases({
+    upserts: [{ ...own('b'), collectionId: 'meine' }, { ...own('t2'), collectionId: 't' }], collections: metaT,
+  }));
+  assert.deepEqual(host.data.collections.find(r => r.id === 'meine').cases.map(c => c.id).sort(), ['a', 'b']);
+  assert.deepEqual(host.data.collections.find(r => r.id === 't').cases.map(c => c.id).sort(), ['t1', 't2']);
+});
+
+test('writeCases: der aus dem alten Store gebaute „meine“ ist ebenfalls bereinigt', async () => {
+  const host = memoryHost({ cases: [own('a'), null, own('b', { updatedAt: 5 })] });
+  await withHost(host, () => repo.writeCases({ upserts: [{ ...own('c'), collectionId: 'meine' }], collections: metaT }));
+  const m = host.data.collections.find(r => r.id === 'meine');
+  assert.deepEqual(m.cases.map(c => c.id).sort(), ['a', 'b', 'c']);
+  assert.equal('updatedAt' in m.cases.find(c => c.id === 'b'), false);
+});
