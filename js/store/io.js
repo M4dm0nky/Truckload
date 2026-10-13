@@ -364,7 +364,7 @@ export function parseBundle(text) {
     if (m.parentId === undefined) return m;
     const seen = new Set([m.id]);
     let p = m.parentId;
-    let ok = collectionIds.has(p);
+    let ok = collectionIds.has(p) || p === 'meine';
     while (ok && p !== undefined) {
       if (seen.has(p)) { ok = false; break; }
       seen.add(p);

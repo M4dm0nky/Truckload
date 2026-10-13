@@ -129,3 +129,19 @@ test('Sammlungsdatei: reservierter Name wird abgelehnt', () => {
   const t = JSON.stringify({ format: 'truckload-collection', version: 1, collection: { id: 'a', name: '__x__' }, cases: [] });
   assert.throws(() => parseCollectionFile(t), /reserviert/);
 });
+
+test('Sammlung unter „Meine Sammlung“: parentId überlebt Export und Parsen ohne Reparaturhinweis', () => {
+  const text = exportBundle({
+    cases: [], trucks: [], plans: [plan], ruleSets: [],
+    collections: [{ id: 'standard', name: 'Standard', readOnly: true }, { id: 'meine', name: 'Meine Sammlung' }, { id: 'a', name: 'Robe', parentId: 'meine' }],
+  });
+  const b = parseBundle(text);
+  assert.equal(b.collections.find(x => x.id === 'a').parentId, 'meine');
+  assert.deepEqual(b.repairs.filter(r => /Oberebene/.test(r)), []);
+});
+
+test('parentId „standard“ wird weiterhin repariert und gemeldet', () => {
+  const b = parseBundle(bundleOf([{ id: 'a', name: 'A', parentId: 'standard' }]));
+  assert.equal(b.collections[0].parentId, undefined);
+  assert.ok(b.repairs.some(r => /Oberebene/.test(r)));
+});
