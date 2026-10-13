@@ -40,7 +40,7 @@ test('Service-Worker hält alle App-Dateien offline vor', () => {
   const assets = precacheList();
   for (const a of assets) assert.ok(a === './' || existsSync(join(root, a)), `fehlt: ${a}`);
   const needed = ['index.html', 'manifest.webmanifest',
-    ...filesIn('css'), ...filesIn('icons'), ...filesIn('js'), ...filesIn('vendor')];
+    ...filesIn('css'), ...filesIn('data'), ...filesIn('icons'), ...filesIn('js'), ...filesIn('vendor')];
   for (const f of needed) assert.ok(assets.includes(f), `nicht im Offline-Cache: ${f}`);
 });
 

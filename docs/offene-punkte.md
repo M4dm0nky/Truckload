@@ -1,6 +1,6 @@
 # Offene Punkte
 
-Stand V 0.15.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Stand V 0.17.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
 Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
 des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
 Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
@@ -20,6 +20,66 @@ Mit echten Maßen ließen sie sich wieder freigeben. Nur 3 HE (komplett gemessen
 **Der Mindest-Case-Anteil von 15 kg überzeichnet kleine Cases.** Bei `SF TourHazer II`
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`
 offengelegt, aber für kleine Cases zu konservativ.
+
+## Aus Sammlungen (V 0.17.0) offen
+
+- **Die Listen-Cases liegen noch gemeinsam in „Meine Sammlung“.** CAB, BBM, Motion … sind nicht je
+  Firma in eigene Sammlungen aufgeteilt (Entscheidung: erst Struktur, dann Sortierung). Der Nutzer
+  verschiebt sie selbst („Verschieben“).
+- **`company` ist nur der Name einer einzelnen Sammlung, nicht des Baums.** Es ist der Name der
+  Sammlung, in die das Case zuletzt verschoben wurde (bei unverschobenen Listen-Cases und
+  migrierten Cases der alte Firmenname, während der Datensatz `meine` ist). Eine Oberfirma kennt der Case nicht; wer
+  nach Oberfirma filtern will, nimmt den Sammlungsfilter. Das Verschieben einer Sammlung ändert
+  die `company` ihrer Cases nicht (sie ändert nur der Name).
+- **Elternsammlungen listen nur eigene Cases.** In der Materialverwaltung zeigt eine Oberebene nur
+  die Cases, die direkt in ihr liegen (und die Zahl dazu), der Wizard-Filter „Suchen in“ schließt
+  dagegen die Untersammlungen ein. Beides ist gewollt, aber nicht einheitlich.
+- **`meine.json` wird nicht gesät, Überlagerungen frieren ein.** Neue Einträge der mitgelieferten
+  Liste erscheinen bei jedem Start von selbst. Ein Listen-Case, das bearbeitet, verschoben,
+  gelöscht (ausgeblendet) oder mit seiner Sammlung gelöscht wurde, liegt als Überlagerung im
+  Datensatz und bekommt spätere Korrekturen an `meine.json` nicht mehr; ein Wiederherstellen der
+  mitgelieferten Version gibt es nicht.
+- **Der alte Store `cases` wird nicht aufgeräumt.** Er bleibt nach der Migration als
+  Sicherheitsnetz liegen und muss in NYX freigegeben bleiben. Gelesen wird er nur, solange der
+  Datensatz `meine` fehlt (Migration, `readRecords`); danach nicht mehr. Seine Datensätze
+  veralten still (Änderungen landen nur in `collections`), werden nie bereinigt und nie
+  geleert. Eine spätere Aufräumfunktion müsste das berücksichtigen (eigene Entscheidung: kein
+  automatisches Löschen, solange nicht klar ist, dass keine ältere App-Version mehr darauf liest).
+- **Wizard-Filter „Standardkatalog“ = Cases ohne `company`.** Eigene Cases in „Meine Sammlung“
+  ohne `company` erscheinen dort also mit, nicht nur die Vorlagen aus „Standard“. Das entspricht
+  der alten Regel, ist aber nach der Umbenennung zu „Sammlung“ schwerer zu erklären.
+- **Ein Listen-Case, das in eine benannte Sammlung und zurück nach „Meine Sammlung“ wandert,
+  verliert `company`.** Beim Verschieben nach „Meine Sammlung“ wird `company` entfernt
+  (`moveCase`); die ursprüngliche Firma (z. B. „CAB“) ist an dieser Stelle nicht mehr
+  rekonstruierbar, weil sie am Case nicht gesondert gemerkt wird. Das Case erscheint danach im
+  Wizard-Filter „Standardkatalog“ (Cases ohne `company`) und nicht mehr unter seiner Marke.
+  Eigene Entscheidung: nicht geraten oder aus dem Namen abgeleitet; der Nutzer kann es per
+  „Verschieben“ in eine Sammlung gleichen Namens zurücklegen.
+- **Import mit Sammlungen kann gleichnamige Sammlungen und Oberebenen-Schleifen erzeugen.**
+  Beim Zusammenführen einer Sicherung mit dem lokalen Bestand wird nach `id` gemischt;
+  `parseBundle` repariert Namen und Schleifen nur innerhalb der Datei. Eine importierte Sammlung
+  kann daher denselben Namen wie eine lokale (andere `id`) tragen, und zusammengemischte
+  Oberebenen können eine Schleife bilden. `collectionRows` und `depthOf` vertragen beides
+  (eine Schleife bricht ab, doppelte Namen werden einfach beide angezeigt), `MAX_DEPTH` wird
+  beim Import ebenfalls nicht erzwungen. Eigene Entscheidung: Import überschreibt nichts
+  stillschweigend; aufgeräumt wird per „Umbenennen“/„Verschieben“.
+- **`MAX_DEPTH` (4) gilt nur in der Oberfläche.** Beim Import einer Sicherung prüft `parseBundle`
+  Schleifen und unbekannte Oberebenen, nicht die Tiefe; eine tiefere Kette aus fremden Dateien
+  lädt und lässt sich nur nicht weiter verschachteln.
+- **Verschachteltes `null` in gespeicherten Datensätzen wird nicht bereinigt.** `cleanCases`
+  filtert nur null-Cases und ein fehlerhaftes `updatedAt` am Case; ein `null` tiefer im Datensatz
+  (etwa in `cases[].…`) bleibt stehen.
+- **Dateiauswahl „Sammlung importieren“:** sehr alte Browser lösen das `cancel`-Ereignis des
+  Dateiauswählers nicht aus; ein Abbruch hält dort den Import-Knopf bis zum nächsten Klick
+  (er teilt sich die laufende Promise).
+- **Die Schreib-Warteschlange wartet auf offene Meldungen.** Zeigt ein Vorgang in der Warteschlange
+  eine Meldung (`showAlert`), laufen spätere Schreibvorgänge erst nach dem Schließen weiter.
+- **Wird der Store `collections` in NYX nicht freigegeben,** zeigt Truckload die Ersatzansicht
+  und sperrt das Schreiben (`docs/nyx-sammlungen.md`). Die Freigabe auf NYX-Seite ist nicht
+  Teil dieses Repos.
+- **Sammlungsdatei ohne Altschema-Reparaturen.** Eine Datei mit Beschriftungen über
+  `MAX_LABEL` oder alter Rollenhöhe wird abgelehnt statt repariert (eigene Entscheidung, das
+  Format ist neu).
 
 ## Aus „Mehrere LKW“ (V 0.14.0) offen
 

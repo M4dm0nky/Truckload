@@ -1,6 +1,6 @@
 # Aufbau der Anwendung
 
-Stand V 0.16.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
+Stand V 0.17.0. Diese Datei beschreibt das Datenmodell, die Schichten und die Invarianten,
 die man kennen muss, bevor man etwas ändert.
 
 ## Schichten
@@ -42,7 +42,7 @@ Daten als Argumente und liefern reine Ergebnisobjekte zurück (`openCaseEditor`,
   die Versionsnummer. Beim Start ist `plan` immer `null`; ein Plan wird erst durch Auswahl oder Anlegen geöffnet.
 - `keyboard.js` — Tastenzuordnung (`keyFor`, rein) und der Dokument-Handler dafür.
 - `guarded.js` — führt eine Speicheraktion mit genau einer Fehlermeldung aus.
-- `persistence.js` — Speicherpfade für Case, Firma, Regelset und Fahrzeug: erst schreiben, dann den Store nachziehen.
+- `persistence.js` — Speicherpfade für Case, Sammlung, Regelset und Fahrzeug: erst schreiben, dann den Store nachziehen. Alle Case-Schreibvorgänge laufen nacheinander durch eine Warteschlange (siehe „Sammlungen“).
 - `plans.js` — Plan-Knöpfe (Neu, Umbenennen, Duplizieren, Löschen, Auswahl), Lade-Wizard und die reinen Übergänge `switchPlanState`/`deletePlanState`.
 - `materialScreen.js` — Materialbildschirm samt Case-Editor-Wegen (`editCase`, `newCaseForWizard`).
 - `importExport.js` — Sichern und Importieren mit Vorab-Sicherung.
@@ -434,9 +434,15 @@ Standardvorlagen (`preset-`) bleiben lesbar mit Verweis auf „Kopieren“, Trav
 Die Materialverwaltung (V 0.12.5) hat keine eigene Tabelle und keinen `DB_VERSION`-Sprung.
 Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/material.js`.
 
-- **Firma = `company`-String am Case.** Die Firmenliste ist `companyList()` (zählt nur Cases im
-  Bestand). Eine neu angelegte, noch leere Firma lebt nur im UI-Zustand der Materialseite, bis
-  ihr erstes Case gespeichert ist. Cases ohne `company` bilden die „Standardliste“.
+- **Sammlung statt Firma (seit V 0.17.0).** „Firma“ heißt in der Oberfläche „Sammlung“ und ist
+  ein eigener Datensatz (Abschnitt „Sammlungen“ unten). `company` bleibt ein gewöhnliches Case-Feld
+  und ist der Name der Sammlung, in die das Case zuletzt verschoben oder gespeichert wurde (bei
+  eigenen benannten Sammlungen entspricht es deren Namen). Nicht verschobene Listen-Cases
+  (`data/meine.json`, alle mit `company`) und migrierte alte Cases tragen den früheren Firmennamen,
+  obwohl ihr Datensatz `meine` ist; maßgeblich ist der Datensatz, nicht `company`. `companyList()` und `renameCompany()` in `js/model/material.js` stehen noch als reine
+  Funktionen, die Oberfläche benutzt sie nicht mehr. Eine leere, neu angelegte Sammlung ist ein
+  echter Datensatz und kein UI-Zustand mehr. Was früher die „Standardliste“ war (Cases ohne
+  `company`), liegt jetzt in „Meine Sammlung“ bzw. „Standard“.
 - **Zwei Flags.** `legacy` = ausgeblendet (gelöschte Firmen-Vorlage; alte Ladepläne behalten
   das Stück, `groupCases` blendet es in jeder Auswahl aus). `onlyInPlan` = im Wizard ohne
   „Im Materialbestand ablegen“ angelegt, gilt nur für den Load. `isInStock` = weder noch.
@@ -445,18 +451,24 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   `io.dropStrayLegacy` es beim Laden und beim Import.
 - **Bearbeiten einer `lib-`-Vorlage** speichert ein eigenes Case mit **derselben ID** und
   `builtin: false`; `mergeOwnWithBuiltins` lässt die eigene Version gewinnen. Pläne verweisen
-  weiter per `caseId`. Dasselbe gilt für „Firma umbenennen“ (`renameCompany`). Beim
+  weiter per `caseId`. Dasselbe gilt für das Verschieben in eine Sammlung und für „Sammlung
+  umbenennen“ (`renameCollection`: die Cases der Sammlung ziehen mit `company` mit). Beim
   Wiederherstellen einer Sicherung verliert ein lokaler mitgelieferter Eintrag in `mergeById`
-  immer gegen den Datensatz aus der Datei, damit Überlagerungen ankommen. Firmennamen sind auf
-  80 Zeichen begrenzt (`firmNameError`, dieselbe Grenze wie `checkCase`).
+  immer gegen den Datensatz aus der Datei, damit Überlagerungen ankommen. Sammlungsnamen sind auf
+  80 Zeichen begrenzt (`MAX_FIRM`, dieselbe Grenze wie `checkCase`; geprüft von
+  `collectionNameError` in `js/model/collections.js`).
 - **Löschen** entscheidet `deletionFor(c)`: jede `lib-`-ID (auch eine schon gespeicherte
   Überlagerung) → Überlagerung mit `legacy: true` (sonst käme die Vorlage beim nächsten Start
-  zurück); sonstiges eigenes Case → `repo.deleteCase`; `preset-` →
-  nicht löschbar (`null`), nur „Kopieren“ (`copyToCompany`, neue ID, ohne `legacy`/`onlyInPlan`).
+  zurück); sonstiges eigenes Case → `{ remove: id }`, das `repo.writeCases({ removeIds })` aus dem
+  Datensatz nimmt; `preset-` → nicht löschbar (`null`), nur „Kopieren“ (`copyToCompany`, neue ID,
+  ohne `legacy`/`onlyInPlan`). „Sammlung löschen“ (`deleteCollection` in `persistence.js`) wendet
+  `deletionFor` auf jedes Case der Sammlung samt Untersammlungen an: die Überlagerungen der
+  `lib-`-Cases gehen mit `collectionId: 'meine'` nach „Meine Sammlung“ (ausgeblendet, `company`
+  bleibt), der Rest fällt mit den Datensätzen weg, alles in einem `writeMany`.
 - **Import-Regel** (`isPreset` in `js/store/io.js`): `preset-`-IDs und alles mit
   `builtin: true` werden verworfen; eigene Überlagerungen einer `lib-`-ID (`builtin: false`)
   laufen also durch Sicherung und Import.
-- **Dolly-IDs je Firma**: `dolly-<slug(firma)>-<basis>-<n>`, weil die Wagenmaße
+- **Dolly-IDs je Firma** (= `company`, also Name der Sammlung): `dolly-<slug(firma)>-<basis>-<n>`, weil die Wagenmaße
   firmenabhängig sind. Ohne Firma bleibt es bei `dolly-<basis>-<n>`; bestehende IDs ändern
   sich nie. Teilen zwei Firmen denselben Slug („CAB Berlin“, „CAB-Berlin“), bekommt die später
   hinzugekommene ein Suffix (`dolly-cab-berlin-2-…`); `uniqueDollySlug(firma, vorhandeneCases)`
@@ -464,7 +476,7 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   Entscheidung). Traversenwagen tragen `company` nur mit (ihre IDs sind UUIDs).
 - **Ablageziel** (`js/ui/stock-target.js`, `applyStockTarget`): Case-Editor, Traversen- und
   Dolly-Dialog teilen den Block „Im Materialbestand ablegen“. Im Wizard (`mode: 'choose'`)
-  Häkchen plus Ziel, auf der Materialseite (`mode: 'fixed'`) die vorgegebene Firma. Ohne
+  Häkchen plus Ziel, auf der Materialseite (`mode: 'fixed'`) die vorgegebene Sammlung (als `company`). Ohne
   Häkchen wird `onlyInPlan: true` gesetzt.
 - **`groupCases` und `keep`**: Das Set `keep` enthält die IDs, die in diesem Wizard-Durchlauf
   angelegt wurden; sie umgehen alle Filter (Suche, Gewerk, Firma, `onlyInPlan`), sonst
@@ -475,6 +487,86 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   (`#material-screen`, Schalter `materialOpen`). Solange er offen ist, kehrt der
   `keydown`-Handler aus `js/app/keyboard.js` sofort zurück, damit Entf, Pfeile oder Rückgängig nicht
   den dahinterliegenden Plan verändern.
+
+## Sammlungen (seit V 0.17.0)
+
+Entwurf: `docs/superpowers/specs/2026-10-13-sammlungen-design.md`; für NYX: `docs/nyx-sammlungen.md`.
+Reine Logik (ohne DOM und Store) steht in `js/model/collections.js`, Laden und Schreiben in
+`js/store/repo.js`, Datei-Formate in `js/store/io.js`, die Speicherpfade in `js/app/persistence.js`.
+
+- **Datenmodell.** Eine Sammlung ist ein Datensatz `{ id, name, parentId?, updatedAt, cases[] }` im
+  Object Store `collections` (`DB_VERSION` 3). Im Speicher bleibt die **flache Case-Liste**; Packer
+  und Oberfläche ändern sich dadurch nicht. Jedes eigene Case trägt zur Laufzeit `collectionId`,
+  gespeichert wird es nicht (`recordsAfterChanges` entfernt es). `store.collections` ist die
+  Meta-Liste `{ id, name, parentId?, updatedAt?, readOnly? }` ohne Cases.
+- **Feste IDs.** `standard` („Standard“, `readOnly`, nie gespeichert, ein Datensatz mit dieser ID
+  wird beim Laden ignoriert) und `meine` („Meine Sammlung“, beschreibbar, nicht umbenennbar,
+  nicht löschbar, nicht verschiebbar). Name und `readOnly` der beiden kommen immer aus
+  `withBuiltins()`, nie aus einem Datensatz. Eigene Sammlungen haben eine UUID.
+- **Zuordnung.** `collectionIdOf(c)`: die gesetzte `collectionId`; sonst `standard` für
+  mitgelieferte `preset-`-Cases, alles andere (auch mitgelieferte `lib-`-Cases) `meine`.
+- **Zusammensetzen beim Laden.** `loadAll()` liest `collections`, setzt per `composeRecords` Meta-Liste
+  und flache Case-Liste zusammen, wendet `normalizeOwnCases` an und mischt die Mitgelieferten
+  dahinter (`mergeOwnWithBuiltins`, das eigene Case gewinnt je ID). Die mitgelieferten Dateien
+  `data/standard.json` und `data/meine.json` werden per JSON-Modul-Import gelesen und **nicht** in
+  den Store gesät.
+- **Schreiben nur über `repo.writeCases`.** Es liest die Datensätze (`readRecords`), baut mit
+  `recordsAfterChanges` nur die geänderten neu (Name und `parentId` kommen aus der Meta-Liste) und
+  schreibt sie samt Löschungen in **einem** `db.writeMany`: alles oder nichts. Der Import einer
+  Sicherung (`saveImportWinners`) setzt Cases und Sammlungen genauso zusammen und hängt Fahrzeuge,
+  Pläne und Regelsets an dasselbe `writeMany`.
+- **Warteschlange.** `writeCases` liest und schreibt ganze Datensätze; zwei überlappende Aufrufe
+  verlören eine Änderung. Deshalb laufen `saveCase`, `removeFromStock`, `createCollection`,
+  `renameCollection`, `moveCollection`, `deleteCollection`, `moveCaseTo` und
+  `importCollectionFile` nacheinander durch eine Promise-Kette (`serial`, auch als `enqueue`
+  exportiert). Der Zustand, aus dem ein Vorgang gebaut wird, wird erst im Schritt selbst
+  gelesen; eine Ablehnung vergiftet die späteren Schritte nicht. Rückfragen
+  (`showConfirm`/`showAlert`) laufen **vor** dem Einreihen bzw. innerhalb des Schritts; eine
+  offene Meldung hält also spätere Schreibvorgänge an.
+- **Zielsammlung eines Cases** (`resolveTarget`): ausdrückliche `collectionId` (beschreibbar);
+  sonst die des schon vorhandenen Cases gleicher ID; sonst eine Sammlung mit dem Namen aus
+  `company` (so entsteht „+ Neue Sammlung …“ im Wizard, in demselben Schreibvorgang); sonst
+  „Meine Sammlung“. Der Name einer festen Sammlung oder ein unzulässiger Name legt keine an.
+- **Migration.** Existiert kein Datensatz `meine`, aber der alte Store `cases` hat Einträge,
+  entsteht `meine` daraus in **einem** `writeMany`. Nichts wird gelöscht; der alte Store wird
+  nicht aufgeräumt und bleibt als Sicherheitsnetz. Scheitert das Schreiben, läuft die App mit dem
+  berechneten Stand weiter und `readRecords` baut den Datensatz beim nächsten Speichern aus dem
+  alten Store auf. Alte Daten laden dadurch unverändert (Regressionsfälle in
+  `tests/collections-repo.test.js`).
+- **`company` = Name der Sammlung, in die zuletzt verschoben wurde.** `moveCase` setzt es bei einer eigenen Sammlung auf
+  deren Namen (Dolly-IDs, Traversen-Treffer und die Anzeige „· Name“ bleiben so wie bisher), bei
+  „Meine Sammlung“ entfernt es das Feld und macht aus einem mitgelieferten Listen-Case eine
+  Überlagerung (`builtin: false`, gleiche ID). `renameCollection` zieht `company` der Cases mit.
+  Das Verschieben einer Sammlung ändert die `company` der Cases darin nicht.
+- **Regeln.** Name: nicht leer, höchstens `MAX_FIRM` (80) Zeichen, nicht `__…__`, eindeutig ohne
+  Groß-/Kleinschreibung über alle Sammlungen (`collectionNameError`). Tiefe höchstens `MAX_DEPTH`
+  (4), keine Verschiebung in sich selbst oder unter einen Nachfahren, nicht unter „Standard“
+  (`parentError`). Eine Sammlung löschen entfernt Untersammlungen mit.
+- **Sicherung und Sammlungsdatei** (`js/store/io.js`). `exportBundle` trägt `collections` mit nur
+  `{ id, name, parentId?, updatedAt? }` der eigenen Sammlungen; die Cases bleiben flach in `cases`
+  mit `collectionId`. `parseBundle` nimmt Bundles ohne `collections` (alle Cases nach „Meine
+  Sammlung“), prüft jede Sammlung (`checkCollection`, ID höchstens 64 Zeichen, `MAX_COLLECTIONS` =
+  200 je Datei) und repariert mit Meldung statt abzulehnen: doppelte oder reservierte Namen
+  werden mit „ (2)“ … versehen, unbekannte Oberebene oder Schleife → oberste Ebene, unbekannte
+  `collectionId` → „Meine Sammlung“. `mergeImportedBundle` mischt Sammlungen per `mergeById`
+  (neuerer `updatedAt` gewinnt); beim Schreiben (`saveImportWinners`) bleibt ein Case ohne
+  bekannte `collectionId` in der Sammlung, in der es lokal liegt, ein neues kommt nach „Meine
+  Sammlung“. Die Sammlungsdatei (`format: 'truckload-collection'`, Version 1;
+  `exportCollectionFile`/`parseCollectionFile`) enthält eine Sammlung und ihren Bestand ohne
+  mitgelieferte Cases und ohne `collectionId`. `importCollectionFile` mischt bei gleicher ID
+  (nicht „Standard“/„Meine“) in die vorhandene Sammlung, je Case gewinnt der neuere Stand; ein
+  gleicher Name unter anderer ID bekommt das Suffix „ (2)“; die Sammlung kommt auf die oberste
+  Ebene und setzt `company` ihrer Cases auf ihren Namen. Eigene Entscheidung: die Sammlungsdatei
+  führt die Altschema-Reparaturen des Bundles (Beschriftung, Rollenhöhe, Namenslänge) nicht aus.
+- **Mitgelieferte Dateien und Überlagerungen.** Neue Einträge in `data/meine.json` erreichen
+  jeden Nutzer beim nächsten Start (sie werden nicht gesät). Ein Eintrag, für den schon eine
+  Überlagerung gleicher ID existiert (bearbeitet, verschoben, ausgeblendet oder mit der Sammlung
+  gelöscht), bleibt dagegen in der Überlagerung stehen: spätere Änderungen an der mitgelieferten
+  Version erreichen ihn nicht.
+- **Oberfläche.** `js/ui/material.js` zeigt den Baum (`collectionRows`), `js/app/materialScreen.js`
+  verdrahtet ihn mit `persistence`. „Kopieren“ und „In Bestand übernehmen“ fragen die Zielsammlung
+  (`adoptInto`); die Liste und „Sammlung exportieren“ zeigen nur Bestand der einen Sammlung
+  (`exportableCases`).
 
 ## Mehrere LKW (seit V 0.14.0)
 
@@ -646,9 +738,9 @@ Weitere Speicher-Details (Abschluss Teil 1): `loadAll` schreibt Datensätze mit 
 bereinigt zurück (`sanitizeAndWriteBack`, ein `putMany`, Fehler nur geloggt). `db.open()` setzt
 eine abgelehnte Promise zurück, der nächste Zugriff versucht es erneut. Plan löschen:
 `removePlanPersisted` in `js/app/plans.js` (erst `autosave.flush()`, dann `deletePlan`, dann
-`forget`). „Firma löschen“ schreibt Überlagerungen und Entfernungen mit `repo.saveAndDelete({ saves,
-removeIds })` in einer einzigen IndexedDB-Transaktion (`db.writeMany`, wie `putMany`, nur mit
-Deletes); ein Fehler lässt Datenbank und Store unverändert. Der Änderungszeitpunkt wird nur von `stamp()` in `js/model/stamp.js` gesetzt (früher
+`forget`). „Sammlung löschen“ und jeder andere Case-Schreibvorgang gehen über `repo.writeCases({ upserts,
+removeIds, touchIds, deleteCollectionIds, collections })` in einer einzigen IndexedDB-Transaktion
+(`db.writeMany`, wie `putMany`, nur mit Deletes); ein Fehler lässt Datenbank und Store unverändert. Der Änderungszeitpunkt wird nur von `stamp()` in `js/model/stamp.js` gesetzt (früher
 `touch` in `actions.js` und `stamp` in `repo.js`).
 
 Ist die App in einem zweiten Tab oder Fenster gleichzeitig offen, meldet ein
@@ -660,8 +752,8 @@ lautlos den einen oder anderen Stand verliert.
 
 | Datei | Inhalt |
 |---|---|
-| `js/data/preset-cases.js` | 50 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 24 Pre-Rig-Traversen (MLT/S36PR) und 13 Audio-Einzelboxen im Gewerk „Ton“ (`dollyPrompt`, docs/casemasse-gewichte.md); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren. Feste Traversenwagen-Vorlagen gibt es nicht mehr: Wagen entstehen im Traversen-Dialog als eigene Case-Typen, Dolly-Stacks im Dolly-Dialog |
-| `js/data/case-library.js` | 137 Cases aus der Excel-Tabelle des Nutzers, alle mit `source: 'liste'` und `company`; davon 15 `legacy` (ausgeblendet, u. a. Transflex-/Pack-Cases, Traversen und Rigging-Pakete der Liste), 122 sichtbar |
+| `data/standard.json` (Sammlung „Standard“; `js/data/preset-cases.js` ist nur noch ein Wrapper darüber und exportiert `PRESET_CASES`) | 57 Einträge, davon 50 sichtbare Vorlagen: 7 Packcases (je Standardmaß eines), 6 weitere generische Cases (Richtwerte), 24 Pre-Rig-Traversen (MLT/S36PR) und 13 Audio-Einzelboxen im Gewerk „Ton“ (`dollyPrompt`, docs/casemasse-gewichte.md); dazu 7 `legacy`-Einträge, die nur noch für alte Ladepläne existieren. Feste Traversenwagen-Vorlagen gibt es nicht mehr: Wagen entstehen im Traversen-Dialog als eigene Case-Typen, Dolly-Stacks im Dolly-Dialog |
+| `data/meine.json` (Sammlung „Meine Sammlung“; `js/data/case-library.js` ist nur noch ein Wrapper und exportiert `CASE_LIBRARY`) | 137 Cases aus der Excel-Tabelle des Nutzers, alle mit `source: 'liste'` und `company`; ein Teil davon `legacy` (ausgeblendet, u. a. Transflex-/Pack-Cases, Traversen und Rigging-Pakete der Liste) |
 | `js/data/categories.js` | Gewerke und ihre Farben |
 | `js/data/preset-trucks.js` | Fahrzeugvorlagen |
 
@@ -674,19 +766,23 @@ Der Firmen-Filter im Lade-Wizard (`js/ui/load-wizard.js`, Auswahl „Suchen in�
 auf „Standardkatalog“, nicht auf „Kompletter Bestand“ (Nutzerwunsch 2026-10-06: firmen-gebrandete
 Cases wie die „-CAB“-Geräte sollen nie von selbst auftauchen). `NEUTRAL_COMPANY` in
 `js/ui/caseGroups.js` ist der Sentinel-Wert dafür; `groupCases()` lässt damit nur Cases ohne
-`company` durch — „Eigene Cases“ und alle `preset-cases.js`-Vorlagen haben nie ein
-`company`-Feld und bleiben sichtbar, die ganze Gruppe „Cases aus deiner Liste“ (ausnahmslos
-mit `company`) verschwindet, bis der Nutzer gezielt eine Firma oder den kompletten Bestand wählt.
-Verschwindet die gewählte Firma aus den Daten, fällt der Filter auf „Standardkatalog“ zurück.
+`company` durch — „Eigene Cases“ ohne `company` (auch die in „Meine Sammlung“) und alle
+`standard.json`-Vorlagen bleiben sichtbar, die ganze Gruppe „Cases aus deiner Liste“ (ausnahmslos
+mit `company`) und jedes Case in einer benannten Sammlung verschwindet, bis der Nutzer gezielt
+eine Sammlung oder den kompletten Bestand wählt. Die Wahl einer Sammlung schließt ihre
+Untersammlungen ein (`descendantIds`, Vorrang vor dem `company`-Filter). Verschwindet die gewählte
+Sammlung aus den Daten, fällt der Filter auf „Standardkatalog“ zurück.
 
-Die 7 Packcases tragen seit V 0.8.6 ein Standardgewicht statt 0 kg: `PACK(l, w, h)` in
-`js/data/preset-cases.js` rechnet `Math.round(PACK_REF_KG * l * w * h / PACK_REF_VOLUME)` mit `PACK_REF_KG = 100` und
+Die 7 Packcases tragen seit V 0.8.6 ein Standardgewicht statt 0 kg. Berechnet wurden sie mit
+`Math.round(PACK_REF_KG * l * w * h / PACK_REF_VOLUME)`, `PACK_REF_KG = 100` und
 `PACK_REF_VOLUME = 120 * 60 * 80` (Referenz: das Standard-Packcase 120×60×60 ohne Rollen, also
 120×60×80 inkl. Rollen, wiegt 100 kg – Nutzerangabe, keine Recherche, dokumentiert in
 `docs/casemasse-gewichte.md`). Alle anderen Packcase-Maße werden danach nach Volumen ab- bzw.
-aufgestuft; die Formel steht im Code, nicht die einzelnen Zahlen. Mitgelieferte Cases entstehen
-bei jedem Start neu (`mergeOwnWithBuiltins`) – ein anderer Standard ist eine Codezeile, ein
-einzelnes Case ändert man über „Case bearbeiten“ (eigene Kopie). Die `legacy`-Einträge behalten
+aufgestuft; die Werte stehen ausgerechnet in `data/standard.json` (der Kommentar mit Formel und
+Referenz steht weiter als Kommentar in `js/data/preset-cases.js`, weil JSON keine Kommentare
+kann; die Formel läuft nicht mehr zur Laufzeit). Mitgelieferte Cases entstehen bei jedem Start neu aus den
+JSON-Dateien (`mergeOwnWithBuiltins`) – ein anderer Standard ist eine Änderung der Zahlen in
+`data/standard.json`, ein einzelnes Case ändert man über „Case bearbeiten“ (eigene Kopie). Die `legacy`-Einträge behalten
 ihre alten Gewichte.
 
 `js/ui/caseGroups.js` (`groupCases`, `companiesOf`) mit den drei Abschnitten (eigene

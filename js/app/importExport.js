@@ -1,6 +1,7 @@
 // Sichern (Export) und Importieren einer JSON-Sicherung. Vor dem Import legt die App still
 // eine Sicherung des aktuellen Stands an. Kein Import von js/app.js.
 import { allPlansOf } from './core.js';
+import { downloadJSON } from './download.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from '../store/io.js';
 
 const $ = sel => document.querySelector(sel);
@@ -44,19 +45,14 @@ export function importWarnings(unknownRefs, { cases, trucks }) {
   return warnings;
 }
 
-function downloadJSON(filename, text) {
-  const blob = new Blob([text], { type: 'application/json' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-// deps: store, autosave, repo (mergeImportedBundle, saveImportWinners), showAlert, showConfirm.
-export function wireImportExport({ store, autosave, repo, showAlert, showConfirm }) {
+// deps: store, autosave, repo (mergeImportedBundle, saveImportWinners), showAlert, showConfirm, enqueue.
+// `enqueue`: die Schreib-Warteschlange der Speicherpfade (persistence.enqueue); der Import läuft als
+// ein Schritt darin und kann so nicht mit writeCases-Vorgängen verschränken.
+export function wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue = fn => fn() }) {
   $('#export').onclick = () => {
     const s = store.get();
     const plans = allPlansOf(s);
-    downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans, ruleSets: s.ruleSets }));
+    downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans, ruleSets: s.ruleSets, collections: s.collections }));
   };
 
   // Ein <button> statt <label> um das versteckte <input type="file">: ein Label ist per
@@ -74,50 +70,56 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
       return;
     }
 
-    // Still eine Sicherung des aktuellen Stands anlegen, BEVOR irgendetwas überschrieben wird –
-    // das einzige Netz, falls der Import den falschen Stand bringt.
-    const s0 = store.get();
-    const backupName = preImportBackupFileName();
-    // s0.plan ist null, wenn der Import vom Startbildschirm kommt; dann gehören nur die schon
-    // gespeicherten Pläne in die Sicherung.
-    const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0), ruleSets: s0.ruleSets });
-    downloadJSON(backupName, backupText);
+    // Alles ab der Sicherung bis zum möglichen Rollback in EINEM Schritt der Warteschlange: der
+    // Stand `s0` ist dann der nach allen vorher eingereihten Schreibvorgängen.
+    const { merge, importFailed, importErr, backupName, backupText } = await enqueue(async () => {
+      // Still eine Sicherung des aktuellen Stands anlegen, BEVOR irgendetwas überschrieben wird –
+      // das einzige Netz, falls der Import den falschen Stand bringt.
+      const s0 = store.get();
+      const backupName = preImportBackupFileName();
+      // s0.plan ist null, wenn der Import vom Startbildschirm kommt; dann gehören nur die schon
+      // gespeicherten Pläne in die Sicherung.
+      const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0), ruleSets: s0.ruleSets, collections: s0.collections });
+      downloadJSON(backupName, backupText);
 
-    // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen: exclude() nimmt
-    // einen wartenden oder fehlgeschlagenen Eintrag aus der Buchhaltung heraus, sonst könnte
-    // sein Timer (oder ein pagehide-Flush) währenddessen den alten Stand über den importierten
-    // schreiben. saveImportWinners() schreibt diesen Plan selbst, falls die Datei ihn gewinnt.
-    // Ohne aktuellen Plan (Startbildschirm) gibt es nichts stillzulegen.
-    if (s0.plan) autosave.exclude(s0.plan.id);
-    let merge;
-    let importFailed = false;
-    let importErr = null;
-    try {
-      // Das Mischen läuft synchron im Store-Updater auf dem Zustand zum Zeitpunkt des Updates,
-      // nicht auf einem Schnappschuss vor den await-Grenzen: Änderungen des Nutzers dazwischen
-      // gehen nicht verloren.
-      store.update(s => {
-        merge = repo.mergeImportedBundle(s, bundle);
-        return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan, ruleSets: merge.ruleSets };
-      });
-      // Eine einzige Transaktion (alles oder nichts): unabhängige Schreibvorgänge je Datensatz
-      // könnten teilweise gelingen, und dann passte ein Rollback der Oberfläche nicht mehr zur
-      // Datenbank.
-      await repo.saveImportWinners(merge.winners);
-    } catch (err) {
-      importFailed = true;
-      importErr = err;
-      // Store und Datenbank sind auseinandergelaufen: zurück auf den Stand vor dem Import, der
-      // noch mit der Datenbank übereinstimmt.
-      store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan, ruleSets: s0.ruleSets }));
-    } finally {
-      // finally, damit der Autosave dieses Plans nicht den Rest der Sitzung stumm tot bleibt,
-      // falls zwischen exclude() und hier etwas wirft. restore:true, wenn der Import
-      // fehlschlug oder der lokale Stand gewann (planChanged === false): ein geparkter,
-      // ausstehender eigener Stand wurde dann nicht mitgeschrieben und gilt weiter als
-      // ausstehend. `merge` kann vor der Zuweisung undefined sein, daher das Optional-Chaining.
-      if (s0.plan) autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
-    }
+      // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen: exclude() nimmt
+      // einen wartenden oder fehlgeschlagenen Eintrag aus der Buchhaltung heraus, sonst könnte
+      // sein Timer (oder ein pagehide-Flush) währenddessen den alten Stand über den importierten
+      // schreiben. saveImportWinners() schreibt diesen Plan selbst, falls die Datei ihn gewinnt.
+      // Ohne aktuellen Plan (Startbildschirm) gibt es nichts stillzulegen.
+      if (s0.plan) autosave.exclude(s0.plan.id);
+      let merge;
+      let importFailed = false;
+      let importErr = null;
+      try {
+        // Das Mischen läuft synchron im Store-Updater auf dem Zustand zum Zeitpunkt des Updates,
+        // nicht auf einem Schnappschuss vor den await-Grenzen: Änderungen des Nutzers dazwischen
+        // gehen nicht verloren.
+        store.update(s => {
+          merge = repo.mergeImportedBundle(s, bundle);
+          return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan, ruleSets: merge.ruleSets, collections: merge.collections };
+        });
+        // Eine einzige Transaktion (alles oder nichts): unabhängige Schreibvorgänge je Datensatz
+        // könnten teilweise gelingen, und dann passte ein Rollback der Oberfläche nicht mehr zur
+        // Datenbank.
+        await repo.saveImportWinners(merge.winners, merge.collections);
+      } catch (err) {
+        importFailed = true;
+        importErr = err;
+        // Store und Datenbank sind auseinandergelaufen: zurück auf den Stand vor dem Import, der
+        // noch mit der Datenbank übereinstimmt.
+        store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan, ruleSets: s0.ruleSets, collections: s0.collections }));
+      } finally {
+        // finally, damit der Autosave dieses Plans nicht den Rest der Sitzung stumm tot bleibt,
+        // falls zwischen exclude() und hier etwas wirft. restore:true, wenn der Import
+        // fehlschlug oder der lokale Stand gewann (planChanged === false): ein geparkter,
+        // ausstehender eigener Stand wurde dann nicht mitgeschrieben und gilt weiter als
+        // ausstehend. `merge` kann vor der Zuweisung undefined sein, daher das Optional-Chaining.
+        if (s0.plan) autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
+      }
+
+      return { merge, importFailed, importErr, backupName, backupText };
+    });
 
     if (importFailed) {
       const retry = await showConfirm(
@@ -134,6 +136,6 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
     // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
     const warnings = capList(warningsForWinners(bundle, merge.winners, store.get()));
     const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';
-    await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets (neuere lokale Stände behalten).${repairNote}${warnNote}`);
+    await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets, ${(merge.winners.collections ?? []).length} Sammlungen (neuere lokale Stände behalten).${repairNote}${warnNote}`);
   };
 }

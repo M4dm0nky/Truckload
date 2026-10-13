@@ -31,7 +31,7 @@ export function renderStartScreen(el, s, handlers) {
   el.querySelector('#start-actions').innerHTML = `
     <div class="start-main">
       <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
-      <button id="start-material" class="primary" type="button" title="Materialverwaltung: Firmen, Cases, Lautsprecher, Traversen">Material</button>
+      <button id="start-material" class="primary" type="button" title="Materialverwaltung: Sammlungen, Cases, Lautsprecher, Traversen">Material</button>
     </div>
     ${listHtml}
     <button id="start-import" type="button" title="JSON-Sicherung einlesen">Sicherung importieren</button>

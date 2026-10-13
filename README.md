@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.16.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.17.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -9,6 +9,8 @@ Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Auftei
 **Einfach öffnen:** https://m4dm0nky.github.io/Truckload/
 
 Nichts installieren, kein Terminal. Nach dem ersten Öffnen läuft die App auch offline.
+
+Die App braucht einen aktuellen Browser (JSON-Module mit `with { type: 'json' }`): Chrome/Edge ≥ 123, Safari ≥ 17.2, Firefox ≥ 138 – nach Herstellerangaben, hier nicht geprüft. In Electron entspricht das Version 30 oder neuer.
 
 **Als App ins Dock (empfohlen):**
 - Safari: Seite öffnen → Menü *Ablage → Zum Dock hinzufügen*
@@ -51,8 +53,8 @@ Seitenleiste öffnet denselben Wizard für den aktuellen Load, dann ohne den ers
 
 1. **Load** – Name und Fahrzeug (Truck) wählen.
 2. **Cases** – aus der Bibliothek Cases mit Stückzahl auswählen, oder über „+ Neues Case“ bzw. „⬛ Sonderbau“ direkt neue Cases anlegen. „+ Traverse hinzufügen“ legt mengenbasiert klassische F34/F40-Wagen (Wagenbreite einstellbar) oder Pre-Rig-Traversen (MLT/S36PR) an.
-   - „Suchen in“ bestimmt, woraus die Liste gespeist wird: **Standardkatalog** (Vorgabe: nur Vorlagen und Cases ohne Firma), **Kompletter Bestand** oder „nur <Firma>“.
-   - Neue Cases, Traversen und Boxen-Dollys haben das Häkchen **„Im Materialbestand ablegen“** mit dem Ziel „Standardliste“, einer vorhandenen Firma (vorbelegt mit der gewählten Firma) oder „+ Neue Firma …“ – dann den Namen direkt darunter eintragen. Ohne Häkchen gilt das Case nur für diesen Load.
+   - „Suchen in“ bestimmt, woraus die Liste gespeist wird: **Standardkatalog** (Vorgabe: nur Vorlagen und Cases ohne Sammlung), **Kompletter Bestand** oder „nur <Sammlung>“ (als Baum eingerückt; eine Sammlung schließt ihre Untersammlungen ein).
+   - Neue Cases, Traversen und Boxen-Dollys haben das Häkchen **„Im Materialbestand ablegen“** mit dem Ziel „Meine Sammlung“, einer vorhandenen Sammlung (vorbelegt mit der gewählten Sammlung) oder „+ Neue Sammlung …“ – dann den Namen direkt darunter eintragen. Ohne Häkchen gilt das Case nur für diesen Load.
 3. **Beschriften** – jedes einzelne Stück bekommt eine vorbelegte Beschriftung (z. B. „Kabelcase 1“ … „6“), die sich überschreiben lässt, sowie optional eine Gruppenfarbe. Dazu je Stück Häkchen für Lage (1–4) und „getippt“:
    - Vorbelegt sind Lage 1 und 2 sowie „getippt“. Lage 3 und 4 sind nie vorab angehakt, sie werden immer von Hand geklickt.
    - Die Zeile „Alle Stücke“ oben setzt oder entfernt ein Häkchen bei allen Stücken auf einmal, z. B. Lage 4 für alle. Sind die Stücke unterschiedlich eingestellt, zeigt das Häkchen einen Strich.
@@ -158,20 +160,25 @@ Boxen-Dollys. Sie ist immer erreichbar: über „Material“ auf dem Startbildsc
 „Load zusammenstellen“. „Zurück“ führt dorthin zurück, wo man herkam – in den Wizard mit
 unveränderter Auswahl. Solange sie offen ist, ruhen die Tastenkürzel des Ladeplans.
 
-Links stehen der **Standardkatalog**, darunter alle Firmen mit der Zahl ihrer Cases, „+ Firma“
-und „Nur in Ladeplänen“. Rechts liegt das Material der gewählten Stelle, aufgeteilt in die
-Reiter Cases, Lautsprecher (Line-Array-Boxen, Subs, Boxen-Dollys), Traversen und Sonderbau, mit Suche.
+Links steht der Sammlungsbaum: **Standard**, **Meine Sammlung** und die eigenen Sammlungen
+(auch als Untersammlungen, bis zu vier Ebenen) mit der Zahl ihrer Cases, darunter „+ Sammlung“,
+„Sammlung importieren“ und „Nur in Ladeplänen“. Rechts liegt das Material der gewählten Stelle,
+aufgeteilt in die Reiter Cases, Lautsprecher (Line-Array-Boxen, Subs, Boxen-Dollys), Traversen
+und Sonderbau, mit Suche.
 
-- **Standardkatalog** – die mitgelieferten Vorlagen, nur lesbar. „Kopieren“ legt eine eigene
-  Version in einer Firma an (oder in der Standardliste); die Vorlage selbst bleibt unverändert.
-- **Firmen** – „+ Firma“ legt eine an (sie erscheint in der Liste, sobald ihr erstes Case
-  gespeichert ist), „Firma umbenennen“ ändert den Namen an allen ihren Cases, „Firma löschen“
-  entfernt sie samt ihren Cases nach Rückfrage.
-- **Anlegen** – je Firma „+ Neues Case“, „+ Traverse“ und „+ Boxen-Dolly“. Die Firma ist dabei
-  fest vorgegeben. Dollys sind firmenabhängig, weil die Wagenmaße es sind.
+- **Standard** – die mitgelieferten Vorlagen, nur lesbar. „Kopieren“ legt eine eigene
+  Version in einer Sammlung an (oder in „Meine Sammlung“); die Vorlage selbst bleibt unverändert.
+- **Sammlungen** – „+ Sammlung“ legt eine an, „+ Untersammlung“ eine darunter, „Sammlung
+  umbenennen“ und „Sammlung verschieben“ ändern Namen und Platz im Baum, „Sammlung löschen“
+  entfernt sie nach Rückfrage. „Meine Sammlung“ und „Standard“ sind fest.
+- **Export und Import** – „Sammlung exportieren“ schreibt die gewählte Sammlung als eigene Datei,
+  „Sammlung importieren“ liest eine solche Datei ein (gleiche Sammlung wird zusammengeführt).
+- **Verschieben** – jede Zeile hat „Verschieben“ und legt das Case in eine andere Sammlung.
+- **Anlegen** – je Sammlung „+ Neues Case“, „+ Traverse“ und „+ Boxen-Dolly“. Die Sammlung ist
+  dabei fest vorgegeben. Dollys sind sammlungsabhängig, weil die Wagenmaße es sind.
 - **Bearbeiten und Löschen** – jede Zeile hat „Bearbeiten“ und „Löschen“. Gelöscht wird
   ausschließlich hier, nicht mehr in der Seitenleiste oder im Wizard. Eine gelöschte
-  mitgelieferte Firmen-Vorlage wird nur ausgeblendet: Sie fehlt in allen Auswahllisten, alte
+  mitgelieferte Vorlage wird nur ausgeblendet: Sie fehlt in allen Auswahllisten, alte
   Ladepläne behalten das Stück. Wird ein Case in Ladeplänen benutzt, fragt die App vorher nach.
 - **Nur in Ladeplänen** – Cases, die im Wizard ohne Häkchen „Im Materialbestand ablegen“
   angelegt wurden. Sie tauchen in keiner Auswahl auf. Hier lassen sie sich mit „In Bestand

@@ -58,7 +58,7 @@ export function openDollyDialog(dlg, opts = {}) {
 
   const form = dlg.querySelector('form');
   const f = form.elements;
-  wireStockTarget(form);
+  wireStockTarget(form, stock?.collections ?? []);
 
   const validN = () => parseDollyCount(f.n.value, maxN);
   const wagenHint = dlg.querySelector('.wagen-hint');

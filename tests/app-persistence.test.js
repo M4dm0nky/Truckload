@@ -4,9 +4,10 @@ import { createStore } from '../js/store/state.js';
 import { createPersistence } from '../js/app/persistence.js';
 import { guarded } from '../js/app/guarded.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
+import { withBuiltins } from '../js/model/collections.js';
 
 const stamp = o => ({ ...o, updatedAt: 1 });
-const NOBUILTIN = 'Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Firma an.';
+const NOBUILTIN = 'Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
 
 function setup({ fail = {}, confirm = true, state = {} } = {}) {
   const calls = [], alerts = [], confirms = [];
@@ -14,8 +15,8 @@ function setup({ fail = {}, confirm = true, state = {} } = {}) {
     calls.push([name, ...a]);
     if (fail[name]) throw new Error(fail[name]);
   };
-  const repo = Object.fromEntries(['saveCase', 'deleteCase', 'saveCases', 'saveAndDelete', 'saveRuleSet', 'deleteRuleSet', 'saveTruck', 'deleteTruck', 'savePlan'].map(n => [n, stub(n)]));
-  const store = createStore({ cases: [], ruleSets: [], trucks: [], plans: [], plan: { id: 'cur', truckId: 't1', placements: [], unplaced: [] }, ...state });
+  const repo = Object.fromEntries(['writeCases', 'saveRuleSet', 'deleteRuleSet', 'saveTruck', 'deleteTruck', 'savePlan'].map(n => [n, stub(n)]));
+  const store = createStore({ cases: [], collections: withBuiltins([]), ruleSets: [], trucks: [], plans: [], plan: { id: 'cur', truckId: 't1', placements: [], unplaced: [] }, ...state });
   const p = createPersistence({
     repo, store, stamp, uid: () => 'new-id',
     showAlert: async m => { alerts.push(m); },
@@ -48,11 +49,12 @@ test('saveCase: Erfolg schreibt und aktualisiert den Store (ersetzt gleiche id)'
   assert.equal(v.updatedAt, 1);
   assert.deepEqual(store.get().cases.map(c => c.id).sort(), ['a', 'b']);
   assert.equal(store.get().cases.find(c => c.id === 'a').name, 'neu');
-  assert.equal(calls[0][0], 'saveCase');
+  assert.equal(calls[0][0], 'writeCases');
+  assert.equal(calls[0][1].upserts[0].collectionId, 'meine');
   assert.deepEqual(alerts, []);
 });
 test('saveCase: Fehler lässt den Store unverändert, genau eine Meldung', async () => {
-  const { p, store, alerts } = setup({ fail: { saveCase: 'voll' }, state: { cases: [{ id: 'a', name: 'alt' }] } });
+  const { p, store, alerts } = setup({ fail: { writeCases: 'voll' }, state: { cases: [{ id: 'a', name: 'alt' }] } });
   const before = store.get();
   assert.equal(await p.saveCase({ id: 'a', name: 'neu' }), undefined);
   assert.equal(store.get(), before);
@@ -86,7 +88,7 @@ test('removeFromStock: Erfolg entfernt aus Store; confirmed überspringt die Rü
 });
 test('removeFromStock: Fehler -> Store unverändert, genau eine Meldung', async () => {
   const c = { id: 'a', name: 'Kiste' };
-  const { p, store, alerts } = setup({ fail: { deleteCase: 'weg' }, state: { cases: [c] } });
+  const { p, store, alerts } = setup({ fail: { writeCases: 'weg' }, state: { cases: [c] } });
   const before = store.get();
   assert.equal(await p.removeFromStock(c, { confirmed: true }), false);
   assert.equal(store.get(), before);
@@ -96,60 +98,9 @@ test('removeFromStock: lib-Vorlage wird ausgeblendet (gespeichert, nicht gelösc
   const c = { id: 'lib-1', name: 'L' };
   const { p, store, calls } = setup({ state: { cases: [c] } });
   assert.equal(await p.removeFromStock(c, { confirmed: true }), true);
-  assert.deepEqual(calls.map(x => x[0]), ['saveCase']);
+  assert.deepEqual(calls.map(x => x[0]), ['writeCases']);
+  assert.equal(calls[0][1].upserts[0].legacy, true);
   assert.equal(store.get().cases[0].legacy, true);
-});
-
-test('renameCompany: Erfolg schreibt gesammelt und zieht den Store nach', async () => {
-  const cases = [{ id: 'a', company: 'Alt' }, { id: 'b', company: 'Alt' }, { id: 'c', company: 'Andere' }];
-  const { p, store, calls } = setup({ state: { cases } });
-  assert.equal(await p.renameCompany('Alt', 'Neu'), true);
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], 'saveCases');
-  assert.equal(calls[0][1].length, 2);
-  assert.deepEqual(store.get().cases.map(c => c.company).sort(), ['Andere', 'Neu', 'Neu']);
-});
-test('renameCompany: atomar – bei Fehler bleibt der Store unverändert, eine Meldung', async () => {
-  const cases = [{ id: 'a', company: 'Alt' }, { id: 'b', company: 'Alt' }];
-  const { p, store, alerts } = setup({ fail: { saveCases: 'abgebrochen' }, state: { cases } });
-  const before = store.get();
-  assert.equal(await p.renameCompany('Alt', 'Neu'), false);
-  assert.equal(store.get(), before);
-  assert.deepEqual(alerts, ['Firma konnte nicht umbenannt werden: abgebrochen']);
-});
-
-test('deleteCompany: Standard-Case in der Firma -> Abbruch mit einer Meldung, nichts geschrieben', async () => {
-  const cases = [{ id: 'a', company: 'F', name: 'x' }, { id: 'preset-1', company: 'F', name: 'P', builtin: true }];
-  const { p, store, calls, alerts } = setup({ state: { cases } });
-  const before = store.get();
-  assert.equal(await p.deleteCompany('F'), false);
-  assert.deepEqual(alerts, [NOBUILTIN]);
-  assert.deepEqual(calls, []);
-  assert.equal(store.get(), before);
-});
-test('deleteCompany: Erfolg entfernt Einträge, blendet lib- aus', async () => {
-  const cases = [{ id: 'a', company: 'F', name: 'x' }, { id: 'lib-1', company: 'F', name: 'L' }, { id: 'z', company: 'G' }];
-  const { p, store, calls, confirms } = setup({ state: { cases } });
-  assert.equal(await p.deleteCompany('F'), true);
-  assert.match(confirms[0][0], /^Firma „F“ mit 2 Einträgen löschen\?$/);
-  assert.deepEqual(calls.map(c => c[0]), ['saveAndDelete'], 'eine einzige Transaktion für Überlagerungen und Entfernungen');
-  assert.deepEqual(calls[0][1].removeIds, ['a']);
-  assert.deepEqual(calls[0][1].saves.map(c => c.id), ['lib-1']);
-  const ids = store.get().cases.map(c => c.id).sort();
-  assert.deepEqual(ids, ['lib-1', 'z']);
-  assert.equal(store.get().cases.find(c => c.id === 'lib-1').legacy, true);
-});
-test('deleteCompany: Rückfrage abgelehnt -> nichts', async () => {
-  const { p, calls } = setup({ confirm: false, state: { cases: [{ id: 'a', company: 'F' }] } });
-  assert.equal(await p.deleteCompany('F'), false);
-  assert.deepEqual(calls, []);
-});
-test('deleteCompany: Fehler -> Store unverändert, genau eine Meldung', async () => {
-  const { p, store, alerts } = setup({ fail: { saveAndDelete: 'x' }, state: { cases: [{ id: 'a', company: 'F' }, { id: 'lib-1', company: 'F' }] } });
-  const before = store.get();
-  assert.equal(await p.deleteCompany('F'), false);
-  assert.equal(store.get(), before);
-  assert.deepEqual(alerts, ['Firma konnte nicht gelöscht werden: x']);
 });
 
 test('saveRuleSet: neues Set bekommt uid, gleicher Name (case-insensitiv) behält die id', async () => {
@@ -226,14 +177,6 @@ test('deleteTruck: Plan-Aktualisierung scheitert -> Truck weg, eine Sondermeldun
   assert.equal(await p.deleteTruck('t1'), true);
   assert.equal(store.get().trucks.length, 0);
   assert.deepEqual(alerts, ['Fahrzeug gelöscht, aber 1 Plan(e) konnten nicht aktualisiert werden: g. Bitte prüfen und ggf. erneut speichern.']);
-});
-
-test('deleteCompany: nur Entfernungen (keine Überlagerung) laufen ebenfalls über saveAndDelete', async () => {
-  const { p, store, calls } = setup({ state: { cases: [{ id: 'a', company: 'F' }, { id: 'b', company: 'F' }, { id: 'z', company: 'G' }] } });
-  assert.equal(await p.deleteCompany('F'), true);
-  assert.deepEqual(calls.map(c => c[0]), ['saveAndDelete']);
-  assert.deepEqual(calls[0][1], { saves: [], removeIds: ['a', 'b'] });
-  assert.deepEqual(store.get().cases.map(c => c.id), ['z']);
 });
 
 // Task 3.2: Rückfrage vor Überschreiben und Löschen eines Regelsets.

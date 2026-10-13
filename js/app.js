@@ -41,7 +41,7 @@ try {
 // geladenen Pläne. layerLimit ist bewusst keine localStorage-Einstellung wie caseColors: die
 // Lagen-Durchsicht ist eine Momentaufnahme.
 export const store = createStore({
-  cases: data.cases, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
+  cases: data.cases, collections: data.collections, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
   plan: null, selectedId: null, activeLkw: null, materialOpen: false, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
@@ -162,7 +162,7 @@ attachKeyboard({
 });
 
 wirePrint({ store, derive });
-wireImportExport({ store, autosave, repo, showAlert, showConfirm });
+wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue: persistence.enqueue });
 
 showVersion();
 showStorageError(storageError);

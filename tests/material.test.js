@@ -68,15 +68,15 @@ test('Firma umbenennen, dann alles löschen: nach dem Neustart bleibt die Firma 
 });
 
 test('firmNameError: reservierte Platzhalternamen __…__ werden abgelehnt', () => {
-  assert.equal(firmNameError('__standard__'), 'Dieser Firmenname ist reserviert.');
-  assert.equal(firmNameError('  __nur-im-plan__ '), 'Dieser Firmenname ist reserviert.');
+  assert.equal(firmNameError('__standard__'), 'Dieser Sammlungsname ist reserviert.');
+  assert.equal(firmNameError('  __nur-im-plan__ '), 'Dieser Sammlungsname ist reserviert.');
   assert.equal(firmNameError('__a'), null);
   assert.equal(firmNameError('a__b__'), null);
 });
 test('firmNameError: leer, zu lang, gültig', () => {
-  assert.equal(firmNameError('   '), 'Firmenname fehlt.');
-  assert.equal(firmNameError(''), 'Firmenname fehlt.');
-  assert.equal(firmNameError('x'.repeat(81)), 'Firmenname: höchstens 80 Zeichen.');
+  assert.equal(firmNameError('   '), 'Sammlungsname fehlt.');
+  assert.equal(firmNameError(''), 'Sammlungsname fehlt.');
+  assert.equal(firmNameError('x'.repeat(81)), 'Sammlungsname: höchstens 80 Zeichen.');
   assert.equal(firmNameError(` ${'x'.repeat(80)} `), null);
   assert.equal(firmNameError('CAB'), null);
 });

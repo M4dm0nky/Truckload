@@ -1,9 +1,10 @@
 import { esc, swatch } from './dom.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { layersOf, canTip } from '../model/geometry.js';
-import { companiesOf, groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
+import { groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
 import { caseLine } from './caseInfo.js';
 import { MAX_LABEL, NAME_MAX } from '../model/limits.js';
+import { userCollectionNames } from '../model/collections.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
 import { searchInOptionsHtml, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, autoPackAfterStacked, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
@@ -27,6 +28,8 @@ export async function openLoadWizard(dlg, opts = {}) {
   }
   const mode = opts.mode ?? 'new';
   const trucks = opts.trucks ?? [];
+  // Funktion, damit die Liste nach der Rückkehr aus der Materialverwaltung frisch ist.
+  const getCollections = opts.getCollections ?? (() => []);
   let cases = [...(opts.cases ?? [])];
   const counts = new Map(); // caseId -> Anzahl
   let activeTab = CASE_TABS[0].id; // 'cases' — Reiter der Artikelauswahl, s. caseKind() (caseGroups.js)
@@ -50,7 +53,7 @@ export async function openLoadWizard(dlg, opts = {}) {
         <div class="wiz-cases-head">
           <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
-          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt nur Vorlagen und eigene Cases – firmen-gebrandete Cases erst nach gezielter Wahl des Kompletten Bestands oder einer Firma">${searchInOptionsHtml(companiesOf(cases), NEUTRAL_COMPANY)}</select></label>
+          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt nur Vorlagen und eigene Cases – Cases aus Sammlungen erst nach gezielter Wahl des Kompletten Bestands oder einer Sammlung">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
         </div>
         <p class="hint wiz-totals">0 Stück · 0 kg</p>
         <div class="wiz-case-list"></div>
@@ -142,7 +145,12 @@ export async function openLoadWizard(dlg, opts = {}) {
 
   function renderCaseList() {
     const tabCases = cases.filter(c => caseKind(c) === activeTab);
-    const groups = groupCases(tabCases, { q: search.value, cat: filterSel.value, company: companyFilterSel.value, keep: created });
+    const groups = groupCases(tabCases, {
+      q: search.value, cat: filterSel.value, keep: created,
+      ...(companyFilterSel.value === '' || companyFilterSel.value === NEUTRAL_COMPANY
+        ? { company: companyFilterSel.value }
+        : { collection: companyFilterSel.value, collections: getCollections() }),
+    });
     renderGroupList(list, groups, caseRow, {
       // Ohne gesetzten Filter kein „Keine Treffer.“: für einen neuen Nutzer klänge das nach
       // Fehlbedienung statt nach einer leeren, aber gültigen Bibliothek (Formulierung wie in library.js).
@@ -158,12 +166,12 @@ export async function openLoadWizard(dlg, opts = {}) {
   // und merkt sich zusätzlich die bisherige Auswahl.
   function renderCompanyOptions() {
     const prev = companyFilterSel.value;
-    const companies = companiesOf(cases);
-    companyFilterSel.innerHTML = searchInOptionsHtml(companies, prev);
+    const collections = getCollections();
+    companyFilterSel.innerHTML = searchInOptionsHtml(collections, prev);
     // Rückfall auf „Standardkatalog“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
     // Liste (letztes Case dieser Firma gelöscht), soll der Filter wieder scharf stehen statt
-    // auf einmal firmen-gebrandete Cases zu zeigen, die der Nutzer nie gewählt hat.
-    if (prev !== NEUTRAL_COMPANY && prev !== '' && !companies.includes(prev)) companyFilterSel.value = NEUTRAL_COMPANY;
+    // auf einmal Cases aus Sammlungen zu zeigen, die der Nutzer nie gewählt hat.
+    if (prev !== NEUTRAL_COMPANY && prev !== '' && !collections.some(c => c.id === prev)) companyFilterSel.value = NEUTRAL_COMPANY;
   }
   list.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
@@ -200,7 +208,7 @@ export async function openLoadWizard(dlg, opts = {}) {
   filterSel.addEventListener('change', renderCaseList);
   companyFilterSel.addEventListener('change', renderCaseList);
 
-  const stockOpt = () => ({ mode: 'choose', companies: companiesOf(cases), defaultCompany: stockDefaultFor(companyFilterSel.value) });
+  const stockOpt = () => ({ mode: 'choose', companies: userCollectionNames(getCollections()), defaultCompany: stockDefaultFor(companyFilterSel.value, getCollections()), collections: getCollections() });
 
   async function addNewCase(draft) {
     const c = await opts.onNewCase?.(draft, stockOpt());
