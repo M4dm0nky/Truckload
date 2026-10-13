@@ -27,15 +27,23 @@ Wo NYX speichert:
 
 | Store | Ort in NYX |
 |---|---|
-| `cases`, `trucks`, `ruleSets` | projektübergreifend (`~/.lpm/lpm_types.db`) |
+| `cases`, `collections`, `trucks`, `ruleSets` | projektübergreifend (`~/.lpm/lpm_types.db`) |
 | `plans` | in der Projektdatei |
+
+Sammlungen (Store `collections`, seit V 0.16.1): siehe [nyx-sammlungen.md](nyx-sammlungen.md). Dort
+steht auch, was NYX dafür vorab tun muss und was passiert, wenn der Store fehlt.
 
 `db.putMany` und `db.writeMany` gehen beide über `writeMany` des Hosts. Puts und Deletes einer
 Datei landen in NYX in einer Transaktion (alles oder nichts, wie bei IndexedDB). Über beide
 Dateien hinweg ist der Aufruf aber **nicht** atomar (zuerst die projektübergreifenden Stores,
-dann die Pläne). „Firma löschen“ betrifft nur `cases` und ist damit vollständig atomar.
+dann die Pläne). Sammlungs-Vorgänge (Case speichern, Sammlung anlegen, umbenennen, verschieben,
+löschen, Sammlungsdatei importieren) betreffen nur `collections` und sind damit vollständig
+atomar. Der Import einer Sicherung mischt dagegen `collections` mit `plans` und ist über beide
+Dateien hinweg **nicht** atomar.
 
-Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab.
+Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab. Seit V 0.16.1 gilt
+das für `collections`; ohne die Freigabe zeigt Truckload die Ersatzansicht und sperrt das
+Schreiben bis zum Neuladen (siehe [nyx-sammlungen.md](nyx-sammlungen.md)).
 
 ## Was NYX voraussetzt
 

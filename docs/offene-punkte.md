@@ -21,6 +21,46 @@ Mit echten Maßen ließen sie sich wieder freigeben. Nur 3 HE (komplett gemessen
 ergibt das rechnerisch 552 kg/m³. Der Richtwert ist in `docs/casemasse-gewichte.md`
 offengelegt, aber für kleine Cases zu konservativ.
 
+## Aus Sammlungen (V 0.16.1) offen
+
+- **Die Listen-Cases liegen noch gemeinsam in „Meine Sammlung“.** CAB, BBM, Motion … sind nicht je
+  Firma in eigene Sammlungen aufgeteilt (Entscheidung: erst Struktur, dann Sortierung). Der Nutzer
+  verschiebt sie selbst („Verschieben“).
+- **`company` ist immer der Name der direkten Sammlung.** Eine Oberfirma kennt der Case nicht; wer
+  nach Oberfirma filtern will, nimmt den Sammlungsfilter. Das Verschieben einer Sammlung ändert
+  die `company` ihrer Cases nicht (sie ändert nur der Name).
+- **Elternsammlungen listen nur eigene Cases.** In der Materialverwaltung zeigt eine Oberebene nur
+  die Cases, die direkt in ihr liegen (und die Zahl dazu), der Wizard-Filter „Suchen in“ schließt
+  dagegen die Untersammlungen ein. Beides ist gewollt, aber nicht einheitlich.
+- **`meine.json` wird nicht gesät, Überlagerungen frieren ein.** Neue Einträge der mitgelieferten
+  Liste erscheinen bei jedem Start von selbst. Ein Listen-Case, das bearbeitet, verschoben,
+  gelöscht (ausgeblendet) oder mit seiner Sammlung gelöscht wurde, liegt als Überlagerung im
+  Datensatz und bekommt spätere Korrekturen an `meine.json` nicht mehr; ein Wiederherstellen der
+  mitgelieferten Version gibt es nicht.
+- **Der alte Store `cases` wird nicht aufgeräumt.** Er bleibt nach der Migration als
+  Sicherheitsnetz liegen, wird weiter gelesen (und muss in NYX freigegeben bleiben) und nie
+  geleert.
+- **Wizard-Filter „Standardkatalog“ = Cases ohne `company`.** Eigene Cases in „Meine Sammlung“
+  ohne `company` erscheinen dort also mit, nicht nur die Vorlagen aus „Standard“. Das entspricht
+  der alten Regel, ist aber nach der Umbenennung zu „Sammlung“ schwerer zu erklären.
+- **`MAX_DEPTH` (4) gilt nur in der Oberfläche.** Beim Import einer Sicherung prüft `parseBundle`
+  Schleifen und unbekannte Oberebenen, nicht die Tiefe; eine tiefere Kette aus fremden Dateien
+  lädt und lässt sich nur nicht weiter verschachteln.
+- **Verschachteltes `null` in gespeicherten Datensätzen wird nicht bereinigt.** `cleanCases`
+  filtert nur null-Cases und ein fehlerhaftes `updatedAt` am Case; ein `null` tiefer im Datensatz
+  (etwa in `cases[].…`) bleibt stehen.
+- **Dateiauswahl „Sammlung importieren“:** sehr alte Browser lösen das `cancel`-Ereignis des
+  Dateiauswählers nicht aus; ein Abbruch hält dort den Import-Knopf bis zum nächsten Klick
+  (er teilt sich die laufende Promise).
+- **Die Schreib-Warteschlange wartet auf offene Meldungen.** Zeigt ein Vorgang in der Warteschlange
+  eine Meldung (`showAlert`), laufen spätere Schreibvorgänge erst nach dem Schließen weiter.
+- **Wird der Store `collections` in NYX nicht freigegeben,** zeigt Truckload die Ersatzansicht
+  und sperrt das Schreiben (`docs/nyx-sammlungen.md`). Die Freigabe auf NYX-Seite ist nicht
+  Teil dieses Repos.
+- **Sammlungsdatei ohne Altschema-Reparaturen.** Eine Datei mit Beschriftungen über
+  `MAX_LABEL` oder alter Rollenhöhe wird abgelehnt statt repariert (eigene Entscheidung, das
+  Format ist neu).
+
 ## Aus „Mehrere LKW“ (V 0.14.0) offen
 
 - **Verteilt wird nur bei „Alles neu packen“.** Neues Material (Wizard, Ablage) und manuelle
