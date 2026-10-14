@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf } from '../js/app/core.js';
+import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf, plaeneMitGeaendertemBestand } from '../js/app/core.js';
 import { P } from './fixtures.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
 
@@ -366,3 +366,31 @@ test('planZumSpeichern: ein nicht offener Plan behält seine eigene Kopie als Qu
   assert.deepEqual(out.mitgefuehrt.cases.map(c => c.id), ['cf']);
   assert.deepEqual(out.mitgefuehrt.trucks.map(t => t.id), ['tf']);
 });
+
+{
+  const st = (cases, trucks, plan, plans = []) => ({ cases, trucks, plan, plans });
+  const pl = (id, caseId, truckId = 't') => ({ id, name: id, truckId, placements: [], unplaced: [{ id: `u-${id}`, caseId }], notes: '' });
+
+  test('plaeneMitGeaendertemBestand: unveränderte Listen → keine Pläne', () => {
+    const cases = [mkCase('c1', 1, 1, 1)], trucks = [mkTruck({ id: 't' })];
+    assert.deepEqual(plaeneMitGeaendertemBestand(st(cases, trucks, pl('a', 'c1')), st(cases, trucks, pl('a', 'c1'))), []);
+  });
+  test('plaeneMitGeaendertemBestand: geändertes Case trifft offenen und gespeicherten Plan, nicht den unbeteiligten', () => {
+    const c1 = mkCase('c1', 1, 1, 1), c2 = mkCase('c2', 1, 1, 1), trucks = [mkTruck({ id: 't' })];
+    const a = pl('a', 'c1'), b = pl('b', 'c1'), x = pl('x', 'c2');
+    const prev = st([c1, c2], trucks, a, [b, x]);
+    const next = st([{ ...c1, weight: 7 }, c2], trucks, a, [b, x]);
+    assert.deepEqual(plaeneMitGeaendertemBestand(prev, next).map(p => p.id).sort(), ['a', 'b']);
+  });
+  test('plaeneMitGeaendertemBestand: geändertes Fahrzeug, auch über lkws', () => {
+    const cases = [mkCase('c1', 1, 1, 1)], t = mkTruck({ id: 't' }), t2 = mkTruck({ id: 't2' });
+    const multi = { ...pl('m', 'c1'), lkws: [{ id: 'l1', name: 'A', truckId: 't2', categories: [] }] };
+    const prev = st(cases, [t, t2], null, [multi, pl('o', 'c1')]);
+    const next = st(cases, [t, { ...t2, payload: 1 }], null, [multi, pl('o', 'c1')]);
+    assert.deepEqual(plaeneMitGeaendertemBestand(prev, next).map(p => p.id), ['m']);
+  });
+  test('plaeneMitGeaendertemBestand: entferntes Case zählt als Änderung', () => {
+    const c1 = mkCase('c1', 1, 1, 1), trucks = [mkTruck({ id: 't' })];
+    assert.deepEqual(plaeneMitGeaendertemBestand(st([c1], trucks, pl('a', 'c1')), st([], trucks, pl('a', 'c1'))).map(p => p.id), ['a']);
+  });
+}

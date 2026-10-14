@@ -15,7 +15,7 @@ import { mountMaterialScreen } from './app/materialScreen.js';
 import { wireImportExport } from './app/importExport.js';
 import { mountPlanView, renderPlanViews, loadCaseColors } from './app/planView.js';
 import { installEarlyHandlers, setSaveStatus, wirePrint, showVersion, showStorageError, wireBanners, registerServiceWorker } from './app/chrome.js';
-import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf, planZumSpeichern } from './app/core.js';
+import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf, planZumSpeichern, plaeneMitGeaendertemBestand } from './app/core.js';
 import { isMultiLkw } from './model/lkw.js';
 import * as A from './model/actions.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
@@ -118,9 +118,17 @@ function render() {
 const savePlanMitKopie = plan => repo.savePlan(planZumSpeichern(store.get(), plan));
 const autosave = createAutosave({ savePlan: savePlanMitKopie, onStatus: setSaveStatus });
 
+let vorher = store.get();
 store.subscribe(s => {
   scheduleRender();
   if (s.plan) autosave.noticeChange(s.plan);
+  // Ändert sich in der Bibliothek ein Case oder Fahrzeug, ohne dass der Plan angefasst wird, bliebe die
+  // mitgeführte Kopie in der Projektdatei sonst bis zur nächsten Planänderung veraltet (Truckload#33 / Spec).
+  for (const p of plaeneMitGeaendertemBestand(vorher, s)) {
+    if (p.id === s.plan?.id) autosave.markDirty(s.plan);
+    else savePlanMitKopie(p).catch(err => setSaveStatus('error', err));
+  }
+  vorher = s;
 });
 
 // Flush beim Verlassen der Seite: ein reiner Debounce verwürfe sonst die letzten 400 ms an

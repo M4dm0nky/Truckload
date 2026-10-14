@@ -3,7 +3,7 @@
 import { memoLast } from '../model/memo.js';
 import { validatePlan } from '../model/validate.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
-import { bestandFuer, mitfuehren } from '../model/mitgefuehrt.js';
+import { bestandFuer, mitfuehren, referenzen } from '../model/mitgefuehrt.js';
 import { stamp } from '../model/stamp.js';
 import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView, NO_LKW, piecesOf } from '../model/lkw.js';
 import { packAllLkws, unassignedLines, stueck } from '../model/lkw-distribute.js';
@@ -165,3 +165,23 @@ export const usage = (s, caseId) =>
   allPlansOf(s).filter(p => piecesOf(p).some(x => x.caseId === caseId)).length;
 export const truckUsage = (s, truckId) =>
   allPlansOf(s).filter(p => p.truckId === truckId || lkwsOf(p).some(l => l.truckId === truckId)).length;
+
+// Pläne, deren mitgeführte Kopie nach einer Bibliotheksänderung veraltet wäre: sie verweisen auf ein
+// Case oder Fahrzeug, dessen Objekt sich geändert hat (neu, ersetzt, entfernt).
+const geaenderteIds = (alt, neu) => {
+  if (alt === neu) return new Set();
+  const a = new Map(alt.map(x => [x.id, x])), n = new Map(neu.map(x => [x.id, x]));
+  const ids = new Set();
+  for (const [id, x] of n) if (a.get(id) !== x) ids.add(id);
+  for (const id of a.keys()) if (!n.has(id)) ids.add(id);
+  return ids;
+};
+export function plaeneMitGeaendertemBestand(prev, next) {
+  if (prev.cases === next.cases && prev.trucks === next.trucks) return [];
+  const cs = geaenderteIds(prev.cases, next.cases), ts = geaenderteIds(prev.trucks, next.trucks);
+  if (!cs.size && !ts.size) return [];
+  return allPlansOf(next).filter(p => {
+    const r = referenzen(p);
+    return [...r.caseIds].some(id => cs.has(id)) || [...r.truckIds].some(id => ts.has(id));
+  });
+}
