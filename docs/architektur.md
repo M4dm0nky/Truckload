@@ -690,6 +690,33 @@ bestehendes Schema bricht dadurch nicht). Ein Regelset ist `{ id, name, rules, u
 läuft in Sicherung/Import wie ein Plan mit (per ID, neuerer `updatedAt`-Stand gewinnt); Bundles
 ohne `ruleSets` (ältere Sicherungen) ergeben beim Einlesen einfach eine leere Liste.
 
+Seit V 0.17.1 gibt es daneben `projectRuleSets` (`DB_VERSION` 4): dasselbe Format, aber Regelsets,
+die zum Projekt gehören (in NYX in der Projektdatei). Der Dialog zeigt beide Gruppen, die
+Namensprüfung gilt je Gruppe (`persistence.saveRuleSet(name, rules, mixTop, ort)`). In der
+Sicherung ist es ein optionales Feld ohne Versionssprung.
+
+### Mitgeführte Cases und Fahrzeuge (seit V 0.17.1)
+
+Ein Plan verweist per `caseId`/`truckId` auf die Bibliothek. Damit eine Sicherung oder
+NYX-Projektdatei auch auf einem Rechner vollständig ist, dem diese Einträge fehlen, trägt jeder Plan
+`mitgefuehrt = { version: 1, cases, trucks }` (`js/model/mitgefuehrt.js`):
+
+- **Inhalt:** genau die Cases und Fahrzeuge, auf die `placements`, `unplaced`, `truckId` und
+  `lkws[].truckId` verweisen, vollständig, ohne `collectionId`. Neu berechnet bei jedem Speichern
+  (`planZumSpeichern`, Autosave, Sichern) und wenn sich ein benutztes Case oder Fahrzeug in der
+  Bibliothek ändert (`createBestandsSync`, ruht während eines Imports). Kein neuer `updatedAt`.
+- **Laderegel:** die Bibliothek gewinnt immer; die Kopie füllt nur fehlende IDs. Die Ergänzung
+  entsteht an **einer** Stelle, `bestandOf(s)` in `js/app/core.js`, die `ctxOf`, `deriveOf` und
+  `printSectionsOf` benutzen. Ein unbekanntes `truckId` fällt erst danach aufs Standardfahrzeug.
+  Materialverwaltung und Wizard lesen weiter nur die Bibliothek.
+- **Merker:** `ausProjekt = { cases: Set, trucks: Set }` im abgeleiteten Zustand, nie gespeichert.
+  Der Inspector zeigt dafür den Hinweis und „In meine Bibliothek übernehmen“ (Case nach „Meine
+  Sammlung“, gleiche ID); Gewicht, „Case bearbeiten“, der Stift in der Ablage und „Bearbeiten“ am
+  Fahrzeug sind für Kopien gesperrt.
+- **Import:** `checkPlan` prüft jede Kopie mit `checkCase`/`checkTruck` (höchstens
+  `MAX_MITGEFUEHRT_CASES` Cases und `MAX_LKW + 1` Fahrzeuge); `parseBundle` repariert sie vorher wie
+  die übrigen Daten (Rollenhöhe, zu lange Namen).
+
 Export und Import laufen über ein JSON-Bundle (`js/store/io.js`). Mitgelieferte Cases
 (`builtin: true`) landen **nicht** in der Datei; Pläne verweisen weiter per `caseId` darauf.
 `parseBundle` prüft streng, weil die Datei von außen kommt — unter anderem gegen

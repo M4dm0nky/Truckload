@@ -2,6 +2,26 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.17.1 – 2026-10-14
+
+**Ein Ladeplan nimmt seine Cases und Fahrzeuge mit.**
+
+- **Vollständig auf jedem Rechner:** Jeder Ladeplan speichert eine Kopie der Cases und Fahrzeuge,
+  die er benutzt (Feld `mitgefuehrt`). Eine Sicherung oder eine NYX-Projektdatei zeigt damit auf
+  einem anderen Rechner alle Stücke, auch wenn es die Cases dort nicht gibt. Gibt es ein Case dort
+  schon, gilt die Fassung aus der eigenen Bibliothek.
+- **Aus der Projektdatei:** Solche Cases und Fahrzeuge tragen im Inspector den Hinweis „Aus der
+  Projektdatei – nicht in deiner Bibliothek“. Verschieben, packen und drucken geht wie immer,
+  ändern erst nach „In meine Bibliothek übernehmen“. Materialverwaltung und Wizard zeigen sie nicht.
+- **Kopie bleibt aktuell:** Ändert sich ein Case oder Fahrzeug in der Bibliothek, werden die Pläne,
+  die es benutzen, neu gespeichert.
+- **Regelsets im Projekt:** Im Dialog „Pack-Regeln …“ lassen sich Regelsets jetzt im Projekt oder in
+  der Bibliothek speichern (neuer Store `projectRuleSets`). Die Sicherung trägt sie mit.
+- **Alte Daten laden weiter:** Pläne ohne Kopie bekommen sie beim nächsten Speichern, alte
+  Sicherungen importieren wie bisher. Die Formatversion der Sicherung bleibt 1.
+- **Für NYX:** neuer Store `projectRuleSets` (Projektdatei), Einzelheiten in
+  `docs/nyx-projektdatei.md`.
+
 ## V 0.17.0 – 2026-10-13
 
 **Sammlungen: jede Case-Sammlung ist ein eigenes JSON.**

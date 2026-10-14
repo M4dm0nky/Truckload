@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.17.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.17.1** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -47,6 +47,12 @@ npm test
 
 So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gelöscht wird.
 
+Jeder Ladeplan nimmt die Cases und Fahrzeuge mit, die er benutzt. Liest du eine Sicherung auf einem
+Rechner ein, dem eigene Cases fehlen, sind trotzdem alle Stücke da. Der Inspector kennzeichnet sie
+mit „Aus der Projektdatei – nicht in deiner Bibliothek“; ändern kannst du sie erst nach „In meine
+Bibliothek übernehmen“. Gibt es ein Case auf dem Rechner schon, gilt die Fassung aus der eigenen
+Bibliothek.
+
 ## Neuen Load anlegen
 
 „Neu“ (oben links) öffnet einen Wizard mit drei Schritten. „+ Material hinzufügen“ in der
@@ -83,7 +89,10 @@ mit „Gruppe auf alle übernehmen“ für alle Stücke eines Case-Typs auf einm
 im Inspector.
 
 Eine Rangliste lässt sich als **Regelset** unter einem Namen sichern und über „Übernehmen“ im
-Regelsets-Abschnitt des Dialogs in jedem anderen Load wieder einsetzen.
+Regelsets-Abschnitt des Dialogs in jedem anderen Load wieder einsetzen. Beim Speichern wählst du,
+wo das Regelset liegt: **im Projekt** (voreingestellt, reist mit Sicherung bzw. NYX-Projektdatei)
+oder **in der Bibliothek** (für alle Projekte). Die Auswahl zeigt beide Gruppen getrennt; gleiche
+Namen in beiden Gruppen stören sich nicht.
 
 ### Deckschicht mischen
 

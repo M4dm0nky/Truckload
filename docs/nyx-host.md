@@ -28,7 +28,10 @@ Wo NYX speichert:
 | Store | Ort in NYX |
 |---|---|
 | `cases`, `collections`, `trucks`, `ruleSets` | projektübergreifend (`~/.lpm/lpm_types.db`) |
-| `plans` | in der Projektdatei |
+| `plans`, `projectRuleSets` | in der Projektdatei |
+
+Projekt-Regelsets (Store `projectRuleSets`) und die mitgeführten Cases und Fahrzeuge eines Plans
+(`plan.mitgefuehrt`, seit V 0.17.1): siehe [nyx-projektdatei.md](nyx-projektdatei.md).
 
 Sammlungen (Store `collections`, seit V 0.17.0): siehe [nyx-sammlungen.md](nyx-sammlungen.md). Dort
 steht auch, was NYX dafür vorab tun muss und was passiert, wenn der Store fehlt.
