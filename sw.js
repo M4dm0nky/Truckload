@@ -46,6 +46,7 @@ const ASSETS = [
   'js/model/lkw.js',
   'js/model/material.js',
   'js/model/memo.js',
+  'js/model/mitgefuehrt.js',
   'js/model/packer.js',
   'js/model/packRules.js',
   'js/model/pieceFields.js',
