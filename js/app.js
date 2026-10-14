@@ -15,7 +15,7 @@ import { mountMaterialScreen } from './app/materialScreen.js';
 import { wireImportExport } from './app/importExport.js';
 import { mountPlanView, renderPlanViews, loadCaseColors } from './app/planView.js';
 import { installEarlyHandlers, setSaveStatus, wirePrint, showVersion, showStorageError, wireBanners, registerServiceWorker } from './app/chrome.js';
-import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf } from './app/core.js';
+import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf, planZumSpeichern } from './app/core.js';
 import { isMultiLkw } from './model/lkw.js';
 import * as A from './model/actions.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
@@ -115,7 +115,8 @@ function render() {
 
 // Speichern: die Buchhaltung (ausstehender Plan, Debounce, Wiederholung) steckt in
 // js/store/autosave.js. Hier wird nur verdrahtet.
-const autosave = createAutosave({ savePlan: repo.savePlan, onStatus: setSaveStatus });
+const savePlanMitKopie = plan => repo.savePlan(planZumSpeichern(store.get(), plan));
+const autosave = createAutosave({ savePlan: savePlanMitKopie, onStatus: setSaveStatus });
 
 store.subscribe(s => {
   scheduleRender();
@@ -130,7 +131,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') autosave.flush();
 });
 
-const persistence = createPersistence({ repo, store, showAlert, showConfirm, stamp, uid });
+const persistence = createPersistence({ repo: { ...repo, savePlan: savePlanMitKopie }, store, showAlert, showConfirm, stamp, uid });
 
 const { material, openMaterial, openMaterialFromWizard, editCase, newCaseForWizard } =
   mountMaterialScreen({ el: materialEl, store, uid, persistence });

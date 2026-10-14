@@ -1,6 +1,6 @@
 // Sichern (Export) und Importieren einer JSON-Sicherung. Vor dem Import legt die App still
 // eine Sicherung des aktuellen Stands an. Kein Import von js/app.js.
-import { allPlansOf } from './core.js';
+import { allPlansOf, planZumSpeichern } from './core.js';
 import { downloadJSON } from './download.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from '../store/io.js';
 
@@ -52,7 +52,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
   $('#export').onclick = () => {
     const s = store.get();
     const plans = allPlansOf(s);
-    downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans, ruleSets: s.ruleSets, collections: s.collections }));
+    downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans: plans.map(p => planZumSpeichern(s, p)), ruleSets: s.ruleSets, collections: s.collections }));
   };
 
   // Ein <button> statt <label> um das versteckte <input type="file">: ein Label ist per
@@ -79,7 +79,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
       const backupName = preImportBackupFileName();
       // s0.plan ist null, wenn der Import vom Startbildschirm kommt; dann gehören nur die schon
       // gespeicherten Pläne in die Sicherung.
-      const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0), ruleSets: s0.ruleSets, collections: s0.collections });
+      const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0).map(p => planZumSpeichern(s0, p)), ruleSets: s0.ruleSets, collections: s0.collections });
       downloadJSON(backupName, backupText);
 
       // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen: exclude() nimmt

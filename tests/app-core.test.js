@@ -349,3 +349,20 @@ test('applyEdit im Reiter „Ohne LKW“ behält mitgefuehrt', () => {
   const next = applyEdit(s, view => ({ ...view, notes: 'x' }), () => 'n');
   assert.deepEqual(next.plan.mitgefuehrt, p.mitgefuehrt);
 });
+
+import { planZumSpeichern } from '../js/app/core.js';
+
+test('planZumSpeichern: füllt mitgefuehrt aus der Bibliothek', () => {
+  const s = { cases: [mkCase('c1', 1, 1, 1, { collectionId: 'meine' })], trucks: [mkTruck({ id: 't' })] };
+  const p = { id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [{ id: 'u', caseId: 'c1' }], notes: '' };
+  const out = planZumSpeichern(s, p);
+  assert.deepEqual(out.mitgefuehrt.cases.map(c => c.id), ['c1']);
+  assert.equal(out.updatedAt, p.updatedAt); // kein neuer Zeitstempel
+});
+
+test('planZumSpeichern: ein nicht offener Plan behält seine eigene Kopie als Quelle', () => {
+  const s = { cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], plan: null };
+  const out = planZumSpeichern(s, fremderPlan());
+  assert.deepEqual(out.mitgefuehrt.cases.map(c => c.id), ['cf']);
+  assert.deepEqual(out.mitgefuehrt.trucks.map(t => t.id), ['tf']);
+});

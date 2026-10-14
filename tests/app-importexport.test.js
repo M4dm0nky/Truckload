@@ -55,3 +55,31 @@ test('warningsForWinners: nur Datensätze, die den Abgleich gewonnen haben', () 
   assert.match(w[0], /Gewinner“/);
   assert.match(w[1], /Gewinner-Case/);
 });
+
+import { wireImportExport } from '../js/app/importExport.js';
+import { mkCase, mkTruck } from './fixtures.js';
+
+test('Sichern: jeder exportierte Plan trägt mitgefuehrt mit den referenzierten Cases', () => {
+  const handlers = {};
+  const downloads = [];
+  const realDoc = globalThis.document;
+  const realCreate = URL.createObjectURL;
+  globalThis.document = {
+    querySelector: sel => (handlers[sel] ??= {}),
+    createElement: () => ({ click() { downloads.push(this); } }),
+  };
+  const blobs = [];
+  URL.createObjectURL = b => { blobs.push(b); return 'blob:x'; };
+  try {
+    const plan = { id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [{ id: 'u', caseId: 'c1' }], notes: '' };
+    const s = { cases: [mkCase('c1', 1, 1, 1, {})], trucks: [mkTruck({ id: 't' })], plans: [plan], plan: null, ruleSets: [], collections: [] };
+    wireImportExport({ store: { get: () => s }, autosave: {}, repo: {}, showAlert() {}, showConfirm() {} });
+    handlers['#export'].onclick();
+    return blobs[0].text().then(text => {
+      assert.equal(JSON.parse(text).plans[0].mitgefuehrt.cases[0].id, 'c1');
+    });
+  } finally {
+    globalThis.document = realDoc;
+    URL.createObjectURL = realCreate;
+  }
+});

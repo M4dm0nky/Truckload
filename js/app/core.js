@@ -3,7 +3,7 @@
 import { memoLast } from '../model/memo.js';
 import { validatePlan } from '../model/validate.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
-import { bestandFuer } from '../model/mitgefuehrt.js';
+import { bestandFuer, mitfuehren } from '../model/mitgefuehrt.js';
 import { stamp } from '../model/stamp.js';
 import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView, NO_LKW, piecesOf } from '../model/lkw.js';
 import { packAllLkws, unassignedLines, stueck } from '../model/lkw-distribute.js';
@@ -41,6 +41,9 @@ export function activeViewOf(plan, activeLkw) {
 // Bibliothek plus die mitgeführten Einträge des offenen Plans (js/model/mitgefuehrt.js). EINE Stelle:
 // Kontext, Ableitung und Druck sehen denselben Bestand; Materialverwaltung und Wizard nicht.
 const bestandMemo = memoLast((cases, trucks, plan) => bestandFuer(cases, trucks, plan));
+// Vor jedem Schreiben eines Plans (Autosave, umgebogene Pläne, Sichern): die Kopie neu berechnen.
+export const planZumSpeichern = (s, plan) => mitfuehren(plan, s.cases, s.trucks);
+
 export const bestandOf = s => bestandMemo(s.cases, s.trucks, s.plan ?? null);
 
 const truckFinder = trucks => id =>
