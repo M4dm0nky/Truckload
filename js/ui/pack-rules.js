@@ -61,7 +61,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
           <button type="button" data-act="apply-set">Übernehmen</button>
           <button type="button" data-act="delete-set" class="danger">Löschen</button>
         </div>
-        <div class="rule-add-row">
+        <div class="rule-add-row rule-save-row">
           <input name="setName" maxlength="${MAX_RULESET_NAME}" placeholder="Name, z. B. „Tour-Standard“">
           <select name="setOrt" aria-label="Speicherort"><option value="projekt" selected>im Projekt</option><option value="bibliothek">in der Bibliothek</option></select>
           <button type="button" data-act="save-set">Als Regelset speichern</button>
@@ -153,7 +153,8 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
       const s = v && listOf(v.ort).find(x => x.id === v.id);
       if (s && await onDeleteRuleSet?.(s.id, v.ort)) {
         if (v.ort === 'projekt') projSets = projSets.filter(x => x.id !== s.id); else sets = sets.filter(x => x.id !== s.id);
-        showSetHint(`Regelset „${s.name}“ gelöscht.`); }
+        showSetHint(`Regelset „${s.name}“ gelöscht.`);
+      }
       renderSets();
     }
     if (act === 'save-set') {

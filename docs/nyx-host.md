@@ -45,8 +45,9 @@ atomar. Der Import einer Sicherung mischt dagegen `collections` mit `plans` und 
 Dateien hinweg **nicht** atomar.
 
 Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab. Seit V 0.17.0 gilt
-das für `collections`; ohne die Freigabe zeigt Truckload die Ersatzansicht und sperrt das
-Schreiben bis zum Neuladen (siehe [nyx-sammlungen.md](nyx-sammlungen.md)).
+das für `collections`, seit V 0.17.1 (Projektdatei) zusätzlich für `projectRuleSets`; ohne die
+Freigabe zeigt Truckload die Ersatzansicht und sperrt das Schreiben bis zum Neuladen (siehe
+[nyx-sammlungen.md](nyx-sammlungen.md)).
 
 ## Was NYX voraussetzt
 
