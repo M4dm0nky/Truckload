@@ -44,6 +44,10 @@ const bestandMemo = memoLast((cases, trucks, plan) => bestandFuer(cases, trucks,
 // Vor jedem Schreiben eines Plans (Autosave, umgebogene Pläne, Sichern): die Kopie neu berechnen.
 export const planZumSpeichern = (s, plan) => mitfuehren(plan, s.cases, s.trucks);
 
+// Vorauswahl-Fahrzeug für den Lade-Assistenten: nur eines aus der Bibliothek, sonst das Standardfahrzeug
+// (der Assistent zeigt keine Kopien aus der Projektdatei, ein unbekannter Wert ergäbe eine leere Auswahl).
+export const wizardTruckId = (libraryTrucks, id) => (libraryTrucks.some(t => t.id === id) ? id : DEFAULT_TRUCK_ID);
+
 export const bestandOf = s => bestandMemo(s.cases, s.trucks, s.plan ?? null);
 
 const truckFinder = trucks => id =>

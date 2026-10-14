@@ -16,7 +16,7 @@ import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
 import { createView3d } from '../ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom, getScrollMode, setScrollMode, nextScrollMode, SCROLL_LABELS, SCROLL_SHORT } from '../ui/zoom2d.js';
-import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, repointTruck, distributionNotices } from './core.js';
+import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, bestandOf, repointTruck, distributionNotices } from './core.js';
 import { lkwsOf, isMultiLkw, addLkw, updateLkw, removeLkw, moveToLkw } from '../model/lkw.js';
 import { mountLkwTabs, lkwTabsModel } from '../ui/lkw-tabs.js';
 import { openLkwEditor } from '../ui/lkw-editor.js';
@@ -65,7 +65,7 @@ export function mountPlanView(deps) {
   // --- Reiterleiste und LKW-Dialog ---
   async function addLkwFlow() {
     const s = store.get();
-    const res = await openLkwEditor($('#dlg-lkw'), null, { trucks: s.trucks, defaultTruckId: ctx(s).truck.id });
+    const res = await openLkwEditor($('#dlg-lkw'), null, { trucks: bestandOf(s).trucks, defaultTruckId: ctx(s).truck.id });
     if (res?.action !== 'save') return;
     const before = new Set(lkwsOf(store.get().plan).map(l => l.id));
     editWhole(p => addLkw(p, res.value, uid));
@@ -78,7 +78,7 @@ export function mountPlanView(deps) {
     if (!id) return;
     const lkw = lkwsOf(s.plan).find(l => l.id === id);
     const res = await openLkwEditor($('#dlg-lkw'), lkw, {
-      trucks: s.trucks, isLast: lkwsOf(s.plan).length === 1,
+      trucks: bestandOf(s).trucks, isLast: lkwsOf(s.plan).length === 1,
       pieces: piecesOf(s.plan).filter(x => x.lkw === id).length,
     });
     if (!res) return;
@@ -99,11 +99,15 @@ export function mountPlanView(deps) {
     $('#lkw-none-hint').hidden = !none;
     // Im Reiter „Ohne LKW“ gibt es kein Fahrzeug und keine Platzierung: diese Knöpfe ruhen.
     for (const id of ['truck-select', 'truck-edit', 'pack-rest']) $(`#${id}`).disabled = none;
+    // Fahrzeug nur als Kopie aus der Projektdatei: erst „In meine Bibliothek übernehmen“, dann bearbeiten.
+    const kopie = !none && d.ausProjekt.trucks.has(d.truck.id);
+    if (kopie) $('#truck-edit').disabled = true;
+    $('#truck-edit').title = kopie ? 'Aus der Projektdatei – erst in die Bibliothek übernehmen' : '';
   });
 
   // --- Seitenleiste und 2D-Ansichten ---
   const library = mountLibrary($('#library'), {
-    onEdit: id => editCase(id),
+    onEdit: id => { if (ctx().ausProjekt.cases.has(id)) return; editCase(id); }, // Kopie: erst übernehmen
     onAddLoad: () => runLoadWizard('add'),
     onTrayRemove: id => {
       edit(p => A.removeUnplaced(p, id));
@@ -381,6 +385,7 @@ export function mountPlanView(deps) {
   $('#truck-select').onchange = e => editWhole(p => withTruck(p, e.target.value));
 
   async function editTruck(truck) {
+    if (truck && ctx().ausProjekt.trucks.has(truck.id)) return;
     const s0 = store.get();
     const res = await openTruckEditor($('#dlg-truck'), truck, { usedIn: truck ? truckUsage(s0, truck.id) : 0 });
     if (!res) return;

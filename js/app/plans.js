@@ -7,7 +7,7 @@ import { ruleTargets } from '../model/packRules.js';
 import { openLoadWizard } from '../ui/load-wizard.js';
 import { NAME_MAX } from '../model/limits.js';
 import { guarded } from './guarded.js';
-import { piecesOf, activeLkwOf } from './core.js';
+import { piecesOf, activeLkwOf, wizardTruckId } from './core.js';
 import { isMultiLkw } from '../model/lkw.js';
 
 export const MULTI_ADDED_NOTICE = 'Das neue Material ist noch keinem LKW zugeordnet. „Alles neu packen“ verteilt es auf die LKW.';
@@ -81,7 +81,7 @@ export function wirePlans(deps) {
       cases: s.cases,
       getCollections: () => store.get().collections,
       trucks: s.trucks,
-      defaultTruckId: s.plan ? ctx().truck.id : DEFAULT_TRUCK_ID,
+      defaultTruckId: s.plan ? wizardTruckId(s.trucks, ctx().truck.id) : DEFAULT_TRUCK_ID,
       defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
       onNewCase: newCaseForWizard,
       onOpenMaterial: openMaterialFromWizard,

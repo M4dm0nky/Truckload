@@ -430,3 +430,10 @@ test('planZumSpeichern: ein nicht offener Plan behält seine eigene Kopie als Qu
     sync.change(s1); assert.deepEqual(saved, ['b']); // vorher nachgezogen
   });
 }
+
+import { wizardTruckId } from '../js/app/core.js';
+import { DEFAULT_TRUCK_ID as DEF_TRUCK } from '../js/data/preset-trucks.js';
+test('wizardTruckId: Bibliotheksfahrzeug bleibt, Kopie aus der Projektdatei fällt aufs Standardfahrzeug', () => {
+  assert.equal(wizardTruckId([{ id: 'a' }, { id: 'b' }], 'b'), 'b');
+  assert.equal(wizardTruckId([{ id: 'a' }], 'nur-kopie'), DEF_TRUCK);
+});
