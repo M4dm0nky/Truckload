@@ -11,7 +11,7 @@ const { createStore } = await import('../js/store/state.js');
 const { stamp } = await import('../js/model/stamp.js');
 
 function memoryHost(seed = {}) {
-  const data = { cases: [], collections: [], trucks: [], plans: [], ruleSets: [], ...seed };
+  const data = { cases: [], collections: [], trucks: [], plans: [], ruleSets: [], projectRuleSets: [], ...seed };
   const put = (s, v) => { data[s] = [...data[s].filter(x => x.id !== v.id), structuredClone(v)]; };
   return {
     data,

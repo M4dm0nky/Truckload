@@ -198,22 +198,29 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     return plan.meta;
   });
 
-  async function saveRuleSet(name, rules, mixTop) {
-    const existing = store.get().ruleSets.find(r => r.name.toLowerCase() === name.toLowerCase());
+  const ORT = {
+    projekt: { key: 'projectRuleSets', save: rs => repo.saveProjectRuleSet(rs), del: id => repo.deleteProjectRuleSet(id) },
+    bibliothek: { key: 'ruleSets', save: rs => repo.saveRuleSet(rs), del: id => repo.deleteRuleSet(id) },
+  };
+
+  async function saveRuleSet(name, rules, mixTop, ort = 'bibliothek') {
+    const o = ORT[ort] ?? ORT.bibliothek;
+    const existing = (store.get()[o.key] ?? []).find(r => r.name.toLowerCase() === name.toLowerCase());
     if (existing && !await showConfirm(`Regelset „${existing.name}“ überschreiben?`, { okLabel: 'Überschreiben', danger: true })) return undefined;
     const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
-    const r = await run('Regelset konnte nicht gespeichert werden', () => repo.saveRuleSet(value));
+    const r = await run('Regelset konnte nicht gespeichert werden', () => o.save(value));
     if (!r.ok) return undefined;
-    store.update(s => ({ ...s, ruleSets: [...s.ruleSets.filter(x => x.id !== value.id), value] }));
+    store.update(s => ({ ...s, [o.key]: [...(s[o.key] ?? []).filter(x => x.id !== value.id), value] }));
     return value;
   }
 
-  async function deleteRuleSet(id) {
-    const set = store.get().ruleSets.find(x => x.id === id);
+  async function deleteRuleSet(id, ort = 'bibliothek') {
+    const o = ORT[ort] ?? ORT.bibliothek;
+    const set = (store.get()[o.key] ?? []).find(x => x.id === id);
     if (set && !await showConfirm(`Regelset „${set.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return false;
-    const r = await run('Regelset konnte nicht gelöscht werden', () => repo.deleteRuleSet(id));
+    const r = await run('Regelset konnte nicht gelöscht werden', () => o.del(id));
     if (!r.ok) return false;
-    store.update(s => ({ ...s, ruleSets: s.ruleSets.filter(x => x.id !== id) }));
+    store.update(s => ({ ...s, [o.key]: (s[o.key] ?? []).filter(x => x.id !== id) }));
     return true;
   }
 

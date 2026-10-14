@@ -7,10 +7,11 @@ import * as hostDb from './hostDb.js';
 const host = () => globalThis.truckloadHost;
 
 const DB_NAME = 'truckload';
-// Version 2 ergänzt den Store ruleSets, Version 3 den Store collections (Sammlungen).
+// Version 2 ergänzt den Store ruleSets, Version 3 den Store collections (Sammlungen),
+// Version 4 den Store projectRuleSets (Regelsets im Projekt).
 // onupgradeneeded legt nur fehlende Stores an, vorhandene Daten bleiben.
-const DB_VERSION = 3;
-const STORES = ['cases', 'collections', 'trucks', 'plans', 'ruleSets'];
+const DB_VERSION = 4;
+const STORES = ['cases', 'collections', 'trucks', 'plans', 'ruleSets', 'projectRuleSets'];
 let dbPromise;
 
 // Ein VERSION-Bump blockiert, solange ein anderes Fenster/Tab noch eine ältere Verbindung offen
