@@ -244,3 +244,39 @@ test('loadAll: projectRuleSets werden geladen, Altwert von updatedAt bereinigt',
   assert.deepEqual(d.projectRuleSets, [{ id: 'pr1', name: 'Tour', rules: [] }]);
   assert.deepEqual(host.data.projectRuleSets, [{ id: 'pr1', name: 'Tour', rules: [] }], 'zurückgeschrieben');
 });
+
+// --- Issue #10: Dubletten und Schleifen nach dem Zusammenführen ---
+
+const base = () => repo.loadAllFallback().collections;
+const merge = (local, file) => repo.mergeImportedBundle(
+  { cases: [], trucks: [], plans: [], plan: null, collections: base().concat(local) },
+  { cases: [], trucks: [], plans: [], collections: file });
+
+test('mergeImportedBundle: gleichnamige Sammlung aus der Datei (andere ID) wird umbenannt und gemeldet', () => {
+  const local = [{ id: 'l1', name: 'Robe' }];
+  const r = merge(local, [{ id: 'f1', name: 'robe', updatedAt: '2026-02-01T00:00:00.000Z' }]);
+  assert.equal(r.collections.find(c => c.id === 'l1').name, 'Robe');
+  assert.equal(r.collections.find(c => c.id === 'f1').name, 'robe (2)');
+  assert.deepEqual(r.winners.collections.map(c => c.name), ['robe (2)']);
+  assert.equal(r.repairs.length, 1);
+  assert.match(r.repairs[0], /umbenannt/);
+});
+test('mergeImportedBundle: dieselbe ID mit gleichem Namen ist keine Dublette', () => {
+  const r = merge([{ id: 'l1', name: 'Robe', updatedAt: '2026-01-01T00:00:00.000Z' }], [{ id: 'l1', name: 'Robe', updatedAt: '2026-02-01T00:00:00.000Z' }]);
+  assert.equal(r.collections.find(c => c.id === 'l1').name, 'Robe');
+  assert.deepEqual(r.repairs, []);
+});
+test('mergeImportedBundle: Schleife durch Mischen wird an der importierten Sammlung aufgelöst', () => {
+  const local = [{ id: 'a', name: 'A', parentId: 'b' }, { id: 'b', name: 'B', updatedAt: '2026-01-01T00:00:00.000Z' }];
+  const r = merge(local, [{ id: 'b', name: 'B', parentId: 'a', updatedAt: '2026-02-01T00:00:00.000Z' }]);
+  assert.equal(r.collections.find(c => c.id === 'a').parentId, 'b');
+  assert.equal(r.collections.find(c => c.id === 'b').parentId, undefined);
+  assert.equal(r.repairs.length, 1);
+  assert.match(r.repairs[0], /Schleife/);
+});
+test('mergeImportedBundle: Verlierer wird nicht umbenannt und nicht gemeldet', () => {
+  const local = [{ id: 'l1', name: 'Robe' }, { id: 'f1', name: 'Alt', updatedAt: '2026-05-01T00:00:00.000Z' }];
+  const r = merge(local, [{ id: 'f1', name: 'robe', updatedAt: '2026-01-01T00:00:00.000Z' }]);
+  assert.equal(r.collections.find(c => c.id === 'f1').name, 'Alt');
+  assert.deepEqual(r.repairs, []);
+});

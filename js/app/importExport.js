@@ -3,8 +3,41 @@
 import { allPlansOf, planZumSpeichern } from './core.js';
 import { downloadJSON } from './download.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from '../store/io.js';
+import { CASE_LIMITS } from '../model/limits.js';
 
 const $ = sel => document.querySelector(sel);
+
+// „120 60 80“, „120 × 60 × 80“ oder „120,5 x 60 x 80“ -> { l, w, h } in cm; sonst null. Die Grenzen
+// prüft parseBundle (dimsOk), hier geht es nur um die Eingabeform.
+export function parseDimsInput(text) {
+  const parts = String(text ?? '').trim().split(/\s*[x×*]\s*|\s+/).filter(Boolean);
+  if (parts.length !== 3) return null;
+  const n = parts.map(p => Number(p.replace(',', '.')));
+  return n.every(v => Number.isFinite(v)) ? { l: n[0], w: n[1], h: n[2] } : null;
+}
+
+// Fragt je Case ohne gültige Maße nach Länge × Breite × Höhe (cm). Abbrechen lässt das Case aus.
+// Eine ungültige Eingabe wird erneut erfragt; geprüft wird über parseBundle selbst (gleiche Grenzen).
+async function askMissingDims(text, bundle, showPrompt) {
+  const dims = {};
+  let current = bundle;
+  const asked = new Set();
+  for (;;) {
+    const next = current.incomplete.find(x => !asked.has(x.id));
+    if (!next) return { bundle: current, dims };
+    let msg = `Case „${next.name}“ hat keine gültigen Maße. Länge × Breite × Höhe in cm eintragen (z. B. 120 × 60 × 80) oder Abbrechen, um es auszulassen.`;
+    for (;;) {
+      const answer = await showPrompt(msg, '');
+      if (answer === null) { asked.add(next.id); break; }
+      const d = parseDimsInput(answer);
+      if (d) {
+        const trial = parseBundle(text, { dims: { ...dims, [next.id]: d } });
+        if (!trial.incomplete.some(x => x.id === next.id)) { dims[next.id] = d; current = trial; asked.add(next.id); break; }
+      }
+      msg = `Das waren keine gültigen Maße für „${next.name}“. Länge × Breite × Höhe in cm, jeweils größer als 0 und höchstens ${CASE_LIMITS.l} (z. B. 120 × 60 × 80), oder Abbrechen zum Auslassen.`;
+    }
+  }
+}
 
 // Warntexte für Verweise, die auch NACH dem Zusammenführen ins Leere zeigen. parseBundle kennt nur
 // die Datei (plus Vorlagen), nicht die eigenen lokalen Cases/Fahrzeuge; deshalb filtert diese
@@ -49,7 +82,7 @@ export function importWarnings(unknownRefs, { cases, trucks }) {
 // deps: store, autosave, repo (mergeImportedBundle, saveImportWinners), showAlert, showConfirm, enqueue.
 // `enqueue`: die Schreib-Warteschlange der Speicherpfade (persistence.enqueue); der Import läuft als
 // ein Schritt darin und kann so nicht mit writeCases-Vorgängen verschränken.
-export function wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue = fn => fn(), bestandsSync = { halte() {}, ende() {} } }) {
+export function wireImportExport({ store, autosave, repo, showAlert, showConfirm, showPrompt = null, enqueue = fn => fn(), bestandsSync = { halte() {}, ende() {} } }) {
   $('#export').onclick = () => {
     const s = store.get();
     const plans = allPlansOf(s);
@@ -64,8 +97,14 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
     e.target.value = '';
     if (!file) return;
     let bundle;
+    let skipped = [];
     try {
-      bundle = parseBundle(await file.text());
+      const text = await file.text();
+      // Mit `dims` lehnt parseBundle ein Case ohne gültige Maße nicht ab, sondern meldet es; die
+      // Maße kann der Nutzer ergänzen. Ohne Dialog-Rückruf bleibt der Import strikt.
+      bundle = parseBundle(text, showPrompt ? { dims: {} } : undefined);
+      if (bundle.incomplete.length > 0) bundle = (await askMissingDims(text, bundle, showPrompt)).bundle;
+      skipped = bundle.incomplete;
     } catch (err) {
       await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
       return;
@@ -140,7 +179,9 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
 
     if (merge.planChanged) store.resetHistory();
     // Reparaturen an Altwerten werden gemeldet, damit der Nutzer sieht, was angepasst wurde.
-    const repairNote = bundle.repairs.length ? `\n\nBeim Import angepasst:\n– ${capList(bundle.repairs).join('\n– ')}` : '';
+    const skippedNote = skipped.map(x => `Case „${x.name}“ ohne gültige Maße – nicht importiert.`);
+    const allRepairs = [...bundle.repairs, ...(merge.repairs ?? []), ...skippedNote];
+    const repairNote = allRepairs.length ? `\n\nBeim Import angepasst:\n– ${capList(allRepairs).join('\n– ')}` : '';
     // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
     const warnings = capList(warningsForWinners(bundle, merge.winners, store.get()));
     const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';

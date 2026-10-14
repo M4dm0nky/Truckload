@@ -2,6 +2,20 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.17.2 – 2026-10-14
+
+**Import: fehlende Maße nachfragen, Sammlungen beim Mischen bereinigen** (Issue #10).
+
+- **Case ohne gültige Maße:** Fehlen einem Case in einer Sicherung nur Länge, Breite oder Höhe,
+  scheitert der Import nicht mehr. Truckload fragt je Case nach den Maßen (cm) oder lässt es auf
+  Wunsch aus; ausgelassene Cases stehen mit Namen in der Meldung. Es wird nichts geraten.
+- **Sammlungen beim Mischen:** Trägt eine importierte Sammlung denselben Namen wie eine lokale
+  (andere ID), wird sie umbenannt („Name (2)“). Bildet die Oberebene mit dem lokalen Bestand eine
+  Schleife, kommt sie auf die oberste Ebene. Lokale Sammlungen bleiben unberührt; beides steht in
+  der Import-Meldung.
+- **Unverändert:** Die Tiefe von höchstens 4 Ebenen gilt weiter nur in der Oberfläche.
+- Kein neues Datenmodell, kein neuer Store, Formatversion der Sicherung bleibt 1.
+
 ## V 0.17.1 – 2026-10-14
 
 **Ein Ladeplan nimmt seine Cases und Fahrzeuge mit.**
