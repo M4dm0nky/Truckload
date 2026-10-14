@@ -956,3 +956,37 @@ test('parseBundle: unknownRefs trägt die IDs der Kopie des Plans mit', () => {
   const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
   assert.deepEqual(res.unknownRefs[0].kopieCases, ['geist-case-123']);
 });
+
+// --- Issue #10: Case ohne gültige Maße nachfragen statt den Import abzulehnen ---
+
+test('parseBundle mit dims: Case ohne Maß wird gesammelt statt abgelehnt, der Rest lädt', () => {
+  const kaputt = { ...own, id: 'kaputt', name: 'Kaputt', l: null };
+  const res = parseBundle(bundleWith({ cases: [own, kaputt], trucks: [], plans: [] }), { dims: {} });
+  assert.deepEqual(res.cases.map(c => c.id), ['own']);
+  assert.deepEqual(res.incomplete.map(x => [x.id, x.name]), [['kaputt', 'Kaputt']]);
+});
+test('parseBundle mit dims: ergänzte Maße machen das Case vollständig, ohne weitere Änderung', () => {
+  const kaputt = { ...own, id: 'kaputt', name: 'Kaputt', l: null, w: 0, h: CASE_LIMITS.h + 1 };
+  const res = parseBundle(bundleWith({ cases: [kaputt], trucks: [], plans: [] }), { dims: { kaputt: { l: 120, w: 60, h: 80 } } });
+  assert.deepEqual(res.incomplete, []);
+  assert.deepEqual([res.cases[0].l, res.cases[0].w, res.cases[0].h], [120, 60, 80]);
+  assert.equal(res.cases[0].name, 'Kaputt');
+});
+test('parseBundle mit dims: ungültig ergänzte Maße gelten weiter als unvollständig', () => {
+  const kaputt = { ...own, id: 'kaputt', l: null };
+  const res = parseBundle(bundleWith({ cases: [own, kaputt], trucks: [], plans: [] }), { dims: { kaputt: { l: -5, w: 60, h: 80 } } });
+  assert.deepEqual(res.incomplete.map(x => x.id), ['kaputt']);
+  assert.deepEqual(res.cases.map(c => c.id), ['own']);
+});
+test('parseBundle mit dims: andere Fehler (Gewicht) lehnen weiter ab', () => {
+  const bad = { ...own, id: 'x', l: null, weight: -1 };
+  assert.throws(() => parseBundle(bundleWith({ cases: [bad], trucks: [], plans: [] }), { dims: {} }), /Gewicht/);
+});
+test('parseBundle ohne dims: Verhalten unverändert, ungültige Maße lehnen ab', () => {
+  assert.throws(() => parseBundle(bundleWith({ cases: [{ ...own, l: null }], trucks: [], plans: [] })), /ungültige Maße/);
+});
+test('parseBundle mit dims: nur unvollständige Cases ist keine leere Datei', () => {
+  const res = parseBundle(bundleWith({ cases: [{ ...own, l: null }], trucks: [], plans: [] }), { dims: {} });
+  assert.equal(res.incomplete.length, 1);
+  assert.deepEqual(res.cases, []);
+});

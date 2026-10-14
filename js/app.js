@@ -167,7 +167,7 @@ attachKeyboard({
 });
 
 wirePrint({ store, derive });
-wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue: persistence.enqueue, bestandsSync });
+wireImportExport({ store, autosave, repo, showAlert, showConfirm, showPrompt, enqueue: persistence.enqueue, bestandsSync });
 
 showVersion();
 showStorageError(storageError);

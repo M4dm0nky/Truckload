@@ -5,6 +5,7 @@ import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { normalizeCase, mergeById, dropStrayLegacy } from './io.js';
 import { stamp } from '../model/stamp.js';
 import { composeRecords, withBuiltins, recordsAfterChanges, MEINE_ID, MEINE_NAME, STANDARD_ID } from '../model/collections.js';
+import { MAX_FIRM } from '../model/limits.js';
 
 // Reicht die db.js-Rückrufe weiter: die App-Schicht importiert db.js nicht selbst, sondern nur
 // repo.js.
@@ -125,6 +126,54 @@ export function loadAllFallback() {
   };
 }
 
+// Nach dem Mischen kann eine importierte Sammlung denselben Namen wie eine lokale mit anderer ID
+// tragen, und zusammengemischte Oberebenen können eine Schleife bilden (parseBundle prüft beides nur
+// innerhalb der Datei). Repariert wird nur, was aus der Datei kommt UND gewonnen hat; lokale
+// Sammlungen bleiben unberührt (eigene Entscheidung: der Import ändert nichts am Bestand). Gibt die
+// Liste der Datei zurück (unveränderte Einträge als dieselben Objekte, damit die Gewinnerprüfung
+// per Identität weiter greift) und die Meldungen.
+export function repairImportedCollections(local, incoming) {
+  const merged = mergeById(local, incoming);
+  const won = new Set(incoming.filter(x => merged.find(m => m.id === x.id) === x));
+  const taken = new Set([STANDARD_ID, MEINE_NAME.toLowerCase(), ...merged.filter(m => !won.has(m)).map(m => m.name.toLowerCase())]);
+  let renamed = 0;
+  let loops = 0;
+  const fixed = new Map();
+  const unique = name => {
+    const base = name.trim();
+    if (!taken.has(base.toLowerCase())) { taken.add(base.toLowerCase()); return base; }
+    renamed++;
+    for (let n = 2; ; n++) {
+      const suffix = ` (${n})`;
+      const cand = base.slice(0, MAX_FIRM - suffix.length).trimEnd() + suffix;
+      if (!taken.has(cand.toLowerCase())) { taken.add(cand.toLowerCase()); return cand; }
+    }
+  };
+  for (const x of incoming) {
+    if (won.has(x) && typeof x.name === 'string') {
+      const name = unique(x.name);
+      if (name !== x.name) fixed.set(x, { ...x, name });
+    }
+  }
+  const current = new Map(merged.map(m => [m.id, fixed.get(m) ?? m]));
+  for (const x of incoming) {
+    if (!won.has(x)) continue;
+    let p = current.get(x.id)?.parentId;
+    const seen = new Set([x.id]);
+    while (p !== undefined && !seen.has(p)) { seen.add(p); p = current.get(p)?.parentId; }
+    if (p !== undefined) {
+      const { parentId: _p, ...rest } = fixed.get(x) ?? x;
+      fixed.set(x, rest);
+      current.set(x.id, rest);
+      loops++;
+    }
+  }
+  const repairs = [];
+  if (renamed > 0) repairs.push(`${renamed} Sammlung${renamed === 1 ? '' : 'en'}: Name gab es lokal schon – umbenannt.`);
+  if (loops > 0) repairs.push(`${loops} Sammlung${loops === 1 ? '' : 'en'}: Oberebene bildete mit dem lokalen Bestand eine Schleife – auf die oberste Ebene gesetzt.`);
+  return { incoming: incoming.map(x => fixed.get(x) ?? x), repairs };
+}
+
 // Rechnet das Ergebnis eines Datei-Imports rein aus dem übergebenen Zustand aus, ohne
 // Seiteneffekte. Der Aufrufer (js/app/importExport.js) ruft das synchron innerhalb von
 // store.update() auf, damit zwischen Lesen und Schreiben keine await-Grenze liegt: der Stand, mit
@@ -144,7 +193,9 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
   const bundleCases = bundle.cases.map(c => (c.collectionId === undefined && localHome.has(c.id) ? { ...c, collectionId: localHome.get(c.id) } : c));
   const mergedCases = mergeById(cases, bundleCases);
   // withBuiltins baut neue Objekte; für die Gewinnerprüfung (Identität) zählt das Mischergebnis davor.
-  const rawCollections = mergeById(collections.filter(c => !c.readOnly && c.id !== MEINE_ID), bundle.collections ?? []);
+  const localCollections = collections.filter(c => !c.readOnly && c.id !== MEINE_ID);
+  const { incoming: bundleCollections, repairs } = repairImportedCollections(localCollections, bundle.collections ?? []);
+  const rawCollections = mergeById(localCollections, bundleCollections);
   const mergedCollections = withBuiltins(rawCollections);
   const mergedTrucks = mergeById(trucks, bundle.trucks);
   const mergedPlans = mergeById(plan ? [plan, ...plans] : plans, bundle.plans);
@@ -160,6 +211,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
     plans: nextPlan ? mergedPlans.filter(p => p.id !== nextPlan.id) : mergedPlans,
     plan: nextPlan,
     planChanged: nextPlan !== plan,
+    repairs,
     ruleSets: mergedRuleSets,
     projectRuleSets: mergedProjectRuleSets,
     // Nur die Datensätze, die aus der Datei kommen UND gewonnen haben, müssen nach
@@ -167,7 +219,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
     // weil der lokale Stand gewonnen hat).
     winners: {
       cases: bundleCases.filter(x => mergedCases.find(m => m.id === x.id) === x),
-      collections: (bundle.collections ?? []).filter(x => rawCollections.find(m => m.id === x.id) === x),
+      collections: bundleCollections.filter(x => rawCollections.find(m => m.id === x.id) === x),
       trucks: bundle.trucks.filter(x => mergedTrucks.find(m => m.id === x.id) === x),
       plans: bundle.plans.filter(x => mergedPlans.find(m => m.id === x.id) === x),
       ruleSets: (bundle.ruleSets ?? []).filter(x => mergedRuleSets.find(m => m.id === x.id) === x),

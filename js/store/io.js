@@ -234,7 +234,15 @@ function repairWheelH(c) {
   return { ...c, wheelH: 0, wheels: false };
 }
 
-export function parseBundle(text) {
+// Die Maße l/w/h eines Cases sind gültig, wenn alle drei Zahlen im Bereich von CASE_LIMITS liegen.
+const dimsOk = c => ['l', 'w', 'h'].every(k => num(c[k]) && c[k] > 0 && c[k] <= CASE_LIMITS[k]);
+
+// `dims` (optional): { [caseId]: { l, w, h } } mit vom Nutzer ergänzten Maßen. Ist es angegeben (auch
+// leer), lehnt parseBundle ein Case, dem NUR gültige Maße fehlen, nicht mehr ab: ohne gültige
+// ergänzte Maße kommt es in `incomplete` ([{ id, name }]) und fehlt in `cases`; alles andere
+// (Gewicht, Farbe, Traversenwerte …) lehnt weiter ab. Ohne `dims` bleibt das Verhalten strikt.
+// Traversenwagen leiten ihre Maße aus `truss` ab und werden hier nicht nachgefragt.
+export function parseBundle(text, { dims } = {}) {
   let data;
   try { data = JSON.parse(text); } catch { throw new Error('Die Datei ist kein gültiges JSON.'); }
   if (data?.format !== FORMAT) throw new Error('Keine Truckload-Datei.');
@@ -244,7 +252,19 @@ export function parseBundle(text) {
     if (data[field] !== undefined && !Array.isArray(data[field]))
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
-  const rawCases = arr(data.cases).filter(c => !isPreset(c));
+  const incomplete = [];
+  const rawCases = arr(data.cases).filter(c => !isPreset(c)).flatMap(c => {
+    const named = c && typeof c === 'object' && typeof c.id === 'string' && typeof c.name === 'string';
+    if (dims === undefined || !named || isTruss(c) || dimsOk(c)) return [c];
+    const given = dims[c.id];
+    const filled = given && typeof given === 'object' ? { ...c, l: given.l, w: given.w, h: given.h } : null;
+    if (filled && dimsOk(filled)) return [filled];
+    // Alles außer den Maßen wird trotzdem geprüft (mit Platzhaltermaßen), damit ein Fehler dort nicht
+    // erst nach dem Ergänzen auffällt.
+    checkCase({ ...c, l: 1, w: 1, h: CASE_LIMITS.h });
+    incomplete.push({ id: c.id, name: c.name });
+    return [];
+  });
   const rawTrucks = arr(data.trucks).filter(t => !isPreset(t));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
@@ -254,7 +274,7 @@ export function parseBundle(text) {
   // und lehnt checkCollection ab.
   const rawCollectionsIn = arr(data.collections).filter(m => m?.id !== 'standard' && m?.id !== 'meine'
     && !m?.builtin && !m?.readOnly && !(typeof m?.id === 'string' && m.id.startsWith('preset-')));
-  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && projectRuleSets.length === 0 && rawCollectionsIn.length === 0)
+  if (rawCases.length === 0 && incomplete.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && projectRuleSets.length === 0 && rawCollectionsIn.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
 
   // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
@@ -451,7 +471,7 @@ export function parseBundle(text) {
   nameNote(nameRepairs.case, 'Case', 'Cases');
   nameNote(nameRepairs.truck, 'Fahrzeug', 'Fahrzeuge');
 
-  return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, projectRuleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
+  return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, projectRuleSets, unknownRefs, repairs, incomplete, overLimit: cases.flatMap(overLimit) };
 }
 
 // Ein lokaler mitgelieferter Eintrag (`builtin: true`) verliert immer: Mitgeliefertes kommt nie

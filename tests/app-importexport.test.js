@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { importWarnings, limitWarnings, capList, warningsForWinners, wireImportExport } from '../js/app/importExport.js';
+import { importWarnings, limitWarnings, capList, warningsForWinners, wireImportExport, parseDimsInput } from '../js/app/importExport.js';
 import { mkCase, mkTruck } from './fixtures.js';
 import { createBestandsSync } from '../js/app/core.js';
 
@@ -150,4 +150,64 @@ test('Import: wirft autosave.include, läuft bestandsSync.ende trotzdem', async 
   } finally {
     globalThis.document = realDoc; URL.createObjectURL = realCreate;
   }
+});
+
+// --- Issue #10: fehlende Maße beim Import nachfragen ---
+
+test('parseDimsInput: drei Zahlen mit ×, x, * oder Leerzeichen, Komma erlaubt; sonst null', () => {
+  assert.deepEqual(parseDimsInput('120 × 60 × 80'), { l: 120, w: 60, h: 80 });
+  assert.deepEqual(parseDimsInput('120,5x60 x80'), { l: 120.5, w: 60, h: 80 });
+  assert.deepEqual(parseDimsInput('120 60 80'), { l: 120, w: 60, h: 80 });
+  assert.equal(parseDimsInput('120 60'), null);
+  assert.equal(parseDimsInput('a b c'), null);
+  assert.equal(parseDimsInput(''), null);
+});
+
+async function dimsLauf(answers, bundleCases) {
+  const handlers = {};
+  const realDoc = globalThis.document, realCreate = URL.createObjectURL;
+  globalThis.document = { querySelector: sel => (handlers[sel] ??= {}), createElement: () => ({ click() {} }) };
+  URL.createObjectURL = () => 'blob:x';
+  try {
+    let s = { cases: [], trucks: [mkTruck({ id: 't' })], plans: [], plan: null, ruleSets: [], collections: [] };
+    const store = { get: () => s, update(fn) { s = fn(s); }, resetHistory() {} };
+    let seen = null;
+    const repo = {
+      mergeImportedBundle: (cur, b) => { seen = b; return { ...cur, planChanged: false, winners: { cases: [], trucks: [], plans: [], ruleSets: [], collections: [] } }; },
+      saveImportWinners: async () => {},
+    };
+    const prompts = [], alerts = [];
+    const queue = [...answers];
+    wireImportExport({
+      store, autosave: { exclude() {}, include() {} }, repo, showConfirm: async () => false,
+      showAlert: async m => { alerts.push(m); },
+      showPrompt: async m => { prompts.push(m); return queue.shift() ?? null; },
+      bestandsSync: { halte() {}, ende() {} },
+    });
+    const bundle = JSON.stringify({ format: 'truckload', version: 1, cases: bundleCases });
+    await handlers['#import'].onchange({ target: { files: [{ text: async () => bundle }], value: '' } });
+    return { seen, prompts, alerts };
+  } finally {
+    globalThis.document = realDoc; URL.createObjectURL = realCreate;
+  }
+}
+const ok = { id: 'ok', name: 'Ganz', l: 10, w: 10, h: 10, weight: 1 };
+const kaputt = { id: 'k', name: 'Kaputt', l: 10, w: 10, weight: 1 };
+
+test('Import: Case ohne Maß – Nutzer ergänzt, Case kommt mit den eingegebenen Maßen', async () => {
+  const r = await dimsLauf(['100 × 50 × 40'], [ok, kaputt]);
+  assert.equal(r.prompts.length, 1);
+  assert.match(r.prompts[0], /Kaputt/);
+  const k = r.seen.cases.find(c => c.id === 'k');
+  assert.deepEqual([k.l, k.w, k.h], [100, 50, 40]);
+});
+test('Import: ungültige Eingabe wird erneut erfragt', async () => {
+  const r = await dimsLauf(['abc', '0 0 0', '100 50 40'], [kaputt]);
+  assert.equal(r.prompts.length, 3);
+  assert.ok(r.seen.cases.some(c => c.id === 'k'));
+});
+test('Import: Abbrechen lässt das Case aus und nennt es in der Meldung, der Rest lädt', async () => {
+  const r = await dimsLauf([], [ok, kaputt]);
+  assert.deepEqual(r.seen.cases.map(c => c.id), ['ok']);
+  assert.match(r.alerts.at(-1), /Case „Kaputt“ ohne gültige Maße – nicht importiert/);
 });

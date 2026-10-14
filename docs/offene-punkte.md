@@ -61,20 +61,18 @@ offengelegt, aber für kleine Cases zu konservativ.
   Wizard-Filter „Standardkatalog“ (Cases ohne `company`) und nicht mehr unter seiner Marke.
   Eigene Entscheidung: nicht geraten oder aus dem Namen abgeleitet; der Nutzer kann es per
   „Verschieben“ in eine Sammlung gleichen Namens zurücklegen.
-- **Import mit Sammlungen kann gleichnamige Sammlungen und Oberebenen-Schleifen erzeugen.**
-  Beim Zusammenführen einer Sicherung mit dem lokalen Bestand wird nach `id` gemischt;
-  `parseBundle` repariert Namen und Schleifen nur innerhalb der Datei. Eine importierte Sammlung
-  kann daher denselben Namen wie eine lokale (andere `id`) tragen, und zusammengemischte
-  Oberebenen können eine Schleife bilden. `collectionRows` und `depthOf` vertragen beides
-  (eine Schleife bricht ab, doppelte Namen werden einfach beide angezeigt), `MAX_DEPTH` wird
-  beim Import ebenfalls nicht erzwungen. Eigene Entscheidung: Import überschreibt nichts
-  stillschweigend; aufgeräumt wird per „Umbenennen“/„Verschieben“.
 - **`MAX_DEPTH` (4) gilt nur in der Oberfläche.** Beim Import einer Sicherung prüft `parseBundle`
   Schleifen und unbekannte Oberebenen, nicht die Tiefe; eine tiefere Kette aus fremden Dateien
-  lädt und lässt sich nur nicht weiter verschachteln.
+  lädt und lässt sich nur nicht weiter verschachteln. Bewusst so belassen (Entscheidung des
+  Nutzers zu #10, 0.17.2).
 - **Verschachteltes `null` in gespeicherten Datensätzen wird nicht bereinigt.** `cleanCases`
   filtert nur null-Cases und ein fehlerhaftes `updatedAt` am Case; ein `null` tiefer im Datensatz
-  (etwa in `cases[].…`) bleibt stehen.
+  (etwa in `cases[].…`) bleibt stehen. Für **importierte Dateien** gilt seit 0.17.2: fehlen einem
+  Case nur die Maße (`l`/`w`/`h`), fragt der Import nach; das gilt nicht für das, was schon in
+  IndexedDB liegt, und nicht für die Kopie im Plan (`mitgefuehrt`), die weiter ablehnt.
+- **Beim Import nachgefragte Maße gelten nur für Cases der Sicherung.** Traversenwagen leiten
+  ihre Maße aus `truss` ab und werden nicht nachgefragt; Sammlungsdateien (`parseCollectionFile`)
+  lehnen ein Case ohne Maße weiter ab.
 - **Dateiauswahl „Sammlung importieren“:** sehr alte Browser lösen das `cancel`-Ereignis des
   Dateiauswählers nicht aus; ein Abbruch hält dort den Import-Knopf bis zum nächsten Klick
   (er teilt sich die laufende Promise).
