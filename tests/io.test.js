@@ -949,3 +949,10 @@ test('Beschädigtes Feld projectRuleSets wird abgelehnt', () => {
   const text = JSON.stringify({ ...JSON.parse(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()] })), projectRuleSets: 'x' });
   assert.throws(() => parseBundle(text), /Projekt-Regelsets/);
 });
+
+test('parseBundle: unknownRefs trägt die IDs der Kopie des Plans mit', () => {
+  const p = { ...plan([P('pl1', 'geist-case-123', 0, 0, 0)]),
+    mitgefuehrt: { version: 1, cases: [mkCase('geist-case-123', 10, 10, 10, {})], trucks: [] } };
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
+  assert.deepEqual(res.unknownRefs[0].kopieCases, ['geist-case-123']);
+});

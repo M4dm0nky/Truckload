@@ -4,6 +4,7 @@
 import { guarded } from './guarded.js';
 import { usage, repointTruck } from './core.js';
 import { deletionFor } from '../model/material.js';
+import { ohneIds } from '../model/mitgefuehrt.js';
 import {
   resolveTarget, moveCase, collectionNameError, parentError, descendantIds, planCollectionImport,
   withBuiltins, collectionIdOf, MEINE_ID,
@@ -59,6 +60,15 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
   const saveCase = rawValue => serial(() => saveCaseNow(rawValue));
 
+  // Gelöschte Cases auch aus der mitgeführten Kopie der Pläne im Store nehmen (ohne Undo-Eintrag,
+  // `store.update` ohne history): sonst füllte bestandOf die Lücke aus dem alten Stand, das Case
+  // käme mit dem Hinweis „Aus der Projektdatei“ zurück und beim nächsten Speichern in die Datenbank.
+  const ohneKopie = (st, caseIds) => {
+    const fix = p => ohneIds(p, { cases: caseIds });
+    const plans = st.plans.map(fix);
+    return { plans: plans.some((p, i) => p !== st.plans[i]) ? plans : st.plans, ...(st.plan ? { plan: fix(st.plan) } : {}) };
+  };
+
   // `confirmed`: die Rückfrage kam schon (Editor bzw. Sammlung-löschen-Dialog).
   async function removeFromStock(c, { confirmed = false } = {}) {
     if (!c) return false;
@@ -78,7 +88,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       if (dNow.save) return !!await saveCaseNow(dNow.save);
       const r = await run('Case konnte nicht gelöscht werden', () => repo.writeCases({ removeIds: [dNow.remove], collections: store.get().collections }));
       if (!r.ok) return false;
-      store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== dNow.remove) }));
+      store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== dNow.remove), ...ohneKopie(st, [dNow.remove]) }));
       return true;
     });
   }
@@ -157,8 +167,9 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       const r = await run('Sammlung konnte nicht gelöscht werden', () => repo.writeCases({ upserts: hidden, deleteCollectionIds: [...gone], collections }));
       if (!r.ok) return false;
       const keep = new Set(hidden.map(c => c.id));
+      const removedIds = ds.filter(d => d.remove).map(d => d.remove);
       store.update(s => ({
-        ...s, collections,
+        ...s, collections, ...ohneKopie(s, removedIds),
         cases: [...s.cases.filter(x => !gone.has(collectionIdOf(x)) && !keep.has(x.id)), ...hidden],
       }));
       return true;

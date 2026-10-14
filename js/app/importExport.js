@@ -36,10 +36,11 @@ export function importWarnings(unknownRefs, { cases, trucks }) {
   const truckIds = new Set(trucks.map(t => t.id));
   const warnings = [];
   for (const r of unknownRefs) {
-    const missing = r.cases.filter(id => !caseIds.has(id)).length;
+    const kopieC = new Set(r.kopieCases ?? []);
+    const missing = r.cases.filter(id => !caseIds.has(id) && !kopieC.has(id)).length;
     if (missing > 0)
       warnings.push(`Ladeplan „${r.plan}“: ${missing} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.`);
-    if (r.truck !== null && !truckIds.has(r.truck))
+    if (r.truck !== null && !truckIds.has(r.truck) && !(r.kopieTrucks ?? []).includes(r.truck))
       warnings.push(`Ladeplan „${r.plan}“ verweist auf ein unbekanntes Fahrzeug.`);
   }
   return warnings;
@@ -116,9 +117,13 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
         // fehlschlug oder der lokale Stand gewann (planChanged === false): ein geparkter,
         // ausstehender eigener Stand wurde dann nicht mitgeschrieben und gilt weiter als
         // ausstehend. `merge` kann vor der Zuweisung undefined sein, daher das Optional-Chaining.
-        if (s0.plan) autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
-        // Erst nach include(): ein betroffener offener Plan darf wieder als ausstehend eingetragen werden.
-        bestandsSync.ende(store.get(), { erfolg: !importFailed && !!merge, gewinnerIds: (merge?.winners?.plans ?? []).map(p => p.id) });
+        // Eigenes try/finally: würfe include(), bliebe sonst die Sperre des Bestandsabgleichs an.
+        try {
+          if (s0.plan) autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
+        } finally {
+          // Erst nach include(): ein betroffener offener Plan darf wieder als ausstehend eingetragen werden.
+          bestandsSync.ende(store.get(), { erfolg: !importFailed && !!merge, gewinnerIds: (merge?.winners?.plans ?? []).map(p => p.id) });
+        }
       }
 
       return { merge, importFailed, importErr, backupName, backupText };

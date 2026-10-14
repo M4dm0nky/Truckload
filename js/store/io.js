@@ -429,7 +429,7 @@ export function parseBundle(text) {
   for (const p of plans) {
     const missingCases = [...p.placements, ...p.unplaced].map(x => x.caseId).filter(id => !knownCaseIds.has(id));
     const truck = knownTruckIds.has(p.truckId) ? null : p.truckId;
-    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck });
+    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck, ...(p.mitgefuehrt ? { kopieCases: p.mitgefuehrt.cases.map(c => c.id), kopieTrucks: p.mitgefuehrt.trucks.map(t => t.id) } : {}) });
   }
 
   const repairs = [];

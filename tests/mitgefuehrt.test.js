@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { referenzen, bestandFuer, mitfuehren, MITGEFUEHRT_VERSION } from '../js/model/mitgefuehrt.js';
+import { referenzen, bestandFuer, mitfuehren, MITGEFUEHRT_VERSION, ohneIds, alsEigenesCase } from '../js/model/mitgefuehrt.js';
 import { mkCase, mkTruck, P } from './fixtures.js';
 
 const plan = (extra = {}) => ({ id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [], notes: '', ...extra });
@@ -87,4 +87,27 @@ test('mitfuehren: Altplan ohne mitgefuehrt (Schema vor 0.17.1) bekommt die Kopie
   const out = mitfuehren(alt, [mkCase('c1', 1, 1, 1)], [mkTruck({ id: 't' })]);
   assert.deepEqual(out.mitgefuehrt.cases.map(c => c.id), ['c1']);
   assert.equal(out.placements, alt.placements);
+});
+
+
+test('ohneIds: entfernt die IDs aus der Kopie, sonst dieselbe Referenz', () => {
+  const p = plan({ unplaced: [{ id: 'u', caseId: 'x' }], mitgefuehrt: { version: 1, cases: [mkCase('x', 1, 1, 1, {}), mkCase('y', 1, 1, 1, {})], trucks: [] } });
+  const out = ohneIds(p, { cases: ['x'] });
+  assert.deepEqual(out.mitgefuehrt.cases.map(c => c.id), ['y']);
+  assert.equal(ohneIds(p, { cases: ['nix'] }), p);
+  const ohne = plan();
+  assert.equal(ohneIds(ohne, { cases: ['x'] }), ohne);
+});
+
+test('Regression: gelöschtes Case kommt nach ohneIds nicht aus der alten Kopie zurück', () => {
+  const p = plan({ unplaced: [{ id: 'u', caseId: 'x' }], mitgefuehrt: { version: 1, cases: [mkCase('x', 1, 1, 1, {})], trucks: [] } });
+  assert.deepEqual(bestandFuer([], [], p).cases.map(c => c.id), ['x']);
+  assert.deepEqual(bestandFuer([], [], ohneIds(p, { cases: ['x'] })).cases, []);
+});
+
+test('alsEigenesCase: macht aus der Kopie ein eigenes, sichtbares Case', () => {
+  const out = alsEigenesCase({ id: 'lib-1', builtin: true, legacy: true, name: 'L' }, 'meine');
+  assert.equal(out.builtin, false);
+  assert.equal(out.collectionId, 'meine');
+  assert.equal('legacy' in out, false);
 });

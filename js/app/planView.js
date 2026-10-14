@@ -11,12 +11,13 @@ import { openPackRules } from '../ui/pack-rules.js';
 import { renderInspector, weightEditable } from '../ui/inspector.js';
 import { CASE_LIMITS } from '../model/limits.js';
 import { MEINE_ID } from '../model/collections.js';
+import { alsEigenesCase } from '../model/mitgefuehrt.js';
 import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
 import { createView3d } from '../ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom, getScrollMode, setScrollMode, nextScrollMode, SCROLL_LABELS, SCROLL_SHORT } from '../ui/zoom2d.js';
-import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, bestandOf, repointTruck, distributionNotices } from './core.js';
+import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, bestandOf, repointTruck, distributionNotices, brauchtAuswahl } from './core.js';
 import { lkwsOf, isMultiLkw, addLkw, updateLkw, removeLkw, moveToLkw } from '../model/lkw.js';
 import { mountLkwTabs, lkwTabsModel } from '../ui/lkw-tabs.js';
 import { openLkwEditor } from '../ui/lkw-editor.js';
@@ -209,7 +210,7 @@ export function mountPlanView(deps) {
     'uebernehmen-case': async id => {
       const c = ctx().caseById.get(findCaseIdForPiece(id));
       if (!c || !ctx().ausProjekt.cases.has(c.id)) return;
-      await persistence.saveCase({ ...c, builtin: false, collectionId: MEINE_ID });
+      await persistence.saveCase(alsEigenesCase(c, MEINE_ID));
     },
     'uebernehmen-truck': async () => {
       const t = ctx().truck;
@@ -231,7 +232,11 @@ export function mountPlanView(deps) {
   $('#inspector').addEventListener('click', e => {
     invalidateInspector();
     const actEl = e.target.closest('[data-act]');
-    if (actEl) return withSel(id => ACTIONS[actEl.dataset.act](id, actEl.dataset.face));
+    if (actEl) {
+      const act = actEl.dataset.act;
+      if (!brauchtAuswahl(act)) return ACTIONS[act]();
+      return withSel(id => ACTIONS[act](id, actEl.dataset.face));
+    }
     const target = e.target.closest('[data-select]')?.dataset.select;
     if (target) select(target);
   });

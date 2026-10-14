@@ -32,6 +32,25 @@ export function bestandFuer(cases, trucks, plan) {
   return { cases: c.liste, trucks: t.liste, ausProjekt: { cases: c.ids, trucks: t.ids } };
 }
 
+// Entfernt gelöschte IDs aus der Kopie des Plans (sonst füllte bestandOf die Lücke aus dem alten
+// Stand). Dieselbe Referenz, wenn nichts entfällt.
+export function ohneIds(plan, { cases = [], trucks = [] }) {
+  const m = plan?.mitgefuehrt;
+  if (!m) return plan;
+  const c = new Set(cases), t = new Set(trucks);
+  const kc = liste(m.cases).filter(x => !c.has(x?.id));
+  const kt = liste(m.trucks).filter(x => !t.has(x?.id));
+  if (kc.length === liste(m.cases).length && kt.length === liste(m.trucks).length) return plan;
+  return { ...plan, mitgefuehrt: { ...m, cases: kc, trucks: kt } };
+}
+
+// Eine Kopie aus der Projektdatei wird zum eigenen, sichtbaren Case der Bibliothek: ein
+// ausgeblendetes (`legacy`) lib-Case bliebe sonst auch nach dem Übernehmen ausgeblendet.
+export function alsEigenesCase(c, collectionId) {
+  const { legacy, ...rest } = c;
+  return { ...rest, builtin: false, collectionId };
+}
+
 const ohneSammlung = c => { const { collectionId, ...rest } = c; return rest; };
 
 export function mitfuehren(plan, cases, trucks) {

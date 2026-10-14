@@ -239,3 +239,12 @@ test('saveRuleSet/deleteRuleSet: Zustand ohne projectRuleSets stürzt nicht ab',
   assert.ok(await p.saveRuleSet('A', [], false, 'projekt'));
   assert.equal(store.get().projectRuleSets.length, 1);
 });
+
+test('removeFromStock: entfernt das Case auch aus der Kopie der Pläne im Store (kein Wiederauftauchen)', async () => {
+  const c = { id: 'a', name: 'Kiste' };
+  const plan = { id: 'p', truckId: 't', placements: [], unplaced: [{ id: 'u', caseId: 'a' }], mitgefuehrt: { version: 1, cases: [c], trucks: [] } };
+  const { p, store } = setup({ state: { cases: [c], plans: [plan], plan } });
+  await p.removeFromStock(c, { confirmed: true });
+  assert.deepEqual(store.get().plan.mitgefuehrt.cases, []);
+  assert.deepEqual(store.get().plans[0].mitgefuehrt.cases, []);
+});

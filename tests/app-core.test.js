@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf, plaeneMitGeaendertemBestand, createBestandsSync } from '../js/app/core.js';
-import { P } from './fixtures.js';
+import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf, plaeneMitGeaendertemBestand, createBestandsSync, activeLkwOf, activeViewOf, applyEdit, applyEditWhole, NO_LKW, hasUnassigned, mergeUnassignedView, packAllOf, repointTruck, distributionNotices, wholeCtxOf, planZumSpeichern, wizardTruckId, brauchtAuswahl } from '../js/app/core.js';
+import { P, mkCase, mkTruck, byId } from './fixtures.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
+import { createStore } from '../js/store/state.js';
+import { lkwView, convertToMulti, addLkw } from '../js/model/lkw.js';
+import * as A from '../js/model/actions.js';
 
 const mk = (id, extra = {}) => ({ id, name: id, truckId: 't1', placements: [], unplaced: [], ...extra });
 const ids = ps => ps.map(p => p.id);
@@ -65,12 +68,6 @@ test('deriveOf liefert bei gleichen Referenzen dasselbe Objekt', () => {
 });
 
 // ---- Mehrere LKW (Spec 2026-10-10) ----------------------------------------------------------
-import { createStore } from '../js/store/state.js';
-import { activeLkwOf, activeViewOf, applyEdit, applyEditWhole, NO_LKW, hasUnassigned, mergeUnassignedView,
-  packAllOf, repointTruck, distributionNotices, wholeCtxOf } from '../js/app/core.js';
-import { lkwView, convertToMulti, addLkw } from '../js/model/lkw.js';
-import * as A from '../js/model/actions.js';
-import { mkCase, mkTruck, byId } from './fixtures.js';
 
 const TRK = mkTruck({ id: DEFAULT_TRUCK_ID, l: 1360, w: 248, h: 270, payload: 24000 });
 const TRK2 = mkTruck({ id: 'klein', l: 400, w: 200, h: 200, payload: 1000 });
@@ -350,7 +347,6 @@ test('applyEdit im Reiter „Ohne LKW“ behält mitgefuehrt', () => {
   assert.deepEqual(next.plan.mitgefuehrt, p.mitgefuehrt);
 });
 
-import { planZumSpeichern } from '../js/app/core.js';
 
 test('planZumSpeichern: füllt mitgefuehrt aus der Bibliothek', () => {
   const s = { cases: [mkCase('c1', 1, 1, 1, { collectionId: 'meine' })], trucks: [mkTruck({ id: 't' })] };
@@ -431,9 +427,13 @@ test('planZumSpeichern: ein nicht offener Plan behält seine eigene Kopie als Qu
   });
 }
 
-import { wizardTruckId } from '../js/app/core.js';
-import { DEFAULT_TRUCK_ID as DEF_TRUCK } from '../js/data/preset-trucks.js';
 test('wizardTruckId: Bibliotheksfahrzeug bleibt, Kopie aus der Projektdatei fällt aufs Standardfahrzeug', () => {
   assert.equal(wizardTruckId([{ id: 'a' }, { id: 'b' }], 'b'), 'b');
-  assert.equal(wizardTruckId([{ id: 'a' }], 'nur-kopie'), DEF_TRUCK);
+  assert.equal(wizardTruckId([{ id: 'a' }], 'nur-kopie'), DEFAULT_TRUCK_ID);
+});
+
+test('brauchtAuswahl: Fahrzeug übernehmen läuft auch ohne gewähltes Stück', () => {
+  assert.equal(brauchtAuswahl('uebernehmen-truck'), false);
+  assert.equal(brauchtAuswahl('uebernehmen-case'), true);
+  assert.equal(brauchtAuswahl('rotate'), true);
 });

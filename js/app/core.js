@@ -44,6 +44,10 @@ const bestandMemo = memoLast((cases, trucks, plan) => bestandFuer(cases, trucks,
 // Vor jedem Schreiben eines Plans (Autosave, umgebogene Pläne, Sichern): die Kopie neu berechnen.
 export const planZumSpeichern = (s, plan) => mitfuehren(plan, s.cases, s.trucks);
 
+// Inspector-Aktionen, die ohne gewähltes Stück laufen (der Fahrzeug-Knopf steht im Ladungsblock).
+const OHNE_AUSWAHL = new Set(['uebernehmen-truck']);
+export const brauchtAuswahl = act => !OHNE_AUSWAHL.has(act);
+
 // Vorauswahl-Fahrzeug für den Lade-Assistenten: nur eines aus der Bibliothek, sonst das Standardfahrzeug
 // (der Assistent zeigt keine Kopien aus der Projektdatei, ein unbekannter Wert ergäbe eine leere Auswahl).
 export const wizardTruckId = (libraryTrucks, id) => (libraryTrucks.some(t => t.id === id) ? id : DEFAULT_TRUCK_ID);
