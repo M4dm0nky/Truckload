@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf } from '../js/app/core.js';
+import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf } from '../js/app/core.js';
+import { P } from './fixtures.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
 
 const mk = (id, extra = {}) => ({ id, name: id, truckId: 't1', placements: [], unplaced: [], ...extra });
@@ -118,7 +119,7 @@ test('activeViewOf: Ein-LKW-Plan = der Plan selbst; Mehr-LKW = Ansicht des Reite
 
 test('ctxOf: Ein-LKW-Plan liefert exakt die bisherigen Schlüssel (kein truckById)', () => {
   const c = ctxOf(mkState(mk('a', { truckId: 'klein' })), () => 'x');
-  assert.deepEqual(Object.keys(c).sort(), ['caseById', 'newId', 'truck']);
+  assert.deepEqual(Object.keys(c).sort(), ['ausProjekt', 'caseById', 'newId', 'truck']);
   assert.equal(c.truck.id, 'klein');
 });
 test('ctxOf: Mehr-LKW-Plan nimmt das Fahrzeug des gewählten LKW, dazu truckById', () => {
@@ -297,4 +298,54 @@ test('Entf im Reiter „Ohne LKW“: Platzierung mit unbekanntem LKW ist dort ei
   const n = applyEdit(s, pl => (isPlaced ? A.removePlacement(pl, 'alt') : A.removeUnplaced(pl, 'alt')), () => 'x');
   assert.notEqual(n, s);
   assert.ok(![...n.plan.placements, ...n.plan.unplaced].some(x => x.id === 'alt'));
+});
+
+const fremderPlan = (extra = {}) => ({
+  id: 'fp', name: 'Fremd', truckId: 'tf', placements: [P('a', 'cf', 0, 0, 0)], unplaced: [], notes: '',
+  mitgefuehrt: { version: 1, cases: [mkCase('cf', 50, 50, 50)], trucks: [mkTruck({ id: 'tf', name: 'Fremd-LKW', l: 700 })] },
+  ...extra,
+});
+
+test('ctxOf: fehlendes Fahrzeug kommt aus der Kopie, nicht vom Standardfahrzeug', () => {
+  const s = { plan: fremderPlan(), cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: null };
+  const c = ctxOf(s, () => 'n');
+  assert.equal(c.truck.id, 'tf');
+  assert.ok(c.caseById.has('cf'));
+  assert.ok(c.ausProjekt.cases.has('cf'));
+});
+
+test('ctxOf: ohne Kopie fällt ein unbekanntes Fahrzeug wie bisher aufs Standardfahrzeug', () => {
+  const { mitgefuehrt, ...ohne } = fremderPlan();
+  const s = { plan: ohne, cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: null };
+  assert.equal(ctxOf(s, () => 'n').truck.id, DEFAULT_TRUCK_ID);
+});
+
+test('deriveOf: Prüfung kennt das Case aus der Kopie, bestand und ausProjekt liegen bei', () => {
+  const s = { plan: fremderPlan(), cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: null };
+  const d = deriveOf(s, () => 'n');
+  assert.equal(d.result.items.length, 1);
+  assert.ok(d.bestand.cases.some(c => c.id === 'cf'));
+  assert.ok(d.ausProjekt.trucks.has('tf'));
+});
+
+test('bestandOf: auf dem eigenen Rechner dieselben Arrays wie die Bibliothek', () => {
+  const cases = [mkCase('cf', 50, 50, 50)], trucks = [mkTruck({ id: 'tf' })];
+  const b = bestandOf({ plan: fremderPlan(), cases, trucks });
+  assert.equal(b.cases, cases);
+  assert.equal(b.trucks, trucks);
+});
+
+test('printSectionsOf: LKW-Fahrzeug aus der Kopie', () => {
+  const p = fremderPlan({ lkws: [{ id: 'l1', name: 'A', truckId: 'tf', categories: [] }] });
+  p.placements = [P('a', 'cf', 0, 0, 0, { lkw: 'l1' })];
+  const out = printSectionsOf({ plan: p, cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })] });
+  assert.equal(out.sections[0].truck.id, 'tf');
+});
+
+test('applyEdit im Reiter „Ohne LKW“ behält mitgefuehrt', () => {
+  const p = fremderPlan({ lkws: [{ id: 'l1', name: 'A', truckId: 'tf', categories: [] }],
+    placements: [], unplaced: [{ id: 'u', caseId: 'cf' }] });
+  const s = { plan: p, cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: NO_LKW };
+  const next = applyEdit(s, view => ({ ...view, notes: 'x' }), () => 'n');
+  assert.deepEqual(next.plan.mitgefuehrt, p.mitgefuehrt);
 });

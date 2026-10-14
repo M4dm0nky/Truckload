@@ -3,6 +3,7 @@
 import { memoLast } from '../model/memo.js';
 import { validatePlan } from '../model/validate.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
+import { bestandFuer } from '../model/mitgefuehrt.js';
 import { stamp } from '../model/stamp.js';
 import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView, NO_LKW, piecesOf } from '../model/lkw.js';
 import { packAllLkws, unassignedLines, stueck } from '../model/lkw-distribute.js';
@@ -37,6 +38,11 @@ export function activeViewOf(plan, activeLkw) {
   return id === NO_LKW ? unassignedView(plan) : lkwView(plan, id);
 }
 
+// Bibliothek plus die mitgeführten Einträge des offenen Plans (js/model/mitgefuehrt.js). EINE Stelle:
+// Kontext, Ableitung und Druck sehen denselben Bestand; Materialverwaltung und Wizard nicht.
+const bestandMemo = memoLast((cases, trucks, plan) => bestandFuer(cases, trucks, plan));
+export const bestandOf = s => bestandMemo(s.cases, s.trucks, s.plan ?? null);
+
 const truckFinder = trucks => id =>
   trucks.find(t => t.id === id) ?? trucks.find(t => t.id === DEFAULT_TRUCK_ID);
 
@@ -44,19 +50,21 @@ const truckFinder = trucks => id =>
 // Rückfall), ID-Quelle. Setzt einen aktiven Plan voraus. Ein-LKW-Plan: genau {caseById, truck, newId}
 // wie bisher; Mehr-LKW-Plan zusätzlich `truckById` (für die Verteilung über alle LKW).
 export function ctxOf(s, newId) {
-  const find = truckFinder(s.trucks);
-  const caseById = caseByIdOf(s.cases);
-  if (!isMultiLkw(s.plan)) return { caseById, truck: find(s.plan.truckId), newId };
+  const b = bestandOf(s);
+  const find = truckFinder(b.trucks);
+  const caseById = caseByIdOf(b.cases);
+  const ausProjekt = b.ausProjekt;
+  if (!isMultiLkw(s.plan)) return { caseById, truck: find(s.plan.truckId), newId, ausProjekt };
   const id = activeLkwOf(s.plan, s.activeLkw);
   const lkw = lkwsOf(s.plan).find(l => l.id === id);
   return {
-    caseById, truck: find(lkw ? lkw.truckId : s.plan.truckId), newId,
-    truckById: new Map(s.trucks.map(t => [t.id, t])),
+    caseById, truck: find(lkw ? lkw.truckId : s.plan.truckId), newId, ausProjekt,
+    truckById: new Map(b.trucks.map(t => [t.id, t])),
   };
 }
 // Kontext für planweite Aktionen (alle LKW): Rückfallfahrzeug ist das des Plans (= erster LKW).
 export function wholeCtxOf(s, newId) {
-  return { ...ctxOf(s, newId), truck: truckFinder(s.trucks)(s.plan.truckId) };
+  return { ...ctxOf(s, newId), truck: truckFinder(bestandOf(s).trucks)(s.plan.truckId) };
 }
 
 // Schreibt die Ansicht der nicht zugeordneten Stücke zurück (Gegenstück zu mergeLkwView): die
@@ -122,9 +130,10 @@ export function distributionNotices(plan, caseById) {
 // Der Store liefert bei jeder Änderung neue Objekte; Aufrufer verändern das Ergebnis nicht.
 // `view` ist der Plan des gewählten Reiters (bei Ein-LKW-Plänen der Plan selbst), `result` seine Prüfung.
 const derived = memoLast((plan, cases, trucks, newId, activeLkw) => {
-  const c = ctxOf({ plan, cases, trucks, activeLkw }, newId);
+  const s = { plan, cases, trucks, activeLkw };
+  const c = ctxOf(s, newId);
   const view = activeViewOf(plan, activeLkw);
-  return { ...c, view, activeLkw: activeLkwOf(plan, activeLkw), result: validatePlan(view, c.caseById, c.truck) };
+  return { ...c, bestand: bestandOf(s), view, activeLkw: activeLkwOf(plan, activeLkw), result: validatePlan(view, c.caseById, c.truck) };
 });
 export const deriveOf = (s, newId) => derived(s.plan, s.cases, s.trucks, newId, s.activeLkw ?? null);
 
@@ -132,8 +141,9 @@ export const deriveOf = (s, newId) => derived(s.plan, s.cases, s.trucks, newId, 
 // dazu `free` ({ plan, caseById }: die nicht zugeordneten Stücke als Ablage) oder null, wenn es
 // keine gibt. Ein Fahrzeug, das es nicht mehr gibt, fällt auf das Standardfahrzeug zurück (wie ctxOf).
 export function printSectionsOf(s) {
-  const caseById = caseByIdOf(s.cases);
-  const find = truckFinder(s.trucks);
+  const b = bestandOf(s);
+  const caseById = caseByIdOf(b.cases);
+  const find = truckFinder(b.trucks);
   const sections = lkwsOf(s.plan).map(lkw => {
     const view = lkwView(s.plan, lkw.id);
     const truck = find(lkw.truckId);
