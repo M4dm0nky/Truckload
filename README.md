@@ -47,15 +47,12 @@ npm test
 
 So hast du immer ein Backup für den Fall, dass der lokale Browser-Speicher gelöscht wird.
 
-Jeder Ladeplan trägt eine Kopie der Cases und Fahrzeuge mit, die er benutzt. Ein mitgeführtes Fahrzeug
-erscheint nur in der Fahrzeugauswahl, solange ein Plan es benutzt – wer es behalten will, übernimmt es
-vorher in die eigene Bibliothek („In meine Bibliothek übernehmen“).
-
 Jeder Ladeplan nimmt die Cases und Fahrzeuge mit, die er benutzt. Liest du eine Sicherung auf einem
 Rechner ein, dem eigene Cases fehlen, sind trotzdem alle Stücke da. Der Inspector kennzeichnet sie
 mit „Aus der Projektdatei – nicht in deiner Bibliothek“; ändern kannst du sie erst nach „In meine
 Bibliothek übernehmen“. Gibt es ein Case auf dem Rechner schon, gilt die Fassung aus der eigenen
-Bibliothek.
+Bibliothek. Ein mitgeführtes Fahrzeug steht nur so lange in der Fahrzeugauswahl, wie der geöffnete
+Plan es benutzt. Wer es behalten will, übernimmt es vorher in die eigene Bibliothek.
 
 ## Neuen Load anlegen
 

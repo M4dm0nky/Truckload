@@ -13,8 +13,9 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 - **Aus der Projektdatei:** Solche Cases und Fahrzeuge tragen im Inspector den Hinweis „Aus der
   Projektdatei – nicht in deiner Bibliothek“. Verschieben, packen und drucken geht wie immer,
   ändern erst nach „In meine Bibliothek übernehmen“. Materialverwaltung und Wizard zeigen sie nicht.
-- **Mitgeführte Fahrzeuge:** Ein Fahrzeug aus der Projektdatei steht nur in der Fahrzeugauswahl,
-  solange ein Plan es benutzt. Wer es behalten will, übernimmt es vorher in die Bibliothek.
+- **Mitgeführte Fahrzeuge:** Ein Fahrzeug aus der Projektdatei steht nur so lange in der
+  Fahrzeugauswahl, wie der geöffnete Plan es benutzt. Wer es behalten will, übernimmt es vorher in
+  die Bibliothek.
 - **Kopie bleibt aktuell:** Ändert sich ein Case oder Fahrzeug in der Bibliothek, werden die Pläne,
   die es benutzen, neu gespeichert.
 - **Regelsets im Projekt:** Im Dialog „Pack-Regeln …“ lassen sich Regelsets jetzt im Projekt oder in
