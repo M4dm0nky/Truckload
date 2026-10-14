@@ -926,3 +926,26 @@ test('checkPlan: die Fehlermeldung nennt den inneren Grund (Case ohne Name)', ()
   assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases: [{ id: 'x', l: 10, w: 10, h: 10 }], trucks: [] } })),
     /ungültige Kopie seiner Cases oder Fahrzeuge: Case ohne ID oder Name/);
 });
+
+// --- Task 7: Projekt-Regelsets in der Sicherung ---
+test('Export ohne Projekt-Regelsets bleibt wie in 0.17.0 (kein Feld)', () => {
+  const data = JSON.parse(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()] }));
+  assert.equal('projectRuleSets' in data, false);
+  assert.equal(data.version, 1);
+});
+
+test('Roundtrip mit Projekt-Regelsets', () => {
+  const pr = { id: 'pr1', name: 'Tour', rules: [], updatedAt: '2026-10-14T10:00:00.000Z' };
+  const back = parseBundle(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()], projectRuleSets: [pr] }));
+  assert.deepEqual(back.projectRuleSets, [pr]);
+});
+
+test('Alte Sicherung ohne projectRuleSets: leere Liste', () => {
+  const back = parseBundle(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()] }));
+  assert.deepEqual(back.projectRuleSets, []);
+});
+
+test('Beschädigtes Feld projectRuleSets wird abgelehnt', () => {
+  const text = JSON.stringify({ ...JSON.parse(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()] })), projectRuleSets: 'x' });
+  assert.throws(() => parseBundle(text), /Projekt-Regelsets/);
+});

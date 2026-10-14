@@ -52,7 +52,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
   $('#export').onclick = () => {
     const s = store.get();
     const plans = allPlansOf(s);
-    downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans: plans.map(p => planZumSpeichern(s, p)), ruleSets: s.ruleSets, collections: s.collections }));
+    downloadJSON(backupFileName(), exportBundle({ cases: s.cases, trucks: s.trucks, plans: plans.map(p => planZumSpeichern(s, p)), ruleSets: s.ruleSets, collections: s.collections, projectRuleSets: s.projectRuleSets }));
   };
 
   // Ein <button> statt <label> um das versteckte <input type="file">: ein Label ist per
@@ -79,7 +79,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
       const backupName = preImportBackupFileName();
       // s0.plan ist null, wenn der Import vom Startbildschirm kommt; dann gehören nur die schon
       // gespeicherten Pläne in die Sicherung.
-      const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0).map(p => planZumSpeichern(s0, p)), ruleSets: s0.ruleSets, collections: s0.collections });
+      const backupText = exportBundle({ cases: s0.cases, trucks: s0.trucks, plans: allPlansOf(s0).map(p => planZumSpeichern(s0, p)), ruleSets: s0.ruleSets, collections: s0.collections, projectRuleSets: s0.projectRuleSets });
       downloadJSON(backupName, backupText);
 
       // Den Autosave für den aktuellen Plan für die Dauer des Imports stilllegen: exclude() nimmt
@@ -98,7 +98,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
         // gehen nicht verloren.
         store.update(s => {
           merge = repo.mergeImportedBundle(s, bundle);
-          return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan, ruleSets: merge.ruleSets, collections: merge.collections };
+          return { ...s, cases: merge.cases, trucks: merge.trucks, plans: merge.plans, plan: merge.plan, ruleSets: merge.ruleSets, projectRuleSets: merge.projectRuleSets, collections: merge.collections };
         });
         // Eine einzige Transaktion (alles oder nichts): unabhängige Schreibvorgänge je Datensatz
         // könnten teilweise gelingen, und dann passte ein Rollback der Oberfläche nicht mehr zur
@@ -109,7 +109,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
         importErr = err;
         // Store und Datenbank sind auseinandergelaufen: zurück auf den Stand vor dem Import, der
         // noch mit der Datenbank übereinstimmt.
-        store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan, ruleSets: s0.ruleSets, collections: s0.collections }));
+        store.update(s => ({ ...s, cases: s0.cases, trucks: s0.trucks, plans: s0.plans, plan: s0.plan, ruleSets: s0.ruleSets, projectRuleSets: s0.projectRuleSets, collections: s0.collections }));
       } finally {
         // finally, damit der Autosave dieses Plans nicht den Rest der Sitzung stumm tot bleibt,
         // falls zwischen exclude() und hier etwas wirft. restore:true, wenn der Import
@@ -139,6 +139,6 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
     // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
     const warnings = capList(warningsForWinners(bundle, merge.winners, store.get()));
     const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';
-    await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets, ${(merge.winners.collections ?? []).length} Sammlungen (neuere lokale Stände behalten).${repairNote}${warnNote}`);
+    await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets, ${(merge.winners.projectRuleSets ?? []).length} Projekt-Regelsets, ${(merge.winners.collections ?? []).length} Sammlungen (neuere lokale Stände behalten).${repairNote}${warnNote}`);
   };
 }

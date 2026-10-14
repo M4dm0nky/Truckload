@@ -202,17 +202,19 @@ export function checkCollection(m) {
   if (!updatedAtOk(m)) throw new Error(`Sammlung „${m.name}“ hat einen ungültigen Zeitstempel.`);
 }
 
-export function exportBundle({ cases, trucks, plans, ruleSets = [], collections = [] }, now = new Date()) {
+export function exportBundle({ cases, trucks, plans, ruleSets = [], collections = [], projectRuleSets = [] }, now = new Date()) {
   return JSON.stringify({
     format: FORMAT, version: VERSION, appVersion: APP_VERSION, exportedAt: now.toISOString(),
     cases: cases.filter(c => !c.builtin), trucks: trucks.filter(t => !t.builtin), plans, ruleSets,
     // Standard und Meine sind fest; nur eigene Sammlungen gehören in die Datei.
     collections: collections.filter(c => !c.readOnly && c.id !== 'meine')
       .map(({ id, name, parentId, updatedAt }) => ({ id, name, ...(parentId ? { parentId } : {}), ...(updatedAt ? { updatedAt } : {}) })),
+    // Nur wenn vorhanden: Sicherungen ohne Projekt-Regelsets bleiben byte-gleich zu 0.17.0.
+    ...(projectRuleSets.length ? { projectRuleSets } : {}),
   }, null, 2);
 }
 
-const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets', collections: 'Sammlungen' };
+const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets', collections: 'Sammlungen', projectRuleSets: 'Projekt-Regelsets' };
 
 // Zwei Werte aus älteren Wizard-/Editor-Vorgaben reißen sonst die harte Alles-oder-nichts-Grenze
 // beim Import, obwohl sie reparierbar sind: eine zu lange Beschriftung (früher bis 50 Zeichen,
@@ -238,7 +240,7 @@ export function parseBundle(text) {
   if (data?.format !== FORMAT) throw new Error('Keine Truckload-Datei.');
   if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
   if (data.version > VERSION) throw new Error('Die Datei stammt aus einer neueren Version.');
-  for (const field of ['cases', 'trucks', 'plans', 'ruleSets', 'collections']) {
+  for (const field of ['cases', 'trucks', 'plans', 'ruleSets', 'collections', 'projectRuleSets']) {
     if (data[field] !== undefined && !Array.isArray(data[field]))
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
@@ -246,12 +248,13 @@ export function parseBundle(text) {
   const rawTrucks = arr(data.trucks).filter(t => !isPreset(t));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
+  const projectRuleSets = arr(data.projectRuleSets);
   if (arr(data.collections).length > MAX_COLLECTIONS) throw new Error('Die Datei enthält zu viele Sammlungen.');
   // Feste und mitgelieferte Sammlungen kommen nie aus einer Datei; Null-Einträge bleiben stehen
   // und lehnt checkCollection ab.
   const rawCollectionsIn = arr(data.collections).filter(m => m?.id !== 'standard' && m?.id !== 'meine'
     && !m?.builtin && !m?.readOnly && !(typeof m?.id === 'string' && m.id.startsWith('preset-')));
-  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && rawCollectionsIn.length === 0)
+  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && projectRuleSets.length === 0 && rawCollectionsIn.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
 
   // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
@@ -409,9 +412,9 @@ export function parseBundle(text) {
     return rest;
   });
 
-  cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet);
+  cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet); projectRuleSets.forEach(checkRuleSet);
   // Doppelte IDs in derselben Liste lassen mergeById/winners still Datensätze verschlucken.
-  for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets], ['collections', collections]]) {
+  for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets], ['projectRuleSets', projectRuleSets], ['collections', collections]]) {
     const dup = list.map(x => x.id).find((id, i, ids) => ids.indexOf(id) !== i);
     if (dup !== undefined) throw new Error(`Die Datei enthält doppelte IDs bei ${FIELD_LABELS[field]} („${dup}“).`);
   }
@@ -448,7 +451,7 @@ export function parseBundle(text) {
   nameNote(nameRepairs.case, 'Case', 'Cases');
   nameNote(nameRepairs.truck, 'Fahrzeug', 'Fahrzeuge');
 
-  return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
+  return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, projectRuleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
 }
 
 // Ein lokaler mitgelieferter Eintrag (`builtin: true`) verliert immer: Mitgeliefertes kommt nie

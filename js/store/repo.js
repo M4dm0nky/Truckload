@@ -133,7 +133,7 @@ export function loadAllFallback() {
 // dann gibt es keinen „aktuellen“ Plan, und pickLatestPlan() entscheidet unter allen Plänen
 // (eigene + importierte), welcher geöffnet wird, wie auch loadAll() den zuletzt geänderten Plan
 // wählt. Bringt die Sicherung keinen Plan mit, bleibt plan null und der Startbildschirm bestehen.
-export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [], collections = withBuiltins([]) }, bundle) {
+export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [], projectRuleSets = [], collections = withBuiltins([]) }, bundle) {
   // Eine alte, flache Sicherung kennt keine `collectionId`. Gewinnt ihr Case gegen ein lokales,
   // behält es dessen Sammlung (saveImportWinners tut dasselbe auf der Platte), sonst zeigte der
   // Speicher es unter „Meine Sammlung“, während es auf der Platte in der benannten liegt.
@@ -149,6 +149,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
   const mergedTrucks = mergeById(trucks, bundle.trucks);
   const mergedPlans = mergeById(plan ? [plan, ...plans] : plans, bundle.plans);
   const mergedRuleSets = mergeById(ruleSets, bundle.ruleSets ?? []);
+  const mergedProjectRuleSets = mergeById(projectRuleSets, bundle.projectRuleSets ?? []);
   const nextPlan = plan
     ? (mergedPlans.find(p => p.id === plan.id) ?? plan)
     : (pickLatestPlan(mergedPlans) ?? null);
@@ -160,6 +161,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
     plan: nextPlan,
     planChanged: nextPlan !== plan,
     ruleSets: mergedRuleSets,
+    projectRuleSets: mergedProjectRuleSets,
     // Nur die Datensätze, die aus der Datei kommen UND gewonnen haben, müssen nach
     // IndexedDB geschrieben werden – alles andere steht dort schon (oder stand nie drin,
     // weil der lokale Stand gewonnen hat).
@@ -169,6 +171,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
       trucks: bundle.trucks.filter(x => mergedTrucks.find(m => m.id === x.id) === x),
       plans: bundle.plans.filter(x => mergedPlans.find(m => m.id === x.id) === x),
       ruleSets: (bundle.ruleSets ?? []).filter(x => mergedRuleSets.find(m => m.id === x.id) === x),
+      projectRuleSets: (bundle.projectRuleSets ?? []).filter(x => mergedProjectRuleSets.find(m => m.id === x.id) === x),
     },
   };
 }
@@ -220,6 +223,7 @@ export function buildImportWinnerItems(winners) {
     ...winners.trucks.map(value => ({ store: 'trucks', value })),
     ...winners.plans.map(value => ({ store: 'plans', value })),
     ...(winners.ruleSets ?? []).map(value => ({ store: 'ruleSets', value })),
+    ...(winners.projectRuleSets ?? []).map(value => ({ store: 'projectRuleSets', value })),
   ];
 }
 
