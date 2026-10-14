@@ -294,6 +294,7 @@ export function mountPlanView(deps) {
       targets: ruleTargets(piecesOf(s.plan), c.caseById),
       caseById: c.caseById,
       ruleSets: [...s.ruleSets].sort((a, b) => a.name.localeCompare(b.name, 'de')),
+      projectRuleSets: [...(s.projectRuleSets ?? [])].sort((a, b) => a.name.localeCompare(b.name, 'de')),
       onSaveRuleSet: persistence.saveRuleSet,
       onDeleteRuleSet: persistence.deleteRuleSet,
     });
