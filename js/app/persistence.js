@@ -4,6 +4,7 @@
 import { guarded } from './guarded.js';
 import { usage, repointTruck } from './core.js';
 import { deletionFor } from '../model/material.js';
+import { ohneIds } from '../model/mitgefuehrt.js';
 import {
   resolveTarget, moveCase, collectionNameError, parentError, descendantIds, planCollectionImport,
   withBuiltins, collectionIdOf, MEINE_ID,
@@ -59,6 +60,15 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
   const saveCase = rawValue => serial(() => saveCaseNow(rawValue));
 
+  // Gelöschte Cases auch aus der mitgeführten Kopie der Pläne im Store nehmen (ohne Undo-Eintrag,
+  // `store.update` ohne history): sonst füllte bestandOf die Lücke aus dem alten Stand, das Case
+  // käme mit dem Hinweis „Aus der Projektdatei“ zurück und beim nächsten Speichern in die Datenbank.
+  const ohneKopie = (st, caseIds) => {
+    const fix = p => ohneIds(p, { cases: caseIds });
+    const plans = st.plans.map(fix);
+    return { plans: plans.some((p, i) => p !== st.plans[i]) ? plans : st.plans, ...(st.plan ? { plan: fix(st.plan) } : {}) };
+  };
+
   // `confirmed`: die Rückfrage kam schon (Editor bzw. Sammlung-löschen-Dialog).
   async function removeFromStock(c, { confirmed = false } = {}) {
     if (!c) return false;
@@ -78,7 +88,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       if (dNow.save) return !!await saveCaseNow(dNow.save);
       const r = await run('Case konnte nicht gelöscht werden', () => repo.writeCases({ removeIds: [dNow.remove], collections: store.get().collections }));
       if (!r.ok) return false;
-      store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== dNow.remove) }));
+      store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== dNow.remove), ...ohneKopie(st, [dNow.remove]) }));
       return true;
     });
   }
@@ -157,8 +167,9 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       const r = await run('Sammlung konnte nicht gelöscht werden', () => repo.writeCases({ upserts: hidden, deleteCollectionIds: [...gone], collections }));
       if (!r.ok) return false;
       const keep = new Set(hidden.map(c => c.id));
+      const removedIds = ds.filter(d => d.remove).map(d => d.remove);
       store.update(s => ({
-        ...s, collections,
+        ...s, collections, ...ohneKopie(s, removedIds),
         cases: [...s.cases.filter(x => !gone.has(collectionIdOf(x)) && !keep.has(x.id)), ...hidden],
       }));
       return true;
@@ -198,22 +209,29 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     return plan.meta;
   });
 
-  async function saveRuleSet(name, rules, mixTop) {
-    const existing = store.get().ruleSets.find(r => r.name.toLowerCase() === name.toLowerCase());
+  const ORT = {
+    projekt: { key: 'projectRuleSets', save: rs => repo.saveProjectRuleSet(rs), del: id => repo.deleteProjectRuleSet(id) },
+    bibliothek: { key: 'ruleSets', save: rs => repo.saveRuleSet(rs), del: id => repo.deleteRuleSet(id) },
+  };
+
+  async function saveRuleSet(name, rules, mixTop, ort = 'bibliothek') {
+    const o = ORT[ort] ?? ORT.bibliothek;
+    const existing = (store.get()[o.key] ?? []).find(r => r.name.toLowerCase() === name.toLowerCase());
     if (existing && !await showConfirm(`Regelset „${existing.name}“ überschreiben?`, { okLabel: 'Überschreiben', danger: true })) return undefined;
     const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
-    const r = await run('Regelset konnte nicht gespeichert werden', () => repo.saveRuleSet(value));
+    const r = await run('Regelset konnte nicht gespeichert werden', () => o.save(value));
     if (!r.ok) return undefined;
-    store.update(s => ({ ...s, ruleSets: [...s.ruleSets.filter(x => x.id !== value.id), value] }));
+    store.update(s => ({ ...s, [o.key]: [...(s[o.key] ?? []).filter(x => x.id !== value.id), value] }));
     return value;
   }
 
-  async function deleteRuleSet(id) {
-    const set = store.get().ruleSets.find(x => x.id === id);
+  async function deleteRuleSet(id, ort = 'bibliothek') {
+    const o = ORT[ort] ?? ORT.bibliothek;
+    const set = (store.get()[o.key] ?? []).find(x => x.id === id);
     if (set && !await showConfirm(`Regelset „${set.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return false;
-    const r = await run('Regelset konnte nicht gelöscht werden', () => repo.deleteRuleSet(id));
+    const r = await run('Regelset konnte nicht gelöscht werden', () => o.del(id));
     if (!r.ok) return false;
-    store.update(s => ({ ...s, ruleSets: s.ruleSets.filter(x => x.id !== id) }));
+    store.update(s => ({ ...s, [o.key]: (s[o.key] ?? []).filter(x => x.id !== id) }));
     return true;
   }
 

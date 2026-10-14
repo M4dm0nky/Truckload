@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { importWarnings, limitWarnings, capList, warningsForWinners } from '../js/app/importExport.js';
+import { importWarnings, limitWarnings, capList, warningsForWinners, wireImportExport } from '../js/app/importExport.js';
+import { mkCase, mkTruck } from './fixtures.js';
+import { createBestandsSync } from '../js/app/core.js';
 
 const refs = [{ planId: 'p1', plan: 'Tour A', cases: ['mein-case', 'weg', 'weg'], truck: 'mein-truck' }];
 
@@ -54,4 +56,98 @@ test('warningsForWinners: nur Datensätze, die den Abgleich gewonnen haben', () 
   assert.equal(w.length, 2);
   assert.match(w[0], /Gewinner“/);
   assert.match(w[1], /Gewinner-Case/);
+});
+
+
+test('Sichern: jeder exportierte Plan trägt mitgefuehrt mit den referenzierten Cases', () => {
+  const handlers = {};
+  const downloads = [];
+  const realDoc = globalThis.document;
+  const realCreate = URL.createObjectURL;
+  globalThis.document = {
+    querySelector: sel => (handlers[sel] ??= {}),
+    createElement: () => ({ click() { downloads.push(this); } }),
+  };
+  const blobs = [];
+  URL.createObjectURL = b => { blobs.push(b); return 'blob:x'; };
+  try {
+    const plan = { id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [{ id: 'u', caseId: 'c1' }], notes: '' };
+    const s = { cases: [mkCase('c1', 1, 1, 1, {})], trucks: [mkTruck({ id: 't' })], plans: [plan], plan: null, ruleSets: [], collections: [] };
+    wireImportExport({ store: { get: () => s }, autosave: {}, repo: {}, showAlert() {}, showConfirm() {} });
+    handlers['#export'].onclick();
+    return blobs[0].text().then(text => {
+      assert.equal(JSON.parse(text).plans[0].mitgefuehrt.cases[0].id, 'c1');
+    });
+  } finally {
+    globalThis.document = realDoc;
+    URL.createObjectURL = realCreate;
+  }
+});
+
+
+// Import-Lauf mit echtem Store-Double, echtem BestandsSync und injiziertem Repo.
+async function importLauf({ saveImportWinners }) {
+  const handlers = {};
+  const realDoc = globalThis.document, realCreate = URL.createObjectURL;
+  globalThis.document = { querySelector: sel => (handlers[sel] ??= {}), createElement: () => ({ click() {} }) };
+  URL.createObjectURL = () => 'blob:x';
+  try {
+    const pl = id => ({ id, name: id, truckId: 't', placements: [], unplaced: [{ id: `u-${id}`, caseId: 'c1' }], notes: '' });
+    const c1 = mkCase('c1', 1, 1, 1, {}), t = [mkTruck({ id: 't' })];
+    let s = { cases: [c1], trucks: t, plans: [pl('b'), pl('w')], plan: null, ruleSets: [], collections: [] };
+    const subs = [];
+    const store = { get: () => s, update(fn) { s = fn(s); subs.forEach(f => f(s)); }, resetHistory() {} };
+    const saved = [];
+    const sync = createBestandsSync({ initial: s, autosave: { markDirty() {} }, savePlan: p => { saved.push(p.id); return Promise.resolve(); }, onError() {} });
+    subs.push(x => sync.change(x));
+    const repo = {
+      mergeImportedBundle: cur => ({ cases: [{ ...c1, weight: 9 }], trucks: t, plans: cur.plans.map(p => (p.id === 'w' ? { ...p, name: 'neu' } : p)), plan: null, ruleSets: [], collections: [], planChanged: false, winners: { cases: [], trucks: [], plans: [{ id: 'w' }], ruleSets: [], collections: [] } }),
+      saveImportWinners,
+    };
+    wireImportExport({ store, autosave: { exclude() {}, include() {} }, repo, showAlert: async m => { if (process.env.DBG) console.log(m); }, showConfirm: async () => false, bestandsSync: sync });
+    const bundle = JSON.stringify({ format: 'truckload', version: 1, cases: [{ id: 'zz', name: 'Z', l: 10, w: 10, h: 10, weight: 1 }] });
+    await handlers['#import'].onchange({ target: { files: [{ text: async () => bundle }], value: '' } });
+    return { saved };
+  } finally {
+    globalThis.document = realDoc; URL.createObjectURL = realCreate;
+  }
+}
+
+test('Import: schlägt saveImportWinners fehl, wird kein Plan einzeln geschrieben', async () => {
+  const { saved } = await importLauf({ saveImportWinners: async () => { throw new Error('boom'); } });
+  assert.deepEqual(saved, []);
+});
+test('Import: nach Erfolg werden betroffene Nicht-Gewinner nachgeschrieben, nicht die Gewinner', async () => {
+  const { saved } = await importLauf({ saveImportWinners: async () => {} });
+  assert.deepEqual(saved, ['b']);
+});
+
+test('importWarnings: Verweise, die die Kopie des Plans auflöst, werden nicht gemeldet', () => {
+  const r = [{ planId: 'p1', plan: 'Tour A', cases: ['kopie', 'weg'], truck: 'tk', kopieCases: ['kopie'], kopieTrucks: ['tk'] }];
+  assert.deepEqual(importWarnings(r, { cases: [], trucks: [] }), [
+    'Ladeplan „Tour A“: 1 Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.',
+  ]);
+});
+
+test('Import: wirft autosave.include, läuft bestandsSync.ende trotzdem', async () => {
+  const handlers = {};
+  const realDoc = globalThis.document, realCreate = URL.createObjectURL;
+  globalThis.document = { querySelector: sel => (handlers[sel] ??= {}), createElement: () => ({ click() {} }) };
+  URL.createObjectURL = () => 'blob:x';
+  try {
+    const plan = { id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [], notes: '' };
+    let s = { cases: [], trucks: [mkTruck({ id: 't' })], plans: [], plan, ruleSets: [], collections: [] };
+    const store = { get: () => s, update(fn) { s = fn(s); }, resetHistory() {} };
+    let ende = 0;
+    const repo = {
+      mergeImportedBundle: cur => ({ ...cur, planChanged: false, winners: { cases: [], trucks: [], plans: [], ruleSets: [], collections: [] } }),
+      saveImportWinners: async () => {},
+    };
+    wireImportExport({ store, autosave: { exclude() {}, include() { throw new Error('include'); } }, repo, showAlert: async m => { if (process.env.DBG) console.log(m); }, showConfirm: async () => false, bestandsSync: { halte() {}, ende() { ende++; } } });
+    const bundle = JSON.stringify({ format: 'truckload', version: 1, cases: [{ id: 'zz', name: 'Z', l: 10, w: 10, h: 10, weight: 1 }] });
+    await handlers['#import'].onchange({ target: { files: [{ text: async () => bundle }], value: '' } }).catch(e => { if (process.env.DBG) console.log(e); });
+    assert.equal(ende, 1);
+  } finally {
+    globalThis.document = realDoc; URL.createObjectURL = realCreate;
+  }
 });

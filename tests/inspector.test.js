@@ -40,3 +40,58 @@ test('lkwField: „Ohne LKW“ plus alle LKW, aktueller ausgewählt, Namen maski
   assert.ok(!html.includes('<b>x'));
   assert.match(lkwField({ options: [{ id: 'a', name: 'Ton' }], current: null }), /<option value="" selected>Ohne LKW/);
 });
+
+// ---- Fremder Rechner: Cases/Fahrzeuge aus der Projektdatei ----
+import { renderInspector } from '../js/ui/inspector.js';
+import { validatePlan } from '../js/model/validate.js';
+import { mkTruck, P, plan, byId } from './fixtures.js';
+
+const fakeEl = () => ({ html: null, __lastHtml: null, set innerHTML(v) { this.html = v; }, contains: () => false, querySelector: () => null });
+function inspectorArgs(caseId) {
+  globalThis.document ??= { activeElement: null };
+  const c = mkCase(caseId, 100, 50, 50, { builtin: false, weight: 12 });
+  const truck = mkTruck();
+  const p = plan([P('a', caseId, 0, 0, 0)]);
+  const result = validatePlan(p, byId(c), truck);
+  const selected = result.items.find(it => it.id === 'a');
+  return { selected, selectedUnplaced: null, result, truck };
+}
+
+test('weightField: gesperrt zeigt nur Text, auch bei eigenem Case', () => {
+  const html = weightField(mkCase('own-1', 100, 50, 50, { builtin: false, weight: 12 }), { gesperrt: true });
+  assert.ok(!html.includes('name="weight"'));
+  assert.ok(html.includes('12 kg'));
+});
+
+test('renderInspector: Case aus der Projektdatei bekommt Hinweis, Übernahme-Knopf, kein Bearbeiten', () => {
+  const el = fakeEl();
+  renderInspector(el, { ...inspectorArgs('cf'), ausProjekt: { cases: new Set(['cf']), trucks: new Set() } });
+  assert.ok(el.html.includes('Aus der Projektdatei – nicht in deiner Bibliothek'));
+  assert.ok(el.html.includes('data-act="uebernehmen-case"'));
+  assert.ok(!el.html.includes('data-act="edit-case"'));
+  assert.ok(!el.html.includes('name="weight"'));
+});
+
+test('renderInspector: normales Case ohne Hinweis (eigener Rechner unverändert)', () => {
+  const el = fakeEl();
+  renderInspector(el, inspectorArgs('c1'));
+  assert.ok(!el.html.includes('Aus der Projektdatei'));
+  assert.ok(el.html.includes('data-act="edit-case"'));
+});
+
+test('renderInspector: Ablage-Stück aus der Projektdatei bekommt ebenfalls Hinweis und Knopf', () => {
+  const el = fakeEl();
+  const a = inspectorArgs('cf');
+  const c = a.selected.c;
+  renderInspector(el, { ...a, selected: null, selectedUnplaced: { id: 'u', item: { id: 'u', caseId: 'cf' }, c, label: 'x', color: '#999999' },
+    ausProjekt: { cases: new Set(['cf']), trucks: new Set() } });
+  assert.ok(el.html.includes('data-act="uebernehmen-case"'));
+  assert.ok(!el.html.includes('data-act="edit-case"'));
+});
+
+test('renderInspector: Fahrzeug aus der Projektdatei bekommt Hinweis und Knopf im Ladungsblock', () => {
+  const el = fakeEl();
+  renderInspector(el, { ...inspectorArgs('c1'), ausProjekt: { cases: new Set(), trucks: new Set(['t']) } });
+  assert.ok(el.html.includes('data-act="uebernehmen-truck"'));
+  assert.ok(!el.html.includes('data-act="uebernehmen-case"'));
+});

@@ -2,12 +2,31 @@ import { esc } from './dom.js';
 import { MAX_RULESET_NAME } from '../model/limits.js';
 import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, ruleActive } from '../model/packRules.js';
 
+const ORTE = ['projekt', 'bibliothek'];
+const ORT_LABEL = { projekt: 'Projekt', bibliothek: 'Bibliothek' };
+
+export function setOptions(projectSets, librarySets) {
+  const gruppe = (ort, list) => (list.length
+    ? `<optgroup label="${ORT_LABEL[ort]}">${list.map(s => `<option value="${ort}:${esc(s.id)}">${esc(s.name)}</option>`).join('')}</optgroup>`
+    : '');
+  return gruppe('projekt', projectSets) + gruppe('bibliothek', librarySets);
+}
+
+export function parseSetValue(value) {
+  const i = typeof value === 'string' ? value.indexOf(':') : -1;
+  if (i < 0) return null;
+  const ort = value.slice(0, i), id = value.slice(i + 1);
+  return ORTE.includes(ort) && id ? { ort, id } : null;
+}
+
+const byName = (a, b) => a.name.localeCompare(b.name, 'de');
+
 // Dialog „Pack-Regeln“. Store-unwissend wie openCaseEditor/openLoadWizard: bekommt
 // Regeln, Deckschicht-Schalter, Ziele des Loads und Regelsets als Argumente, speichert Regelsets
 // über die Rückrufe von app.js und liefert { rules, mixTop, repack } oder null (Abbrechen/Esc).
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
 // Drag-Sonderfälle im <dialog>.
-export async function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
+export async function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], projectRuleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
   if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
     const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
     dlg.returnValue = 'cancel'; dlg.close();
@@ -15,6 +34,8 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
   }
   let cur = [...rules];
   let sets = [...ruleSets];
+  let projSets = [...projectRuleSets];
+  const listOf = ort => (ort === 'projekt' ? projSets : sets);
 
   dlg.innerHTML = `
     <form method="dialog" class="editor pack-rules">
@@ -40,8 +61,9 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
           <button type="button" data-act="apply-set">Übernehmen</button>
           <button type="button" data-act="delete-set" class="danger">Löschen</button>
         </div>
-        <div class="rule-add-row">
+        <div class="rule-add-row rule-save-row">
           <input name="setName" maxlength="${MAX_RULESET_NAME}" placeholder="Name, z. B. „Tour-Standard“">
+          <select name="setOrt" aria-label="Speicherort"><option value="projekt" selected>im Projekt</option><option value="bibliothek">in der Bibliothek</option></select>
           <button type="button" data-act="save-set">Als Regelset speichern</button>
         </div>
         <small class="hint rule-set-hint" hidden></small>
@@ -87,11 +109,10 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
     }).join('') || '<li class="hint">Keine Regel – dann entscheidet der Name.</li>';
   }
   function renderSets() {
-    f.set.innerHTML = sets.length
-      ? sets.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')
-      : '<option value="">(noch keine Regelsets)</option>';
-    dlg.querySelector('[data-act="apply-set"]').disabled = !sets.length;
-    dlg.querySelector('[data-act="delete-set"]').disabled = !sets.length;
+    const any = projSets.length + sets.length > 0;
+    f.set.innerHTML = any ? setOptions(projSets, sets) : '<option value="">(noch keine Regelsets)</option>';
+    dlg.querySelector('[data-act="apply-set"]').disabled = !any;
+    dlg.querySelector('[data-act="delete-set"]').disabled = !any;
   }
   const showSetHint = text => { setHint.textContent = text; setHint.hidden = !text; };
 
@@ -123,23 +144,30 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
       cur = addRule(cur, rule);
     }
     if (act === 'apply-set') {
-      const s = sets.find(x => x.id === f.set.value);
+      const v = parseSetValue(f.set.value);
+      const s = v && listOf(v.ort).find(x => x.id === v.id);
       if (s) { cur = [...s.rules]; f.mixTop.checked = s.mixTop === true; showSetHint(`Regelset „${s.name}“ übernommen.`); }
     }
     if (act === 'delete-set') {
-      const s = sets.find(x => x.id === f.set.value);
-      if (s && await onDeleteRuleSet?.(s.id)) { sets = sets.filter(x => x.id !== s.id); showSetHint(`Regelset „${s.name}“ gelöscht.`); }
+      const v = parseSetValue(f.set.value);
+      const s = v && listOf(v.ort).find(x => x.id === v.id);
+      if (s && await onDeleteRuleSet?.(s.id, v.ort)) {
+        if (v.ort === 'projekt') projSets = projSets.filter(x => x.id !== s.id); else sets = sets.filter(x => x.id !== s.id);
+        showSetHint(`Regelset „${s.name}“ gelöscht.`);
+      }
       renderSets();
     }
     if (act === 'save-set') {
       const name = f.setName.value.trim();
       if (!name) { f.setName.focus(); return; }
-      const saved = await onSaveRuleSet?.(name, cur, f.mixTop.checked);
+      const ort = f.setOrt.value;
+      const saved = await onSaveRuleSet?.(name, cur, f.mixTop.checked, ort);
       if (saved) {
-        sets = [...sets.filter(x => x.id !== saved.id), saved].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        const next = [...listOf(ort).filter(x => x.id !== saved.id), saved].sort(byName);
+        if (ort === 'projekt') projSets = next; else sets = next;
         f.setName.value = '';
         renderSets();
-        f.set.value = saved.id;
+        f.set.value = `${ort}:${saved.id}`;
         showSetHint(`Regelset „${saved.name}“ gespeichert.`);
       }
     }

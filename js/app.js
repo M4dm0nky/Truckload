@@ -15,7 +15,7 @@ import { mountMaterialScreen } from './app/materialScreen.js';
 import { wireImportExport } from './app/importExport.js';
 import { mountPlanView, renderPlanViews, loadCaseColors } from './app/planView.js';
 import { installEarlyHandlers, setSaveStatus, wirePrint, showVersion, showStorageError, wireBanners, registerServiceWorker } from './app/chrome.js';
-import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf } from './app/core.js';
+import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf, planZumSpeichern, createBestandsSync } from './app/core.js';
 import { isMultiLkw } from './model/lkw.js';
 import * as A from './model/actions.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
@@ -41,7 +41,7 @@ try {
 // geladenen Pläne. layerLimit ist bewusst keine localStorage-Einstellung wie caseColors: die
 // Lagen-Durchsicht ist eine Momentaufnahme.
 export const store = createStore({
-  cases: data.cases, collections: data.collections, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [],
+  cases: data.cases, collections: data.collections, trucks: data.trucks, plans: data.plans, ruleSets: data.ruleSets ?? [], projectRuleSets: data.projectRuleSets ?? [],
   plan: null, selectedId: null, activeLkw: null, materialOpen: false, mode: '2d', caseColors: loadCaseColors(), layerLimit: null,
 });
 
@@ -115,11 +115,16 @@ function render() {
 
 // Speichern: die Buchhaltung (ausstehender Plan, Debounce, Wiederholung) steckt in
 // js/store/autosave.js. Hier wird nur verdrahtet.
-const autosave = createAutosave({ savePlan: repo.savePlan, onStatus: setSaveStatus });
+const savePlanMitKopie = plan => repo.savePlan(planZumSpeichern(store.get(), plan));
+const autosave = createAutosave({ savePlan: savePlanMitKopie, onStatus: setSaveStatus });
 
+// Ändert sich in der Bibliothek ein Case oder Fahrzeug, ohne dass der Plan angefasst wird, bliebe die
+// mitgeführte Kopie in der Projektdatei sonst bis zur nächsten Planänderung veraltet (Truckload#33 / Spec).
+const bestandsSync = createBestandsSync({ initial: store.get(), autosave, savePlan: savePlanMitKopie, onError: err => setSaveStatus('error', err) });
 store.subscribe(s => {
   scheduleRender();
   if (s.plan) autosave.noticeChange(s.plan);
+  bestandsSync.change(s);
 });
 
 // Flush beim Verlassen der Seite: ein reiner Debounce verwürfe sonst die letzten 400 ms an
@@ -130,7 +135,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') autosave.flush();
 });
 
-const persistence = createPersistence({ repo, store, showAlert, showConfirm, stamp, uid });
+const persistence = createPersistence({ repo: { ...repo, savePlan: savePlanMitKopie }, store, showAlert, showConfirm, stamp, uid });
 
 const { material, openMaterial, openMaterialFromWizard, editCase, newCaseForWizard } =
   mountMaterialScreen({ el: materialEl, store, uid, persistence });
@@ -162,7 +167,7 @@ attachKeyboard({
 });
 
 wirePrint({ store, derive });
-wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue: persistence.enqueue });
+wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue: persistence.enqueue, bestandsSync });
 
 showVersion();
 showStorageError(storageError);

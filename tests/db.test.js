@@ -138,3 +138,10 @@ test('putMany bleibt eine Transaktion über mehrere Stores', async () => {
   assert.deepEqual(txs[0].stores, ['cases', 'plans']);
   assert.deepEqual(log.map(l => l[0]), ['put', 'put']);
 });
+
+test('STORES enthält projectRuleSets, DB_VERSION 4', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(new URL('../js/store/db.js', import.meta.url), 'utf8');
+  assert.match(src, /const STORES = \[[^\]]*'projectRuleSets'[^\]]*\]/);
+  assert.match(src, /const DB_VERSION = 4;/);
+});

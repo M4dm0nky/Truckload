@@ -28,7 +28,10 @@ Wo NYX speichert:
 | Store | Ort in NYX |
 |---|---|
 | `cases`, `collections`, `trucks`, `ruleSets` | projektübergreifend (`~/.lpm/lpm_types.db`) |
-| `plans` | in der Projektdatei |
+| `plans`, `projectRuleSets` | in der Projektdatei |
+
+Projekt-Regelsets (Store `projectRuleSets`) und die mitgeführten Cases und Fahrzeuge eines Plans
+(`plan.mitgefuehrt`, seit V 0.17.1): siehe [nyx-projektdatei.md](nyx-projektdatei.md).
 
 Sammlungen (Store `collections`, seit V 0.17.0): siehe [nyx-sammlungen.md](nyx-sammlungen.md). Dort
 steht auch, was NYX dafür vorab tun muss und was passiert, wenn der Store fehlt.
@@ -42,8 +45,9 @@ atomar. Der Import einer Sicherung mischt dagegen `collections` mit `plans` und 
 Dateien hinweg **nicht** atomar.
 
 Ein neuer Store braucht eine Absprache mit NYX: NYX lehnt unbekannte Stores ab. Seit V 0.17.0 gilt
-das für `collections`; ohne die Freigabe zeigt Truckload die Ersatzansicht und sperrt das
-Schreiben bis zum Neuladen (siehe [nyx-sammlungen.md](nyx-sammlungen.md)).
+das für `collections`, seit V 0.17.1 (Projektdatei) zusätzlich für `projectRuleSets`; ohne die
+Freigabe zeigt Truckload die Ersatzansicht und sperrt das Schreiben bis zum Neuladen (siehe
+[nyx-sammlungen.md](nyx-sammlungen.md)).
 
 ## Was NYX voraussetzt
 

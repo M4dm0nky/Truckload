@@ -82,10 +82,10 @@ const cleanCases = list => sanitizeUpdatedAt((Array.isArray(list) ? list : []).f
 
 export async function loadAll() {
   await db.persist();
-  const [legacyCases, collRecords, trucks, plans, ruleSets] = await Promise.all([
-    db.getAll('cases'), db.getAll('collections'), db.getAll('trucks'), db.getAll('plans'), db.getAll('ruleSets'),
+  const [legacyCases, collRecords, trucks, plans, ruleSets, projectRuleSets] = await Promise.all([
+    db.getAll('cases'), db.getAll('collections'), db.getAll('trucks'), db.getAll('plans'), db.getAll('ruleSets'), db.getAll('projectRuleSets'),
   ]);
-  const clean = await sanitizeAndWriteBack({ collections: collRecords, trucks, plans, ruleSets });
+  const clean = await sanitizeAndWriteBack({ collections: collRecords, trucks, plans, ruleSets, projectRuleSets });
   let records = clean.collections.filter(r => r.id !== STANDARD_ID);
   // Einmalige Migration (V 0.17.0): eigene Cases des alten Stores `cases` werden „Meine Sammlung“.
   // Der alte Store bleibt als Sicherheitsnetz liegen und wird danach nicht mehr gelesen. Scheitert
@@ -109,6 +109,7 @@ export async function loadAll() {
     trucks: [...PRESET_TRUCKS, ...clean.trucks],
     plans: clean.plans,
     ruleSets: clean.ruleSets,
+    projectRuleSets: clean.projectRuleSets,
   };
 }
 
@@ -120,7 +121,7 @@ export function loadAllFallback() {
   return {
     cases: mergeOwnWithBuiltins([], [...PRESET_CASES, ...CASE_LIBRARY]),
     collections: withBuiltins([]),
-    trucks: [...PRESET_TRUCKS], plans: [], ruleSets: [],
+    trucks: [...PRESET_TRUCKS], plans: [], ruleSets: [], projectRuleSets: [],
   };
 }
 
@@ -132,7 +133,7 @@ export function loadAllFallback() {
 // dann gibt es keinen „aktuellen“ Plan, und pickLatestPlan() entscheidet unter allen Plänen
 // (eigene + importierte), welcher geöffnet wird, wie auch loadAll() den zuletzt geänderten Plan
 // wählt. Bringt die Sicherung keinen Plan mit, bleibt plan null und der Startbildschirm bestehen.
-export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [], collections = withBuiltins([]) }, bundle) {
+export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [], projectRuleSets = [], collections = withBuiltins([]) }, bundle) {
   // Eine alte, flache Sicherung kennt keine `collectionId`. Gewinnt ihr Case gegen ein lokales,
   // behält es dessen Sammlung (saveImportWinners tut dasselbe auf der Platte), sonst zeigte der
   // Speicher es unter „Meine Sammlung“, während es auf der Platte in der benannten liegt.
@@ -148,6 +149,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
   const mergedTrucks = mergeById(trucks, bundle.trucks);
   const mergedPlans = mergeById(plan ? [plan, ...plans] : plans, bundle.plans);
   const mergedRuleSets = mergeById(ruleSets, bundle.ruleSets ?? []);
+  const mergedProjectRuleSets = mergeById(projectRuleSets, bundle.projectRuleSets ?? []);
   const nextPlan = plan
     ? (mergedPlans.find(p => p.id === plan.id) ?? plan)
     : (pickLatestPlan(mergedPlans) ?? null);
@@ -159,6 +161,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
     plan: nextPlan,
     planChanged: nextPlan !== plan,
     ruleSets: mergedRuleSets,
+    projectRuleSets: mergedProjectRuleSets,
     // Nur die Datensätze, die aus der Datei kommen UND gewonnen haben, müssen nach
     // IndexedDB geschrieben werden – alles andere steht dort schon (oder stand nie drin,
     // weil der lokale Stand gewonnen hat).
@@ -168,6 +171,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
       trucks: bundle.trucks.filter(x => mergedTrucks.find(m => m.id === x.id) === x),
       plans: bundle.plans.filter(x => mergedPlans.find(m => m.id === x.id) === x),
       ruleSets: (bundle.ruleSets ?? []).filter(x => mergedRuleSets.find(m => m.id === x.id) === x),
+      projectRuleSets: (bundle.projectRuleSets ?? []).filter(x => mergedProjectRuleSets.find(m => m.id === x.id) === x),
     },
   };
 }
@@ -178,6 +182,8 @@ export const savePlan = p => db.put('plans', p);
 export const deletePlan = id => db.del('plans', id);
 export const saveRuleSet = rs => db.put('ruleSets', rs);
 export const deleteRuleSet = id => db.del('ruleSets', id);
+export const saveProjectRuleSet = rs => db.put('projectRuleSets', rs);
+export const deleteProjectRuleSet = id => db.del('projectRuleSets', id);
 
 // Gespeicherte Sammlungs-Datensätze. Fehlt „meine“ (Migration noch nicht geschrieben), entsteht er
 // aus dem alten Store `cases`, damit ein Schreibvorgang nie nur einen Teil des Bestands anlegt.
@@ -217,6 +223,7 @@ export function buildImportWinnerItems(winners) {
     ...winners.trucks.map(value => ({ store: 'trucks', value })),
     ...winners.plans.map(value => ({ store: 'plans', value })),
     ...(winners.ruleSets ?? []).map(value => ({ store: 'ruleSets', value })),
+    ...(winners.projectRuleSets ?? []).map(value => ({ store: 'projectRuleSets', value })),
   ];
 }
 

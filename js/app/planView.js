@@ -10,12 +10,14 @@ import { mountLibrary } from '../ui/library.js';
 import { openPackRules } from '../ui/pack-rules.js';
 import { renderInspector, weightEditable } from '../ui/inspector.js';
 import { CASE_LIMITS } from '../model/limits.js';
+import { MEINE_ID } from '../model/collections.js';
+import { alsEigenesCase } from '../model/mitgefuehrt.js';
 import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
 import { createView3d } from '../ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom, getScrollMode, setScrollMode, nextScrollMode, SCROLL_LABELS, SCROLL_SHORT } from '../ui/zoom2d.js';
-import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, repointTruck, distributionNotices } from './core.js';
+import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, bestandOf, repointTruck, distributionNotices, brauchtAuswahl } from './core.js';
 import { lkwsOf, isMultiLkw, addLkw, updateLkw, removeLkw, moveToLkw } from '../model/lkw.js';
 import { mountLkwTabs, lkwTabsModel } from '../ui/lkw-tabs.js';
 import { openLkwEditor } from '../ui/lkw-editor.js';
@@ -64,7 +66,7 @@ export function mountPlanView(deps) {
   // --- Reiterleiste und LKW-Dialog ---
   async function addLkwFlow() {
     const s = store.get();
-    const res = await openLkwEditor($('#dlg-lkw'), null, { trucks: s.trucks, defaultTruckId: ctx(s).truck.id });
+    const res = await openLkwEditor($('#dlg-lkw'), null, { trucks: bestandOf(s).trucks, defaultTruckId: ctx(s).truck.id });
     if (res?.action !== 'save') return;
     const before = new Set(lkwsOf(store.get().plan).map(l => l.id));
     editWhole(p => addLkw(p, res.value, uid));
@@ -77,7 +79,7 @@ export function mountPlanView(deps) {
     if (!id) return;
     const lkw = lkwsOf(s.plan).find(l => l.id === id);
     const res = await openLkwEditor($('#dlg-lkw'), lkw, {
-      trucks: s.trucks, isLast: lkwsOf(s.plan).length === 1,
+      trucks: bestandOf(s).trucks, isLast: lkwsOf(s.plan).length === 1,
       pieces: piecesOf(s.plan).filter(x => x.lkw === id).length,
     });
     if (!res) return;
@@ -92,17 +94,21 @@ export function mountPlanView(deps) {
   $('#lkw-multi').onclick = addLkwFlow;
   renderHooks.push((s, d) => {
     const multi = d.activeLkw !== null;
-    tabs.update(multi ? lkwTabsModel({ plan: s.plan, trucks: s.trucks, caseById: d.caseById, active: d.activeLkw }) : null);
+    tabs.update(multi ? lkwTabsModel({ plan: s.plan, trucks: d.bestand.trucks, caseById: d.caseById, active: d.activeLkw }) : null);
     $('#lkw-multi').hidden = multi;
     const none = d.activeLkw === NO_LKW;
     $('#lkw-none-hint').hidden = !none;
     // Im Reiter „Ohne LKW“ gibt es kein Fahrzeug und keine Platzierung: diese Knöpfe ruhen.
     for (const id of ['truck-select', 'truck-edit', 'pack-rest']) $(`#${id}`).disabled = none;
+    // Fahrzeug nur als Kopie aus der Projektdatei: erst „In meine Bibliothek übernehmen“, dann bearbeiten.
+    const kopie = !none && d.ausProjekt.trucks.has(d.truck.id);
+    if (kopie) $('#truck-edit').disabled = true;
+    $('#truck-edit').title = kopie ? 'Aus der Projektdatei – erst in die Bibliothek übernehmen' : '';
   });
 
   // --- Seitenleiste und 2D-Ansichten ---
   const library = mountLibrary($('#library'), {
-    onEdit: id => editCase(id),
+    onEdit: id => { if (ctx().ausProjekt.cases.has(id)) return; editCase(id); }, // Kopie: erst übernehmen
     onAddLoad: () => runLoadWizard('add'),
     onTrayRemove: id => {
       edit(p => A.removeUnplaced(p, id));
@@ -112,7 +118,7 @@ export function mountPlanView(deps) {
     onSelectUnplaced: id => select(id),
   });
   // Seitenleiste: Stücke des gewählten LKW (Reiter „Ohne LKW“: die nicht zugeordneten, ohne Fahrzeug).
-  renderHooks.push((s, d) => library.update({ ...s, plan: d.view }, d.activeLkw === NO_LKW ? null : d.truck));
+  renderHooks.push((s, d) => library.update({ ...s, cases: d.bestand.cases, plan: d.view }, d.activeLkw === NO_LKW ? null : d.truck));
 
   attachTopInteractions($('#svg-top'), {
     getTruck: () => ctx().truck,
@@ -162,6 +168,7 @@ export function mountPlanView(deps) {
       selectedUnplaced,
       result: d.result,
       truck: d.truck,
+      ausProjekt: d.ausProjekt,
       groups: ruleTargets(piecesOf(s.plan), d.caseById).groups,
       lkw: d.activeLkw === null ? null : {
         options: lkwsOf(s.plan).map(l => ({ id: l.id, name: l.name })),
@@ -193,7 +200,23 @@ export function mountPlanView(deps) {
       edit(p => (isPlaced ? A.removePlacement(p, id) : A.removeUnplaced(p, id)));
       select(null);
     },
-    'edit-case': id => editCase(findCaseIdForPiece(id)),
+    'edit-case': id => {
+      const caseId = findCaseIdForPiece(id);
+      if (ctx().ausProjekt.cases.has(caseId)) return; // Kopie aus der Projektdatei: erst übernehmen
+      editCase(caseId);
+    },
+    // Kopie aus der Projektdatei in die eigene Bibliothek („Meine Sammlung“). Danach liefert
+    // bestandOf die Bibliotheksfassung, Hinweis und Knopf verschwinden von selbst.
+    'uebernehmen-case': async id => {
+      const c = ctx().caseById.get(findCaseIdForPiece(id));
+      if (!c || !ctx().ausProjekt.cases.has(c.id)) return;
+      await persistence.saveCase(alsEigenesCase(c, MEINE_ID));
+    },
+    'uebernehmen-truck': async () => {
+      const t = ctx().truck;
+      if (!t || !ctx().ausProjekt.trucks.has(t.id)) return;
+      await persistence.saveTruck({ ...t, builtin: false });
+    },
     // Mit `face` setzt die Aktion genau diese Radseite (Inspector-Knopf), ohne reihum weiter.
     'wheel-face': (id, face) => {
       const p = derive().view.placements.find(q => q.id === id);
@@ -209,7 +232,11 @@ export function mountPlanView(deps) {
   $('#inspector').addEventListener('click', e => {
     invalidateInspector();
     const actEl = e.target.closest('[data-act]');
-    if (actEl) return withSel(id => ACTIONS[actEl.dataset.act](id, actEl.dataset.face));
+    if (actEl) {
+      const act = actEl.dataset.act;
+      if (!brauchtAuswahl(act)) return ACTIONS[act]();
+      return withSel(id => ACTIONS[act](id, actEl.dataset.face));
+    }
     const target = e.target.closest('[data-select]')?.dataset.select;
     if (target) select(target);
   });
@@ -218,7 +245,7 @@ export function mountPlanView(deps) {
   // Grenze): Feld zurücksetzen, nichts speichern.
   async function changeWeight(input, id) {
     const c = ctx().caseById.get(findCaseIdForPiece(id));
-    if (!c || !weightEditable(c)) return;
+    if (!c || ctx().ausProjekt.cases.has(c.id) || !weightEditable(c)) return;
     const value = input.value.trim() === '' ? NaN : Number(input.value);
     if (!(value >= 0 && value <= CASE_LIMITS.weight)) { input.value = c.weight; return; }
     if (value === c.weight) return;
@@ -294,6 +321,7 @@ export function mountPlanView(deps) {
       targets: ruleTargets(piecesOf(s.plan), c.caseById),
       caseById: c.caseById,
       ruleSets: [...s.ruleSets].sort((a, b) => a.name.localeCompare(b.name, 'de')),
+      projectRuleSets: [...(s.projectRuleSets ?? [])].sort((a, b) => a.name.localeCompare(b.name, 'de')),
       onSaveRuleSet: persistence.saveRuleSet,
       onDeleteRuleSet: persistence.deleteRuleSet,
     });
@@ -347,7 +375,7 @@ export function mountPlanView(deps) {
     if (planHtml !== lastPlanHtml) $('#plan-select').innerHTML = lastPlanHtml = planHtml;
     // Vorlagen bleiben vorn in fester Reihenfolge (Array.prototype.sort ist stabil), eigene
     // Fahrzeuge folgen alphabetisch.
-    const sortedTrucks = [...s.trucks].sort((a, b) =>
+    const sortedTrucks = [...d.bestand.trucks].sort((a, b) =>
       a.builtin === b.builtin ? a.name.localeCompare(b.name, 'de') : a.builtin ? -1 : 1);
     const truckHtml = sortedTrucks.map(t =>
       `<option value="${esc(t.id)}" ${t.id === d.truck.id ? 'selected' : ''}>${esc(t.name)}${t.builtin ? '' : ' ★'} – ${t.l}×${t.w}×${t.h}</option>`).join('');
@@ -362,6 +390,7 @@ export function mountPlanView(deps) {
   $('#truck-select').onchange = e => editWhole(p => withTruck(p, e.target.value));
 
   async function editTruck(truck) {
+    if (truck && ctx().ausProjekt.trucks.has(truck.id)) return;
     const s0 = store.get();
     const res = await openTruckEditor($('#dlg-truck'), truck, { usedIn: truck ? truckUsage(s0, truck.id) : 0 });
     if (!res) return;

@@ -7,7 +7,7 @@ const { PRESET_CASES } = await import('../js/data/preset-cases.js');
 const { CASE_LIBRARY } = await import('../js/data/case-library.js');
 
 function memoryHost(seed = {}) {
-  const data = { cases: [], collections: [], trucks: [], plans: [], ruleSets: [], ...seed };
+  const data = { cases: [], collections: [], trucks: [], plans: [], ruleSets: [], projectRuleSets: [], ...seed };
   const put = (s, v) => { data[s] = [...data[s].filter(x => x.id !== v.id), structuredClone(v)]; };
   return {
     data,
@@ -236,4 +236,11 @@ test('writeCases: der aus dem alten Store gebaute „meine“ ist ebenfalls bere
   const m = host.data.collections.find(r => r.id === 'meine');
   assert.deepEqual(m.cases.map(c => c.id).sort(), ['a', 'b', 'c']);
   assert.equal('updatedAt' in m.cases.find(c => c.id === 'b'), false);
+});
+
+test('loadAll: projectRuleSets werden geladen, Altwert von updatedAt bereinigt', async () => {
+  const host = memoryHost({ projectRuleSets: [{ id: 'pr1', name: 'Tour', rules: [], updatedAt: 5 }] });
+  const d = await withHost(host, () => repo.loadAll());
+  assert.deepEqual(d.projectRuleSets, [{ id: 'pr1', name: 'Tour', rules: [] }]);
+  assert.deepEqual(host.data.projectRuleSets, [{ id: 'pr1', name: 'Tour', rules: [] }], 'zurückgeschrieben');
 });

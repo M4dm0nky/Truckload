@@ -1,6 +1,6 @@
 import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.js';
-import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, MAX_COLLECTIONS, layersValid } from '../model/limits.js';
+import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, MAX_COLLECTIONS, MAX_MITGEFUEHRT_CASES, layersValid } from '../model/limits.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
@@ -159,6 +159,15 @@ export function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ hat ungültige Pack-Regeln.`);
   if (p.mixTop !== undefined && typeof p.mixTop !== 'boolean')
     throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Deckschicht-Schalter.`);
+  if (p.mitgefuehrt !== undefined) {
+    const m = p.mitgefuehrt;
+    const bad = () => new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.`);
+    if (!m || typeof m !== 'object' || !num(m.version) || !Array.isArray(m.cases) || !Array.isArray(m.trucks)
+      || m.cases.length > MAX_MITGEFUEHRT_CASES || m.trucks.length > MAX_LKW + 1) throw bad();
+    try { m.cases.forEach(checkCase); m.trucks.forEach(checkTruck); } catch (e) {
+      throw new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge: ${e.message}`);
+    }
+  }
   checkLkws(p);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
@@ -193,17 +202,19 @@ export function checkCollection(m) {
   if (!updatedAtOk(m)) throw new Error(`Sammlung „${m.name}“ hat einen ungültigen Zeitstempel.`);
 }
 
-export function exportBundle({ cases, trucks, plans, ruleSets = [], collections = [] }, now = new Date()) {
+export function exportBundle({ cases, trucks, plans, ruleSets = [], collections = [], projectRuleSets = [] }, now = new Date()) {
   return JSON.stringify({
     format: FORMAT, version: VERSION, appVersion: APP_VERSION, exportedAt: now.toISOString(),
     cases: cases.filter(c => !c.builtin), trucks: trucks.filter(t => !t.builtin), plans, ruleSets,
     // Standard und Meine sind fest; nur eigene Sammlungen gehören in die Datei.
     collections: collections.filter(c => !c.readOnly && c.id !== 'meine')
       .map(({ id, name, parentId, updatedAt }) => ({ id, name, ...(parentId ? { parentId } : {}), ...(updatedAt ? { updatedAt } : {}) })),
+    // Nur wenn vorhanden: Sicherungen ohne Projekt-Regelsets bleiben byte-gleich zu 0.17.0.
+    ...(projectRuleSets.length ? { projectRuleSets } : {}),
   }, null, 2);
 }
 
-const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets', collections: 'Sammlungen' };
+const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets', collections: 'Sammlungen', projectRuleSets: 'Projekt-Regelsets' };
 
 // Zwei Werte aus älteren Wizard-/Editor-Vorgaben reißen sonst die harte Alles-oder-nichts-Grenze
 // beim Import, obwohl sie reparierbar sind: eine zu lange Beschriftung (früher bis 50 Zeichen,
@@ -229,7 +240,7 @@ export function parseBundle(text) {
   if (data?.format !== FORMAT) throw new Error('Keine Truckload-Datei.');
   if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
   if (data.version > VERSION) throw new Error('Die Datei stammt aus einer neueren Version.');
-  for (const field of ['cases', 'trucks', 'plans', 'ruleSets', 'collections']) {
+  for (const field of ['cases', 'trucks', 'plans', 'ruleSets', 'collections', 'projectRuleSets']) {
     if (data[field] !== undefined && !Array.isArray(data[field]))
       throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
   }
@@ -237,12 +248,13 @@ export function parseBundle(text) {
   const rawTrucks = arr(data.trucks).filter(t => !isPreset(t));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
+  const projectRuleSets = arr(data.projectRuleSets);
   if (arr(data.collections).length > MAX_COLLECTIONS) throw new Error('Die Datei enthält zu viele Sammlungen.');
   // Feste und mitgelieferte Sammlungen kommen nie aus einer Datei; Null-Einträge bleiben stehen
   // und lehnt checkCollection ab.
   const rawCollectionsIn = arr(data.collections).filter(m => m?.id !== 'standard' && m?.id !== 'meine'
     && !m?.builtin && !m?.readOnly && !(typeof m?.id === 'string' && m.id.startsWith('preset-')));
-  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && rawCollectionsIn.length === 0)
+  if (rawCases.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && projectRuleSets.length === 0 && rawCollectionsIn.length === 0)
     throw new Error('Die Datei enthält keine Daten.');
 
   // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
@@ -325,8 +337,24 @@ export function parseBundle(text) {
     planRepairs.push(`Ladeplan „${p.name}“: Fahrzeug des Plans an das des ersten LKW angeglichen.`);
     return { ...p, truckId: first };
   };
+  // Die mitgeführte Kopie bekommt dieselben Reparaturen wie die Top-Level-Cases und Fahrzeuge
+  // (Zähler werden geteilt), sonst macht eine alte Name- oder Rollenhöhen-Verletzung in der Kopie
+  // die ganze Sicherung unimportierbar. Nur ein Objekt mit Array-Feldern wird angefasst.
+  const repairCopy = m => {
+    if (!m || typeof m !== 'object' || !Array.isArray(m.cases) || !Array.isArray(m.trucks)) return m;
+    return {
+      ...m,
+      cases: m.cases.map(c => {
+        const fixed = repairWheelH(c);
+        if (fixed) wheelHRepairs++;
+        return withCutName('case', fixed ?? c);
+      }),
+      trucks: m.trucks.map(t => withCutName('truck', t)),
+    };
+  };
   const plans = rawPlans.map(movePlaced).map(fixLkwRefs).map(realignTruck).map(p => ({
     ...p,
+    ...(p.mitgefuehrt !== undefined ? { mitgefuehrt: repairCopy(p.mitgefuehrt) } : {}),
     name: cutName('plan', p.name),
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
     // placementOk sie annimmt und der eigene Export wieder importierbar ist.
@@ -384,9 +412,9 @@ export function parseBundle(text) {
     return rest;
   });
 
-  cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet);
+  cases.forEach(checkCase); trucks.forEach(checkTruck); plans.forEach(checkPlan); ruleSets.forEach(checkRuleSet); projectRuleSets.forEach(checkRuleSet);
   // Doppelte IDs in derselben Liste lassen mergeById/winners still Datensätze verschlucken.
-  for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets], ['collections', collections]]) {
+  for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets], ['projectRuleSets', projectRuleSets], ['collections', collections]]) {
     const dup = list.map(x => x.id).find((id, i, ids) => ids.indexOf(id) !== i);
     if (dup !== undefined) throw new Error(`Die Datei enthält doppelte IDs bei ${FIELD_LABELS[field]} („${dup}“).`);
   }
@@ -401,7 +429,7 @@ export function parseBundle(text) {
   for (const p of plans) {
     const missingCases = [...p.placements, ...p.unplaced].map(x => x.caseId).filter(id => !knownCaseIds.has(id));
     const truck = knownTruckIds.has(p.truckId) ? null : p.truckId;
-    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck });
+    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck, ...(p.mitgefuehrt ? { kopieCases: p.mitgefuehrt.cases.map(c => c.id), kopieTrucks: p.mitgefuehrt.trucks.map(t => t.id) } : {}) });
   }
 
   const repairs = [];
@@ -423,7 +451,7 @@ export function parseBundle(text) {
   nameNote(nameRepairs.case, 'Case', 'Cases');
   nameNote(nameRepairs.truck, 'Fahrzeug', 'Fahrzeuge');
 
-  return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
+  return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, projectRuleSets, unknownRefs, repairs, overLimit: cases.flatMap(overLimit) };
 }
 
 // Ein lokaler mitgelieferter Eintrag (`builtin: true`) verliert immer: Mitgeliefertes kommt nie

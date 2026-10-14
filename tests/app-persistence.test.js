@@ -15,8 +15,8 @@ function setup({ fail = {}, confirm = true, state = {} } = {}) {
     calls.push([name, ...a]);
     if (fail[name]) throw new Error(fail[name]);
   };
-  const repo = Object.fromEntries(['writeCases', 'saveRuleSet', 'deleteRuleSet', 'saveTruck', 'deleteTruck', 'savePlan'].map(n => [n, stub(n)]));
-  const store = createStore({ cases: [], collections: withBuiltins([]), ruleSets: [], trucks: [], plans: [], plan: { id: 'cur', truckId: 't1', placements: [], unplaced: [] }, ...state });
+  const repo = Object.fromEntries(['writeCases', 'saveRuleSet', 'deleteRuleSet', 'saveProjectRuleSet', 'deleteProjectRuleSet', 'saveTruck', 'deleteTruck', 'savePlan'].map(n => [n, stub(n)]));
+  const store = createStore({ cases: [], collections: withBuiltins([]), ruleSets: [], projectRuleSets: [], trucks: [], plans: [], plan: { id: 'cur', truckId: 't1', placements: [], unplaced: [] }, ...state });
   const p = createPersistence({
     repo, store, stamp, uid: () => 'new-id',
     showAlert: async m => { alerts.push(m); },
@@ -214,4 +214,37 @@ test('deleteRuleSet: Rückfrage mit danger, Abbrechen ändert nichts, Bestätige
   const yes = setup({ state });
   assert.equal(await yes.p.deleteRuleSet('r1'), true);
   assert.deepEqual(yes.store.get().ruleSets.map(r => r.id), ['r2']);
+});
+
+test('saveRuleSet mit Ort „projekt“ schreibt in projectRuleSets, Bibliothek bleibt', async () => {
+  const { p, store, calls, confirms } = setup({ state: { ruleSets: [{ id: 'b1', name: 'Standard', rules: [] }] } });
+  const saved = await p.saveRuleSet('Standard', [], false, 'projekt');
+  assert.ok(saved);
+  assert.deepEqual(calls.map(c => c[0]), ['saveProjectRuleSet']);
+  assert.equal(store.get().projectRuleSets.length, 1);
+  assert.equal(store.get().ruleSets.length, 1);
+  assert.equal(confirms.length, 0);
+});
+
+test('deleteRuleSet mit Ort „projekt“ löscht nur dort', async () => {
+  const { p, store } = setup({ state: { projectRuleSets: [{ id: 'p1', name: 'X' }], ruleSets: [{ id: 'p1', name: 'X' }] } });
+  assert.equal(await p.deleteRuleSet('p1', 'projekt'), true);
+  assert.equal(store.get().projectRuleSets.length, 0);
+  assert.equal(store.get().ruleSets.length, 1);
+});
+
+test('saveRuleSet/deleteRuleSet: Zustand ohne projectRuleSets stürzt nicht ab', async () => {
+  const { p, store } = setup();
+  const s = store.get(); delete s.projectRuleSets;
+  assert.ok(await p.saveRuleSet('A', [], false, 'projekt'));
+  assert.equal(store.get().projectRuleSets.length, 1);
+});
+
+test('removeFromStock: entfernt das Case auch aus der Kopie der Pläne im Store (kein Wiederauftauchen)', async () => {
+  const c = { id: 'a', name: 'Kiste' };
+  const plan = { id: 'p', truckId: 't', placements: [], unplaced: [{ id: 'u', caseId: 'a' }], mitgefuehrt: { version: 1, cases: [c], trucks: [] } };
+  const { p, store } = setup({ state: { cases: [c], plans: [plan], plan } });
+  await p.removeFromStock(c, { confirmed: true });
+  assert.deepEqual(store.get().plan.mitgefuehrt.cases, []);
+  assert.deepEqual(store.get().plans[0].mitgefuehrt.cases, []);
 });

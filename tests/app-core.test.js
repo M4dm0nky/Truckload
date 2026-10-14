@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf } from '../js/app/core.js';
+import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf, plaeneMitGeaendertemBestand, createBestandsSync, activeLkwOf, activeViewOf, applyEdit, applyEditWhole, NO_LKW, hasUnassigned, mergeUnassignedView, packAllOf, repointTruck, distributionNotices, wholeCtxOf, planZumSpeichern, wizardTruckId, brauchtAuswahl } from '../js/app/core.js';
+import { P, mkCase, mkTruck, byId } from './fixtures.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
+import { createStore } from '../js/store/state.js';
+import { lkwView, convertToMulti, addLkw } from '../js/model/lkw.js';
+import * as A from '../js/model/actions.js';
 
 const mk = (id, extra = {}) => ({ id, name: id, truckId: 't1', placements: [], unplaced: [], ...extra });
 const ids = ps => ps.map(p => p.id);
@@ -64,12 +68,6 @@ test('deriveOf liefert bei gleichen Referenzen dasselbe Objekt', () => {
 });
 
 // ---- Mehrere LKW (Spec 2026-10-10) ----------------------------------------------------------
-import { createStore } from '../js/store/state.js';
-import { activeLkwOf, activeViewOf, applyEdit, applyEditWhole, NO_LKW, hasUnassigned, mergeUnassignedView,
-  packAllOf, repointTruck, distributionNotices, wholeCtxOf } from '../js/app/core.js';
-import { lkwView, convertToMulti, addLkw } from '../js/model/lkw.js';
-import * as A from '../js/model/actions.js';
-import { mkCase, mkTruck, byId } from './fixtures.js';
 
 const TRK = mkTruck({ id: DEFAULT_TRUCK_ID, l: 1360, w: 248, h: 270, payload: 24000 });
 const TRK2 = mkTruck({ id: 'klein', l: 400, w: 200, h: 200, payload: 1000 });
@@ -118,7 +116,7 @@ test('activeViewOf: Ein-LKW-Plan = der Plan selbst; Mehr-LKW = Ansicht des Reite
 
 test('ctxOf: Ein-LKW-Plan liefert exakt die bisherigen Schlüssel (kein truckById)', () => {
   const c = ctxOf(mkState(mk('a', { truckId: 'klein' })), () => 'x');
-  assert.deepEqual(Object.keys(c).sort(), ['caseById', 'newId', 'truck']);
+  assert.deepEqual(Object.keys(c).sort(), ['ausProjekt', 'caseById', 'newId', 'truck']);
   assert.equal(c.truck.id, 'klein');
 });
 test('ctxOf: Mehr-LKW-Plan nimmt das Fahrzeug des gewählten LKW, dazu truckById', () => {
@@ -297,4 +295,145 @@ test('Entf im Reiter „Ohne LKW“: Platzierung mit unbekanntem LKW ist dort ei
   const n = applyEdit(s, pl => (isPlaced ? A.removePlacement(pl, 'alt') : A.removeUnplaced(pl, 'alt')), () => 'x');
   assert.notEqual(n, s);
   assert.ok(![...n.plan.placements, ...n.plan.unplaced].some(x => x.id === 'alt'));
+});
+
+const fremderPlan = (extra = {}) => ({
+  id: 'fp', name: 'Fremd', truckId: 'tf', placements: [P('a', 'cf', 0, 0, 0)], unplaced: [], notes: '',
+  mitgefuehrt: { version: 1, cases: [mkCase('cf', 50, 50, 50)], trucks: [mkTruck({ id: 'tf', name: 'Fremd-LKW', l: 700 })] },
+  ...extra,
+});
+
+test('ctxOf: fehlendes Fahrzeug kommt aus der Kopie, nicht vom Standardfahrzeug', () => {
+  const s = { plan: fremderPlan(), cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: null };
+  const c = ctxOf(s, () => 'n');
+  assert.equal(c.truck.id, 'tf');
+  assert.ok(c.caseById.has('cf'));
+  assert.ok(c.ausProjekt.cases.has('cf'));
+});
+
+test('ctxOf: ohne Kopie fällt ein unbekanntes Fahrzeug wie bisher aufs Standardfahrzeug', () => {
+  const { mitgefuehrt, ...ohne } = fremderPlan();
+  const s = { plan: ohne, cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: null };
+  assert.equal(ctxOf(s, () => 'n').truck.id, DEFAULT_TRUCK_ID);
+});
+
+test('deriveOf: Prüfung kennt das Case aus der Kopie, bestand und ausProjekt liegen bei', () => {
+  const s = { plan: fremderPlan(), cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: null };
+  const d = deriveOf(s, () => 'n');
+  assert.equal(d.result.items.length, 1);
+  assert.ok(d.bestand.cases.some(c => c.id === 'cf'));
+  assert.ok(d.ausProjekt.trucks.has('tf'));
+});
+
+test('bestandOf: auf dem eigenen Rechner dieselben Arrays wie die Bibliothek', () => {
+  const cases = [mkCase('cf', 50, 50, 50)], trucks = [mkTruck({ id: 'tf' })];
+  const b = bestandOf({ plan: fremderPlan(), cases, trucks });
+  assert.equal(b.cases, cases);
+  assert.equal(b.trucks, trucks);
+});
+
+test('printSectionsOf: LKW-Fahrzeug aus der Kopie', () => {
+  const p = fremderPlan({ lkws: [{ id: 'l1', name: 'A', truckId: 'tf', categories: [] }] });
+  p.placements = [P('a', 'cf', 0, 0, 0, { lkw: 'l1' })];
+  const out = printSectionsOf({ plan: p, cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })] });
+  assert.equal(out.sections[0].truck.id, 'tf');
+});
+
+test('applyEdit im Reiter „Ohne LKW“ behält mitgefuehrt', () => {
+  const p = fremderPlan({ lkws: [{ id: 'l1', name: 'A', truckId: 'tf', categories: [] }],
+    placements: [], unplaced: [{ id: 'u', caseId: 'cf' }] });
+  const s = { plan: p, cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], activeLkw: NO_LKW };
+  const next = applyEdit(s, view => ({ ...view, notes: 'x' }), () => 'n');
+  assert.deepEqual(next.plan.mitgefuehrt, p.mitgefuehrt);
+});
+
+
+test('planZumSpeichern: füllt mitgefuehrt aus der Bibliothek', () => {
+  const s = { cases: [mkCase('c1', 1, 1, 1, { collectionId: 'meine' })], trucks: [mkTruck({ id: 't' })] };
+  const p = { id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [{ id: 'u', caseId: 'c1' }], notes: '' };
+  const out = planZumSpeichern(s, p);
+  assert.deepEqual(out.mitgefuehrt.cases.map(c => c.id), ['c1']);
+  assert.equal(out.updatedAt, p.updatedAt); // kein neuer Zeitstempel
+});
+
+test('planZumSpeichern: ein nicht offener Plan behält seine eigene Kopie als Quelle', () => {
+  const s = { cases: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], plan: null };
+  const out = planZumSpeichern(s, fremderPlan());
+  assert.deepEqual(out.mitgefuehrt.cases.map(c => c.id), ['cf']);
+  assert.deepEqual(out.mitgefuehrt.trucks.map(t => t.id), ['tf']);
+});
+
+{
+  const st = (cases, trucks, plan, plans = []) => ({ cases, trucks, plan, plans });
+  const pl = (id, caseId, truckId = 't') => ({ id, name: id, truckId, placements: [], unplaced: [{ id: `u-${id}`, caseId }], notes: '' });
+
+  test('plaeneMitGeaendertemBestand: unveränderte Listen → keine Pläne', () => {
+    const cases = [mkCase('c1', 1, 1, 1)], trucks = [mkTruck({ id: 't' })];
+    assert.deepEqual(plaeneMitGeaendertemBestand(st(cases, trucks, pl('a', 'c1')), st(cases, trucks, pl('a', 'c1'))), []);
+  });
+  test('plaeneMitGeaendertemBestand: geändertes Case trifft offenen und gespeicherten Plan, nicht den unbeteiligten', () => {
+    const c1 = mkCase('c1', 1, 1, 1), c2 = mkCase('c2', 1, 1, 1), trucks = [mkTruck({ id: 't' })];
+    const a = pl('a', 'c1'), b = pl('b', 'c1'), x = pl('x', 'c2');
+    const prev = st([c1, c2], trucks, a, [b, x]);
+    const next = st([{ ...c1, weight: 7 }, c2], trucks, a, [b, x]);
+    assert.deepEqual(plaeneMitGeaendertemBestand(prev, next).map(p => p.id).sort(), ['a', 'b']);
+  });
+  test('plaeneMitGeaendertemBestand: geändertes Fahrzeug, auch über lkws', () => {
+    const cases = [mkCase('c1', 1, 1, 1)], t = mkTruck({ id: 't' }), t2 = mkTruck({ id: 't2' });
+    const multi = { ...pl('m', 'c1'), lkws: [{ id: 'l1', name: 'A', truckId: 't2', categories: [] }] };
+    const prev = st(cases, [t, t2], null, [multi, pl('o', 'c1')]);
+    const next = st(cases, [t, { ...t2, payload: 1 }], null, [multi, pl('o', 'c1')]);
+    assert.deepEqual(plaeneMitGeaendertemBestand(prev, next).map(p => p.id), ['m']);
+  });
+  test('plaeneMitGeaendertemBestand: entferntes Case zählt als Änderung', () => {
+    const c1 = mkCase('c1', 1, 1, 1), trucks = [mkTruck({ id: 't' })];
+    assert.deepEqual(plaeneMitGeaendertemBestand(st([c1], trucks, pl('a', 'c1')), st([], trucks, pl('a', 'c1'))).map(p => p.id), ['a']);
+  });
+}
+
+{
+  const pl = (id, caseId) => ({ id, name: id, truckId: 't', placements: [], unplaced: [{ id: `u-${id}`, caseId }], notes: '' });
+  const mkSync = (initial) => {
+    const saved = [], dirty = [];
+    const sync = createBestandsSync({ initial, autosave: { markDirty: p => dirty.push(p.id) }, savePlan: p => { saved.push(p.id); return Promise.resolve(); }, onError() {} });
+    return { sync, saved, dirty };
+  };
+  const base = () => { const c1 = mkCase('c1', 1, 1, 1), t = [mkTruck({ id: 't' })]; return { c1, t, s0: { cases: [c1], trucks: t, plan: pl('a', 'c1'), plans: [pl('b', 'c1'), pl('w', 'c1')] } }; };
+
+  test('createBestandsSync: Änderung außerhalb eines Imports speichert betroffene Pläne', () => {
+    const { c1, s0 } = base(); const { sync, saved, dirty } = mkSync(s0);
+    sync.change({ ...s0, cases: [{ ...c1, weight: 5 }] });
+    assert.deepEqual(saved.sort(), ['b', 'w']); assert.deepEqual(dirty, ['a']);
+  });
+  test('createBestandsSync: während des Imports nichts, nach Rollback nichts', () => {
+    const { c1, s0 } = base(); const { sync, saved, dirty } = mkSync(s0);
+    sync.halte();
+    const s1 = { ...s0, cases: [{ ...c1, weight: 5 }] };
+    sync.change(s1); sync.change(s0);
+    sync.ende(s0, { erfolg: false });
+    assert.deepEqual([saved, dirty], [[], []]);
+    sync.change({ ...s0, plans: [...s0.plans] }); // später kein Phantom-Unterschied
+    assert.deepEqual(saved, []);
+  });
+  test('createBestandsSync: nach Erfolg nur betroffene Nicht-Gewinner; offener Plan über markDirty', () => {
+    const { c1, s0 } = base(); const { sync, saved, dirty } = mkSync(s0);
+    sync.halte();
+    const s1 = { ...s0, cases: [{ ...c1, weight: 5 }] };
+    sync.change(s1);
+    assert.deepEqual(saved, []);
+    sync.ende(s1, { erfolg: true, gewinnerIds: ['w'] });
+    assert.deepEqual(saved, ['b']); assert.deepEqual(dirty, ['a']);
+    sync.change(s1); assert.deepEqual(saved, ['b']); // vorher nachgezogen
+  });
+}
+
+test('wizardTruckId: Bibliotheksfahrzeug bleibt, Kopie aus der Projektdatei fällt aufs Standardfahrzeug', () => {
+  assert.equal(wizardTruckId([{ id: 'a' }, { id: 'b' }], 'b'), 'b');
+  assert.equal(wizardTruckId([{ id: 'a' }], 'nur-kopie'), DEFAULT_TRUCK_ID);
+});
+
+test('brauchtAuswahl: Fahrzeug übernehmen läuft auch ohne gewähltes Stück', () => {
+  assert.equal(brauchtAuswahl('uebernehmen-truck'), false);
+  assert.equal(brauchtAuswahl('uebernehmen-case'), true);
+  assert.equal(brauchtAuswahl('rotate'), true);
 });

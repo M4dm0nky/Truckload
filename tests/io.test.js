@@ -870,3 +870,89 @@ test('checkPlan: Gewerke-Liste höchstens 32 Einträge (feste Schranke, unabhän
   assert.throws(() => checkPlan(l(['G'.repeat(MAX_LABEL + 1)])), /LKW/);
   assert.doesNotThrow(() => checkPlan(l(['G'.repeat(MAX_LABEL)])));
 });
+
+// Plan mit mitgeführter Kopie (plan.mitgefuehrt, Schema bis 0.17.0 ohne das Feld).
+const gueltigerPlan = extra => ({ id: 'p', name: 'Tour', truckId: 't', placements: [], unplaced: [], notes: '', ...extra });
+
+test('checkPlan: Plan ohne mitgefuehrt (Schema bis 0.17.0) bleibt gültig', () => {
+  assert.doesNotThrow(() => checkPlan(gueltigerPlan()));
+});
+
+test('checkPlan: gültige Kopie wird angenommen', () => {
+  assert.doesNotThrow(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1,
+    cases: [mkCase('c1', 10, 10, 10)], trucks: [mkTruck({ id: 't' })] } })));
+});
+
+test('checkPlan: beschädigte Kopie lehnt den Plan mit Namen ab', () => {
+  for (const kaputt of [
+    { version: 1, cases: [{ id: 'x' }], trucks: [] },          // Case ohne Name
+    { version: 1, cases: [], trucks: [{ name: 'ohne id' }] },  // Fahrzeug ohne ID
+    { version: 1, cases: 'nein', trucks: [] },
+    { version: 'eins', cases: [], trucks: [] },
+    'kaputt',
+  ]) {
+    assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: kaputt })), /Ladeplan „Tour“ hat eine ungültige Kopie/);
+  }
+});
+
+test('checkPlan: zu viele mitgeführte Cases', () => {
+  const cases = Array.from({ length: 1001 }, (_, i) => mkCase(`c${i}`, 1, 1, 1));
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases, trucks: [] } })), /ungültige Kopie/);
+});
+
+test('Roundtrip: Sicherung mit mitgefuehrt lädt, Kopie bleibt erhalten', () => {
+  const p = gueltigerPlan({ unplaced: [{ id: 'u', caseId: 'c1' }],
+    mitgefuehrt: { version: 1, cases: [mkCase('c1', 10, 10, 10)], trucks: [mkTruck({ id: 't' })] } });
+  const back = parseBundle(exportBundle({ cases: [], trucks: [], plans: [p] }));
+  assert.deepEqual(back.plans[0].mitgefuehrt, p.mitgefuehrt);
+});
+
+test('Import: Kopie im Plan wird wie Top-Level-Cases repariert (Name zu lang, Rollenhöhe), Plan bleibt importierbar', () => {
+  const langCase = mkCase('lang', 10, 10, 10, { name: 'N'.repeat(81) });
+  const rollenCase = mkCase('rollen', 50, 50, 50, { wheelH: 50, wheels: true });
+  const b = parseBundle(bundleWith({ plans: [gueltigerPlan({ mitgefuehrt: { version: 1,
+    cases: [langCase, rollenCase], trucks: [mkTruck({ id: 't', name: 'F'.repeat(81) })] } })] }));
+  const kopie = b.plans[0].mitgefuehrt;
+  assert.equal(kopie.cases[0].name.length, NAME_MAX);
+  assert.equal(kopie.cases[1].wheelH, 0);
+  assert.equal(kopie.cases[1].wheels, false);
+  assert.equal(kopie.trucks[0].name.length, NAME_MAX);
+  assert.ok(b.repairs.includes('1 Case: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.'));
+  assert.ok(b.repairs.includes('1 Case: Name länger als 80 Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.'));
+  assert.ok(b.repairs.includes('1 Fahrzeug: Name länger als 80 Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.'));
+});
+
+test('checkPlan: die Fehlermeldung nennt den inneren Grund (Case ohne Name)', () => {
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases: [{ id: 'x', l: 10, w: 10, h: 10 }], trucks: [] } })),
+    /ungültige Kopie seiner Cases oder Fahrzeuge: Case ohne ID oder Name/);
+});
+
+// --- Task 7: Projekt-Regelsets in der Sicherung ---
+test('Export ohne Projekt-Regelsets bleibt wie in 0.17.0 (kein Feld)', () => {
+  const data = JSON.parse(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()] }));
+  assert.equal('projectRuleSets' in data, false);
+  assert.equal(data.version, 1);
+});
+
+test('Roundtrip mit Projekt-Regelsets', () => {
+  const pr = { id: 'pr1', name: 'Tour', rules: [], updatedAt: '2026-10-14T10:00:00.000Z' };
+  const back = parseBundle(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()], projectRuleSets: [pr] }));
+  assert.deepEqual(back.projectRuleSets, [pr]);
+});
+
+test('Alte Sicherung ohne projectRuleSets: leere Liste', () => {
+  const back = parseBundle(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()] }));
+  assert.deepEqual(back.projectRuleSets, []);
+});
+
+test('Beschädigtes Feld projectRuleSets wird abgelehnt', () => {
+  const text = JSON.stringify({ ...JSON.parse(exportBundle({ cases: [], trucks: [], plans: [gueltigerPlan()] })), projectRuleSets: 'x' });
+  assert.throws(() => parseBundle(text), /Projekt-Regelsets/);
+});
+
+test('parseBundle: unknownRefs trägt die IDs der Kopie des Plans mit', () => {
+  const p = { ...plan([P('pl1', 'geist-case-123', 0, 0, 0)]),
+    mitgefuehrt: { version: 1, cases: [mkCase('geist-case-123', 10, 10, 10, {})], trucks: [] } };
+  const res = parseBundle(bundleWith({ cases: [], trucks: [mkTruck()], plans: [p] }));
+  assert.deepEqual(res.unknownRefs[0].kopieCases, ['geist-case-123']);
+});

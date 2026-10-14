@@ -410,3 +410,26 @@ test('sanitizeAndWriteBack: ein Schreibfehler wird nur geloggt, das bereinigte E
     assert.match(String(logged[0][1]?.message ?? logged[0][0]), /Quota|bereinigt/);
   } finally { console.error = orig; }
 });
+
+test('loadAllFallback: projectRuleSets ist eine leere Liste', () => {
+  assert.deepEqual(loadAllFallback().projectRuleSets, []);
+});
+
+test('sanitizeAndWriteBack: projectRuleSets werden wie ruleSets bereinigt und zurückgeschrieben', async () => {
+  const writes = [];
+  const raw = { ruleSets: [], projectRuleSets: [{ id: 'pr1', name: 'Tour', updatedAt: 3 }] };
+  const clean = await sanitizeAndWriteBack(raw, async items => { writes.push(items); });
+  assert.deepEqual(writes[0], [{ store: 'projectRuleSets', value: { id: 'pr1', name: 'Tour' } }]);
+  assert.equal('updatedAt' in clean.projectRuleSets[0], false);
+});
+
+test('mergeImportedBundle: Projekt-Regelsets mischen wie Regelsets, Gewinner landen im eigenen Store', () => {
+  const alt = { id: 'pr1', name: 'Tour', rules: [], updatedAt: '2026-10-01T00:00:00.000Z' };
+  const neu = { ...alt, updatedAt: '2026-10-14T00:00:00.000Z' };
+  const zustand = { cases: [], trucks: [], plans: [], plan: null };
+  const bundleOhneDaten = { cases: [], trucks: [], plans: [] };
+  const merge = mergeImportedBundle({ ...zustand, projectRuleSets: [alt] }, { ...bundleOhneDaten, projectRuleSets: [neu] });
+  assert.deepEqual(merge.projectRuleSets, [neu]);
+  assert.deepEqual(merge.winners.projectRuleSets, [neu]);
+  assert.deepEqual(buildImportWinnerItems(merge.winners).filter(x => x.store === 'projectRuleSets').map(x => x.value), [neu]);
+});
