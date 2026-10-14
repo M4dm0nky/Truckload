@@ -148,7 +148,7 @@ nicht verloren gehen, sonst taucht die mitgelieferte Version wieder auf.
 ## Nicht Teil dieser Version
 
 - Die Listen-Cases (CAB, BBM, Motion …) liegen zusammen in „Meine Sammlung“; eine Aufteilung je
-  Firma in eigene Datensätze ist nicht erfolgt (siehe [offene-punkte.md](offene-punkte.md)).
+  Firma in eigene Datensätze ist nicht erfolgt (siehe [Issue #5](https://github.com/M4dm0nky/Truckload/issues/5)).
 - Truckload ordnet Cases nicht automatisch einer Sammlung zu; das macht der Nutzer („Verschieben“).
 - NYX-seitige Änderungen (Store freigeben, Zusammenführen auswählbar machen) sind hier nur
   beschrieben, nicht umgesetzt.

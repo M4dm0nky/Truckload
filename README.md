@@ -30,7 +30,7 @@ npm test
 
 - [CLAUDE.md](CLAUDE.md) – wie in diesem Projekt gearbeitet wird: Regeln, Prüfablauf, Veröffentlichung
 - [docs/architektur.md](docs/architektur.md) – Datenmodell, Schichten und die Invarianten, die man vorher kennen muss
-- [docs/offene-punkte.md](docs/offene-punkte.md) – bekannte Schwächen und Ideen, nach Nützlichkeit sortiert
+- [GitHub-Issues](https://github.com/M4dm0nky/Truckload/issues) – bekannte Schwächen, offene Fragen und Ideen (früher `docs/offene-punkte.md`)
 - [docs/nyx-host.md](docs/nyx-host.md) und [docs/nyx-sammlungen.md](docs/nyx-sammlungen.md) – was NYX für Speicher, Sammlungen, Gestaltung und Drucken voraussetzt
 - [docs/code-review-2026-09-21.md](docs/code-review-2026-09-21.md) – vollständige Code-Review zum Meilenstein V 0.6.0
 - [docs/casemasse-gewichte.md](docs/casemasse-gewichte.md) – Herleitung und Quellen der geschätzten Case-Gewichte
@@ -304,7 +304,7 @@ Neben dem Knopf „Drucken“ steht, was gedruckt wird:
 Etiketten drucken auf A4 hoch und randlos, Ladeplan, Abhakliste und Ausladeliste auf A4 quer. Vor dem ersten
 Etikettenbogen einen Testdruck auf normalem Papier machen und gegen einen Bogen halten — der
 senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (nur Shopseiten gesichtet, siehe
-[docs/offene-punkte.md](docs/offene-punkte.md)).
+[Issue #29](https://github.com/M4dm0nky/Truckload/issues/29)).
 
 ## Mitgelieferte Cases
 
