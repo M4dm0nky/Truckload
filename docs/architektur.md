@@ -72,7 +72,7 @@ Top-Level-`await`-Modul mit DOM-Zugriff ist.
 - **Ein Stand pro Seitenaufruf:** Ist bei einem Client (Seitenaufruf) ein Abruf in den Timeout gelaufen,
   kommen alle weiteren Dateien dieses Clients sofort aus dem Cache, damit sich alte und neue Module nicht
   mischen. Das ist ein Zusatzschutz, kein Ausschluss: Was der Seitenaufruf vorher schon frisch bekommen hat,
-  bleibt frisch (Restrisiko in `docs/offene-punkte.md`).
+  bleibt frisch (Restrisiko: Issue #27).
 - **Neue Version:** `registerServiceWorker` (`js/app/chrome.js`) lädt die Seite einmal neu, wenn ein neuer
   Service Worker übernimmt (nicht beim allerersten Besuch).
 - **Ladefehler-Hinweis:** Schlägt ein Modul oder sein Preload fehl, oder meldet ein fehlender Export einen
@@ -310,7 +310,7 @@ Orientierung wie gewählt, sonst um 90° gedreht); passt es dort nicht, beginnt 
 der Tiefe der tiefsten Stücke der bisherigen; passt auch das nicht, ist der Stapel für dieses Stück
 ungeeignet und die Suche geht zum nächsten früheren Stapel weiter. Die Reihe ist kein optimales
 Packen, sondern ein einfaches, nachvollziehbares Verfahren (eigene Entscheidung, siehe
-`docs/offene-punkte.md`).
+Issue #24).
 
 *Versatz im Stapel.* `autoPack` rechnet die Deckstück-Positionen in Weltkoordinaten um:
 `x = box.x0 + (swap ? oy : ox)`, `y = box.y0 + (swap ? ox : oy)`. Hat `placeStacks` den Stapel im

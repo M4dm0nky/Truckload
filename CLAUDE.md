@@ -3,7 +3,8 @@
 Truckload ist ein Ladeplaner für Flightcases im LKW, geschrieben für die Veranstaltungs-
 branche. Diese Datei sagt, wie hier gearbeitet wird. Die fachliche Einführung steht in
 [README.md](README.md), der Aufbau in [docs/architektur.md](docs/architektur.md), die
-offenen Punkte in [docs/offene-punkte.md](docs/offene-punkte.md).
+offenen Punkte als [GitHub-Issues](https://github.com/M4dm0nky/Truckload/issues) (früher `docs/offene-punkte.md`; ein erledigter Punkt
+wird dort geschlossen, ein neuer als Issue angelegt, nicht in einer Datei gesammelt).
 
 ## Grundregeln, die nicht verhandelbar sind
 

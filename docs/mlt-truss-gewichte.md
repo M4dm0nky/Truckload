@@ -11,7 +11,7 @@ Grundplatten-Pauschale = 25 kg
 
 Die Grundplatten-Pauschale ist ein Richtwert für Grundplatte, Beine und Rollen,
 kein recherchierter Wert für den jeweiligen Hersteller-Unterbau (siehe
-`docs/offene-punkte.md`). **Ein Stück ist immer EINE Traverse** – anders als bei
+Issue #4). **Ein Stück ist immer EINE Traverse** – anders als bei
 den bestehenden F34-/F44-Traversenwagen (die mehrere Stücke auf einen
 gemeinsamen Transport-Wagen stapeln) steht hier jedes Stück einzeln auf seinen
 eigenen Beinen bzw. seinem eigenen Rollwagen und wird komplett montiert in den
