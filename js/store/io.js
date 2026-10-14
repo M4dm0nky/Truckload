@@ -164,7 +164,9 @@ export function checkPlan(p) {
     const bad = () => new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.`);
     if (!m || typeof m !== 'object' || !num(m.version) || !Array.isArray(m.cases) || !Array.isArray(m.trucks)
       || m.cases.length > MAX_MITGEFUEHRT_CASES || m.trucks.length > MAX_LKW + 1) throw bad();
-    try { m.cases.forEach(checkCase); m.trucks.forEach(checkTruck); } catch { throw bad(); }
+    try { m.cases.forEach(checkCase); m.trucks.forEach(checkTruck); } catch (e) {
+      throw new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge: ${e.message}`);
+    }
   }
   checkLkws(p);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
@@ -332,8 +334,24 @@ export function parseBundle(text) {
     planRepairs.push(`Ladeplan „${p.name}“: Fahrzeug des Plans an das des ersten LKW angeglichen.`);
     return { ...p, truckId: first };
   };
+  // Die mitgeführte Kopie bekommt dieselben Reparaturen wie die Top-Level-Cases und Fahrzeuge
+  // (Zähler werden geteilt), sonst macht eine alte Name- oder Rollenhöhen-Verletzung in der Kopie
+  // die ganze Sicherung unimportierbar. Nur ein Objekt mit Array-Feldern wird angefasst.
+  const repairCopy = m => {
+    if (!m || typeof m !== 'object' || !Array.isArray(m.cases) || !Array.isArray(m.trucks)) return m;
+    return {
+      ...m,
+      cases: m.cases.map(c => {
+        const fixed = repairWheelH(c);
+        if (fixed) wheelHRepairs++;
+        return withCutName('case', fixed ?? c);
+      }),
+      trucks: m.trucks.map(t => withCutName('truck', t)),
+    };
+  };
   const plans = rawPlans.map(movePlaced).map(fixLkwRefs).map(realignTruck).map(p => ({
     ...p,
+    ...(p.mitgefuehrt !== undefined ? { mitgefuehrt: repairCopy(p.mitgefuehrt) } : {}),
     name: cutName('plan', p.name),
     // Sehr alte Platzierungen tragen kein `rot` (Geometrie liest es als 0); hier ausschreiben, damit
     // placementOk sie annimmt und der eigene Export wieder importierbar ist.

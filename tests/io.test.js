@@ -906,3 +906,23 @@ test('Roundtrip: Sicherung mit mitgefuehrt lädt, Kopie bleibt erhalten', () => 
   const back = parseBundle(exportBundle({ cases: [], trucks: [], plans: [p] }));
   assert.deepEqual(back.plans[0].mitgefuehrt, p.mitgefuehrt);
 });
+
+test('Import: Kopie im Plan wird wie Top-Level-Cases repariert (Name zu lang, Rollenhöhe), Plan bleibt importierbar', () => {
+  const langCase = mkCase('lang', 10, 10, 10, { name: 'N'.repeat(81) });
+  const rollenCase = mkCase('rollen', 50, 50, 50, { wheelH: 50, wheels: true });
+  const b = parseBundle(bundleWith({ plans: [gueltigerPlan({ mitgefuehrt: { version: 1,
+    cases: [langCase, rollenCase], trucks: [mkTruck({ id: 't', name: 'F'.repeat(81) })] } })] }));
+  const kopie = b.plans[0].mitgefuehrt;
+  assert.equal(kopie.cases[0].name.length, NAME_MAX);
+  assert.equal(kopie.cases[1].wheelH, 0);
+  assert.equal(kopie.cases[1].wheels, false);
+  assert.equal(kopie.trucks[0].name.length, NAME_MAX);
+  assert.ok(b.repairs.includes('1 Case: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.'));
+  assert.ok(b.repairs.includes('1 Case: Name länger als 80 Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.'));
+  assert.ok(b.repairs.includes('1 Fahrzeug: Name länger als 80 Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.'));
+});
+
+test('checkPlan: die Fehlermeldung nennt den inneren Grund (Case ohne Name)', () => {
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases: [{ id: 'x', l: 10, w: 10, h: 10 }], trucks: [] } })),
+    /ungültige Kopie seiner Cases oder Fahrzeuge: Case ohne ID oder Name/);
+});
