@@ -1,14 +1,16 @@
 # Offene Punkte
 
-Stand V 0.17.0. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
+Stand V 0.17.1. Gesammelt aus den Code-Reviews der Versionen 0.3.0 bis 0.7.0, aus den
 Änderungen bis 0.8.0, aus dem Aufräumen vor V 0.13.10, aus „Abschluss Teil 1“ und aus Hinweisen
 des Nutzers. Nichts davon blockiert den Betrieb; die Reihenfolge ist meine Einschätzung der
 Nützlichkeit. Erledigtes ist raus. Die Befunde der Meilenstein-Review V 0.6.0 stehen in
 `docs/code-review-2026-09-21.md`.
 
-**Seit 2026-10-13 stehen alle Punkte als Issues auf GitHub** (#3 bis #32,
+**Seit 2026-10-13 stehen alle Punkte als Issues auf GitHub** (#3 bis #35,
 <https://github.com/M4dm0nky/Truckload/issues>). Diese Datei bleibt die ausführliche Begründung;
-wird ein Punkt erledigt, wird das Issue geschlossen und der Absatz hier gestrichen.
+wird ein Punkt erledigt, wird das Issue geschlossen und der Absatz hier gestrichen. #12 (NYX gibt
+`collections` frei) und #33 (Projektdatei vollständig, 0.17.1) sind erledigt und geschlossen; den
+Einstieg in die NYX-Runde gibt [0_17_1.md](0_17_1.md).
 
 ## Daten aus der Casemaße-Tabelle
 
@@ -88,6 +90,28 @@ offengelegt, aber für kleine Cases zu konservativ.
 - **Sammlungsdatei ohne Altschema-Reparaturen.** Eine Datei mit Beschriftungen über
   `MAX_LABEL` oder alter Rollenhöhe wird abgelehnt statt repariert (eigene Entscheidung, das
   Format ist neu).
+
+## Aus „Projektdatei vollständig“ (V 0.17.1) offen — Issue #35
+
+Nichts davon ist dringend; alles blieb bei der Abschlussprüfung bewusst liegen.
+
+- **Kopierte Fahrzeuge sehen in der Fahrzeugauswahl aus wie eigene.** `sortedTrucks`
+  (`js/app/planView.js`) unterscheidet nur `builtin`; ein Fahrzeug nur aus `plan.mitgefuehrt` trägt
+  denselben Stern (★) wie ein eigenes. Erkennbar über `d.ausProjekt.trucks`.
+- **Die Sperren für Kopien haben keine eigenen Tests.** `#truck-edit` mit Guard in `editTruck`,
+  der Stift in der Ablage (`onEdit`) und der LKW-Editor mit `bestandOf(s).trucks` sind nur im Browser
+  geprüft, den LKW-Editor hat auch das Szenario nicht geöffnet. Vorschlag: die Entscheidungen als
+  kleine reine Helfer herausziehen (wie `brauchtAuswahl`).
+- **Neuspeichern nach einer Bibliotheksänderung wird nicht wiederholt.** Schlägt
+  `savePlanMitKopie` in `createBestandsSync` (`js/app/core.js`) für einen nicht offenen Plan fehl,
+  bleibt die Kopie bis zur nächsten Planänderung alt. Der offene Plan läuft über `markDirty`.
+- **Testlücken:** gescheiterter Import setzt `projectRuleSets` (und `ruleSets`) nicht getestet
+  zurück; `checkPlan` prüft `mitgefuehrt.version` nur auf „Zahl“, nicht gegen
+  `MITGEFUEHRT_VERSION`; kein Test mit `null` in `mitgefuehrt.cases`/`trucks`.
+- **Bewusst so entschieden (zurückdrehbar):** Eine Änderung an einem Case wirkt weiter in allen
+  Projekten (nicht „Projekte unabhängig“). Löschen aus der Bibliothek entfernt das Case auch aus
+  den Kopien. Der Lade-Assistent zeigt nur Fahrzeuge der Bibliothek. Ein mitgeführtes Fahrzeug steht
+  nur so lange in der Auswahl, wie der geöffnete Plan es benutzt.
 
 ## Aus „Mehrere LKW“ (V 0.14.0) offen
 

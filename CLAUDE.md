@@ -28,8 +28,25 @@ offenen Punkte in [docs/offene-punkte.md](docs/offene-punkte.md).
 - **Truckload läuft auch in NYX.** Was NYX voraussetzt (Speicher nur über `js/store/db.js`,
   relative Pfade, kein Netz zur Laufzeit, keine nativen Dialoge, `vendor/LICENSE-three.txt`),
   steht in [docs/nyx-host.md](docs/nyx-host.md); zu den Sammlungen (Store `collections`, ein
-  Datensatz je Sammlung) in [docs/nyx-sammlungen.md](docs/nyx-sammlungen.md). Vor Änderungen an
-  `js/store/`, `sw.js`, `data/` oder `vendor/` lesen.
+  Datensatz je Sammlung) in [docs/nyx-sammlungen.md](docs/nyx-sammlungen.md); zu Projekt-Regelsets
+  (Store `projectRuleSets`) und den mitgeführten Cases und Fahrzeugen eines Plans in
+  [docs/nyx-projektdatei.md](docs/nyx-projektdatei.md). Vor Änderungen an `js/store/`, `sw.js`,
+  `data/` oder `vendor/` lesen.
+- **`STORES` in `js/store/db.js` ist die einzige Liste der Stores.** NYX prüft sie gegen seine
+  `STORE_ORT`; ein neuer Store braucht vorab Bescheid an NYX (und Freigabe dort, Projektdatei oder
+  Bibliothek), sonst zeigt Truckload dort nur die Ersatzansicht.
+- **Mitgeführte Kopien (`plan.mitgefuehrt`) ergänzen die Bibliothek nur über `bestandOf(s)`**
+  (`js/app/core.js`); die Bibliothek gewinnt immer. Wer sie anderswo einmischt, bricht die
+  Laderegel. Kopien sind in der Oberfläche gesperrt, bis sie übernommen werden.
+
+## Zusammenarbeit (seit 0.17.1)
+
+An Truckload arbeitet auch die NYX-Seite (Aniflu). Abgestimmt wird über die GitHub-Issues; den
+Einstieg und die getroffenen Entscheidungen gibt [docs/0_17_1.md](docs/0_17_1.md). Dort stehende
+Entscheidungen werden nicht stillschweigend geändert, sondern im Issue besprochen. Ein erledigtes
+Issue bekommt einen Abschlusskommentar (Schritte mit Datum, Entscheidungen, Rest → neues Issue).
+Änderungen an `js/store/`, Datenmodell oder Projektdatei: NYX benachrichtigen, bevor sie
+veröffentlicht werden.
 
 ## Ablauf
 
