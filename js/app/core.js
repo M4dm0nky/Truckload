@@ -185,3 +185,33 @@ export function plaeneMitGeaendertemBestand(prev, next) {
     return [...r.caseIds].some(id => cs.has(id)) || [...r.truckIds].some(id => ts.has(id));
   });
 }
+
+// Hält die gespeicherte Kopie (mitgefuehrt) der Pläne aktuell, wenn sich die Bibliothek ändert.
+// Während eines Imports (halte … ende) schreibt change() nichts: der Import schreibt seine Gewinner
+// selbst in EINER Transaktion, einzelne Schreibvorgänge daneben würden bei einem Rollback in der
+// Datenbank stehen bleiben. Nach Erfolg werden nur die betroffenen Pläne gespeichert, die nicht
+// zu den Gewinnern gehören; nach einem Rollback nichts.
+export function createBestandsSync({ initial, autosave, savePlan, onError }) {
+  let vorher = initial, tiefe = 0, basis = null;
+  const schreibe = (s, plaene) => {
+    for (const p of plaene) {
+      if (p.id === s.plan?.id) autosave.markDirty(s.plan);
+      else savePlan(p).catch(onError);
+    }
+  };
+  return {
+    change(s) {
+      if (!tiefe) schreibe(s, plaeneMitGeaendertemBestand(vorher, s));
+      vorher = s;
+    },
+    halte() { if (!tiefe++) basis = vorher; },
+    ende(s, { erfolg, gewinnerIds = [] }) {
+      if (--tiefe === 0 && erfolg) {
+        const w = new Set(gewinnerIds);
+        schreibe(s, plaeneMitGeaendertemBestand(basis, s).filter(p => !w.has(p.id)));
+      }
+      if (!tiefe) basis = null;
+      vorher = s;
+    },
+  };
+}

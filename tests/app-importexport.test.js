@@ -83,3 +83,42 @@ test('Sichern: jeder exportierte Plan trägt mitgefuehrt mit den referenzierten 
     URL.createObjectURL = realCreate;
   }
 });
+
+import { createBestandsSync } from '../js/app/core.js';
+
+// Import-Lauf mit echtem Store-Double, echtem BestandsSync und injiziertem Repo.
+async function importLauf({ saveImportWinners }) {
+  const handlers = {};
+  const realDoc = globalThis.document, realCreate = URL.createObjectURL;
+  globalThis.document = { querySelector: sel => (handlers[sel] ??= {}), createElement: () => ({ click() {} }) };
+  URL.createObjectURL = () => 'blob:x';
+  try {
+    const pl = id => ({ id, name: id, truckId: 't', placements: [], unplaced: [{ id: `u-${id}`, caseId: 'c1' }], notes: '' });
+    const c1 = mkCase('c1', 1, 1, 1, {}), t = [mkTruck({ id: 't' })];
+    let s = { cases: [c1], trucks: t, plans: [pl('b'), pl('w')], plan: null, ruleSets: [], collections: [] };
+    const subs = [];
+    const store = { get: () => s, update(fn) { s = fn(s); subs.forEach(f => f(s)); }, resetHistory() {} };
+    const saved = [];
+    const sync = createBestandsSync({ initial: s, autosave: { markDirty() {} }, savePlan: p => { saved.push(p.id); return Promise.resolve(); }, onError() {} });
+    subs.push(x => sync.change(x));
+    const repo = {
+      mergeImportedBundle: cur => ({ cases: [{ ...c1, weight: 9 }], trucks: t, plans: cur.plans.map(p => (p.id === 'w' ? { ...p, name: 'neu' } : p)), plan: null, ruleSets: [], collections: [], planChanged: false, winners: { cases: [], trucks: [], plans: [{ id: 'w' }], ruleSets: [], collections: [] } }),
+      saveImportWinners,
+    };
+    wireImportExport({ store, autosave: { exclude() {}, include() {} }, repo, showAlert: async m => { if (process.env.DBG) console.log(m); }, showConfirm: async () => false, bestandsSync: sync });
+    const bundle = JSON.stringify({ format: 'truckload', version: 1, cases: [{ id: 'zz', name: 'Z', l: 10, w: 10, h: 10, weight: 1 }] });
+    await handlers['#import'].onchange({ target: { files: [{ text: async () => bundle }], value: '' } });
+    return { saved };
+  } finally {
+    globalThis.document = realDoc; URL.createObjectURL = realCreate;
+  }
+}
+
+test('Import: schlägt saveImportWinners fehl, wird kein Plan einzeln geschrieben', async () => {
+  const { saved } = await importLauf({ saveImportWinners: async () => { throw new Error('boom'); } });
+  assert.deepEqual(saved, []);
+});
+test('Import: nach Erfolg werden betroffene Nicht-Gewinner nachgeschrieben, nicht die Gewinner', async () => {
+  const { saved } = await importLauf({ saveImportWinners: async () => {} });
+  assert.deepEqual(saved, ['b']);
+});

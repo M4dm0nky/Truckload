@@ -48,7 +48,7 @@ export function importWarnings(unknownRefs, { cases, trucks }) {
 // deps: store, autosave, repo (mergeImportedBundle, saveImportWinners), showAlert, showConfirm, enqueue.
 // `enqueue`: die Schreib-Warteschlange der Speicherpfade (persistence.enqueue); der Import läuft als
 // ein Schritt darin und kann so nicht mit writeCases-Vorgängen verschränken.
-export function wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue = fn => fn() }) {
+export function wireImportExport({ store, autosave, repo, showAlert, showConfirm, enqueue = fn => fn(), bestandsSync = { halte() {}, ende() {} } }) {
   $('#export').onclick = () => {
     const s = store.get();
     const plans = allPlansOf(s);
@@ -88,6 +88,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
       // schreiben. saveImportWinners() schreibt diesen Plan selbst, falls die Datei ihn gewinnt.
       // Ohne aktuellen Plan (Startbildschirm) gibt es nichts stillzulegen.
       if (s0.plan) autosave.exclude(s0.plan.id);
+      bestandsSync.halte();
       let merge;
       let importFailed = false;
       let importErr = null;
@@ -116,6 +117,8 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
         // ausstehender eigener Stand wurde dann nicht mitgeschrieben und gilt weiter als
         // ausstehend. `merge` kann vor der Zuweisung undefined sein, daher das Optional-Chaining.
         if (s0.plan) autosave.include(s0.plan.id, { restore: importFailed || !merge?.planChanged });
+        // Erst nach include(): ein betroffener offener Plan darf wieder als ausstehend eingetragen werden.
+        bestandsSync.ende(store.get(), { erfolg: !importFailed && !!merge, gewinnerIds: (merge?.winners?.plans ?? []).map(p => p.id) });
       }
 
       return { merge, importFailed, importErr, backupName, backupText };

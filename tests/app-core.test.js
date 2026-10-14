@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf, plaeneMitGeaendertemBestand } from '../js/app/core.js';
+import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf, plaeneMitGeaendertemBestand, createBestandsSync } from '../js/app/core.js';
 import { P } from './fixtures.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
 
@@ -392,5 +392,41 @@ test('planZumSpeichern: ein nicht offener Plan behält seine eigene Kopie als Qu
   test('plaeneMitGeaendertemBestand: entferntes Case zählt als Änderung', () => {
     const c1 = mkCase('c1', 1, 1, 1), trucks = [mkTruck({ id: 't' })];
     assert.deepEqual(plaeneMitGeaendertemBestand(st([c1], trucks, pl('a', 'c1')), st([], trucks, pl('a', 'c1'))).map(p => p.id), ['a']);
+  });
+}
+
+{
+  const pl = (id, caseId) => ({ id, name: id, truckId: 't', placements: [], unplaced: [{ id: `u-${id}`, caseId }], notes: '' });
+  const mkSync = (initial) => {
+    const saved = [], dirty = [];
+    const sync = createBestandsSync({ initial, autosave: { markDirty: p => dirty.push(p.id) }, savePlan: p => { saved.push(p.id); return Promise.resolve(); }, onError() {} });
+    return { sync, saved, dirty };
+  };
+  const base = () => { const c1 = mkCase('c1', 1, 1, 1), t = [mkTruck({ id: 't' })]; return { c1, t, s0: { cases: [c1], trucks: t, plan: pl('a', 'c1'), plans: [pl('b', 'c1'), pl('w', 'c1')] } }; };
+
+  test('createBestandsSync: Änderung außerhalb eines Imports speichert betroffene Pläne', () => {
+    const { c1, s0 } = base(); const { sync, saved, dirty } = mkSync(s0);
+    sync.change({ ...s0, cases: [{ ...c1, weight: 5 }] });
+    assert.deepEqual(saved.sort(), ['b', 'w']); assert.deepEqual(dirty, ['a']);
+  });
+  test('createBestandsSync: während des Imports nichts, nach Rollback nichts', () => {
+    const { c1, s0 } = base(); const { sync, saved, dirty } = mkSync(s0);
+    sync.halte();
+    const s1 = { ...s0, cases: [{ ...c1, weight: 5 }] };
+    sync.change(s1); sync.change(s0);
+    sync.ende(s0, { erfolg: false });
+    assert.deepEqual([saved, dirty], [[], []]);
+    sync.change({ ...s0, plans: [...s0.plans] }); // später kein Phantom-Unterschied
+    assert.deepEqual(saved, []);
+  });
+  test('createBestandsSync: nach Erfolg nur betroffene Nicht-Gewinner; offener Plan über markDirty', () => {
+    const { c1, s0 } = base(); const { sync, saved, dirty } = mkSync(s0);
+    sync.halte();
+    const s1 = { ...s0, cases: [{ ...c1, weight: 5 }] };
+    sync.change(s1);
+    assert.deepEqual(saved, []);
+    sync.ende(s1, { erfolg: true, gewinnerIds: ['w'] });
+    assert.deepEqual(saved, ['b']); assert.deepEqual(dirty, ['a']);
+    sync.change(s1); assert.deepEqual(saved, ['b']); // vorher nachgezogen
   });
 }
