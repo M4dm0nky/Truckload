@@ -10,6 +10,7 @@ import { mountLibrary } from '../ui/library.js';
 import { openPackRules } from '../ui/pack-rules.js';
 import { renderInspector, weightEditable } from '../ui/inspector.js';
 import { CASE_LIMITS } from '../model/limits.js';
+import { MEINE_ID } from '../model/collections.js';
 import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
@@ -92,7 +93,7 @@ export function mountPlanView(deps) {
   $('#lkw-multi').onclick = addLkwFlow;
   renderHooks.push((s, d) => {
     const multi = d.activeLkw !== null;
-    tabs.update(multi ? lkwTabsModel({ plan: s.plan, trucks: s.trucks, caseById: d.caseById, active: d.activeLkw }) : null);
+    tabs.update(multi ? lkwTabsModel({ plan: s.plan, trucks: d.bestand.trucks, caseById: d.caseById, active: d.activeLkw }) : null);
     $('#lkw-multi').hidden = multi;
     const none = d.activeLkw === NO_LKW;
     $('#lkw-none-hint').hidden = !none;
@@ -112,7 +113,7 @@ export function mountPlanView(deps) {
     onSelectUnplaced: id => select(id),
   });
   // Seitenleiste: Stücke des gewählten LKW (Reiter „Ohne LKW“: die nicht zugeordneten, ohne Fahrzeug).
-  renderHooks.push((s, d) => library.update({ ...s, plan: d.view }, d.activeLkw === NO_LKW ? null : d.truck));
+  renderHooks.push((s, d) => library.update({ ...s, cases: d.bestand.cases, plan: d.view }, d.activeLkw === NO_LKW ? null : d.truck));
 
   attachTopInteractions($('#svg-top'), {
     getTruck: () => ctx().truck,
@@ -162,6 +163,7 @@ export function mountPlanView(deps) {
       selectedUnplaced,
       result: d.result,
       truck: d.truck,
+      ausProjekt: d.ausProjekt,
       groups: ruleTargets(piecesOf(s.plan), d.caseById).groups,
       lkw: d.activeLkw === null ? null : {
         options: lkwsOf(s.plan).map(l => ({ id: l.id, name: l.name })),
@@ -193,7 +195,23 @@ export function mountPlanView(deps) {
       edit(p => (isPlaced ? A.removePlacement(p, id) : A.removeUnplaced(p, id)));
       select(null);
     },
-    'edit-case': id => editCase(findCaseIdForPiece(id)),
+    'edit-case': id => {
+      const caseId = findCaseIdForPiece(id);
+      if (ctx().ausProjekt.cases.has(caseId)) return; // Kopie aus der Projektdatei: erst übernehmen
+      editCase(caseId);
+    },
+    // Kopie aus der Projektdatei in die eigene Bibliothek („Meine Sammlung“). Danach liefert
+    // bestandOf die Bibliotheksfassung, Hinweis und Knopf verschwinden von selbst.
+    'uebernehmen-case': async id => {
+      const c = ctx().caseById.get(findCaseIdForPiece(id));
+      if (!c || !ctx().ausProjekt.cases.has(c.id)) return;
+      await persistence.saveCase({ ...c, builtin: false, collectionId: MEINE_ID });
+    },
+    'uebernehmen-truck': async () => {
+      const t = ctx().truck;
+      if (!t || !ctx().ausProjekt.trucks.has(t.id)) return;
+      await persistence.saveTruck({ ...t, builtin: false });
+    },
     // Mit `face` setzt die Aktion genau diese Radseite (Inspector-Knopf), ohne reihum weiter.
     'wheel-face': (id, face) => {
       const p = derive().view.placements.find(q => q.id === id);
@@ -218,7 +236,7 @@ export function mountPlanView(deps) {
   // Grenze): Feld zurücksetzen, nichts speichern.
   async function changeWeight(input, id) {
     const c = ctx().caseById.get(findCaseIdForPiece(id));
-    if (!c || !weightEditable(c)) return;
+    if (!c || ctx().ausProjekt.cases.has(c.id) || !weightEditable(c)) return;
     const value = input.value.trim() === '' ? NaN : Number(input.value);
     if (!(value >= 0 && value <= CASE_LIMITS.weight)) { input.value = c.weight; return; }
     if (value === c.weight) return;
@@ -348,7 +366,7 @@ export function mountPlanView(deps) {
     if (planHtml !== lastPlanHtml) $('#plan-select').innerHTML = lastPlanHtml = planHtml;
     // Vorlagen bleiben vorn in fester Reihenfolge (Array.prototype.sort ist stabil), eigene
     // Fahrzeuge folgen alphabetisch.
-    const sortedTrucks = [...s.trucks].sort((a, b) =>
+    const sortedTrucks = [...d.bestand.trucks].sort((a, b) =>
       a.builtin === b.builtin ? a.name.localeCompare(b.name, 'de') : a.builtin ? -1 : 1);
     const truckHtml = sortedTrucks.map(t =>
       `<option value="${esc(t.id)}" ${t.id === d.truck.id ? 'selected' : ''}>${esc(t.name)}${t.builtin ? '' : ' ★'} – ${t.l}×${t.w}×${t.h}</option>`).join('');

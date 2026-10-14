@@ -21,12 +21,16 @@ const isPreset = c => c?.builtin === true && String(c.id).startsWith('preset-');
 
 // Zahlenfeld (kg) für ein editierbares Gewicht, sonst der Wert als Text plus – bei Standardvorlagen –
 // der Hinweis, wie man ihn ändert.
-export function weightField(c) {
-  if (weightEditable(c)) {
+export function weightField(c, { gesperrt = false } = {}) {
+  if (!gesperrt && weightEditable(c)) {
     return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">gilt für alle Stücke dieses Typs</small>`;
   }
   return `${esc(c.weight)} kg`;
 }
+// Kopie aus der Projektdatei (steht nicht in der eigenen Bibliothek): nur lesbar, bis sie übernommen ist.
+export const AUS_PROJEKT_HINWEIS = 'Aus der Projektdatei – nicht in deiner Bibliothek';
+const uebernehmenKnopf = act => `<button data-act="${act}">In meine Bibliothek übernehmen</button>`;
+const kopieBlock = act => `<p class="hint insp-aus-projekt">${AUS_PROJEKT_HINWEIS}</p>${uebernehmenKnopf(act)}`;
 const weightHint = c => (isPreset(c) ? `<p class="hint insp-weight-hint">${PRESET_WEIGHT_HINT}</p>` : '');
 
 // Block „Laden“ – für ein platziertes Stück (piece = das Placement, tippedOn aus der
@@ -62,7 +66,7 @@ export function lkwField(lkw) {
 
 // `lkw` (optional): Mehr-LKW-Plan, siehe lkwField; zusätzlich `name` (gewählter LKW, für die Überschrift
 // der Summen) und `none` (Reiter „Ohne LKW“: keine Fahrzeugsummen).
-export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [], lkw = null }) {
+export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [], lkw = null, ausProjekt = { cases: new Set(), trucks: new Set() } }) {
   const t = result.totals;
   const pct = t.payload > 0 ? Math.min(100, Math.round(t.weight / t.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
@@ -77,6 +81,8 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         </div>
       </div>` : '';
   const dims = selected ? outerDims(selected.c) : null;
+  const kopie = ausProjekt.cases.has((selected ?? selectedUnplaced)?.c.id);
+  const truckKopie = ausProjekt.trucks.has(truck.id);
   const sel = selected ? `
     <section class="insp-sel" data-id="${esc(selected.id)}">
       <h2>${swatch(selected.color)}${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
@@ -91,9 +97,10 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
         <dt>Maße stehend</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
         <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
-        <dt>Gewicht</dt><dd>${weightField(selected.c)} · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
+        <dt>Gewicht</dt><dd>${weightField(selected.c, { gesperrt: kopie })} · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
       </dl>
       ${weightHint(selected.c)}
+      ${kopie ? kopieBlock('uebernehmen-case') : ''}
       ${wheelRow}
       ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
@@ -101,7 +108,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <button data-act="tip" ${canTip(selected.c) ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
         <button data-act="dup">Duplizieren <kbd>D</kbd></button>
         <button data-act="tray">In Ablage</button>
-        <button data-act="edit-case">Case bearbeiten</button>
+        ${kopie ? '' : '<button data-act="edit-case">Case bearbeiten</button>'}
         <button data-act="delete" class="danger">Entfernen <kbd>Entf</kbd></button>
       </div>
       ${(result.byPlacement.get(selected.id) ?? []).map(i => `<p class="issue">${esc(i.message)}</p>`).join('')}
@@ -115,11 +122,12 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
         <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
       </div>
       ${lkwField(lkw)}
-      <p class="insp-weight-row">Gewicht: ${weightField(selectedUnplaced.c)}</p>
+      <p class="insp-weight-row">Gewicht: ${weightField(selectedUnplaced.c, { gesperrt: kopie })}</p>
       ${weightHint(selectedUnplaced.c)}
+      ${kopie ? kopieBlock('uebernehmen-case') : ''}
       ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
       <div class="btns">
-        <button data-act="edit-case">Case bearbeiten</button>
+        ${kopie ? '' : '<button data-act="edit-case">Case bearbeiten</button>'}
         <button data-act="delete" class="danger">Entfernen</button>
       </div>
     </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>');
@@ -129,6 +137,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       <h3>Ladung – ${lkw?.name ? `${esc(lkw.name)} · ` : ''}${esc(truck.name)}</h3>
       <div class="bar ${t.weight > t.payload ? 'over' : ''}"><span style="width:${pct}%"></span></div>
       <p>${Math.round(t.weight).toLocaleString('de-DE')} / ${t.payload.toLocaleString('de-DE')} kg Nutzlast${t.withoutWeight ? ` · <span class="hint">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig</span>` : ''}</p>
+      ${truckKopie ? kopieBlock('uebernehmen-truck') : ''}
       <dl>
         <dt>Cases</dt><dd>${t.count}</dd>
         <dt>Lademeter</dt><dd>${fmtM(t.loadMeters * 100)} von ${fmtM(truck.l)}</dd>
