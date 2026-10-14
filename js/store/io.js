@@ -1,6 +1,6 @@
 import { APP_VERSION } from '../version.js';
 import { ORIENTATIONS, ROTATIONS, ARCH_SIDES, isTruss } from '../model/geometry.js';
-import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, MAX_COLLECTIONS, layersValid } from '../model/limits.js';
+import { CASE_LIMITS, TRUSS_LIMITS, MAX_LABEL, MAX_FIRM, MAX_RULESET_NAME, NAME_MAX, COORD_MAX, MAX_LKW, MAX_COLLECTIONS, MAX_MITGEFUEHRT_CASES, layersValid } from '../model/limits.js';
 import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
@@ -159,6 +159,13 @@ export function checkPlan(p) {
     throw new Error(`Ladeplan „${p.name}“ hat ungültige Pack-Regeln.`);
   if (p.mixTop !== undefined && typeof p.mixTop !== 'boolean')
     throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Deckschicht-Schalter.`);
+  if (p.mitgefuehrt !== undefined) {
+    const m = p.mitgefuehrt;
+    const bad = () => new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.`);
+    if (!m || typeof m !== 'object' || !num(m.version) || !Array.isArray(m.cases) || !Array.isArray(m.trucks)
+      || m.cases.length > MAX_MITGEFUEHRT_CASES || m.trucks.length > MAX_LKW + 1) throw bad();
+    try { m.cases.forEach(checkCase); m.trucks.forEach(checkTruck); } catch { throw bad(); }
+  }
   checkLkws(p);
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)

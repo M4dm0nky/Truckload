@@ -870,3 +870,39 @@ test('checkPlan: Gewerke-Liste höchstens 32 Einträge (feste Schranke, unabhän
   assert.throws(() => checkPlan(l(['G'.repeat(MAX_LABEL + 1)])), /LKW/);
   assert.doesNotThrow(() => checkPlan(l(['G'.repeat(MAX_LABEL)])));
 });
+
+// Plan mit mitgeführter Kopie (plan.mitgefuehrt, Schema bis 0.17.0 ohne das Feld).
+const gueltigerPlan = extra => ({ id: 'p', name: 'Tour', truckId: 't', placements: [], unplaced: [], notes: '', ...extra });
+
+test('checkPlan: Plan ohne mitgefuehrt (Schema bis 0.17.0) bleibt gültig', () => {
+  assert.doesNotThrow(() => checkPlan(gueltigerPlan()));
+});
+
+test('checkPlan: gültige Kopie wird angenommen', () => {
+  assert.doesNotThrow(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1,
+    cases: [mkCase('c1', 10, 10, 10)], trucks: [mkTruck({ id: 't' })] } })));
+});
+
+test('checkPlan: beschädigte Kopie lehnt den Plan mit Namen ab', () => {
+  for (const kaputt of [
+    { version: 1, cases: [{ id: 'x' }], trucks: [] },          // Case ohne Name
+    { version: 1, cases: [], trucks: [{ name: 'ohne id' }] },  // Fahrzeug ohne ID
+    { version: 1, cases: 'nein', trucks: [] },
+    { version: 'eins', cases: [], trucks: [] },
+    'kaputt',
+  ]) {
+    assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: kaputt })), /Ladeplan „Tour“ hat eine ungültige Kopie/);
+  }
+});
+
+test('checkPlan: zu viele mitgeführte Cases', () => {
+  const cases = Array.from({ length: 1001 }, (_, i) => mkCase(`c${i}`, 1, 1, 1));
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases, trucks: [] } })), /ungültige Kopie/);
+});
+
+test('Roundtrip: Sicherung mit mitgefuehrt lädt, Kopie bleibt erhalten', () => {
+  const p = gueltigerPlan({ unplaced: [{ id: 'u', caseId: 'c1' }],
+    mitgefuehrt: { version: 1, cases: [mkCase('c1', 10, 10, 10)], trucks: [mkTruck({ id: 't' })] } });
+  const back = parseBundle(exportBundle({ cases: [], trucks: [], plans: [p] }));
+  assert.deepEqual(back.plans[0].mitgefuehrt, p.mitgefuehrt);
+});
