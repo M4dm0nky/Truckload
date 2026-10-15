@@ -56,6 +56,14 @@ erst `superpowers:brainstorming`, dann `superpowers:writing-plans`, dann
 `superpowers:subagent-driven-development`. Pläne liegen unter `docs/superpowers/plans/`,
 das Design der ersten Version unter `docs/superpowers/specs/`.
 
+**Modellwahl: Opus orchestriert, die günstigen Modelle setzen um.** Planen, Entwerfen und
+Abnehmen macht die Hauptsession mit Opus (Aufwand „mittel“). Steht der Plan und geht es nur noch
+um die Umsetzung, arbeiten Sub-Agents mit Sonnet oder Haiku: Sonnet für Logik, Refactoring und
+Feature-Code, Haiku für Suche, Boilerplate, Doku-Nachzug und einfache Tests. Welches Modell zur
+Aufgabe passt, entscheidet Claude je Task. Opus bleibt für das, was Urteil braucht:
+Architekturfragen, Abwägungen, Review der Ergebnisse und alles, was der Nutzer als Text liest.
+Die Ergebnisse der Sub-Agents werden nicht ungeprüft übernommen (Tests laufen lassen, Diff lesen).
+
 Nach der Implementierung: `superpowers:finishing-a-development-branch`. Vor dem Commit die
 nächste Versionsnummer vorschlagen und bestätigen lassen (siehe „Versionierung“ unten) —
 danach ohne weitere Rückfrage committen, nach `main` pushen und veröffentlichen. Ohne
