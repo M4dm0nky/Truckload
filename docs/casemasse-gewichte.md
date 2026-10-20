@@ -552,9 +552,15 @@ DiGiCo 40, d&b 15. Angelegt wurde, was die Datenbank noch nicht hatte; die vorha
   Dubletten. d&b nur die Touring-Racks (Gewicht mit Verstärkern); die Touring-Wagen entfallen, weil
   Wagen aus Einzelboxen gebaut werden. Chauvet Epix Line 10 hat ein Beladungsgewicht, die übrigen
   acht nur ein Leergewicht.
-- **Gewicht:** Das Feld heißt „Gewicht beladen“. Wo kein belegtes Beladungsgewicht vorliegt (alle
-  Robe-Cases, 8 Chauvet-Cases), steht 0 und der Hinweis „Gewicht unbekannt“. Der Test sperrt, dass
-  eine 0 ohne diesen Hinweis oder der Hinweis ohne 0 vorkommt.
+- **Gewicht:** Das Feld heißt „Gewicht beladen“. Wo kein belegtes Beladungsgewicht vorliegt, steht 0
+  und der Hinweis „Gewicht unbekannt“ (seit 0.17.4 nur noch Chauvet Rogue R1 Hybrid und CP Rack).
+  Der Test sperrt, dass eine 0 ohne diesen Hinweis oder der Hinweis ohne 0 vorkommt.
+- **Lampencases (seit 0.17.4):** Gewicht = Case + Lampenzahl × Lampengewicht. Die Lampe zählt mit
+  dem Netto-Gewicht laut Datenblatt des Herstellers (bei mehreren Varianten unter einem Casenamen die
+  schwerste; bei PATT 2017 und pixelPATT kommt die Treiber-Box mit 3,0 kg je Lampe dazu). Das Case
+  ist bei Robe geschätzt (`Gewicht geschätzt`): 13,2 kg je m² Außenfläche, der Median der leeren
+  Elation- und Chauvet-Cases (Spanne 10,0 bis 14,7 kg/m²), Fläche 2·(l·w + l·h + w·h). Bei Chauvet
+  ist das Leergewicht des Cases bekannt (`Gewicht berechnet`). Zubehör im Case ist nicht eingerechnet.
 - **Eigene Annahmen (keine Herstellerangaben):** tippbar, stapelbar, Rollenhöhe 13 cm in den Maßen
   (`dimsInclWheels`), wie die Packcases.
 - **Namen:** deutsch (Einzel-/Doppel-/Dreifach-/Vierfach-/Sechser-/Achter-Toploader-Case,
