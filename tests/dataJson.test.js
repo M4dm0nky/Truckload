@@ -54,10 +54,33 @@ test('neue Hersteller-Vorlagen: Gewicht unbekannt ist 0, und 0 trägt die Notiz'
   }
 });
 
-test('neue Hersteller-Vorlagen: alle 72 Robe-Vorlagen haben Gewicht 0', () => {
+test('neue Hersteller-Vorlagen: alle 72 Robe-Vorlagen haben ein geschätztes Gewicht', () => {
   const robe = neue().filter(c => c.name.startsWith('Robe '));
   assert.equal(robe.length, 72);
-  assert.ok(robe.every(c => c.weight === 0));
+  assert.ok(robe.every(c => c.weight > 0 && c.note === 'Gewicht geschätzt'));
+});
+
+test('neue Hersteller-Vorlagen: Beispielwerte Lampengewichte', () => {
+  const byName = Object.fromEntries(neue().map(c => [c.name, c]));
+  assert.equal(byName['Robe Doppel-Toploader-Case BMFL'].weight, 147.4);
+  assert.equal(byName['Robe Einzel-Toploader-Case Pointe'].weight, 34.8);
+  const r3 = byName['Chauvet Professional Rogue R3 Wash (4) Roadcase'];
+  assert.equal(r3.weight, 127.4);
+  assert.equal(r3.note, 'Gewicht berechnet');
+});
+
+test('neue Hersteller-Vorlagen: unbekannte Lampengewichte bleiben 0, beladene unverändert', () => {
+  const byName = Object.fromEntries(neue().map(c => [c.name, c]));
+  for (const n of ['Chauvet Professional Rogue R1 Hybrid (2) Roadcase', 'Chauvet Professional CP Rack']) {
+    assert.equal(byName[n].weight, 0, n);
+    assert.equal(byName[n].note, 'Gewicht unbekannt', n);
+  }
+  assert.equal(byName['Chauvet Professional Epix Line 10 IP 10er Roadcase'].weight, 79.8);
+});
+
+test('neue Hersteller-Vorlagen: note ist einer der erlaubten Texte', () => {
+  const ok = new Set(['', 'Gewicht unbekannt', 'Gewicht geschätzt', 'Gewicht berechnet']);
+  for (const c of neue()) assert.ok(ok.has(c.note), `${c.id}: ${c.note}`);
 });
 
 test('neue Hersteller-Vorlagen: Eigenschaften', () => {
