@@ -140,3 +140,14 @@ test('profileOriginLine: Länge im Katalog nennt Herkunft, sonst berechnet', () 
   assert.equal(profileOriginLine(p, 333), 'Gewicht: aus Metergewicht berechnet');
   assert.equal(profileOriginLine(null, 300), '');
 });
+
+import { minLengthFor } from '../js/ui/truss-wizard.js';
+test('minLengthFor: ohne Profil 50, mit Profil min(50, kürzeste Katalog-Länge)', () => {
+  assert.equal(minLengthFor(null), 50);
+  assert.equal(minLengthFor({ lengths: [{ cm: 25, kg: 1, art: 'berechnet' }, { cm: 100, kg: 2, art: 'berechnet' }] }), 25);
+  assert.equal(minLengthFor({ lengths: [{ cm: 100, kg: 2, art: 'berechnet' }] }), 50);
+  assert.equal(minLengthFor({ lengths: [{ cm: 5, kg: 0, art: 'geschaetzt' }] }), 10);
+  assert.equal(minLengthFor({ lengths: [] }), 50);
+  const p = profileById('eurotruss-fd34');
+  assert.equal(minLengthFor(p), Math.min(50, ...p.lengths.map(l => l.cm), 50) < 10 ? 10 : Math.min(50, ...p.lengths.map(l => l.cm)));
+});

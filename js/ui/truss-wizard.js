@@ -64,6 +64,13 @@ export function lengthButtonsHtml(profile) {
     `<button type="button" class="quick-len" data-len="${b.cm}" title="${esc(b.title)}">${esc(b.label)}</button>`).join('');
 }
 
+// Kleinste zulässige Länge im Längenfeld: 50 cm, mit Katalogprofil die kürzeste Katalog-Länge
+// (mindestens 10 cm), damit Tasten wie „0,25 m“ nicht an min="50" scheitern.
+export function minLengthFor(profile) {
+  const cms = (profile?.lengths ?? []).map(l => l.cm).filter(c => c > 0);
+  return cms.length ? Math.max(10, Math.min(50, ...cms)) : 50;
+}
+
 // Herkunft des Gewichts für die gewählte Länge ('' ohne Profil).
 export function profileOriginLine(profile, lengthCm) {
   if (!profile || !(lengthCm > 0)) return '';
@@ -196,6 +203,7 @@ export function openTrussDialog(dlg, opts = {}) {
   f.trussLength.addEventListener('input', updateOrigin);
   function setProfile(p) {
     chosen = p;
+    f.trussLength.min = minLengthFor(p);
     dlg.querySelector('.profile-select').hidden = !!p;
     chosenEl.hidden = !p;
     if (p) chosenEl.querySelector('.profile-chosen-text').textContent = `Gewählt: ${profileHitLabel(p)}`;
