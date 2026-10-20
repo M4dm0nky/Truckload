@@ -566,3 +566,31 @@ import { applyStockTarget } from '../js/model/material.js';
     assert.equal(findMatchingWagon(all, { ...spec, inStock: false }), undefined);
   });
 }
+
+// Katalogprofil: wagonWeightFor, findMatchingWagon trennt nach profileId
+import { wagonWeightFor, TRUSS_DOLLY_KG } from '../js/model/truss.js';
+import { profileById, pieceKg } from '../js/model/trussCatalog.js';
+{
+  test('wagonWeightFor: Stückgewicht aus dem Katalog mal Anzahl plus Wagen', () => {
+    const p = profileById('eurotruss-fd34');
+    const kg300 = pieceKg(p, 300).kg;
+    assert.equal(wagonWeightFor(p, 300, 8), Math.round(kg300 * 8 + 24));
+    assert.equal(TRUSS_DOLLY_KG, 24);
+  });
+  const wagon = (id, profileId) => ({
+    id, kind: 'truss', w: 60, company: 'CAB',
+    truss: { width: 29, length: 300, count: 4, ...(profileId ? { profileId } : {}) },
+  });
+  const spec = { width: 29, length: 300, count: 4, company: 'CAB', inStock: true };
+  test('findMatchingWagon: gleiche Breite, andere profileId -> getrennt', () => {
+    const a = wagon('a', 'eurotruss-fd34'), b = wagon('b', 'eurotruss-f34');
+    assert.equal(findMatchingWagon([a, b], { ...spec, profileId: 'eurotruss-f34' }), b);
+    assert.equal(findMatchingWagon([a], { ...spec, profileId: 'eurotruss-f34' }), undefined);
+    assert.equal(findMatchingWagon([a], spec), undefined);
+  });
+  test('findMatchingWagon: Altwagen ohne profileId wird von Spec ohne profileId gefunden', () => {
+    const old = wagon('old');
+    assert.equal(findMatchingWagon([old], spec), old);
+    assert.equal(findMatchingWagon([old], { ...spec, profileId: 'eurotruss-fd34' }), undefined);
+  });
+}
