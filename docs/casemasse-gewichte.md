@@ -539,3 +539,24 @@ Auf Nutzerwunsch 2026-10-09 (Auswahl „D8+ und JDC-1 korrigieren“), nicht nac
   einem Gerät 60 × 60 × 58 (vorher umgekehrt; vier Geräte passen nicht in 60 × 60). Die Anwendung
   (Maße tauschen, Namen/Gewichte/Hinweistexte/IDs behalten, weil die Gewichte – 60 kg bzw. 25 kg –
   zur Gerätezahl im Namen passen) ist **eigene Entscheidung**; nicht nachgemessen.
+
+## Hersteller-Vorlagen Licht, Pulte, Racks (V 0.17.3, 2026-10-20)
+
+144 Vorlagen in `data/standard.json` (Index 57 bis 200): Robe 72, Elation 8, Chauvet Professional 9,
+DiGiCo 40, d&b 15. Angelegt wurde, was die Datenbank noch nicht hatte; die vorhandenen Ton-Einzelboxen
+(K2, V8/V12, …) blieben unberührt.
+
+- **Umrechnung:** Außenmaße aus Zoll × 2,54, Gewicht aus Pfund × 0,45359237, jeweils einmal am Ende
+  auf eine Nachkommastelle gerundet (aus den vollen Quellwerten, nicht aus bereits gerundeten).
+- **Auswahl:** Elation nur die Zeilen mit eingetragenen Lampen („bestückt“), nicht die leeren
+  Dubletten. d&b nur die Touring-Racks (Gewicht mit Verstärkern); die Touring-Wagen entfallen, weil
+  Wagen aus Einzelboxen gebaut werden. Chauvet Epix Line 10 hat ein Beladungsgewicht, die übrigen
+  acht nur ein Leergewicht.
+- **Gewicht:** Das Feld heißt „Gewicht beladen“. Wo kein belegtes Beladungsgewicht vorliegt (alle
+  Robe-Cases, 8 Chauvet-Cases), steht 0 und der Hinweis „Gewicht unbekannt“. Der Test sperrt, dass
+  eine 0 ohne diesen Hinweis oder der Hinweis ohne 0 vorkommt.
+- **Eigene Annahmen (keine Herstellerangaben):** tippbar, stapelbar, Rollenhöhe 13 cm in den Maßen
+  (`dimsInclWheels`), wie die Packcases.
+- **Namen:** deutsch (Einzel-/Doppel-/Dreifach-/Vierfach-/Sechser-/Achter-Toploader-Case,
+  Roadcase, Flightcase, Touring-Rack, „bestückt“); Produktnamen unverändert, IDs englisch nach dem
+  Namen des Herstellers.

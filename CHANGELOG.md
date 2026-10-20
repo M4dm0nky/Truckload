@@ -2,6 +2,21 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.17.3 – 2026-10-20
+
+**Hersteller-Vorlagen für Licht, Pulte und Racks** (144 neue Vorlagen im Standardkatalog).
+
+- **Licht:** 72 Lampen-Cases von Robe (Einzel-, Doppel-, Dreifach-, Vierfach-, Sechser- und
+  Achter-Toploader), 8 bestückte Roadcases von Elation und 9 von Chauvet Professional.
+- **Pulte und Racks:** 40 Flightcases für DiGiCo-Pulte und 15 Touring-Racks von d&b.
+- **Namen auf Deutsch**, Produktnamen der Hersteller unverändert. Alle neuen Cases sind tippbar und
+  haben Rollen (Rollenhöhe 13 cm wie bei den Packcases, ein Richtwert).
+- **Gewicht unbekannt:** Wo kein belegtes Beladungsgewicht vorliegt (alle Robe-Cases, 8 von 9
+  Chauvet-Cases), steht das Gewicht auf 0 kg mit dem Hinweis „Gewicht unbekannt“. Es wird nichts
+  geschätzt; im Case-Editor lässt sich das Gewicht eintragen.
+- **Maße:** Zoll und Pfund der Quellen, einmal auf eine Nachkommastelle in cm und kg gerundet.
+- Kein neues Datenmodell, kein neuer Store, nur Einträge in `data/standard.json`.
+
 ## V 0.17.2 – 2026-10-14
 
 **Import: fehlende Maße nachfragen, Sammlungen beim Mischen bereinigen** (Issue #10).
