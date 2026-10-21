@@ -43,3 +43,16 @@ wird – das ist ein Umbau von `sw.js` weit über eine kleine Änderung hinaus, 
 ohne langsames Netz nicht abnehmen. Der Rest wird vom Ladefehler-Hinweis in `index.html` („Bitte neu laden“)
 aufgefangen; die Voraussetzung für den Mix (Timeout von 3 s genau während einer Auslieferung) ist selten.
 Wiedervorlage, wenn der Hinweis in der Praxis gemeldet wird. Die Asset-Liste ist unverändert.
+
+## #35 Rest aus „Projektdatei vollständig“
+Behoben: (1) Kopierte Fahrzeuge tragen in `#truck-select` ◇ statt ★ und den `title` „Aus der Projektdatei – nicht
+in deiner Bibliothek“ (`truckMarke`). (2) Die Entscheidungen über Kopien sind reine Helfer in
+`js/model/mitgefuehrt.js` (`istKopieCase`, `istKopieTruck`, `truckMarke`, `truckStiftSperre`) und von
+`planView.js` benutzt (Stift am Fahrzeug, `editTruck`-Guard, Stift in der Ablage, Inspector); getestet an der
+Datennaht mit echtem `bestandOf` (`tests/app-core.test.js`). Die DOM-Verdrahtung selbst ist nicht im Browser
+gefahren. (3) `createBestandsSync` wiederholt ein fehlgeschlagenes `savePlan` einmal nach 500 ms; erst danach
+Fehlerstatus. (4) Testlücken: Rollback von `projectRuleSets`/`ruleSets` beim gescheiterten Import,
+`checkPlan` prüft `mitgefuehrt.version` jetzt gegen `MITGEFUEHRT_VERSION` (Version 2 wird mit Plan-Namen
+abgelehnt, bisher nur „ist eine Zahl“), `null`-Einträge in `mitgefuehrt.cases/trucks`.
+Eigene Entscheidung: Eine Datei mit künftiger Kopie-Version wird abgelehnt statt still gelesen; ändert sich das
+Format, muss `MITGEFUEHRT_VERSION` zusammen mit einer Lese-Migration erhöht werden.

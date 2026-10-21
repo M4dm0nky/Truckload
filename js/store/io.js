@@ -9,6 +9,7 @@ import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
 import { pickPieceFields } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
 import { MEINE_NAME } from '../model/collections.js';
+import { MITGEFUEHRT_VERSION } from '../model/mitgefuehrt.js';
 import { slug } from '../model/slug.js';
 
 // FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
@@ -163,7 +164,7 @@ export function checkPlan(p) {
   if (p.mitgefuehrt !== undefined) {
     const m = p.mitgefuehrt;
     const bad = () => new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.`);
-    if (!m || typeof m !== 'object' || !num(m.version) || !Array.isArray(m.cases) || !Array.isArray(m.trucks)
+    if (!m || typeof m !== 'object' || m.version !== MITGEFUEHRT_VERSION || !Array.isArray(m.cases) || !Array.isArray(m.trucks)
       || m.cases.length > MAX_MITGEFUEHRT_CASES || m.trucks.length > MAX_LKW + 1) throw bad();
     try { m.cases.forEach(checkCase); m.trucks.forEach(checkTruck); } catch (e) {
       throw new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge: ${e.message}`);

@@ -895,6 +895,18 @@ test('checkPlan: beschädigte Kopie lehnt den Plan mit Namen ab', () => {
   }
 });
 
+test('checkPlan (#35): mitgefuehrt.version muss MITGEFUEHRT_VERSION sein; 1 wird angenommen, 2 mit Plan-Namen abgelehnt', () => {
+  const kopie = version => ({ version, cases: [mkCase('c1', 10, 10, 10)], trucks: [mkTruck({ id: 't' })] });
+  assert.doesNotThrow(() => checkPlan(gueltigerPlan({ mitgefuehrt: kopie(1) })));
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: kopie(2) })), /Ladeplan „Tour“ hat eine ungültige Kopie/);
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: kopie(0) })), /ungültige Kopie/);
+});
+
+test('checkPlan (#35): null-Eintrag in mitgefuehrt.cases/trucks lehnt den Plan mit Namen ab', () => {
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases: [null], trucks: [] } })), /Ladeplan „Tour“ hat eine ungültige Kopie/);
+  assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases: [], trucks: [null] } })), /Ladeplan „Tour“ hat eine ungültige Kopie/);
+});
+
 test('checkPlan: zu viele mitgeführte Cases', () => {
   const cases = Array.from({ length: 1001 }, (_, i) => mkCase(`c${i}`, 1, 1, 1));
   assert.throws(() => checkPlan(gueltigerPlan({ mitgefuehrt: { version: 1, cases, trucks: [] } })), /ungültige Kopie/);

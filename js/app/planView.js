@@ -11,7 +11,7 @@ import { openPackRules } from '../ui/pack-rules.js';
 import { renderInspector, weightEditable } from '../ui/inspector.js';
 import { CASE_LIMITS } from '../model/limits.js';
 import { MEINE_ID } from '../model/collections.js';
-import { alsEigenesCase } from '../model/mitgefuehrt.js';
+import { alsEigenesCase, istKopieCase, istKopieTruck, truckMarke, truckStiftSperre } from '../model/mitgefuehrt.js';
 import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
@@ -101,14 +101,14 @@ export function mountPlanView(deps) {
     // Im Reiter „Ohne LKW“ gibt es kein Fahrzeug und keine Platzierung: diese Knöpfe ruhen.
     for (const id of ['truck-select', 'truck-edit', 'pack-rest']) $(`#${id}`).disabled = none;
     // Fahrzeug nur als Kopie aus der Projektdatei: erst „In meine Bibliothek übernehmen“, dann bearbeiten.
-    const kopie = !none && d.ausProjekt.trucks.has(d.truck.id);
-    if (kopie) $('#truck-edit').disabled = true;
-    $('#truck-edit').title = kopie ? 'Aus der Projektdatei – erst in die Bibliothek übernehmen' : '';
+    const sperre = truckStiftSperre(d.ausProjekt, none ? null : d.truck);
+    if (sperre.gesperrt) $('#truck-edit').disabled = true;
+    $('#truck-edit').title = sperre.title;
   });
 
   // --- Seitenleiste und 2D-Ansichten ---
   const library = mountLibrary($('#library'), {
-    onEdit: id => { if (ctx().ausProjekt.cases.has(id)) return; editCase(id); }, // Kopie: erst übernehmen
+    onEdit: id => { if (istKopieCase(ctx().ausProjekt, id)) return; editCase(id); }, // Kopie: erst übernehmen
     onAddLoad: () => runLoadWizard('add'),
     onTrayRemove: id => {
       edit(p => A.removeUnplaced(p, id));
@@ -202,7 +202,7 @@ export function mountPlanView(deps) {
     },
     'edit-case': id => {
       const caseId = findCaseIdForPiece(id);
-      if (ctx().ausProjekt.cases.has(caseId)) return; // Kopie aus der Projektdatei: erst übernehmen
+      if (istKopieCase(ctx().ausProjekt, caseId)) return; // Kopie aus der Projektdatei: erst übernehmen
       editCase(caseId);
     },
     // Kopie aus der Projektdatei in die eigene Bibliothek („Meine Sammlung“). Danach liefert
@@ -377,8 +377,10 @@ export function mountPlanView(deps) {
     // Fahrzeuge folgen alphabetisch.
     const sortedTrucks = [...d.bestand.trucks].sort((a, b) =>
       a.builtin === b.builtin ? a.name.localeCompare(b.name, 'de') : a.builtin ? -1 : 1);
-    const truckHtml = sortedTrucks.map(t =>
-      `<option value="${esc(t.id)}" ${t.id === d.truck.id ? 'selected' : ''}>${esc(t.name)}${t.builtin ? '' : ' ★'} – ${t.l}×${t.w}×${t.h}</option>`).join('');
+    const truckHtml = sortedTrucks.map(t => {
+      const marke = truckMarke(t, d.ausProjekt);
+      return `<option value="${esc(t.id)}"${marke.title ? ` title="${esc(marke.title)}"` : ''} ${t.id === d.truck.id ? 'selected' : ''}>${esc(t.name)}${marke.zeichen} – ${t.l}×${t.w}×${t.h}</option>`;
+    }).join('');
     if (truckHtml !== lastTruckHtml) $('#truck-select').innerHTML = lastTruckHtml = truckHtml;
     $('#undo').disabled = !store.canUndo();
     $('#redo').disabled = !store.canRedo();
@@ -390,7 +392,7 @@ export function mountPlanView(deps) {
   $('#truck-select').onchange = e => editWhole(p => withTruck(p, e.target.value));
 
   async function editTruck(truck) {
-    if (truck && ctx().ausProjekt.trucks.has(truck.id)) return;
+    if (truck && istKopieTruck(ctx().ausProjekt, truck.id)) return;
     const s0 = store.get();
     const res = await openTruckEditor($('#dlg-truck'), truck, { usedIn: truck ? truckUsage(s0, truck.id) : 0 });
     if (!res) return;

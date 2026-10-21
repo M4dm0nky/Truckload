@@ -211,3 +211,28 @@ test('Import: Abbrechen lässt das Case aus und nennt es in der Meldung, der Res
   assert.deepEqual(r.seen.cases.map(c => c.id), ['ok']);
   assert.match(r.alerts.at(-1), /Case „Kaputt“ ohne gültige Maße – nicht importiert/);
 });
+
+// --- #35: ein gescheiterter Import setzt auch die Regelsets zurück ---
+test('Import: schlägt saveImportWinners fehl, stehen ruleSets und projectRuleSets wieder auf dem Stand vor dem Import', async () => {
+  const handlers = {};
+  const realDoc = globalThis.document, realCreate = URL.createObjectURL;
+  globalThis.document = { querySelector: sel => (handlers[sel] ??= {}), createElement: () => ({ click() {} }) };
+  URL.createObjectURL = () => 'blob:x';
+  try {
+    const rs0 = [{ id: 'rs', name: 'Alt', rules: [] }], prs0 = [{ id: 'pr', name: 'Projekt alt', rules: [] }];
+    let s = { cases: [], trucks: [mkTruck({ id: 't' })], plans: [], plan: null, ruleSets: rs0, projectRuleSets: prs0, collections: [] };
+    const store = { get: () => s, update(fn) { s = fn(s); }, resetHistory() {} };
+    const repo = {
+      mergeImportedBundle: cur => ({ ...cur, ruleSets: [{ id: 'rs2', name: 'Neu', rules: [] }], projectRuleSets: [{ id: 'pr2', name: 'Projekt neu', rules: [] }],
+        planChanged: false, winners: { cases: [], trucks: [], plans: [], ruleSets: [], collections: [] } }),
+      saveImportWinners: async () => { throw new Error('boom'); },
+    };
+    wireImportExport({ store, autosave: { exclude() {}, include() {} }, repo, showAlert: async () => {}, showConfirm: async () => false, bestandsSync: { halte() {}, ende() {} } });
+    const bundle = JSON.stringify({ format: 'truckload', version: 1, cases: [{ id: 'zz', name: 'Z', l: 10, w: 10, h: 10, weight: 1 }] });
+    await handlers['#import'].onchange({ target: { files: [{ text: async () => bundle }], value: '' } });
+    assert.equal(s.ruleSets, rs0);
+    assert.equal(s.projectRuleSets, prs0);
+  } finally {
+    globalThis.document = realDoc; URL.createObjectURL = realCreate;
+  }
+});
