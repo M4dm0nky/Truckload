@@ -518,15 +518,29 @@ export function parseCollectionFile(text) {
   if (m.name.length > MAX_FIRM) throw new Error(`Sammlungsname zu lang (höchstens ${MAX_FIRM} Zeichen).`);
   if (COLLECTION_RESERVED.test(m.name.trim())) throw new Error('Dieser Sammlungsname ist reserviert.');
   if (!Array.isArray(data.cases)) throw new Error('Das Feld „Cases“ in der Datei ist beschädigt.');
-  // Bewusst ohne die Reparaturen alter Schemata (Beschriftung, Rollenhöhe, Namenslänge): das
-  // Format ist neu, solche Altlasten gibt es hier nicht (Entscheidung, kein Versehen).
-  const cases = data.cases.filter(c => !isPreset(c));
+  // Dieselben Altschema-Reparaturen wie bei der Sicherung (Rollenhöhe, Namenslänge) statt Ablehnung;
+  // `repairs` nennt, was repariert wurde. Eine Beschriftung gibt es am Case nicht (sie gehört zum
+  // Stück im Ladeplan), eine Sammlungsdatei hat also nur diese beiden Fälle.
+  let wheelHRepairs = 0, nameRepairs = 0;
+  const cases = data.cases.filter(c => !isPreset(c)).map(c => {
+    const fixed = repairWheelH(c);
+    if (fixed) wheelHRepairs++;
+    const r = fixed ?? c;
+    if (typeof r?.name !== 'string' || r.name.length <= NAME_MAX) return r;
+    nameRepairs++;
+    const dolly = /^(.*) (\d+)er \(auf Dolly\)$/.exec(r.name);
+    return { ...r, name: dolly ? dollyName(dolly[1], dolly[2]) : r.name.slice(0, NAME_MAX) };
+  });
   cases.forEach(checkCase);
+  const repairs = [];
+  if (wheelHRepairs > 0) repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.`);
+  if (nameRepairs > 0) repairs.push(`${nameRepairs} Case${nameRepairs === 1 ? '' : 's'}: Name länger als ${NAME_MAX} Zeichen – gekürzt.`);
   const ids = cases.map(c => c.id);
   if (new Set(ids).size !== ids.length) throw new Error('Die Datei enthält doppelte Case-IDs.');
   return {
     collection: { id: m.id, name: m.name.trim() },
     cases: cases.map(c => normalizeCase(dropStrayLegacy(c))),
+    repairs,
   };
 }
 

@@ -83,3 +83,16 @@ standen bisher in keiner Ansicht; dafür gibt es den Eintrag „Ausgeblendet“ 
 zurücksetzen; die in `meine.json` selbst als `legacy` geführten Einträge bleiben, wie sie geliefert werden.
 Stücke in Ladeplänen behalten die ID; ihre Maße folgen der wiederhergestellten Fassung (die Rückfrage nennt die
 Zahl der Pläne). Nicht im Browser gefahren.
+
+## #11 Kleine Härtungen der Sammlungen
+Behoben: (1) Dateidialog „Sammlung importieren“: Fehlt das `cancel`-Ereignis, gilt der Dialog nach
+`focus` auf `window` und kurzer Frist (1 s) ohne gewählte Datei als abgebrochen und gibt den Knopf frei
+(`watchFileDialogClose` in `js/app/download.js`, mit Zeitgeber und Fenster als Testnähte). Nicht an einem
+echten alten Browser geprüft. (2) Sammlungsdateien bekommen dieselben Altschema-Reparaturen wie die Sicherung
+(zu hohe Rollenhöhe → Rollen abgewählt, zu langer Name → gekürzt) statt Ablehnung; `parseCollectionFile` liefert
+`repairs`, die Oberfläche nennt sie nach dem Import. Eine Beschriftung (`MAX_LABEL`) gibt es am Case nicht, sie
+gehört zum Stück im Ladeplan; im Sammlungsformat ist sie also nicht zu reparieren. Jeder andere Verstoß lehnt die
+Datei weiter ab.
+Entschieden (E): Die Schreib-Warteschlange wartet auf offene Meldungen (`showAlert`) in einem Vorgang. Die
+Reihenfolge der Schreibvorgänge ist wichtiger als ein schnelles Fortsetzen; eine Meldung innerhalb eines
+Vorgangs ist selten. Wiedervorlage, wenn Nutzer ein „hängendes“ Speichern hinter einer offenen Meldung melden.
