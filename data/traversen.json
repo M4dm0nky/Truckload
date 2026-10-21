@@ -1325,7 +1325,7 @@
    "hersteller": "Prolyte",
    "name": "H40D",
    "punkte": 3,
-   "width": 40,
+   "width": 39,
    "lengths": [
     {
      "cm": 25,
@@ -1399,7 +1399,7 @@
    "hersteller": "Prolyte",
    "name": "H40L",
    "punkte": 2,
-   "width": 40,
+   "width": 39,
    "lengths": [
     {
      "cm": 25,
@@ -1458,7 +1458,7 @@
    "hersteller": "Prolyte",
    "name": "H40V",
    "punkte": 4,
-   "width": 40,
+   "width": 39,
    "lengths": [
     {
      "cm": 25,
@@ -1547,6 +1547,11 @@
     {
      "cm": 150,
      "kg": 18.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 160,
+     "kg": 16.54,
      "art": "hersteller"
     },
     {
