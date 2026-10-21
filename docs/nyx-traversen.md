@@ -1,6 +1,6 @@
 # Traversen-Katalog: was NYX wissen muss
 
-Gilt seit V 0.18.0. Ergänzt [nyx-host.md](nyx-host.md) und richtet sich an die NYX-Entwicklung, die
+Gilt seit V 0.18.0 (Datenstand seit 0.18.5). Ergänzt [nyx-host.md](nyx-host.md) und richtet sich an die NYX-Entwicklung, die
 Truckload als Submodul einbindet.
 
 ## Zuerst: was NYX tun muss

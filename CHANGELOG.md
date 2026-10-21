@@ -2,6 +2,24 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.18.5 – 2026-10-21
+
+**Traversen-Katalog: Herstellergewichte statt Schätzung.**
+
+- **Prolyte:** Alle 10 Profile (H30, X30 und H40 je in 2-, 3- und 4-Punkt, dazu S36V) tragen jetzt die
+  Stückgewichte der Herstellerseiten statt einer Schätzung. Neu im Katalog sind H40L, H40D und S36V.
+  S36V ohne die Länge 160 cm, deren Gewicht auf der Seite offensichtlich falsch steht.
+- **Global Truss:** Die F-Serie (F14, F23, F24, F32, F33, F34) hat die genauen Gewichte der
+  Herstellerseiten statt gerundeter ganzer Pfund. Neu sind F34P, F44 und F44P. Schwarze Varianten (gleiche
+  Maße und Gewichte), Passstücke unter 25 cm und neun Stücke, deren Gewicht der Seite dem Versandgewicht
+  gleicht, stehen nicht im Katalog; für diese Längen rechnet der Dialog das Gewicht aus dem Metergewicht.
+- **Eurotruss:** Das Metergewicht kommt aus dem Katalog 2024 (der nennt nur „~kg/m“, die Stückgewichte
+  bleiben deshalb „berechnet“). HD32 hat jetzt 3,8 statt 4,0 kg/m und HD44 8,1 statt 9,5 kg/m; die
+  übrigen acht Profile stimmten schon.
+- **DT-Serien entfernt:** DT34P, DT36, DT44P, DT46 und DTGP (Global Truss America) sind nicht mehr im
+  Katalog. Der Katalog hat 29 Profile (10 Eurotruss, 9 Global Truss, 10 Prolyte).
+- Keine Änderung am Datenmodell; alte Wagen laden unverändert.
+
 ## V 0.18.0 – 2026-10-21
 
 **Traversen-Katalog und Lampengewichte.**
