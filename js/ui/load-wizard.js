@@ -7,7 +7,7 @@ import { MAX_LABEL, NAME_MAX } from '../model/limits.js';
 import { userCollectionNames } from '../model/collections.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
-import { searchInOptionsHtml, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, autoPackAfterStacked, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
+import { searchInOptionsHtml, companyFilterAfterChange, stockDefaultFor, refreshWizardCases, capToRoom, reduceWizardItem, autoPackAfterStacked, defaultWizardLayers, countWithoutLayer, setLayerForAll, setTippedForAll, bulkState } from './wizard-items.js';
 
 const MAX_ITEMS = 500;
 
@@ -55,6 +55,7 @@ export async function openLoadWizard(dlg, opts = {}) {
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
           <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt alle Cases ohne Firmenmarke: die Standardvorlagen und eigene Cases in „Meine Sammlung“ ohne Marke. Cases mit Marke (Listen-Cases, Cases in benannten Sammlungen) erscheinen erst nach Wahl von „Kompletter Bestand“ oder der Sammlung.">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
         </div>
+        <p class="hint wiz-filter-note" role="status" hidden></p>
         <p class="hint wiz-totals">0 Stück · 0 kg</p>
         <div class="wiz-case-list"></div>
         <div class="row">
@@ -171,7 +172,10 @@ export async function openLoadWizard(dlg, opts = {}) {
     // Rückfall auf „Standardkatalog“, nicht „Alle Firmen“: verschwindet die gemerkte Firma aus der
     // Liste (letztes Case dieser Firma gelöscht), soll der Filter wieder scharf stehen statt
     // auf einmal Cases aus Sammlungen zu zeigen, die der Nutzer nie gewählt hat.
-    if (prev !== NEUTRAL_COMPANY && prev !== '' && !collections.some(c => c.id === prev)) companyFilterSel.value = NEUTRAL_COMPANY;
+    const next = companyFilterAfterChange(prev, collections);
+    if (next.value !== prev) companyFilterSel.value = next.value;
+    const note = dlg.querySelector('.wiz-filter-note');
+    if (note && next.hinweis) { note.textContent = next.hinweis; note.hidden = false; } // bleibt, bis der Filter geändert wird
   }
   list.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
@@ -206,7 +210,11 @@ export async function openLoadWizard(dlg, opts = {}) {
   });
   search.addEventListener('input', renderCaseList);
   filterSel.addEventListener('change', renderCaseList);
-  companyFilterSel.addEventListener('change', renderCaseList);
+  companyFilterSel.addEventListener('change', () => {
+    const note = dlg.querySelector('.wiz-filter-note');
+    if (note) note.hidden = true;
+    renderCaseList();
+  });
 
   const stockOpt = () => ({ mode: 'choose', companies: userCollectionNames(getCollections()), defaultCompany: stockDefaultFor(companyFilterSel.value, getCollections()), collections: getCollections() });
 

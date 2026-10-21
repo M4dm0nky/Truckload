@@ -121,3 +121,20 @@ der Ablage. Kein Grund steht weiter dort, wo er geraten wäre: „kein Platz“,
 anderen Stücken abhängt. Eigene Entscheidung: Eine leere Schnittmenge von Stück- und Case-Lagen ist kein Grund,
 weil `pieceLayers` dann auf die Lagen des Case-Typs zurückfällt. Der frühere Test „egal welches Gewicht → null“
 galt der alten Fassung und wurde angepasst.
+
+## #28 Oberflächen-Kleinigkeiten
+Behoben: (1) Der Inspector zeigt „stehend“ bzw. „stehend, um 180° gedreht“ statt „stehend, 180°“; gemeint ist
+die Drehung um die senkrechte Achse (`orientationText`, `js/ui/inspector.js`). (2) Verschwindet die gewählte
+Sammlung aus dem Filter „Suchen in“ des Lade-Assistenten, springt er weiter auf „Standardkatalog“, zeigt jetzt
+aber „Sammlung nicht mehr vorhanden – Filter zurückgesetzt.“, bis der Filter geändert wird
+(`companyFilterAfterChange`, `js/ui/wizard-items.js`).
+Abweichung von der Anleitung: Die Lagenwahl endet nicht bei „bis 3“, sondern bietet in Inspector, Wizard und
+Case-Editor schon die Lagen 1–4 an; mehr gibt es nicht und wird nicht ergänzt: `layersValid` und das
+Datenformat kennen nur 1–4 (eine Lage 5 im Stück wäre eine Datenmodelländerung, die ältere Versionen nicht
+mehr läsen), der Packer stapelt höchstens 4 Lagen, und eine Lage 5 entsteht nur von Hand und wird von
+`validate.js` gewarnt. Damit ist der Punkt erledigt (E).
+Entschieden (E): Der Wizard schreibt jedem Stück die Gewerkfarbe ausdrücklich ins Stück (später geänderte
+Gewerk-/Case-Farben erreichen vorhandene Stücke nicht; im Inspector lässt sich die Farbe je Stück ändern).
+Tippen kann Nachbarn überlappen, weil nur `z` nachgeführt wird; das verhält sich seit jeher wie „Drehen“, und
+die Prüfung meldet es. Im Wizard neu angelegte Cases bleiben nach Abbruch in der Bibliothek, wie beim
+Case-Editor (Aufräumen über 🗑 in der Materialverwaltung). Wiedervorlage jeweils bei Nutzerbeschwerden.

@@ -162,3 +162,13 @@ test('autoPackAfterStacked: „gestapelt“ schaltet ein, außer der Nutzer hat 
   assert.equal(autoPackAfterStacked(false, true), false);  // vom Nutzer abgewählt: bleibt aus
   assert.equal(autoPackAfterStacked(true, true), true);    // vom Nutzer angewählt: bleibt an
 });
+
+test('companyFilterAfterChange (#28): verschwundene Sammlung → Standardkatalog mit Hinweis; sonst unverändert ohne Hinweis', async () => {
+  const { companyFilterAfterChange } = await import('../js/ui/wizard-items.js');
+  const { NEUTRAL_COMPANY } = await import('../js/ui/caseGroups.js');
+  const cols = [{ id: 'standard' }, { id: 'meine' }, { id: 'abc' }];
+  assert.deepEqual(companyFilterAfterChange('gone', cols), { value: NEUTRAL_COMPANY, hinweis: 'Sammlung nicht mehr vorhanden – Filter zurückgesetzt.' });
+  assert.deepEqual(companyFilterAfterChange('abc', cols), { value: 'abc', hinweis: '' });
+  assert.deepEqual(companyFilterAfterChange('', cols), { value: '', hinweis: '' });
+  assert.deepEqual(companyFilterAfterChange(NEUTRAL_COMPANY, cols), { value: NEUTRAL_COMPANY, hinweis: '' });
+});
