@@ -20,3 +20,14 @@ Entschieden (E): Ein beim Abbruch des Lade-Assistenten übrig bleibender neuer W
 Cases“, wie bei „+ Neues Case“; aufgeräumt wird über 🗑. Der Typ entsteht erst mit „Hinzufügen“, ein
 vorhandener passender wird wiederverwendet (`findMatchingWagon`). Wiedervorlage, wenn Nutzer verwaiste Wagen-Typen
 als Störung melden.
+
+## #6 Marke („company“) und Sammlung trennen
+Behoben: Wandert ein Listen-Case (ID aus `data/meine.json`) in eine benannte Sammlung und zurück nach „Meine
+Sammlung“, bekommt es die Marke der mitgelieferten Fassung zurück (`moveCase(c, target, shipped)`, aufgerufen
+in `moveCaseTo` mit `CASE_LIBRARY`). Ohne mitgelieferte Fassung (eigenes Case) entfällt `company` wie bisher;
+nichts wird aus dem Namen abgeleitet. Kein neues Feld. Der Hinweistext (`title`) am Wizard-Filter
+„Standardkatalog“ sagt jetzt, was er zeigt: Cases ohne Firmenmarke.
+Entschieden (E): `company` ist nur der Name der Sammlung, in der das Case zuletzt lag, nicht der Name des
+Baums; wer nach Oberfirma filtert, nimmt den Sammlungsfilter. Das Verschieben einer Sammlung ändert die
+`company` ihrer Cases nicht. Wiedervorlage, wenn eine Marke über Sammlungsgrenzen hinweg gebraucht wird
+(das wäre ein Datenmodell-Thema, mit NYX abzustimmen).

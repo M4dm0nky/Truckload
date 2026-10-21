@@ -53,7 +53,7 @@ export async function openLoadWizard(dlg, opts = {}) {
         <div class="wiz-cases-head">
           <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
           <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
-          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt nur Vorlagen und eigene Cases – Cases aus Sammlungen erst nach gezielter Wahl des Kompletten Bestands oder einer Sammlung">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
+          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt alle Cases ohne Firmenmarke: die Standardvorlagen und eigene Cases in „Meine Sammlung“ ohne Marke. Cases mit Marke (Listen-Cases, Cases in benannten Sammlungen) erscheinen erst nach Wahl von „Kompletter Bestand“ oder der Sammlung.">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
         </div>
         <p class="hint wiz-totals">0 Stück · 0 kg</p>
         <div class="wiz-case-list"></div>

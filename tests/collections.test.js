@@ -188,3 +188,21 @@ test('adoptInto: Plan-Case mit collectionId meine landet in der gewählten Samml
   assert.equal(m.collectionId, MEINE_ID);
   assert.equal(m.company, undefined);
 });
+
+test('moveCase: Listen-Case kommt mit seiner Marke aus meine.json aus einer Sammlung zurück (#6)', async () => {
+  const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+  const shipped = CASE_LIBRARY.find(c => c.company);
+  assert.ok(shipped, 'meine.json hat Listen-Cases mit Marke');
+  const moved = moveCase(shipped, { id: 't', name: 'TSE' }, shipped);
+  assert.equal(moved.company, 'TSE');
+  const back = moveCase(moved, { id: MEINE_ID, name: 'Meine Sammlung' }, shipped);
+  assert.equal(back.company, shipped.company);
+  assert.equal(back.collectionId, MEINE_ID);
+});
+
+test('moveCase: eigenes Case (ohne mitgelieferte Fassung) verliert die Marke wie bisher (#6)', () => {
+  const own = { id: 'own-1', builtin: false, company: 'TSE', name: 'Eigenes' };
+  assert.equal(moveCase(own, { id: MEINE_ID, name: 'Meine Sammlung' }, undefined).company, undefined);
+  // nach „Standard“-ähnlichen festen Zielen (kein Meine) bleibt es ohne Marke
+  assert.equal(moveCase(own, { id: 'standard', name: 'Standard' }, { company: 'CAB' }).company, undefined);
+});

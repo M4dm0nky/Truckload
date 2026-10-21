@@ -239,3 +239,14 @@ test('importCollectionFile: neue Sammlung über der Grenze wird abgelehnt, bekan
   assert.equal(known.id, 'c5');
   assert.equal(full.writes.length, 1);
 });
+
+test('moveCaseTo: Listen-Case aus meine.json behält auf dem Rückweg nach Meine seine Marke (#6)', async () => {
+  const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+  const shipped = CASE_LIBRARY.find(c => c.company);
+  const cols = withBuiltins([{ id: 't', name: 'TSE' }]);
+  const { p, store } = setup([{ ...shipped }], cols);
+  assert.equal(await p.moveCaseTo(shipped.id, 't'), true);
+  assert.equal(store.get().cases.find(c => c.id === shipped.id).company, 'TSE');
+  assert.equal(await p.moveCaseTo(shipped.id, 'meine'), true);
+  assert.equal(store.get().cases.find(c => c.id === shipped.id).company, shipped.company);
+});

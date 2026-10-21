@@ -10,6 +10,7 @@ import {
   withBuiltins, collectionIdOf, MEINE_ID,
 } from '../model/collections.js';
 import { MAX_COLLECTIONS } from '../model/limits.js';
+import { CASE_LIBRARY } from '../data/case-library.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 
 const NO_BUILTIN_MOVE = 'Standardvorlagen lassen sich nicht verschieben – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
@@ -183,7 +184,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     if (!c || !target) return false;
     if (c.builtin && c.id.startsWith('preset-')) { await showAlert(NO_BUILTIN_MOVE); return false; }
     if (collectionIdOf(c) === target.id) return true;
-    return !!await saveCaseNow(stamp(moveCase(c, target)));
+    return !!await saveCaseNow(stamp(moveCase(c, target, CASE_LIBRARY.find(x => x.id === c.id))));
   });
 
   // Eine eingelesene Sammlungsdatei (parseCollectionFile). Gleiche ID: Cases werden gemischt, ein
