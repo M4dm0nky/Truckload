@@ -149,11 +149,12 @@ vorbelegten Wert (Wizard, Duplizieren) nicht erfasst.
 Ansichten, der Inspector und der Druck lesen von dort — nicht selbst aus dem Case.
 
 **Grund in der Ablage (`unplacedReason`, `js/model/unplacedReason.js`).** Die Seitenleiste nennt
-bei einem Stück in „Noch nicht geladen“ den Grund, aber nur einen, der allein aus den Maßen folgt:
-`chooseOrientation` (dieselbe Auswahl wie im Packer) findet für das Stück keine Lage im Laderaum,
-und zwar entweder weil es schlicht zu groß ist, oder weil `tipped: true` bzw. `tipped: false` die
-einzig passende Lage ausschließt. Nutzlast, Lagen-Einschränkung und Pack-Regeln prüft die Funktion
-nicht; passt das Stück geometrisch, liefert sie `null`, und es steht kein Grund da — „kein Platz“
+bei einem Stück in „Noch nicht geladen“ den Grund, aber nur einen, der allein aus Stück, Case-Typ und
+Fahrzeug folgt: `chooseOrientation` (dieselbe Auswahl wie im Packer) findet keine Lage im Laderaum (zu groß,
+oder `tipped: true` bzw. `tipped: false` schließt die einzig passende Lage aus); das Gewicht des Stücks liegt
+über der Nutzlast; die für das Stück geltenden Lagen (`pieceLayers`) enthalten Lage 1 nicht. Mehrere Gründe
+stehen durch „; “ getrennt. Pack-Regeln und alles, was von den anderen Stücken abhängt, prüft die Funktion
+nicht; trifft nichts zu, liefert sie `null`, und es steht kein Grund da — „kein Platz“
 wäre geraten, denn die Ablage füllt sich auch durch „In Ablage“, „Truck entladen“ oder einen
 Wizard ohne Packen. `js/ui/library.js` berechnet die Gründe je Stand von Ablage, Cases und Fahrzeug
 einmal (`reasonOf`).
@@ -472,6 +473,11 @@ Die reine Logik steht in `js/model/material.js`, die Oberfläche in `js/ui/mater
   Fehlen beide Felder (alte Daten), liegt das Case im Bestand. `legacy` gilt nur für `lib-`-IDs:
   an anderen eigenen Cases (alte Editor-Kopien ausgeblendeter Vorlagen) entfernt
   `io.dropStrayLegacy` es beim Laden und beim Import.
+- **Original wiederherstellen** (`persistence.restoreOriginal`, Entscheidung: `docs/entscheidungen.md`, „#8“):
+  Eine Überlagerung (`originalOf`: eigener Datensatz mit der ID eines Eintrags aus `data/meine.json`) wird
+  entfernt, die mitgelieferte Fassung gilt wieder. Ausgeblendete Überlagerungen (`legacy`) stehen im
+  Materialbildschirm unter „Ausgeblendet“. `moveCase` setzt beim Zurück nach „Meine Sammlung“ die Marke
+  (`company`) der mitgelieferten Fassung.
 - **Bearbeiten einer `lib-`-Vorlage** speichert ein eigenes Case mit **derselben ID** und
   `builtin: false`; `mergeOwnWithBuiltins` lässt die eigene Version gewinnen. Pläne verweisen
   weiter per `caseId`. Dasselbe gilt für das Verschieben in eine Sammlung und für „Sammlung

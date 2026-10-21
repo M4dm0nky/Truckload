@@ -153,10 +153,11 @@ Lage und „getippt“ eines einzelnen Stücks lassen sich auch nachträglich im
 – sowohl für ein Stück im Truck als auch für eines in „Noch nicht geladen“ (dort einfach die
 Zeile in der Seitenleiste anklicken).
 
-Bei einem Stück in „Noch nicht geladen“ steht, wenn es sich aus den Maßen ergibt, der Grund dabei,
-etwa „zu groß für den Laderaum“ oder „auf ‚getippt‘ gesetzt, passt aber nur stehend“. Gründe, die
-nicht aus den Maßen folgen (Nutzlast, Lagen-Einschränkung, Pack-Regeln), nennt die App nicht –
-dann steht dort nichts.
+Bei einem Stück in „Noch nicht geladen“ steht, wenn es sich aus den Daten ergibt, der Grund dabei,
+etwa „zu groß für den Laderaum“, „auf ‚getippt‘ gesetzt, passt aber nur stehend“, „zu schwer für die
+Nutzlast des Fahrzeugs“ (das Stück allein liegt über der Nutzlast) oder „erlaubte Lagen 2, 3: darf nur auf
+anderen Stücken stehen“. Gründe, die von den anderen Stücken oder den Pack-Regeln abhängen, nennt die App
+nicht – dann steht dort nichts.
 
 Das **Gewicht** eines Case-Typs lässt sich im Inspector direkt ändern (Zahlenfeld in kg, gilt für
 alle Stücke dieses Typs). Das gilt für eigene Cases und Listen-Vorlagen; bei Standardvorlagen
@@ -191,6 +192,9 @@ und Sonderbau, mit Suche.
   ausschließlich hier, nicht mehr in der Seitenleiste oder im Wizard. Eine gelöschte
   mitgelieferte Vorlage wird nur ausgeblendet: Sie fehlt in allen Auswahllisten, alte
   Ladepläne behalten das Stück. Wird ein Case in Ladeplänen benutzt, fragt die App vorher nach.
+- **Original wiederherstellen** – ein bearbeitetes, verschobenes oder ausgeblendetes Listen-Case hat
+  diese Schaltfläche; sie entfernt deine Änderung, danach gilt wieder die mitgelieferte Fassung. Ausgeblendete
+  Listen-Cases stehen links unter „Ausgeblendet“ (der Eintrag erscheint nur, wenn es welche gibt).
 - **Nur in Ladeplänen** – Cases, die im Wizard ohne Häkchen „Im Materialbestand ablegen“
   angelegt wurden. Sie tauchen in keiner Auswahl auf. Hier lassen sie sich mit „In Bestand
   übernehmen“ nachträglich in den Bestand holen oder löschen.
