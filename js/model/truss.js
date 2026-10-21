@@ -105,7 +105,7 @@ const STAND_WHEEL_D = 10;            // Rollendurchmesser (cm)
 // Die Traverse ist immer das breiteste Teil, der Dolly etwas schmaler (Nutzerangabe 2026-09-26).
 // Um wie viel, ist nicht bekannt – 2 cm je Seite ist eine eigene, rein optische Annahme; das
 // Packen rechnet weiter mit der Standfläche STAND_FOOTPRINT_W.
-const STAND_DOLLY_INSET = 2;         // Einzug des Dollys gegenüber der Traverse je Seite (cm)
+export const STAND_DOLLY_INSET = 2;         // Einzug des Dollys gegenüber der Traverse je Seite (cm)
 
 // Reine Geometrie eines platzierten Traversenwagens: zwei Rollwagen an den Enden (über die volle
 // Wagenbreite, mit je 4 Rollen), darauf `count` Traversenstücke – 2 nebeneinander, Lagen übereinander,

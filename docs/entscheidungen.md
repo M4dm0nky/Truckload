@@ -138,3 +138,9 @@ Gewerk-/Case-Farben erreichen vorhandene Stücke nicht; im Inspector lässt sich
 Tippen kann Nachbarn überlappen, weil nur `z` nachgeführt wird; das verhält sich seit jeher wie „Drehen“, und
 die Prüfung meldet es. Im Wizard neu angelegte Cases bleiben nach Abbruch in der Bibliothek, wie beim
 Case-Editor (Aufräumen über 🗑 in der Materialverwaltung). Wiedervorlage jeweils bei Nutzerbeschwerden.
+
+## #15, #20, #21 Prüflisten für Hardware
+Offen bis zur Prüfung am echten Gerät bzw. mit dem Maß des Nutzers. Die Vorbereitung steht in
+`docs/pruefliste-hardware.md` (Druck, Mausrad/Trackpad, Pre-Rig-Dolly) und ist als Kommentar im jeweiligen
+Issue gepostet. Für #21 ist `STAND_DOLLY_INSET` exportiert und durch einen Test an die Rollenspur gebunden
+(`tests/truss.test.js`); der Wert 2 cm bleibt eine Schätzung, bis gemessen ist.

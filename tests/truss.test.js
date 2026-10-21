@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DOLLY_H, DOLLY_WHEEL_H, DOLLY_BOARD_H, DOLLY_RAIL_H, DOLLY_WIDTHS, DOLLY_L, TRUSS_PROFILES,
   TUBE_R_RATIO, trussDims, trussShape, MAX_TRUSS_WIDTH,
-  STAND_FOOTPRINT_W, STAND_TRUSS_W, STAND_TRUSS_H,
+  STAND_FOOTPRINT_W, STAND_TRUSS_W, STAND_TRUSS_H, STAND_DOLLY_INSET,
   wagonWeight, splitWagons,
 } from '../js/model/truss.js';
 import { boxOf, isTruss } from '../js/model/geometry.js';
@@ -594,3 +594,17 @@ import { profileById, pieceKg } from '../js/model/trussCatalog.js';
     assert.equal(findMatchingWagon([old], { ...spec, profileId: 'eurotruss-fd34' }), undefined);
   });
 }
+
+// #21: Die Dolly-Breite (Standfläche der Rollen) ist die Traversenbreite abzüglich des geschätzten
+// Einzugs je Seite. Der Wert ist ungemessen; wer ihn nach einer Messung ändert, zieht hier nichts nach
+// außer dem Verweis auf die Konstante – der Test hält die Beziehung fest, nicht die 2 cm.
+test('trussShape: stehende Pre-Rig – Rollen stehen um STAND_DOLLY_INSET je Seite enger als die Traverse', () => {
+  const c = mkStandingCase(240, 103);
+  const p = { x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 };
+  const s = trussShape(c, p, boxOf(c, p));
+  const lo = Math.min(...s.wheels.map(w => w[`${s.widAxis}0`])), hi = Math.max(...s.wheels.map(w => w[`${s.widAxis}1`]));
+  const piece = s.pieces[0];
+  assert.ok(Math.abs((hi - lo) - (STAND_TRUSS_W - 2 * STAND_DOLLY_INSET)) < 1e-9, 'Rollenspur = Traversenbreite − 2 × Einzug');
+  assert.ok(Math.abs((lo - piece[`${s.widAxis}0`]) - STAND_DOLLY_INSET) < 1e-9, 'Einzug links');
+  assert.ok(Math.abs((piece[`${s.widAxis}1`] - hi) - STAND_DOLLY_INSET) < 1e-9, 'Einzug rechts');
+});
