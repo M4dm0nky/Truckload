@@ -75,42 +75,42 @@
     },
     {
      "cm": 75,
-     "kg": 3.4,
+     "kg": 3.3,
      "art": "berechnet"
     },
     {
      "cm": 100,
-     "kg": 4.5,
+     "kg": 4.4,
      "art": "berechnet"
     },
     {
      "cm": 150,
-     "kg": 6.7,
+     "kg": 6.6,
      "art": "berechnet"
     },
     {
      "cm": 200,
-     "kg": 9.0,
+     "kg": 8.8,
      "art": "berechnet"
     },
     {
      "cm": 250,
-     "kg": 11.2,
+     "kg": 11.0,
      "art": "berechnet"
     },
     {
      "cm": 300,
-     "kg": 13.5,
+     "kg": 13.2,
      "art": "berechnet"
     },
     {
      "cm": 350,
-     "kg": 15.7,
+     "kg": 15.4,
      "art": "berechnet"
     },
     {
      "cm": 400,
-     "kg": 18.0,
+     "kg": 17.6,
      "art": "berechnet"
     }
    ]
@@ -188,7 +188,7 @@
     },
     {
      "cm": 50,
-     "kg": 2.2,
+     "kg": 2.1,
      "art": "berechnet"
     },
     {
@@ -281,42 +281,42 @@
    "lengths": [
     {
      "cm": 50,
-     "kg": 2.0,
+     "kg": 1.9,
      "art": "berechnet"
     },
     {
      "cm": 75,
-     "kg": 3.0,
+     "kg": 2.9,
      "art": "berechnet"
     },
     {
      "cm": 100,
-     "kg": 4.0,
+     "kg": 3.8,
      "art": "berechnet"
     },
     {
      "cm": 150,
-     "kg": 6.0,
+     "kg": 5.7,
      "art": "berechnet"
     },
     {
      "cm": 200,
-     "kg": 8.0,
+     "kg": 7.6,
      "art": "berechnet"
     },
     {
      "cm": 250,
-     "kg": 10.0,
+     "kg": 9.5,
      "art": "berechnet"
     },
     {
      "cm": 350,
-     "kg": 14.0,
+     "kg": 13.3,
      "art": "berechnet"
     },
     {
      "cm": 400,
-     "kg": 16.0,
+     "kg": 15.2,
      "art": "berechnet"
     }
    ]
@@ -335,7 +335,7 @@
     },
     {
      "cm": 50,
-     "kg": 2.7,
+     "kg": 2.8,
      "art": "berechnet"
     },
     {
@@ -350,7 +350,7 @@
     },
     {
      "cm": 150,
-     "kg": 8.3,
+     "kg": 8.2,
      "art": "berechnet"
     },
     {
@@ -360,7 +360,7 @@
     },
     {
      "cm": 250,
-     "kg": 13.7,
+     "kg": 13.8,
      "art": "berechnet"
     },
     {
@@ -370,7 +370,7 @@
     },
     {
      "cm": 350,
-     "kg": 19.3,
+     "kg": 19.2,
      "art": "berechnet"
     },
     {
@@ -453,47 +453,47 @@
    "lengths": [
     {
      "cm": 35,
-     "kg": 3.3,
+     "kg": 2.8,
      "art": "berechnet"
     },
     {
      "cm": 50,
-     "kg": 4.7,
+     "kg": 4.0,
      "art": "berechnet"
     },
     {
      "cm": 100,
-     "kg": 9.5,
+     "kg": 8.1,
      "art": "berechnet"
     },
     {
      "cm": 150,
-     "kg": 14.3,
+     "kg": 12.2,
      "art": "berechnet"
     },
     {
      "cm": 200,
-     "kg": 19.0,
+     "kg": 16.2,
      "art": "berechnet"
     },
     {
      "cm": 250,
-     "kg": 23.8,
+     "kg": 20.2,
      "art": "berechnet"
     },
     {
      "cm": 300,
-     "kg": 28.5,
+     "kg": 24.3,
      "art": "berechnet"
     },
     {
      "cm": 350,
-     "kg": 33.2,
+     "kg": 28.4,
      "art": "berechnet"
     },
     {
      "cm": 400,
-     "kg": 38.0,
+     "kg": 32.4,
      "art": "berechnet"
     }
    ]
@@ -518,266 +518,6 @@
    ]
   },
   {
-   "id": "global-dt34p",
-   "hersteller": "Global Truss",
-   "name": "DT34P",
-   "punkte": 4,
-   "width": 29,
-   "lengths": [
-    {
-     "cm": 8,
-     "kg": 4.1,
-     "art": "hersteller"
-    },
-    {
-     "cm": 10.5,
-     "kg": 4.5,
-     "art": "hersteller"
-    },
-    {
-     "cm": 12.5,
-     "kg": 5.0,
-     "art": "hersteller"
-    },
-    {
-     "cm": 15,
-     "kg": 5.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 17,
-     "kg": 4.5,
-     "art": "hersteller"
-    },
-    {
-     "cm": 18,
-     "kg": 4.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 19,
-     "kg": 4.8,
-     "art": "hersteller"
-    },
-    {
-     "cm": 20,
-     "kg": 4.8,
-     "art": "hersteller"
-    },
-    {
-     "cm": 21,
-     "kg": 4.9,
-     "art": "hersteller"
-    },
-    {
-     "cm": 22,
-     "kg": 4.9,
-     "art": "hersteller"
-    },
-    {
-     "cm": 23,
-     "kg": 5.0,
-     "art": "hersteller"
-    },
-    {
-     "cm": 24,
-     "kg": 5.0,
-     "art": "hersteller"
-    },
-    {
-     "cm": 25,
-     "kg": 5.1,
-     "art": "hersteller"
-    },
-    {
-     "cm": 50,
-     "kg": 6.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 100,
-     "kg": 9.1,
-     "art": "hersteller"
-    },
-    {
-     "cm": 150,
-     "kg": 12.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 200,
-     "kg": 15.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 250,
-     "kg": 19.1,
-     "art": "hersteller"
-    },
-    {
-     "cm": 275,
-     "kg": 22.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 300,
-     "kg": 22.7,
-     "art": "hersteller"
-    }
-   ]
-  },
-  {
-   "id": "global-dt36",
-   "hersteller": "Global Truss",
-   "name": "DT36",
-   "punkte": 4,
-   "width": 29,
-   "lengths": [
-    {
-     "cm": 100,
-     "kg": 12.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 150,
-     "kg": 17.2,
-     "art": "hersteller"
-    },
-    {
-     "cm": 200,
-     "kg": 21.8,
-     "art": "hersteller"
-    },
-    {
-     "cm": 250,
-     "kg": 26.8,
-     "art": "hersteller"
-    },
-    {
-     "cm": 300,
-     "kg": 31.3,
-     "art": "hersteller"
-    }
-   ]
-  },
-  {
-   "id": "global-dt44p",
-   "hersteller": "Global Truss",
-   "name": "DT44P",
-   "punkte": 4,
-   "width": 40,
-   "lengths": [
-    {
-     "cm": 50,
-     "kg": 7.3,
-     "art": "hersteller"
-    },
-    {
-     "cm": 100,
-     "kg": 11.8,
-     "art": "hersteller"
-    },
-    {
-     "cm": 150,
-     "kg": 15.9,
-     "art": "hersteller"
-    },
-    {
-     "cm": 200,
-     "kg": 20.0,
-     "art": "hersteller"
-    },
-    {
-     "cm": 250,
-     "kg": 23.6,
-     "art": "hersteller"
-    },
-    {
-     "cm": 300,
-     "kg": 28.1,
-     "art": "hersteller"
-    },
-    {
-     "cm": 350,
-     "kg": 31.8,
-     "art": "hersteller"
-    }
-   ]
-  },
-  {
-   "id": "global-dt46",
-   "hersteller": "Global Truss",
-   "name": "DT46",
-   "punkte": 4,
-   "width": 40,
-   "lengths": [
-    {
-     "cm": 150,
-     "kg": 20.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 200,
-     "kg": 25.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 250,
-     "kg": 29.5,
-     "art": "hersteller"
-    },
-    {
-     "cm": 300,
-     "kg": 36.3,
-     "art": "hersteller"
-    }
-   ]
-  },
-  {
-   "id": "global-dtgp",
-   "hersteller": "Global Truss",
-   "name": "DTGP",
-   "punkte": 4,
-   "width": 30,
-   "lengths": [
-    {
-     "cm": 61,
-     "kg": 9.1,
-     "art": "hersteller"
-    },
-    {
-     "cm": 91.5,
-     "kg": 10.0,
-     "art": "hersteller"
-    },
-    {
-     "cm": 122,
-     "kg": 13.6,
-     "art": "hersteller"
-    },
-    {
-     "cm": 152.5,
-     "kg": 15.9,
-     "art": "hersteller"
-    },
-    {
-     "cm": 183,
-     "kg": 17.0,
-     "art": "hersteller"
-    },
-    {
-     "cm": 244,
-     "kg": 21.3,
-     "art": "hersteller"
-    },
-    {
-     "cm": 305,
-     "kg": 26.8,
-     "art": "hersteller"
-    }
-   ]
-  },
-  {
    "id": "global-f14",
    "hersteller": "Global Truss",
    "name": "F14",
@@ -786,22 +526,22 @@
    "lengths": [
     {
      "cm": 50,
-     "kg": 1.4,
+     "kg": 1.0,
      "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 2.3,
+     "kg": 2.0,
      "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 3.2,
+     "kg": 3.0,
      "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 4.1,
+     "kg": 4.0,
      "art": "hersteller"
     },
     {
@@ -811,7 +551,7 @@
     },
     {
      "cm": 300,
-     "kg": 5.9,
+     "kg": 6.0,
      "art": "hersteller"
     }
    ]
@@ -824,33 +564,58 @@
    "width": 22,
    "lengths": [
     {
+     "cm": 25,
+     "kg": 1.15,
+     "art": "hersteller"
+    },
+    {
+     "cm": 40,
+     "kg": 1.35,
+     "art": "hersteller"
+    },
+    {
      "cm": 50,
-     "kg": 1.8,
+     "kg": 1.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 75,
+     "kg": 2.1,
      "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 2.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 150,
-     "kg": 4.1,
+     "kg": 3.0,
      "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 5.9,
+     "kg": 5.5,
      "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 6.8,
+     "kg": 7.0,
      "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 9.1,
+     "kg": 8.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 350,
+     "kg": 7.45,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 10.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
+     "kg": 11.1,
      "art": "hersteller"
     }
    ]
@@ -863,63 +628,53 @@
    "width": 22,
    "lengths": [
     {
-     "cm": 22,
-     "kg": 1.8,
-     "art": "hersteller"
-    },
-    {
      "cm": 50,
-     "kg": 2.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 75,
-     "kg": 3.2,
-     "art": "hersteller"
-    },
-    {
-     "cm": 87.5,
-     "kg": 3.6,
+     "kg": 2.1,
      "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 4.1,
+     "kg": 3.5,
      "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 5.0,
+     "kg": 4.8,
      "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 6.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 215,
-     "kg": 7.3,
+     "kg": 6.1,
      "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 7.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 275,
-     "kg": 10.9,
+     "kg": 7.4,
      "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 11.8,
+     "kg": 8.8,
      "art": "hersteller"
     },
     {
      "cm": 350,
+     "kg": 10.1,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 11.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
      "kg": 12.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 14.0,
      "art": "hersteller"
     }
    ]
@@ -932,63 +687,63 @@
    "width": 29,
    "lengths": [
     {
-     "cm": 29,
-     "kg": 1.8,
+     "cm": 25,
+     "kg": 0.9,
      "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 2.3,
+     "kg": 1.7,
      "art": "hersteller"
     },
     {
      "cm": 75,
-     "kg": 2.7,
-     "art": "hersteller"
-    },
-    {
-     "cm": 87.5,
-     "kg": 3.2,
+     "kg": 2.1,
      "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 3.6,
-     "art": "hersteller"
-    },
-    {
-     "cm": 125,
-     "kg": 4.5,
+     "kg": 2.5,
      "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 5.4,
+     "kg": 3.5,
      "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 6.4,
+     "kg": 4.6,
      "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 7.3,
+     "kg": 5.7,
      "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 8.2,
+     "kg": 6.7,
      "art": "hersteller"
     },
     {
      "cm": 350,
-     "kg": 9.5,
+     "kg": 7.8,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 8.6,
      "art": "hersteller"
     },
     {
      "cm": 450,
-     "kg": 12.7,
+     "kg": 9.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 10.9,
      "art": "hersteller"
     }
    ]
@@ -1001,58 +756,88 @@
    "width": 29,
    "lengths": [
     {
-     "cm": 37.5,
-     "kg": 3.6,
+     "cm": 25,
+     "kg": 2.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 40,
+     "kg": 3.1,
      "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 4.1,
+     "kg": 3.5,
+     "art": "hersteller"
+    },
+    {
+     "cm": 55,
+     "kg": 3.8,
+     "art": "hersteller"
+    },
+    {
+     "cm": 60,
+     "kg": 4.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 65,
+     "kg": 4.8,
+     "art": "hersteller"
+    },
+    {
+     "cm": 70,
+     "kg": 4.3,
      "art": "hersteller"
     },
     {
      "cm": 75,
-     "kg": 5.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 87.5,
-     "kg": 5.9,
+     "kg": 4.4,
      "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 6.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 125,
-     "kg": 6.8,
+     "kg": 5.8,
      "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 7.7,
+     "kg": 7.5,
      "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 10.0,
+     "kg": 9.6,
      "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 11.8,
+     "kg": 11.0,
      "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 14.1,
+     "kg": 12.7,
      "art": "hersteller"
     },
     {
      "cm": 350,
-     "kg": 15.9,
+     "kg": 14.5,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 16.2,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
+     "kg": 17.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 18.3,
      "art": "hersteller"
     }
    ]
@@ -1065,88 +850,285 @@
    "width": 29,
    "lengths": [
     {
+     "cm": 25,
+     "kg": 2.9,
+     "art": "hersteller"
+    },
+    {
      "cm": 29,
-     "kg": 5.0,
+     "kg": 3.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 40,
+     "kg": 4.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 42,
+     "kg": 4.4,
      "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 5.4,
+     "kg": 4.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 55,
+     "kg": 5.1,
+     "art": "hersteller"
+    },
+    {
+     "cm": 60,
+     "kg": 5.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 65,
+     "kg": 5.65,
+     "art": "hersteller"
+    },
+    {
+     "cm": 70,
+     "kg": 6.8,
      "art": "hersteller"
     },
     {
      "cm": 75,
-     "kg": 6.4,
+     "kg": 7.0,
      "art": "hersteller"
     },
     {
-     "cm": 87.5,
-     "kg": 7.7,
+     "cm": 80,
+     "kg": 6.05,
      "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 8.2,
-     "art": "hersteller"
-    },
-    {
-     "cm": 125,
-     "kg": 9.1,
+     "kg": 7.5,
      "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 10.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 175,
-     "kg": 11.3,
-     "art": "hersteller"
-    },
-    {
-     "cm": 194,
-     "kg": 13.6,
+     "kg": 9.7,
      "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 13.2,
-     "art": "hersteller"
-    },
-    {
-     "cm": 215,
-     "kg": 13.6,
-     "art": "hersteller"
-    },
-    {
-     "cm": 225,
-     "kg": 13.6,
+     "kg": 12.0,
      "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 15.4,
-     "art": "hersteller"
-    },
-    {
-     "cm": 275,
-     "kg": 16.8,
+     "kg": 14.0,
      "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 18.1,
+     "kg": 16.0,
      "art": "hersteller"
     },
     {
      "cm": 350,
-     "kg": 20.4,
+     "kg": 19.0,
      "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 23.1,
+     "kg": 21.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
+     "kg": 23.6,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 25.9,
+     "art": "hersteller"
+    }
+   ]
+  },
+  {
+   "id": "global-f34p",
+   "hersteller": "Global Truss",
+   "name": "F34P",
+   "punkte": 4,
+   "width": 29,
+   "lengths": [
+    {
+     "cm": 25,
+     "kg": 4.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 50,
+     "kg": 5.45,
+     "art": "hersteller"
+    },
+    {
+     "cm": 100,
+     "kg": 9.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 150,
+     "kg": 12.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 200,
+     "kg": 14.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 250,
+     "kg": 19.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 300,
+     "kg": 20.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 350,
+     "kg": 23.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 25.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
+     "kg": 28.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 31.0,
+     "art": "hersteller"
+    }
+   ]
+  },
+  {
+   "id": "global-f44",
+   "hersteller": "Global Truss",
+   "name": "F44",
+   "punkte": 4,
+   "width": 40,
+   "lengths": [
+    {
+     "cm": 50,
+     "kg": 5.5,
+     "art": "hersteller"
+    },
+    {
+     "cm": 100,
+     "kg": 8.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 150,
+     "kg": 10.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 200,
+     "kg": 13.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 250,
+     "kg": 15.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 300,
+     "kg": 17.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 350,
+     "kg": 21.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 23.5,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
+     "kg": 26.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 29.0,
+     "art": "hersteller"
+    }
+   ]
+  },
+  {
+   "id": "global-f44p",
+   "hersteller": "Global Truss",
+   "name": "F44P",
+   "punkte": 4,
+   "width": 40,
+   "lengths": [
+    {
+     "cm": 50,
+     "kg": 6.5,
+     "art": "hersteller"
+    },
+    {
+     "cm": 100,
+     "kg": 9.5,
+     "art": "hersteller"
+    },
+    {
+     "cm": 150,
+     "kg": 12.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 200,
+     "kg": 15.8,
+     "art": "hersteller"
+    },
+    {
+     "cm": 250,
+     "kg": 18.6,
+     "art": "hersteller"
+    },
+    {
+     "cm": 300,
+     "kg": 21.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 350,
+     "kg": 24.6,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 27.6,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
+     "kg": 30.5,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 33.9,
      "art": "hersteller"
     }
    ]
@@ -1160,63 +1142,58 @@
    "lengths": [
     {
      "cm": 25,
-     "kg": 1.4,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 2.0,
+     "art": "hersteller"
     },
     {
      "cm": 29,
-     "kg": 1.6,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 2.9,
+     "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 2.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 3.13,
+     "art": "hersteller"
     },
     {
      "cm": 71,
      "kg": 3.9,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "art": "hersteller"
+    },
+    {
+     "cm": 75,
+     "kg": 4.1,
+     "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 5.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 5.1,
+     "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 8.3,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 7.4,
+     "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 11.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 9.27,
+     "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 13.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 11.39,
+     "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 16.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 13.51,
+     "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 22.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd33"
+     "kg": 17.75,
+     "art": "hersteller"
     }
    ]
   },
@@ -1229,63 +1206,53 @@
    "lengths": [
     {
      "cm": 25,
-     "kg": 1.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 1.1,
+     "art": "hersteller"
     },
     {
      "cm": 29,
      "kg": 1.2,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 2.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 1.8,
+     "art": "hersteller"
     },
     {
-     "cm": 71,
-     "kg": 2.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "cm": 75,
+     "kg": 2.4,
+     "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 4.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 3.1,
+     "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 6.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 4.4,
+     "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 8.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 5.6,
+     "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 10.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 7.0,
+     "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 12.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 8.2,
+     "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 16.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd32"
+     "kg": 11.0,
+     "art": "hersteller"
     }
    ]
   },
@@ -1298,63 +1265,191 @@
    "lengths": [
     {
      "cm": 25,
-     "kg": 1.9,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 2.7,
+     "art": "hersteller"
     },
     {
      "cm": 29,
-     "kg": 2.2,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 2.9,
+     "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 3.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 4.2,
+     "art": "hersteller"
     },
     {
      "cm": 71,
-     "kg": 5.3,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 5.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 75,
+     "kg": 5.7,
+     "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 7.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 7.0,
+     "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 11.3,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 10.1,
+     "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 15.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 12.9,
+     "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 18.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 15.7,
+     "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 22.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 18.9,
+     "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 30.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd34"
+     "kg": 24.6,
+     "art": "hersteller"
+    }
+   ]
+  },
+  {
+   "id": "prolyte-h40d",
+   "hersteller": "Prolyte",
+   "name": "H40D",
+   "punkte": 3,
+   "width": 40,
+   "lengths": [
+    {
+     "cm": 25,
+     "kg": 2.35,
+     "art": "hersteller"
+    },
+    {
+     "cm": 50,
+     "kg": 3.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 75,
+     "kg": 4.34,
+     "art": "hersteller"
+    },
+    {
+     "cm": 81,
+     "kg": 4.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 100,
+     "kg": 5.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 150,
+     "kg": 8.1,
+     "art": "hersteller"
+    },
+    {
+     "cm": 200,
+     "kg": 10.2,
+     "art": "hersteller"
+    },
+    {
+     "cm": 250,
+     "kg": 13.1,
+     "art": "hersteller"
+    },
+    {
+     "cm": 300,
+     "kg": 15.1,
+     "art": "hersteller"
+    },
+    {
+     "cm": 350,
+     "kg": 17.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 20.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 450,
+     "kg": 22.4,
+     "art": "hersteller"
+    },
+    {
+     "cm": 500,
+     "kg": 24.4,
+     "art": "hersteller"
+    }
+   ]
+  },
+  {
+   "id": "prolyte-h40l",
+   "hersteller": "Prolyte",
+   "name": "H40L",
+   "punkte": 2,
+   "width": 40,
+   "lengths": [
+    {
+     "cm": 25,
+     "kg": 1.2,
+     "art": "hersteller"
+    },
+    {
+     "cm": 50,
+     "kg": 1.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 75,
+     "kg": 2.6,
+     "art": "hersteller"
+    },
+    {
+     "cm": 81,
+     "kg": 2.73,
+     "art": "hersteller"
+    },
+    {
+     "cm": 100,
+     "kg": 3.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 150,
+     "kg": 4.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 200,
+     "kg": 5.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 250,
+     "kg": 7.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 300,
+     "kg": 8.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 11.2,
+     "art": "hersteller"
     }
    ]
   },
@@ -1367,63 +1462,117 @@
    "lengths": [
     {
      "cm": 25,
-     "kg": 2.4,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 3.4,
+     "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 4.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 4.7,
+     "art": "hersteller"
     },
     {
      "cm": 75,
-     "kg": 7.1,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 6.3,
+     "art": "hersteller"
     },
     {
      "cm": 81,
-     "kg": 7.7,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 6.7,
+     "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 9.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 8.1,
+     "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 14.3,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 11.0,
+     "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 19.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 13.9,
+     "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 23.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 17.7,
+     "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 28.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 20.8,
+     "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 38.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-hd44"
+     "kg": 26.8,
+     "art": "hersteller"
+    }
+   ]
+  },
+  {
+   "id": "prolyte-s36v",
+   "hersteller": "Prolyte",
+   "name": "S36V",
+   "punkte": 4,
+   "width": 36,
+   "lengths": [
+    {
+     "cm": 50,
+     "kg": 9.1,
+     "art": "hersteller"
+    },
+    {
+     "cm": 60,
+     "kg": 9.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 80,
+     "kg": 11.2,
+     "art": "hersteller"
+    },
+    {
+     "cm": 100,
+     "kg": 13.7,
+     "art": "hersteller"
+    },
+    {
+     "cm": 120,
+     "kg": 15.2,
+     "art": "hersteller"
+    },
+    {
+     "cm": 150,
+     "kg": 18.3,
+     "art": "hersteller"
+    },
+    {
+     "cm": 200,
+     "kg": 22.9,
+     "art": "hersteller"
+    },
+    {
+     "cm": 250,
+     "kg": 27.0,
+     "art": "hersteller"
+    },
+    {
+     "cm": 300,
+     "kg": 31.6,
+     "art": "hersteller"
+    },
+    {
+     "cm": 320,
+     "kg": 33.21,
+     "art": "hersteller"
+    },
+    {
+     "cm": 400,
+     "kg": 41.1,
+     "art": "hersteller"
     }
    ]
   },
@@ -1436,69 +1585,58 @@
    "lengths": [
     {
      "cm": 25,
-     "kg": 1.1,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 1.9,
+     "art": "hersteller"
     },
     {
      "cm": 29,
-     "kg": 1.3,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 2.0,
+     "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 2.2,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 2.7,
+     "art": "hersteller"
     },
     {
      "cm": 71,
-     "kg": 3.2,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 3.5,
+     "art": "hersteller"
     },
     {
      "cm": 75,
-     "kg": 3.4,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 3.7,
+     "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 4.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 4.4,
+     "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 6.7,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 6.1,
+     "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 9.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 7.9,
+     "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 11.2,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 9.5,
+     "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 13.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 11.1,
+     "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 18.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd33"
+     "kg": 14.5,
+     "art": "hersteller"
     }
    ]
   },
@@ -1511,69 +1649,58 @@
    "lengths": [
     {
      "cm": 25,
-     "kg": 0.8,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 1.03,
+     "art": "hersteller"
     },
     {
      "cm": 29,
-     "kg": 0.9,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 1.09,
+     "art": "hersteller"
     },
     {
      "cm": 50,
      "kg": 1.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "art": "hersteller"
     },
     {
      "cm": 71,
-     "kg": 2.1,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 1.91,
+     "art": "hersteller"
     },
     {
      "cm": 75,
-     "kg": 2.3,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 1.97,
+     "art": "hersteller"
     },
     {
      "cm": 100,
-     "kg": 3.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 2.47,
+     "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 4.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 3.44,
+     "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 6.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 4.4,
+     "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 7.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 5.36,
+     "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 9.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 6.33,
+     "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 12.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd32"
+     "kg": 8.25,
+     "art": "hersteller"
     }
    ]
   },
@@ -1586,69 +1713,58 @@
    "lengths": [
     {
      "cm": 25,
-     "kg": 1.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 2.7,
+     "art": "hersteller"
     },
     {
      "cm": 29,
-     "kg": 1.7,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 2.8,
+     "art": "hersteller"
     },
     {
      "cm": 50,
-     "kg": 3.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 3.8,
+     "art": "hersteller"
     },
     {
      "cm": 71,
-     "kg": 4.3,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 4.8,
+     "art": "hersteller"
     },
     {
      "cm": 75,
-     "kg": 4.5,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 4.9,
+     "art": "hersteller"
     },
     {
      "cm": 100,
      "kg": 6.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "art": "hersteller"
     },
     {
      "cm": 150,
-     "kg": 9.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 8.3,
+     "art": "hersteller"
     },
     {
      "cm": 200,
-     "kg": 12.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 10.7,
+     "art": "hersteller"
     },
     {
      "cm": 250,
-     "kg": 15.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 12.8,
+     "art": "hersteller"
     },
     {
      "cm": 300,
-     "kg": 18.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 15.4,
+     "art": "hersteller"
     },
     {
      "cm": 400,
-     "kg": 24.0,
-     "art": "geschaetzt",
-     "vergleich": "eurotruss-fd34"
+     "kg": 20.0,
+     "art": "hersteller"
     }
    ]
   }
