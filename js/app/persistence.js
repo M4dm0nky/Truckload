@@ -3,7 +3,7 @@
 // unverändert und es erscheint genau eine Meldung. Kein Import von js/app.js.
 import { guarded } from './guarded.js';
 import { usage, repointTruck } from './core.js';
-import { deletionFor } from '../model/material.js';
+import { deletionFor, originalOf } from '../model/material.js';
 import { ohneIds } from '../model/mitgefuehrt.js';
 import {
   resolveTarget, moveCase, collectionNameError, parentError, descendantIds, planCollectionImport,
@@ -90,6 +90,27 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       const r = await run('Case konnte nicht gelöscht werden', () => repo.writeCases({ removeIds: [dNow.remove], collections: store.get().collections }));
       if (!r.ok) return false;
       store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== dNow.remove), ...ohneKopie(st, [dNow.remove]) }));
+      return true;
+    });
+  }
+
+  // „Original wiederherstellen“: die Überlagerung eines mitgelieferten Listen-Cases (bearbeitet,
+  // verschoben oder ausgeblendet) wird entfernt, danach gilt wieder die Fassung aus data/meine.json
+  // und bekommt künftige Korrekturen. Rückfrage vorab, außerhalb der Warteschlange.
+  async function restoreOriginal(caseId) {
+    const pre = store.get().cases.find(x => x.id === caseId);
+    if (!originalOf(pre, CASE_LIBRARY)) { await showAlert('Zu diesem Case gibt es keine mitgelieferte Fassung.'); return false; }
+    const used = usage(store.get(), caseId);
+    const usedNote = used ? ` Es wird in ${used} Ladeplan/-plänen verwendet; die Stücke bleiben, ihre Maße ändern sich mit.` : '';
+    if (!await showConfirm(`„${pre.name}“ auf die mitgelieferte Fassung zurücksetzen? Eigene Änderungen, Verschiebung und Ausblenden gehen verloren.${usedNote}`, { okLabel: 'Wiederherstellen', danger: true })) return false;
+    return serial(async () => {
+      const st = store.get();
+      const fresh = st.cases.find(x => x.id === caseId);
+      const original = originalOf(fresh, CASE_LIBRARY);
+      if (!original) return true; // inzwischen schon zurückgesetzt
+      const r = await run('Original konnte nicht wiederhergestellt werden', () => repo.writeCases({ removeIds: [caseId], collections: st.collections }));
+      if (!r.ok) return false;
+      store.update(s => ({ ...s, cases: [...s.cases.filter(x => x.id !== caseId), original] }));
       return true;
     });
   }
@@ -271,6 +292,6 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   return {
     enqueue: serial,
     saveCase, removeFromStock, createCollection, renameCollection, moveCollection, deleteCollection,
-    moveCaseTo, importCollectionFile, saveRuleSet, deleteRuleSet, saveTruck, deleteTruck,
+    moveCaseTo, restoreOriginal, importCollectionFile, saveRuleSet, deleteRuleSet, saveTruck, deleteTruck,
   };
 }

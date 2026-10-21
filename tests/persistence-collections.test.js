@@ -250,3 +250,45 @@ test('moveCaseTo: Listen-Case aus meine.json behält auf dem Rückweg nach Meine
   assert.equal(await p.moveCaseTo(shipped.id, 'meine'), true);
   assert.equal(store.get().cases.find(c => c.id === shipped.id).company, shipped.company);
 });
+
+test('restoreOriginal (#8): Überlagerung entfernt, mitgelieferte Fassung gilt wieder, ein Schreibvorgang', async () => {
+  const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+  const shipped = CASE_LIBRARY.find(c => c.company);
+  const overlay = { ...shipped, builtin: false, name: 'Geändert', weight: 77, collectionId: 'meine' };
+  const { p, store, writes } = setup([overlay]);
+  assert.equal(await p.restoreOriginal(shipped.id), true);
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0].removeIds, [shipped.id]);
+  const now = store.get().cases.find(c => c.id === shipped.id);
+  assert.equal(now.builtin, true);
+  assert.equal(now.name, shipped.name);
+  assert.equal(now.weight, shipped.weight);
+  assert.equal(store.get().cases.filter(c => c.id === shipped.id).length, 1);
+});
+
+test('restoreOriginal (#8): auch ein ausgeblendetes Listen-Case kommt zurück', async () => {
+  const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+  const shipped = CASE_LIBRARY.find(c => c.company && !c.legacy);
+  const hidden = { ...shipped, builtin: false, legacy: true, collectionId: 'meine' };
+  const { p, store } = setup([hidden]);
+  assert.equal(await p.restoreOriginal(shipped.id), true);
+  assert.equal(store.get().cases.find(c => c.id === shipped.id).legacy, shipped.legacy);
+});
+
+test('restoreOriginal (#8): eigenes Case ohne mitgelieferte Fassung wird nicht angefasst, es gibt eine Meldung', async () => {
+  const { p, store, writes, alerts } = setup([own('a')]);
+  assert.equal(await p.restoreOriginal('a'), false);
+  assert.equal(writes.length, 0);
+  assert.equal(alerts.length, 1);
+  assert.ok(store.get().cases.some(c => c.id === 'a'));
+});
+
+test('restoreOriginal (#8): Rückfrage verneint → nichts geschrieben', async () => {
+  const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+  const shipped = CASE_LIBRARY.find(c => c.company);
+  const writes = [];
+  const store = createStore({ cases: [{ ...shipped, builtin: false, collectionId: 'meine' }], collections: withBuiltins([]), trucks: [], plans: [], plan: null, ruleSets: [], selectedId: null });
+  const p = createPersistence({ repo: { writeCases: async a => { writes.push(a); } }, store, stamp, showAlert: async () => {}, showConfirm: async () => false });
+  assert.equal(await p.restoreOriginal(shipped.id), false);
+  assert.equal(writes.length, 0);
+});

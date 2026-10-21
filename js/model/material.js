@@ -31,6 +31,14 @@ export function deletionFor(c) {
   return null;
 }
 
+// Überlagerung einer mitgelieferten Listen-Vorlage: ein eigener Datensatz (builtin:false) mit der ID
+// eines mitgelieferten Eintrags (data/meine.json). Liefert die mitgelieferte Fassung oder undefined.
+// `shipped`: die mitgelieferte Liste (CASE_LIBRARY); als Parameter, damit das Modell ohne Daten testbar bleibt.
+export const originalOf = (c, shipped) => (c && !c.builtin ? shipped.find(s => s.id === c.id) : undefined);
+export const istUeberlagerung = (c, shipped) => !!originalOf(c, shipped);
+// Ausgeblendet (gelöscht) ist eine Überlagerung mit `legacy`; sie steht in keiner Sammlung mehr.
+export const ausgeblendeteUeberlagerungen = (cases, shipped) => cases.filter(c => c.legacy && istUeberlagerung(c, shipped));
+
 export function firmNameError(name) {
   const n = (name ?? '').trim();
   if (!n) return 'Sammlungsname fehlt.';

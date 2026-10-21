@@ -11,6 +11,7 @@ import { collectionRows, exportableCases, adoptInto, MEINE_ID, STANDARD_ID } fro
 import { parseCollectionFile, exportCollectionFile, collectionFileName } from '../store/io.js';
 import { downloadJSON } from './download.js';
 import { usage } from './core.js';
+import { CASE_LIBRARY } from '../data/case-library.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -98,6 +99,8 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
     onMoveCollection: persistence.moveCollection,
     onDeleteCollection: persistence.deleteCollection,
     onMoveCase: persistence.moveCaseTo,
+    onRestoreOriginal: persistence.restoreOriginal,
+    shipped: CASE_LIBRARY,
     onExportCollection: id => {
       const st = store.get();
       const meta = st.collections.find(c => c.id === id);

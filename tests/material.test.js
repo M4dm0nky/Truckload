@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isInStock, companyList, casesOf, onlyInPlanCases, renameCompany, deletionFor, copyToCompany, applyStockTarget, firmNameError } from '../js/model/material.js';
+import { isInStock, companyList, casesOf, onlyInPlanCases, renameCompany, deletionFor, copyToCompany, applyStockTarget, firmNameError, originalOf, istUeberlagerung, ausgeblendeteUeberlagerungen } from '../js/model/material.js';
 import { mergeOwnWithBuiltins } from '../js/store/repo.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 
@@ -79,4 +79,22 @@ test('firmNameError: leer, zu lang, gültig', () => {
   assert.equal(firmNameError('x'.repeat(81)), 'Sammlungsname: höchstens 80 Zeichen.');
   assert.equal(firmNameError(` ${'x'.repeat(80)} `), null);
   assert.equal(firmNameError('CAB'), null);
+});
+
+// #8: Überlagerungen mitgelieferter Listen-Cases
+test('originalOf/istUeberlagerung: nur ein eigener Datensatz mit der ID eines mitgelieferten Eintrags', () => {
+  const shipped = CASE_LIBRARY.find(c => c.company);
+  const overlay = { ...shipped, builtin: false, weight: 99 };
+  assert.equal(originalOf(overlay, CASE_LIBRARY), shipped);
+  assert.equal(istUeberlagerung(overlay, CASE_LIBRARY), true);
+  assert.equal(istUeberlagerung(shipped, CASE_LIBRARY), false, 'die mitgelieferte Fassung selbst ist keine Überlagerung');
+  assert.equal(istUeberlagerung({ ...own, id: 'u1' }, CASE_LIBRARY), false, 'eigenes Case');
+  assert.equal(istUeberlagerung(undefined, CASE_LIBRARY), false);
+});
+test('ausgeblendeteUeberlagerungen: nur legacy-Überlagerungen mitgelieferter Einträge', () => {
+  const [shipped, other] = CASE_LIBRARY.filter(c => !c.legacy);
+  const hidden = { ...shipped, builtin: false, legacy: true };
+  const edited = { ...other, builtin: false, name: 'Anders' };
+  const ownLegacy = { ...own, legacy: true };
+  assert.deepEqual(ausgeblendeteUeberlagerungen([hidden, edited, ownLegacy, shipped], CASE_LIBRARY), [hidden]);
 });

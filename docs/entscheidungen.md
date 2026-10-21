@@ -70,3 +70,16 @@ Sicherung; Traversenwagen (Maße aus `truss`), Sammlungsdateien und die mitgefü
 Case ohne Maße weiter ab; eine Ergänzung gilt je Case-ID (bei verschiedenen Fehlern derselben ID in Plan-Kopie
 und Top-Level-Liste wird nur der Top-Level-Eintrag nachgefragt). `MAX_DEPTH` (4) gilt nur in der Oberfläche;
 eine tiefere Kette aus fremder Datei lädt. Wiedervorlage, wenn Importe in der Praxis an diesen Grenzen scheitern.
+
+## #8 Überlagerungen wiederherstellen
+Behoben: Ein Listen-Case, das als Überlagerung vorliegt (eigener Datensatz mit der ID eines Eintrags aus
+`data/meine.json`: bearbeitet, verschoben, umbenannte Firma, ausgeblendet), bekommt in der Materialverwaltung
+„Original wiederherstellen“ (Rückfrage `showConfirm`). Das entfernt den Datensatz über `repo.writeCases`
+in der Warteschlange `serial`, danach gilt wieder die mitgelieferte Fassung samt künftigen Korrekturen
+(`persistence.restoreOriginal`; reine Entscheidung `originalOf`/`istUeberlagerung` in `js/model/material.js`).
+Ausgeblendete (gelöschte) Listen-Cases liegen als Überlagerung mit `legacy: true` in „Meine Sammlung“ und
+standen bisher in keiner Ansicht; dafür gibt es den Eintrag „Ausgeblendet“ links in der Materialverwaltung
+(erscheint nur, wenn es etwas gibt), dort dieselbe Aktion. Eigene Entscheidung: Nur Überlagerungen lassen sich
+zurücksetzen; die in `meine.json` selbst als `legacy` geführten Einträge bleiben, wie sie geliefert werden.
+Stücke in Ladeplänen behalten die ID; ihre Maße folgen der wiederhergestellten Fassung (die Rückfrage nennt die
+Zahl der Pläne). Nicht im Browser gefahren.
