@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildWagonCaseType } from '../js/ui/truss-wizard.js';
+import { buildWagonCaseType, classicSubmitError } from '../js/ui/truss-wizard.js';
 import { trussDims, wagonWeight } from '../js/model/truss.js';
 import { checkCase } from '../js/store/io.js';
 import { applyStockTarget } from '../js/model/material.js';
@@ -150,4 +150,19 @@ test('minLengthFor: ohne Profil 50, mit Profil min(50, kürzeste Katalog-Länge)
   assert.equal(minLengthFor({ lengths: [] }), 50);
   const p = profileById('eurotruss-fd34');
   assert.equal(minLengthFor(p), Math.min(50, ...p.lengths.map(l => l.cm), 50) < 10 ? 10 : Math.min(50, ...p.lengths.map(l => l.cm)));
+});
+
+test('classicSubmitError: gültige Eingabe ergibt keine Meldung', () => {
+  assert.equal(classicSubmitError({ total: 16, perWagon: 8, width: 29, wagonW: 60 }), '');
+});
+
+test('classicSubmitError: Stückzahl oder Stück je Wagen ≤ 0 nennt den Grund', () => {
+  const m = 'Stückzahl und Stück je Wagen müssen größer als 0 sein.';
+  assert.equal(classicSubmitError({ total: 0, perWagon: 8, width: 29, wagonW: 60 }), m);
+  assert.equal(classicSubmitError({ total: 8, perWagon: 0, width: 29, wagonW: 60 }), m);
+  assert.equal(classicSubmitError({ total: NaN, perWagon: 8, width: 29, wagonW: 60 }), m);
+});
+
+test('classicSubmitError: zu schmaler Wagen nennt die Meldung von trussDims', () => {
+  assert.match(classicSubmitError({ total: 8, perWagon: 8, width: 29, wagonW: 40 }), /Wagenbreite 40 cm ist schmaler/);
 });
