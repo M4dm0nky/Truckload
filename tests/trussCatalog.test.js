@@ -59,8 +59,8 @@ test('profileById: unbekannte ID liefert undefined', () => {
   assert.equal(profileById('gibt-es-nicht'), undefined);
 });
 
-test('Prolyte: 31 Profile, davon 10 von Prolyte', () => {
-  assert.equal(TRUSS_CATALOG.profiles.length, 31);
+test('Prolyte: 34 Profile, davon 10 von Prolyte', () => {
+  assert.equal(TRUSS_CATALOG.profiles.length, 34);
   assert.equal(TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Prolyte').length, 10);
 });
 test('Prolyte: alle Längen mit Herstellergewicht, ohne Vergleich', () => {
@@ -109,4 +109,40 @@ test('Eurotruss: Stichproben FD34, HD44, HD32, HDX45', () => {
   assert.equal(kg('eurotruss-hd44', 400), 32.4);
   assert.equal(kg('eurotruss-hd32', 100), 3.8);
   assert.equal(kg('eurotruss-hdx45', 400), 44);
+});
+
+const globalF = () => TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Global Truss' && /^global-f/.test(p.id));
+test('Global Truss: 34 Profile, davon 14 von Global Truss', () => {
+  assert.equal(TRUSS_CATALOG.profiles.length, 34);
+  assert.equal(TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Global Truss').length, 14);
+});
+test('Global Truss: F44 hat 4 Punkte, 40 cm Breite, 100 cm 8,4 kg laut Hersteller', () => {
+  const p = profileById('global-f44');
+  assert.ok(p);
+  assert.equal(p.punkte, 4);
+  assert.equal(p.width, 40);
+  assert.deepEqual(pieceKg(p, 100), { kg: 8.4, art: 'hersteller' });
+});
+test('Global Truss: F44P existiert, 40 cm breit, 100 cm 9,5 kg', () => {
+  const p = profileById('global-f44p');
+  assert.ok(p);
+  assert.equal(p.width, 40);
+  assert.equal(p.lengths.find(l => l.cm === 100).kg, 9.5);
+});
+test('Global Truss: F34 Breite 29, 4 Punkte, keine Länge unter 25 cm', () => {
+  const p = profileById('global-f34');
+  assert.equal(p.width, 29);
+  assert.equal(p.punkte, 4);
+  assert.ok(p.lengths.every(l => l.cm >= 25));
+});
+test('Global Truss: F32 hat 2, F33 hat 3 Punkte', () => {
+  assert.equal(profileById('global-f32').punkte, 2);
+  assert.equal(profileById('global-f33').punkte, 3);
+});
+test('Global Truss: keine Länge doppelt in einem F-Profil', () => {
+  assert.ok(globalF().length >= 9);
+  for (const p of globalF()) {
+    const cms = p.lengths.map(l => l.cm);
+    assert.equal(new Set(cms).size, cms.length, p.id);
+  }
 });
