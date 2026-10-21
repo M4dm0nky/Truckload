@@ -82,3 +82,30 @@ test('Ladefehler-Hinweis erkennt auch Link-Fehler über __tlBooted', () => {
   const html = read('index.html');
   assert.match(html, /e\.error instanceof SyntaxError && !window\.__tlBooted/);
 });
+
+// #32: Die Textauswahl des Ladefehler-Hinweises steht im ersten Inline-Skript von index.html.
+function ladefehlerText() {
+  const html = read('index.html');
+  const src = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const win = { addEventListener() {} };
+  new Function('window', 'document', src)(win, {});
+  return win.tlLadefehlerText;
+}
+
+test('Ladefehler: zu alter Browser (SyntaxError der JSON-Modul-Syntax) bekommt den Browser-Hinweis ohne Neu laden', () => {
+  const f = ladefehlerText();
+  for (const msg of ["Unexpected identifier 'with'", "Unexpected token 'with'", 'unexpected token: identifier']) {
+    const r = f(new SyntaxError(msg));
+    assert.match(r.text, /Dieser Browser ist zu alt für Truckload\. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17\.2 oder Firefox ab 138\./);
+    assert.equal(r.neuLaden, false);
+  }
+});
+
+test('Ladefehler: Versionsmix (fehlender Export) und andere Fehler behalten „Bitte neu laden“', () => {
+  const f = ladefehlerText();
+  const mix = f(new SyntaxError("The requested module './a.js' does not provide an export named 'x'"));
+  assert.equal(mix.neuLaden, true);
+  assert.match(mix.text, /Bitte neu laden/);
+  assert.equal(f(null).neuLaden, true);
+  assert.equal(f(new TypeError('x')).neuLaden, true);
+});
