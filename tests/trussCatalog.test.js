@@ -59,8 +59,8 @@ test('profileById: unbekannte ID liefert undefined', () => {
   assert.equal(profileById('gibt-es-nicht'), undefined);
 });
 
-test('Prolyte: 34 Profile, davon 10 von Prolyte', () => {
-  assert.equal(TRUSS_CATALOG.profiles.length, 34);
+test('Prolyte: 29 Profile, davon 10 von Prolyte', () => {
+  assert.equal(TRUSS_CATALOG.profiles.length, 29);
   assert.equal(TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Prolyte').length, 10);
 });
 test('Prolyte: alle Längen mit Herstellergewicht, ohne Vergleich', () => {
@@ -112,9 +112,10 @@ test('Eurotruss: Stichproben FD34, HD44, HD32, HDX45', () => {
 });
 
 const globalF = () => TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Global Truss' && /^global-f/.test(p.id));
-test('Global Truss: 34 Profile, davon 14 von Global Truss', () => {
-  assert.equal(TRUSS_CATALOG.profiles.length, 34);
-  assert.equal(TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Global Truss').length, 14);
+test('Global Truss: 9 Profile (nur F-Serie, keine DT-Serien)', () => {
+  assert.equal(TRUSS_CATALOG.profiles.length, 29);
+  assert.equal(TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Global Truss').length, 9);
+  assert.ok(!TRUSS_CATALOG.profiles.some(p => /^global-dt/.test(p.id)));
 });
 test('Global Truss: F44 hat 4 Punkte, 40 cm Breite, 100 cm 8,4 kg laut Hersteller', () => {
   const p = profileById('global-f44');
