@@ -110,3 +110,14 @@ Import, `normalizeOwnCases` beim Laden teilen dieselbe Funktion); ein Umbau (nur
 Datenmodell-Eingriff mit Migration und ist nicht Teil dieses Auftrags. `validatePlan` läuft weiter komplett
 bei jeder Planänderung (Kollisionsprüfung O(n²)); ein Raster ohne realen Bedarf wird nicht gebaut.
 Wiedervorlage, wenn Pläne dreistellige Platzierungszahlen erreichen und die Bedienung spürbar stockt.
+
+## #31 Grund in der Ablage vollständiger nennen
+Behoben (`js/model/unplacedReason.js`): Zusätzlich zu den Maßen nennt die Ablage (1) „zu schwer für die
+Nutzlast des Fahrzeugs (X kg, erlaubt Y kg)“, wenn das Stück allein schon über der Nutzlast liegt (Gewicht
+0 kg = unbekannt und fehlende Nutzlast zählen nicht), und (2) „erlaubte Lagen …: darf nur auf anderen Stücken
+stehen“, wenn die für das Stück geltenden Lagen (`pieceLayers`) Lage 1 nicht enthalten. Mehrere Gründe stehen
+durch „; “ getrennt. Das sind Tatsachen aus Stück, Case-Typ und Fahrzeug, keine Behauptung über die Ursache
+der Ablage. Kein Grund steht weiter dort, wo er geraten wäre: „kein Platz“, Pack-Regeln und alles, was von den
+anderen Stücken abhängt. Eigene Entscheidung: Eine leere Schnittmenge von Stück- und Case-Lagen ist kein Grund,
+weil `pieceLayers` dann auf die Lagen des Case-Typs zurückfällt. Der frühere Test „egal welches Gewicht → null“
+galt der alten Fassung und wurde angepasst.
