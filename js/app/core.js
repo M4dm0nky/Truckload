@@ -199,12 +199,19 @@ export function plaeneMitGeaendertemBestand(prev, next) {
 // selbst in EINER Transaktion, einzelne Schreibvorgänge daneben würden bei einem Rollback in der
 // Datenbank stehen bleiben. Nach Erfolg werden nur die betroffenen Pläne gespeichert, die nicht
 // zu den Gewinnern gehören; nach einem Rollback nichts.
-export function createBestandsSync({ initial, autosave, savePlan, onError }) {
+// Schlägt das Speichern eines nicht offenen Plans fehl, folgt nach `wartezeitMs` ein zweiter Versuch
+// (wie beim Autosave); erst dann geht der Fehler an `onError`.
+export function createBestandsSync({ initial, autosave, savePlan, onError, wartezeitMs = 500 }) {
   let vorher = initial, tiefe = 0, basis = null;
+  const nochmal = p => new Promise(r => setTimeout(r, wartezeitMs)).then(() => savePlan(p));
   const schreibe = (s, plaene) => {
     for (const p of plaene) {
       if (p.id === s.plan?.id) autosave.markDirty(s.plan);
-      else savePlan(p).catch(onError);
+      else {
+        let r;
+        try { r = Promise.resolve(savePlan(p)); } catch (e) { r = Promise.reject(e); } // erster Aufruf synchron
+        r.catch(() => nochmal(p)).catch(onError);
+      }
     }
   };
   return {

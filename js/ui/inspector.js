@@ -28,6 +28,11 @@ export function weightField(c, { gesperrt = false } = {}) {
   return `${esc(c.weight)} kg`;
 }
 // Kopie aus der Projektdatei (steht nicht in der eigenen Bibliothek): nur lesbar, bis sie übernommen ist.
+// Ausrichtung und Drehung eines Stücks als Text: „stehend“, „stehend, um 180° gedreht“. Die Drehung
+// geht um die senkrechte Achse; „stehend, 180°“ ließ offen, was die Zahl meint.
+export const orientationText = p =>
+  `${ORIENTATION_LABEL[p.orientation]}${p.rot ? `, um ${p.rot}° gedreht` : ''}`;
+
 export const AUS_PROJEKT_HINWEIS = 'Aus der Projektdatei – nicht in deiner Bibliothek';
 const uebernehmenKnopf = act => `<button data-act="${act}">In meine Bibliothek übernehmen</button>`;
 const kopieBlock = act => `<p class="hint insp-aus-projekt">${AUS_PROJEKT_HINWEIS}</p>${uebernehmenKnopf(act)}`;
@@ -94,7 +99,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       </div>
       ${lkwField(lkw)}
       <dl>
-        <dt>Lage</dt><dd>${ORIENTATION_LABEL[selected.p.orientation]}, ${esc(selected.p.rot)}° · Lage ${esc(result.layers.get(selected.id))}</dd>
+        <dt>Lage</dt><dd>${esc(orientationText(selected.p))} · Lage ${esc(result.layers.get(selected.id))}</dd>
         <dt>Maße stehend</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
         <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
         <dt>Gewicht</dt><dd>${weightField(selected.c, { gesperrt: kopie })} · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>

@@ -1,4 +1,4 @@
-import { cornerBoxes } from './geometry.js';
+import { cornerBoxes, boxOf } from './geometry.js';
 import { pieceKg } from './trussCatalog.js';
 
 export const DOLLY_WHEEL_H = 12; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
@@ -105,7 +105,7 @@ const STAND_WHEEL_D = 10;            // Rollendurchmesser (cm)
 // Die Traverse ist immer das breiteste Teil, der Dolly etwas schmaler (Nutzerangabe 2026-09-26).
 // Um wie viel, ist nicht bekannt – 2 cm je Seite ist eine eigene, rein optische Annahme; das
 // Packen rechnet weiter mit der Standfläche STAND_FOOTPRINT_W.
-const STAND_DOLLY_INSET = 2;         // Einzug des Dollys gegenüber der Traverse je Seite (cm)
+export const STAND_DOLLY_INSET = 2;         // Einzug des Dollys gegenüber der Traverse je Seite (cm)
 
 // Reine Geometrie eines platzierten Traversenwagens: zwei Rollwagen an den Enden (über die volle
 // Wagenbreite, mit je 4 Rollen), darauf `count` Traversenstücke – 2 nebeneinander, Lagen übereinander,
@@ -116,7 +116,7 @@ const STAND_DOLLY_INSET = 2;         // Einzug des Dollys gegenüber der Travers
 // Rohre sichtbar tragen. `dollies` bleibt das volle Wagenvolumen (Bezugsfläche/Beschriftung).
 // `box` ist die platzierte Box (Truck-Koordinaten); `p.rot` bestimmt, ob die Traversenlänge
 // entlang x oder y verläuft.
-export function trussShape(c, p, box) {
+export function trussShape(c, p, box = boxOf(c, p)) {
   if (c.truss.standing) return standingTrussShape(c.truss, p, box);
   const { width, count } = c.truss;
   const rot90 = ((p.rot ?? 0) % 180) === 90;

@@ -141,13 +141,16 @@ export function resolveTarget(c, existing, collections, newId) {
 // Verschiebt ein Case in eine Sammlung. Eine eigene Sammlung setzt `company` auf ihren Namen (so
 // bleiben Dolly-IDs, Traversen-Treffer und die Anzeige „· Name“ wie bisher), „Meine Sammlung“
 // entfernt es. Ein mitgeliefertes Listen-Case wird dabei zur eigenen Überlagerung gleicher ID.
-export function moveCase(c, target) {
+// `shipped` (optional): die mitgelieferte Fassung gleicher ID (data/meine.json). Zurück nach „Meine
+// Sammlung“ bekommt das Case dann die Marke dieser Fassung statt keiner (kein neues Feld, nichts
+// geraten); ohne mitgelieferte Fassung oder ohne deren Marke entfällt `company` wie bisher.
+export function moveCase(c, target, shipped) {
   const named = !isBuiltinId(target.id);
   return {
     ...c,
     builtin: false,
     collectionId: target.id,
-    company: named ? target.name : undefined,
+    company: named ? target.name : (target.id === MEINE_ID ? shipped?.company : undefined),
   };
 }
 

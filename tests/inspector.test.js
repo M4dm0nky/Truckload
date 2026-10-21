@@ -95,3 +95,11 @@ test('renderInspector: Fahrzeug aus der Projektdatei bekommt Hinweis und Knopf i
   assert.ok(el.html.includes('data-act="uebernehmen-truck"'));
   assert.ok(!el.html.includes('data-act="uebernehmen-case"'));
 });
+
+test('orientationText (#28): „stehend“ ohne Drehung, sonst „um N° gedreht“ – nie mehr „stehend, 180°“', async () => {
+  const { orientationText } = await import('../js/ui/inspector.js');
+  assert.equal(orientationText({ orientation: 'standing', rot: 0 }), 'stehend');
+  assert.equal(orientationText({ orientation: 'standing' }), 'stehend');
+  assert.equal(orientationText({ orientation: 'standing', rot: 180 }), 'stehend, um 180° gedreht');
+  assert.equal(orientationText({ orientation: 'tipLong', rot: 90 }), 'getippt (Längsseite), um 90° gedreht');
+});

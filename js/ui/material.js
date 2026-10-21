@@ -1,7 +1,7 @@
 import { esc, swatch, icon } from './dom.js';
 import { CASE_TABS, caseKind } from './caseGroups.js';
 import { caseLine } from './caseInfo.js';
-import { onlyInPlanCases, isInStock } from '../model/material.js';
+import { onlyInPlanCases, isInStock, istUeberlagerung, ausgeblendeteUeberlagerungen } from '../model/material.js';
 import { collectionRows, collectionIdOf, STANDARD_ID, MEINE_ID, collectionNameError } from '../model/collections.js';
 import { MAX_FIRM } from '../model/limits.js';
 import { showPrompt, showAlert, showPick } from './confirmDialog.js';
@@ -9,6 +9,7 @@ import { showPrompt, showAlert, showPick } from './confirmDialog.js';
 // Materialverwaltung: eigener Bildschirm, immer erreichbar. Links der Sammlungsbaum, rechts das
 // Material der gewählten Sammlung. Löschen gibt es NUR hier.
 const ONLY_IN_PLAN = '__onlyInPlan__';
+const HIDDEN = '__hidden__'; // ausgeblendete Listen-Cases, nur zum Wiederherstellen
 
 export function mountMaterial(el, h) {
   let last = null;
@@ -21,11 +22,22 @@ export function mountMaterial(el, h) {
   const isUser = c => c && c.id !== STANDARD_ID && c.id !== MEINE_ID;
   const countOf = id => last.cases.filter(c => isInStock(c) && collectionIdOf(c) === id).length;
 
+  const shipped = () => h.shipped ?? [];
+  const restoreBtn = '<button data-act="restore-original" title="Überlagerung entfernen: es gilt wieder die mitgelieferte Fassung (und künftige Korrekturen daran)">Original wiederherstellen</button>';
+
   function rowHtml(c) {
     const readOnly = c.builtin && c.id.startsWith('preset-');
+    if (sel === HIDDEN) {
+      return `<div class="mat-row" data-case="${esc(c.id)}">
+      ${swatch(c.color)}
+      <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
+      ${restoreBtn}
+    </div>`;
+    }
     return `<div class="mat-row" data-case="${esc(c.id)}">
       ${swatch(c.color)}
       <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
+      ${istUeberlagerung(c, shipped()) && sel !== ONLY_IN_PLAN ? restoreBtn : ''}
       ${readOnly
         ? `<button data-act="copy" title="In eine Sammlung kopieren">Kopieren</button>`
         : `${sel === ONLY_IN_PLAN ? '' : '<button data-act="move-case" title="In eine andere Sammlung verschieben">Verschieben</button>'}
@@ -47,13 +59,14 @@ export function mountMaterial(el, h) {
           <button data-act="new-collection">+ Sammlung</button>
           <button data-act="import-collection">Sammlung importieren</button>
           <button data-collection="${ONLY_IN_PLAN}" class="${sel === ONLY_IN_PLAN ? 'on' : ''}">Nur in Ladeplänen <small>${onlyInPlanCases(last.cases).length}</small></button>
+          ${ausgeblendeteUeberlagerungen(last.cases, shipped()).length ? `<button data-collection="${HIDDEN}" class="${sel === HIDDEN ? 'on' : ''}" title="Gelöschte Listen-Cases – hier lässt sich die mitgelieferte Fassung zurückholen">Ausgeblendet <small>${ausgeblendeteUeberlagerungen(last.cases, shipped()).length}</small></button>` : ''}
         </nav>
         <section class="mat-list">
           <div class="row">
             <div class="seg case-tabs">${CASE_TABS.map(t => `<button type="button" class="${t.id === tab ? 'on' : ''}" data-tab="${t.id}">${esc(t.label)}</button>`).join('')}</div>
             <input type="search" class="mat-search" placeholder="Suchen" value="${esc(q)}">
           </div>
-          ${sel === ONLY_IN_PLAN ? '' : writable(cur) ? `<div class="row mat-actions">
+          ${sel === ONLY_IN_PLAN || sel === HIDDEN ? '' : writable(cur) ? `<div class="row mat-actions">
             <button data-act="new-case">+ Neues Case</button>
             <button data-act="new-truss">+ Traverse</button>
             <button data-act="new-dolly">+ Boxen-Dolly</button>
@@ -72,6 +85,7 @@ export function mountMaterial(el, h) {
     if (!last || !rows) return;
     const items = sel === ONLY_IN_PLAN
       ? onlyInPlanCases(last.cases)
+      : sel === HIDDEN ? ausgeblendeteUeberlagerungen(last.cases, shipped())
       : last.cases.filter(c => isInStock(c) && collectionIdOf(c) === sel);
     const needle = q.trim().toLowerCase();
     const matches = items.filter(c => !needle || `${c.name} ${c.content ?? ''}`.toLowerCase().includes(needle));
@@ -162,6 +176,7 @@ export function mountMaterial(el, h) {
       case 'delete': return h.onDelete(id);
       case 'copy': return h.onCopy(id);
       case 'adopt': return h.onAdopt(id);
+      case 'restore-original': return h.onRestoreOriginal(id);
     }
   });
 
@@ -169,7 +184,8 @@ export function mountMaterial(el, h) {
     update(state) {
       if (last && last.cases === state.cases && last.collections === state.collections) return;
       last = { cases: state.cases, collections: state.collections };
-      if (!last.collections.some(c => c.id === sel) && sel !== ONLY_IN_PLAN) sel = STANDARD_ID;
+      if (sel === HIDDEN && !ausgeblendeteUeberlagerungen(last.cases, shipped()).length) sel = MEINE_ID;
+      if (!last.collections.some(c => c.id === sel) && sel !== ONLY_IN_PLAN && sel !== HIDDEN) sel = STANDARD_ID;
       render();
     },
   };

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { allPlansOf, piecesOf, usage, truckUsage, deriveOf, ctxOf, bestandOf, printSectionsOf, plaeneMitGeaendertemBestand, createBestandsSync, activeLkwOf, activeViewOf, applyEdit, applyEditWhole, NO_LKW, hasUnassigned, mergeUnassignedView, packAllOf, repointTruck, distributionNotices, wholeCtxOf, planZumSpeichern, wizardTruckId, brauchtAuswahl } from '../js/app/core.js';
+import { istKopieTruck, istKopieCase, truckMarke, truckStiftSperre } from '../js/model/mitgefuehrt.js';
 import { P, mkCase, mkTruck, byId } from './fixtures.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
 import { createStore } from '../js/store/state.js';
@@ -427,6 +428,33 @@ test('planZumSpeichern: ein nicht offener Plan behält seine eigene Kopie als Qu
   });
 }
 
+{
+  const pl = (id, caseId) => ({ id, name: id, truckId: 't', placements: [], unplaced: [{ id: `u-${id}`, caseId }], notes: '' });
+  const c1 = mkCase('c1', 1, 1, 1), t = [mkTruck({ id: 't' })];
+  const s0 = { cases: [c1], trucks: t, plan: pl('a', 'c1'), plans: [pl('b', 'c1')] };
+  const s1 = { ...s0, cases: [{ ...c1, weight: 5 }] };
+  const tick = () => new Promise(r => setTimeout(r, 15));
+
+  test('createBestandsSync (#35): ein gescheiterter Versuch wird einmal wiederholt, kein Fehlerstatus bei Erfolg', async () => {
+    let calls = 0; const errors = [];
+    const sync = createBestandsSync({ initial: s0, autosave: { markDirty() {} }, wartezeitMs: 1, onError: e => errors.push(e),
+      savePlan: () => (++calls === 1 ? Promise.reject(new Error('weg')) : Promise.resolve()) });
+    sync.change(s1);
+    await tick();
+    assert.equal(calls, 2);
+    assert.deepEqual(errors, []);
+  });
+  test('createBestandsSync (#35): scheitert auch der zweite Versuch, geht der Fehler wie bisher an onError', async () => {
+    let calls = 0; const errors = [];
+    const sync = createBestandsSync({ initial: s0, autosave: { markDirty() {} }, wartezeitMs: 1, onError: e => errors.push(e.message),
+      savePlan: () => { calls++; return Promise.reject(new Error('weg')); } });
+    sync.change(s1);
+    await tick();
+    assert.equal(calls, 2);
+    assert.deepEqual(errors, ['weg']);
+  });
+}
+
 test('wizardTruckId: Bibliotheksfahrzeug bleibt, Kopie aus der Projektdatei fällt aufs Standardfahrzeug', () => {
   assert.equal(wizardTruckId([{ id: 'a' }, { id: 'b' }], 'b'), 'b');
   assert.equal(wizardTruckId([{ id: 'a' }], 'nur-kopie'), DEFAULT_TRUCK_ID);
@@ -437,3 +465,42 @@ test('brauchtAuswahl: Fahrzeug übernehmen läuft auch ohne gewähltes Stück', 
   assert.equal(brauchtAuswahl('uebernehmen-case'), true);
   assert.equal(brauchtAuswahl('rotate'), true);
 });
+
+// --- #35: Kopien aus der Projektdatei in der Oberfläche ---
+{
+  const kopieStand = () => {
+    const eigen = mkTruck({ id: 'te', name: 'Eigen', builtin: false });
+    const fremd = mkTruck({ id: 'tf', name: 'Fremd-LKW' });
+    const plan = { id: 'p', name: 'P', truckId: 'tf', placements: [], unplaced: [], notes: '', mitgefuehrt: { version: 1, cases: [], trucks: [fremd] } };
+    return { eigen, fremd, s: { cases: [], trucks: [eigen], plans: [], plan, ruleSets: [], collections: [] } };
+  };
+  test('Kopien (#35): bestandOf ergänzt das Fahrzeug der Kopie, ausProjekt nennt es; Fahrzeugauswahl und LKW-Editor sehen es', () => {
+    const { s } = kopieStand();
+    const b = bestandOf(s);
+    assert.deepEqual(b.trucks.map(t => t.id), ['te', 'tf']);
+    assert.ok(istKopieTruck(b.ausProjekt, 'tf'));
+    assert.ok(!istKopieTruck(b.ausProjekt, 'te'));
+  });
+  test('Kopien (#35): truckMarke kennzeichnet Vorlage, eigenes Fahrzeug (★) und Kopie (◇) verschieden', () => {
+    const { eigen, fremd, s } = kopieStand();
+    const ap = bestandOf(s).ausProjekt;
+    assert.deepEqual(truckMarke({ id: 'v', builtin: true }, ap), { zeichen: '', title: '' });
+    assert.deepEqual(truckMarke(eigen, ap), { zeichen: ' ★', title: '' });
+    assert.deepEqual(truckMarke(fremd, ap), { zeichen: ' ◇', title: 'Aus der Projektdatei – nicht in deiner Bibliothek' });
+  });
+  test('Kopien (#35): truckStiftSperre sperrt nur eine Kopie; ohne Fahrzeug (Ohne LKW) nichts', () => {
+    const { eigen, fremd, s } = kopieStand();
+    const ap = bestandOf(s).ausProjekt;
+    assert.equal(truckStiftSperre(ap, fremd).gesperrt, true);
+    assert.match(truckStiftSperre(ap, fremd).title, /erst in die Bibliothek übernehmen/);
+    assert.deepEqual(truckStiftSperre(ap, eigen), { gesperrt: false, title: '' });
+    assert.deepEqual(truckStiftSperre(ap, null), { gesperrt: false, title: '' });
+  });
+  test('Kopien (#35): istKopieCase für den Stift in der Ablage und den Inspector', () => {
+    const c = mkCase('cf', 5, 5, 5);
+    const plan = { id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [{ id: 'u', caseId: 'cf' }], notes: '', mitgefuehrt: { version: 1, cases: [c], trucks: [] } };
+    const ap = bestandOf({ cases: [], trucks: [mkTruck({ id: 't' })], plans: [], plan, ruleSets: [], collections: [] }).ausProjekt;
+    assert.ok(istKopieCase(ap, 'cf'));
+    assert.ok(!istKopieCase(ap, 'andere'));
+  });
+}

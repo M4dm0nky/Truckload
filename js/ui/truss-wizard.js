@@ -94,6 +94,16 @@ function groupPrerigCases(cases) {
   return groups;
 }
 
+// Warum der Klassisch-Zweig nicht hinzugefügt werden kann ('' = geht). Dieselben Prüfungen wie beim
+// Anlegen (splitWagons, trussDims), damit ein gesperrter „Hinzufügen“-Knopf nie ohne Grund bleibt.
+export function classicSubmitError({ total, perWagon, width, wagonW }) {
+  try {
+    splitWagons(total, perWagon);
+    trussDims({ length: 1, width, count: 1, wagonW });
+    return '';
+  } catch (err) { return err.message; }
+}
+
 // opts: { cases, onNewTruss(caseType) }
 // Ergebnis: { newCases: Case[], additions: [{ caseId, n }], gestapelt } oder null bei Abbruch.
 // `newCases` sind über `onNewTruss` bereits gespeicherte, neue Case-Typen (klassischer Zweig) –
@@ -131,6 +141,7 @@ export function openTrussDialog(dlg, opts = {}) {
           <label>Stück pro Wagen<input type="number" name="perWagon" min="1" max="12" step="1" required></label>
         </div>
         <p class="hint wagons-hint"></p>
+        <p class="hint form-error" role="alert" hidden></p>
         ${stockTargetHtml(stock)}
       </fieldset>
       <fieldset class="prerig-only" hidden><legend>Pre-Rig-Traverse</legend>
@@ -229,10 +240,11 @@ export function openTrussDialog(dlg, opts = {}) {
     if (act !== 'save') return;
     const kind = kindInputs.find(r => r.checked)?.value ?? 'classic';
     if (kind === 'classic') {
-      try {
-        splitWagons(Number(f.total.value), Number(f.perWagon.value));
-        trussDims({ length: 1, width: curWidth(), count: 1, wagonW: Number(f.wagonW.value) });
-      } catch { e.preventDefault(); }
+      const msg = classicSubmitError({ total: Number(f.total.value), perWagon: Number(f.perWagon.value), width: curWidth(), wagonW: Number(f.wagonW.value) });
+      const box = dlg.querySelector('.form-error');
+      box.textContent = msg;
+      box.hidden = !msg;
+      if (msg) e.preventDefault();
     } else if (!prerigCases.length) {
       e.preventDefault();
     }

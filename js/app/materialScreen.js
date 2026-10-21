@@ -9,8 +9,9 @@ import { showAlert, showPick } from '../ui/confirmDialog.js';
 import { isInStock, copyToCompany } from '../model/material.js';
 import { collectionRows, exportableCases, adoptInto, MEINE_ID, STANDARD_ID } from '../model/collections.js';
 import { parseCollectionFile, exportCollectionFile, collectionFileName } from '../store/io.js';
-import { downloadJSON } from './download.js';
+import { downloadJSON, watchFileDialogClose } from './download.js';
 import { usage } from './core.js';
+import { CASE_LIBRARY } from '../data/case-library.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -98,6 +99,8 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
     onMoveCollection: persistence.moveCollection,
     onDeleteCollection: persistence.deleteCollection,
     onMoveCase: persistence.moveCaseTo,
+    onRestoreOriginal: persistence.restoreOriginal,
+    shipped: CASE_LIBRARY,
     onExportCollection: id => {
       const st = store.get();
       const meta = st.collections.find(c => c.id === id);
@@ -106,19 +109,25 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
       downloadJSON(collectionFileName(meta.name), exportCollectionFile(meta, cases));
     },
     // Ein einziger, unsichtbarer Dateiauswähler; ein zweiter Klick während der Dialog offen ist,
-    // teilt sich die laufende Promise. Abbruch (`cancel`) löst mit null auf.
+    // teilt sich die laufende Promise. Abbruch (`cancel`, ersatzweise Fokus ohne Datei) löst mit null auf.
     onImportCollection: () => {
       if (pendingImport) return pendingImport;
       const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'application/json,.json', hidden: true });
       document.body.append(input);
       pendingImport = new Promise(resolve => {
-        const done = v => { input.remove(); pendingImport = null; resolve(v); };
+        let stopWatch = () => {};
+        const done = v => { stopWatch(); input.remove(); pendingImport = null; resolve(v); };
         input.addEventListener('cancel', () => done(null));
+        // Sehr alte Browser kennen `cancel` nicht: Fokus zurück auf das Fenster ohne Datei = abgebrochen.
+        stopWatch = watchFileDialogClose(input, () => done(null));
         input.addEventListener('change', async () => {
           const file = input.files[0];
           if (!file) return done(null);
           try {
-            done(await persistence.importCollectionFile(parseCollectionFile(await file.text())));
+            const parsed = parseCollectionFile(await file.text());
+            const meta = await persistence.importCollectionFile(parsed);
+            if (meta && parsed.repairs?.length) await showAlert(`Beim Import repariert:\n${parsed.repairs.join('\n')}`);
+            done(meta);
           } catch (err) {
             await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
             done(null);

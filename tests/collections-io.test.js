@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exportBundle, parseBundle, exportCollectionFile, parseCollectionFile, collectionFileName, checkCollection } from '../js/store/io.js';
+import { exportBundle, parseBundle, exportCollectionFile, parseCollectionFile, collectionFileName, checkCollection, checkCase } from '../js/store/io.js';
+import { NAME_MAX } from '../js/model/limits.js';
 
 const c = (id, extra = {}) => ({ id, name: id, builtin: false, l: 60, w: 60, h: 60, weight: 1, ...extra });
 const plan = { id: 'p', name: 'P', truckId: 'x', placements: [], unplaced: [], notes: '' };
@@ -144,4 +145,26 @@ test('parentId „standard“ wird weiterhin repariert und gemeldet', () => {
   const b = parseBundle(bundleOf([{ id: 'a', name: 'A', parentId: 'standard' }]));
   assert.equal(b.collections[0].parentId, undefined);
   assert.ok(b.repairs.some(r => /Oberebene/.test(r)));
+});
+
+// #11: Altschema-Reparaturen auch für Sammlungsdateien (statt Ablehnung), mit Meldung
+const dateiMit = cases => JSON.stringify({ format: 'truckload-collection', version: 1, collection: { id: 't', name: 'TSE' }, cases });
+
+test('Sammlungsdatei: alte Rollenhöhe (≥ Case-Höhe) wird repariert und gemeldet, Maße bleiben', () => {
+  const alt = c('a', { l: 100, w: 50, h: 40, wheels: true, wheelH: 40 });
+  assert.throws(() => checkCase(alt), /ungültige Eigenschaften/);
+  const r = parseCollectionFile(dateiMit([alt]));
+  assert.deepEqual([r.cases[0].l, r.cases[0].w, r.cases[0].h], [100, 50, 40]);
+  assert.equal(r.cases[0].wheelH, 0);
+  assert.equal(r.cases[0].wheels, false);
+  assert.equal(r.repairs.length, 1);
+  assert.match(r.repairs[0], /1 Case: Rollenhöhe/);
+});
+
+test('Sammlungsdatei: zu langer Name wird gekürzt und gemeldet; saubere Datei meldet nichts', () => {
+  const lang = c('b', { name: 'N'.repeat(NAME_MAX + 5) });
+  const r = parseCollectionFile(dateiMit([lang]));
+  assert.equal(r.cases[0].name.length, NAME_MAX);
+  assert.match(r.repairs[0], new RegExp(`Name länger als ${NAME_MAX} Zeichen`));
+  assert.deepEqual(parseCollectionFile(dateiMit([c('ok')])).repairs, []);
 });

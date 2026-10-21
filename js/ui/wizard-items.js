@@ -96,3 +96,14 @@ export function bulkState(entries, key) {
 // „Gestapelt“ (Pre-Rig im Traversen-Dialog) schaltet „danach automatisch packen“ ein – aber nur,
 // solange der Nutzer das Häkchen nicht selbst angefasst hat; eine bewusste Abwahl bleibt bestehen.
 export const autoPackAfterStacked = (current, userTouched) => (userTouched ? current : true);
+
+// Der Firmenfilter „Suchen in“ im Lade-Assistenten: verschwindet die gewählte Sammlung (das letzte Case
+// einer Firma wurde gelöscht), springt er auf den Standardkatalog zurück, nicht auf „Kompletter Bestand“
+// (sonst zeigte er plötzlich Cases aus Sammlungen, die nie gewählt wurden). `prev` ist der bisherige Wert.
+// Ergebnis: { value, hinweis } – hinweis ist der Text für die Oberfläche oder ''.
+export function companyFilterAfterChange(prev, collections) {
+  const fort = prev !== NEUTRAL_COMPANY && prev !== '' && !collections.some(c => c.id === prev);
+  return fort
+    ? { value: NEUTRAL_COMPANY, hinweis: 'Sammlung nicht mehr vorhanden – Filter zurückgesetzt.' }
+    : { value: prev, hinweis: '' };
+}

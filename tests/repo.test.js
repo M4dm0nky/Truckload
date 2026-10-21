@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, sanitizeUpdatedAt, pickLatestPlan, sanitizeAndWriteBack } from '../js/store/repo.js';
+import { mergeOwnWithBuiltins, normalizeOwnCases, loadAllFallback, mergeImportedBundle, buildImportWinnerItems, sanitizeUpdatedAt, pickLatestPlan, sanitizeAndWriteBack, dropNullOptionals } from '../js/store/repo.js';
 import { PRESET_CASES } from '../js/data/preset-cases.js';
 import { CASE_LIBRARY } from '../js/data/case-library.js';
 import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
 import { DOLLY_H, trussDims } from '../js/model/truss.js';
 import { exportBundle, parseBundle } from '../js/store/io.js';
+import { checkCase } from '../js/store/io.js';
 import { isInStock } from '../js/model/material.js';
 
 // js/ui/library.js baut aus dem Ergebnis von loadAll() eine `new Map(cases.map(c =>
@@ -432,4 +433,26 @@ test('mergeImportedBundle: Projekt-Regelsets mischen wie Regelsets, Gewinner lan
   assert.deepEqual(merge.projectRuleSets, [neu]);
   assert.deepEqual(merge.winners.projectRuleSets, [neu]);
   assert.deepEqual(buildImportWinnerItems(merge.winners).filter(x => x.store === 'projectRuleSets').map(x => x.value), [neu]);
+});
+
+// #38: ein null tief im gespeicherten Datensatz (altes Schema, fremde Datei) wird beim Laden bereinigt.
+test('dropNullOptionals: null bei optionalen Feldern entfällt, erlaubte null-Werte und Maße bleiben', () => {
+  const alt = { id: 'x', name: 'Alt', l: 100, w: 50, h: 40, weight: 12, content: null, tippable: null, stackable: null, wheels: null,
+    company: null, legacy: null, onlyInPlan: null, maxTopLoad: null, stock: null, kind: null, layers: null, wheelH: null };
+  assert.throws(() => checkCase(alt), /ungültige Eigenschaften/);
+  const clean = dropNullOptionals(alt);
+  assert.doesNotThrow(() => checkCase(clean));
+  assert.deepEqual([clean.l, clean.w, clean.h, clean.weight], [100, 50, 40, 12]);
+  for (const k of ['content', 'tippable', 'stackable', 'wheels', 'company', 'legacy', 'onlyInPlan']) assert.ok(!(k in clean), k);
+  for (const k of ['maxTopLoad', 'stock', 'kind', 'layers', 'wheelH']) assert.equal(clean[k], null, k);
+});
+
+test('dropNullOptionals: null in truss.wagonW/profileId/standing entfällt, Maße bleiben; unverändertes Case bleibt dieselbe Referenz', () => {
+  const wagen = { id: 'w', name: 'Wagen', l: 300, w: 60, h: 66, weight: 30, kind: 'truss', truss: { length: 300, width: 29, count: 8, wagonW: null, profileId: null, standing: null } };
+  const clean = dropNullOptionals(wagen);
+  assert.doesNotThrow(() => checkCase(clean));
+  assert.deepEqual(clean.truss, { length: 300, width: 29, count: 8 });
+  assert.deepEqual([clean.l, clean.w, clean.h], [300, 60, 66]);
+  const ok = { id: 'o', name: 'Ok', l: 1, w: 1, h: 1, weight: 1 };
+  assert.equal(dropNullOptionals(ok), ok);
 });

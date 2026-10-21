@@ -13,6 +13,17 @@
   <link rel="stylesheet" href="css/print.css" media="print">
   <script>
     // Schlägt ein Modul (oder sein Preload) fehl, z. B. bei abgebrochener Verbindung: Hinweis statt weißer Seite.
+    // Welcher Text zum Fehler passt (reine Funktion, tests/pwa.test.js führt dieses Skript aus).
+    // Ein SyntaxError ohne „fehlender Export“-Meldung ist die JSON-Modul-Syntax in einem zu alten Browser:
+    // erneutes Laden hilft dort nicht, also kein „Neu laden“.
+    window.tlLadefehlerText = function (error) {
+      var msg = error && error.message ? String(error.message) : '';
+      var mix = /export named|requested module|does not provide|doesn't provide|binding|import not found|not found in module/i.test(msg);
+      if (error instanceof SyntaxError && !mix) {
+        return { text: 'Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.', neuLaden: false };
+      }
+      return { text: 'Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', neuLaden: true };
+    };
     window.addEventListener('error', e => {
       const t = e.target;
       const isModule = t && t.tagName === 'SCRIPT' && t.type === 'module';
@@ -25,12 +36,15 @@
       box.id = 'load-error';
       box.className = 'banner banner-warn';
       box.setAttribute('role', 'alert');
-      box.append('Die App konnte nicht vollständig geladen werden. Bitte neu laden. ');
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = 'Neu laden';
-      btn.addEventListener('click', () => location.reload());
-      box.append(btn);
+      const info = window.tlLadefehlerText(isLinkError ? e.error : null);
+      box.append(info.text);
+      if (info.neuLaden) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Neu laden';
+        btn.addEventListener('click', () => location.reload());
+        box.append(btn);
+      }
       // Im <head> kann der Fehler vor dem body auftreten: dann erst nach DOMContentLoaded einfügen.
       if (document.body) document.body.prepend(box);
       else document.addEventListener('DOMContentLoaded', () => document.body.prepend(box), { once: true });
@@ -137,7 +151,7 @@
   </section>
   <section id="material-screen" class="material-screen" hidden></section>
   <header class="topbar" hidden>
-    <strong class="brand">Truckload <span id="app-version" class="version">V 0.19.0</span></strong>
+    <strong class="brand">Truckload <span id="app-version" class="version">V 0.20.0</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
       <select id="plan-select" title="Ladeplan"></select>

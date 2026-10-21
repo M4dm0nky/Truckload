@@ -2,6 +2,33 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.20.0 – 2026-10-21
+
+**Issues auf null: Fehler behoben, Entscheidungen festgehalten.** Die Begründung zu jedem erledigten
+Punkt steht in `docs/entscheidungen.md`; die Prüfliste für Drucker, Mausrad/Trackpad und Dolly-Maß in
+`docs/pruefliste-hardware.md`.
+
+- **Zu alte Browser:** bekommen einen klaren Hinweis (Chrome/Edge ab 123, Safari ab 17.2, Firefox ab 138)
+  ohne „Neu laden“-Knopf, statt „Bitte neu laden“. Ein Versionsmix nach einem Update bleibt bei „Bitte neu laden“.
+- **Traversen-Dialog:** sagt, warum „Hinzufügen“ gesperrt ist (zum Beispiel Wagenbreite schmaler als zwei Stücke).
+- **Marke bleibt erhalten:** Ein Listen-Case, das in eine Sammlung und zurück nach „Meine Sammlung“
+  wandert, behält seine Marke (zum Beispiel CAB). Der Filter „Standardkatalog“ erklärt, was er zeigt.
+- **Original wiederherstellen:** Bearbeitete, verschobene und gelöschte Listen-Cases lassen sich auf die
+  mitgelieferte Fassung zurücksetzen; gelöschte stehen unter „Ausgeblendet“.
+- **Sammlungen:** Eine Sammlungsdatei mit alter Rollenhöhe oder zu langem Namen wird repariert statt
+  abgelehnt (die Meldung nennt, was geändert wurde); der Dateidialog-Abbruch wird auch in sehr alten
+  Browsern erkannt.
+- **Ablage:** nennt zusätzlich „zu schwer für die Nutzlast“ und „darf nur auf anderen Stücken stehen“.
+- **Projektdatei:** Kopien aus der Projektdatei sind in der Fahrzeugauswahl mit ◇ gekennzeichnet; das
+  Neuspeichern nach einer Bibliotheksänderung wird einmal wiederholt; `checkPlan` lehnt eine unbekannte
+  Version der mitgeführten Kopie ab.
+- **Oberfläche:** Der Inspector schreibt „stehend, um 180° gedreht“. Der Wizard sagt, wenn der
+  Sammlungsfilter zurückgesetzt wurde.
+- **Laden:** `null`-Werte in optionalen Case-Feldern werden beim Laden bereinigt.
+- **Intern:** `orderForStacking` aus dem Packer herausgelöst (ohne Verhaltensänderung), Vorgabewert für
+  `box` in `caseShape`/`trussShape`, Struktursperre für `toPiece`.
+- **Alte Daten laden weiter.** Kein neues Datenmodell, kein neuer Store, Formatversion der Sicherung bleibt 1.
+
 ## V 0.19.0 – 2026-10-21
 
 **Traversen-Katalog nach den technischen Zeichnungen.**

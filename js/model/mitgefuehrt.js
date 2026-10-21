@@ -32,6 +32,24 @@ export function bestandFuer(cases, trucks, plan) {
   return { cases: c.liste, trucks: t.liste, ausProjekt: { cases: c.ids, trucks: t.ids } };
 }
 
+// --- Entscheidungen der Oberfläche über Kopien (rein, damit sie ohne DOM testbar sind) ---
+// `ausProjekt` kommt aus bestandFuer: { cases: Set, trucks: Set } der nur mitgeführten IDs.
+export const istKopieCase = (ausProjekt, id) => !!ausProjekt?.cases?.has(id);
+export const istKopieTruck = (ausProjekt, id) => !!ausProjekt?.trucks?.has(id);
+
+// Kennzeichnung eines Fahrzeugs in der Fahrzeugauswahl: Vorlage ohne Zeichen, eigenes ★, Kopie ◇.
+export function truckMarke(t, ausProjekt) {
+  if (istKopieTruck(ausProjekt, t.id)) return { zeichen: ' ◇', title: 'Aus der Projektdatei – nicht in deiner Bibliothek' };
+  return { zeichen: t.builtin ? '' : ' ★', title: '' };
+}
+
+// Der Fahrzeug-Stift: eine Kopie ist gesperrt, bis sie übernommen ist. `truck` ist das gewählte Fahrzeug
+// (null im Reiter „Ohne LKW“, dort sperrt der Aufrufer ohnehin).
+export function truckStiftSperre(ausProjekt, truck) {
+  const kopie = !!truck && istKopieTruck(ausProjekt, truck.id);
+  return { gesperrt: kopie, title: kopie ? 'Aus der Projektdatei – erst in die Bibliothek übernehmen' : '' };
+}
+
 // Entfernt gelöschte IDs aus der Kopie des Plans (sonst füllte bestandOf die Lücke aus dem alten
 // Stand). Dieselbe Referenz, wenn nichts entfällt.
 export function ohneIds(plan, { cases = [], trucks = [] }) {
