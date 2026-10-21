@@ -72,13 +72,15 @@ Top-Level-`await`-Modul mit DOM-Zugriff ist.
 - **Ein Stand pro Seitenaufruf:** Ist bei einem Client (Seitenaufruf) ein Abruf in den Timeout gelaufen,
   kommen alle weiteren Dateien dieses Clients sofort aus dem Cache, damit sich alte und neue Module nicht
   mischen. Das ist ein Zusatzschutz, kein Ausschluss: Was der Seitenaufruf vorher schon frisch bekommen hat,
-  bleibt frisch (Restrisiko: Issue #27).
+  bleibt frisch (Restrisiko, bewusst akzeptiert: `docs/entscheidungen.md`, „#27“).
 - **Neue Version:** `registerServiceWorker` (`js/app/chrome.js`) lädt die Seite einmal neu, wenn ein neuer
   Service Worker übernimmt (nicht beim allerersten Besuch).
 - **Ladefehler-Hinweis:** Schlägt ein Modul oder sein Preload fehl, oder meldet ein fehlender Export einen
   `SyntaxError` vor dem Start der App, blendet ein Skript im `<head>` von `index.html` den Hinweis „Die App
   konnte nicht vollständig geladen werden. Bitte neu laden.“ mit Knopf „Neu laden“ ein, statt eine weiße
-  Seite zu lassen.
+  Seite zu lassen. Ein `SyntaxError`, der nicht nach fehlendem Export klingt (JSON-Modul-Syntax in einem zu
+  alten Browser), zeigt stattdessen „Dieser Browser ist zu alt für Truckload …“ ohne Knopf
+  (`tlLadefehlerText`, Chrome/Edge ≥ 123, Safari ≥ 17.2, Firefox ≥ 138).
 
 Jede neue Datei unter `js/` oder `css/` gehört in `ASSETS`; `tests/pwa.test.js` prüft das.
 

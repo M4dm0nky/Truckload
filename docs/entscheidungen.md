@@ -31,3 +31,15 @@ Entschieden (E): `company` ist nur der Name der Sammlung, in der das Case zuletz
 Baums; wer nach Oberfirma filtert, nimmt den Sammlungsfilter. Das Verschieben einer Sammlung ändert die
 `company` ihrer Cases nicht. Wiedervorlage, wenn eine Marke über Sammlungsgrenzen hinweg gebraucht wird
 (das wäre ein Datenmodell-Thema, mit NYX abzustimmen).
+
+## #27 Service-Worker, Versionsmix bei langsamem Netz
+Geprüft, nicht geändert (E, die in der Anleitung vorgesehene Rückfalllösung). Die Regel „alles eines Clients
+aus dem Cache“ (wie `degraded` sie schon anwendet) schließt den Mix nicht aus, weil der Cache selbst gemischt
+wird: `networkFirst` schreibt jede frisch geholte Datei in denselben Cache `truckload-v<Version>`. Ist eine
+neue Fassung ausgeliefert und der Service Worker noch der alte, enthält der Cache nach ein paar frischen Abrufen
+neue und alte Dateien nebeneinander; „ab jetzt nur noch Cache“ bedient dann ebenfalls Mix. Eine sichere Lösung
+braucht einen Zwischenspeicher je Seitenaufruf, der erst vollständig geholt und dann im Ganzen übernommen
+wird – das ist ein Umbau von `sw.js` weit über eine kleine Änderung hinaus, und er ließe sich ohne Browser und
+ohne langsames Netz nicht abnehmen. Der Rest wird vom Ladefehler-Hinweis in `index.html` („Bitte neu laden“)
+aufgefangen; die Voraussetzung für den Mix (Timeout von 3 s genau während einer Auslieferung) ist selten.
+Wiedervorlage, wenn der Hinweis in der Praxis gemeldet wird. Die Asset-Liste ist unverändert.
