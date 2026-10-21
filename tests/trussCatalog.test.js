@@ -90,3 +90,23 @@ test('Prolyte: S36V ohne 160 cm, 300 cm 31,6 kg, 160 cm berechnet', () => {
 test('Prolyte: H30V 100 cm ist 7,0 kg', () => {
   assert.equal(profileById('prolyte-h30v').lengths.find(l => l.cm === 100).kg, 7.0);
 });
+
+const EUROTRUSS_KG_M = { fd32: 3, hd32: 3.8, fd33: 4.4, hd33: 5.5, hd22: 4.3, hd24: 5, fd34: 6, hd34: 7.5, hd44: 8.1, hdx45: 11 };
+// Gegen das ungerundete Produkt: bei exakten Hälften (z. B. 2,25) ist Auf- wie Abrunden zulässig.
+test('Eurotruss: alle Längen aus dem Katalog-Metergewicht berechnet', () => {
+  for (const [k, kgM] of Object.entries(EUROTRUSS_KG_M)) {
+    const p = profileById(`eurotruss-${k}`);
+    assert.ok(p, k);
+    for (const l of p.lengths) {
+      assert.equal(l.art, 'berechnet', `${k} ${l.cm}`);
+      assert.ok(Math.abs(l.kg - kgM * l.cm / 100) <= 0.05 + 1e-9, `${k} ${l.cm}: ${l.kg}`);
+    }
+  }
+});
+test('Eurotruss: Stichproben FD34, HD44, HD32, HDX45', () => {
+  const kg = (id, cm) => profileById(id).lengths.find(l => l.cm === cm).kg;
+  assert.equal(kg('eurotruss-fd34', 300), 18);
+  assert.equal(kg('eurotruss-hd44', 400), 32.4);
+  assert.equal(kg('eurotruss-hd32', 100), 3.8);
+  assert.equal(kg('eurotruss-hdx45', 400), 44);
+});
