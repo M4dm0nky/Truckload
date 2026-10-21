@@ -78,14 +78,20 @@ test('Prolyte: H40D hat 13 Längen, 25 cm 2,35 kg, 500 cm 24,4 kg', () => {
   assert.equal(p.lengths.find(l => l.cm === 25).kg, 2.35);
   assert.equal(p.lengths.find(l => l.cm === 500).kg, 24.4);
 });
-test('Prolyte: S36V ohne 160 cm, 300 cm 31,6 kg, 160 cm berechnet', () => {
+test('Prolyte: S36V mit 160 cm laut Herstellerseite (16,54 kg), 300 cm 31,6 kg', () => {
   const p = profileById('prolyte-s36v');
   assert.ok(p);
   assert.equal(p.punkte, 4);
   assert.equal(p.width, 36);
-  assert.ok(!p.lengths.some(l => l.cm === 160));
+  const l160 = p.lengths.find(l => l.cm === 160);
+  assert.ok(l160);
+  assert.equal(l160.kg, 16.54);
+  assert.equal(l160.art, 'hersteller');
+  assert.deepEqual(pieceKg(p, 160), { kg: 16.54, art: 'hersteller' });
   assert.equal(p.lengths.find(l => l.cm === 300).kg, 31.6);
-  assert.equal(pieceKg(p, 160).art, 'berechnet');
+});
+test('Prolyte: H40L, H40D, H40V sind 39 cm breit (Zeichnung 387 mm)', () => {
+  for (const id of ['prolyte-h40l', 'prolyte-h40d', 'prolyte-h40v']) assert.equal(profileById(id).width, 39, id);
 });
 test('Prolyte: H30V 100 cm ist 7,0 kg', () => {
   assert.equal(profileById('prolyte-h30v').lengths.find(l => l.cm === 100).kg, 7.0);
