@@ -106,6 +106,10 @@ test('Ladefehler: Versionsmix (fehlender Export) und andere Fehler behalten „B
   const mix = f(new SyntaxError("The requested module './a.js' does not provide an export named 'x'"));
   assert.equal(mix.neuLaden, true);
   assert.match(mix.text, /Bitte neu laden/);
+  // Firefox und Safari melden den fehlenden Export anders; auch das ist ein Versionsmix, kein alter Browser.
+  for (const msg of ['import not found: x', "Importing binding name 'x' is not found.", "The requested module './a.js' doesn't provide an export named: 'x'"]) {
+    assert.equal(f(new SyntaxError(msg)).neuLaden, true, msg);
+  }
   assert.equal(f(null).neuLaden, true);
   assert.equal(f(new TypeError('x')).neuLaden, true);
 });

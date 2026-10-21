@@ -18,7 +18,7 @@
     // erneutes Laden hilft dort nicht, also kein „Neu laden“.
     window.tlLadefehlerText = function (error) {
       var msg = error && error.message ? String(error.message) : '';
-      var mix = /export named|requested module|does not provide|binding/i.test(msg);
+      var mix = /export named|requested module|does not provide|doesn't provide|binding|import not found|not found in module/i.test(msg);
       if (error instanceof SyntaxError && !mix) {
         return { text: 'Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.', neuLaden: false };
       }
