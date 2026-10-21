@@ -361,6 +361,27 @@ Stückzahl und Wagenbreite, gleiche Firma, weder `legacy` noch `onlyInPlan`. Ohn
 es nie einen Treffer, weil `onlyInPlan`-Typen global sind und sich zwei Loads sonst einen Typ
 teilen würden.
 
+### Traversen-Katalog (seit V 0.18.0)
+
+`data/traversen.json` (Format `truckload-truss-catalog`, Version 1) führt Profile je Hersteller mit
+den lieferbaren Längen und dem Stückgewicht: `{ id, hersteller, name, punkte (2|3|4), width, lengths:
+[{ cm, kg, art, vergleich? }] }`. Gelesen wird die Datei per JSON-Modul-Import in
+`js/model/trussCatalog.js` (`searchProfiles`, `profileById`, `pieceKg`, `kgPerM`), nicht in den Store
+gesät. `art` sagt, woher das Gewicht stammt: `hersteller` (Herstellerangabe), `berechnet` (kg/m ×
+Länge) oder `geschaetzt` (aus einem Vergleichsprofil, `vergleich` nennt es). Das Gewicht eines
+Wagens mit Katalogprofil ist `wagonWeightFor(profile, length, count)`: Stückgewicht mal Stückzahl
+plus `TRUSS_DOLLY_KG`; für eine Länge außerhalb des Katalogs rechnet `pieceKg` aus dem Median der
+kg/m des Profils und meldet `berechnet`.
+
+Der Wagen-Case trägt dann zusätzlich `truss.profileId` (optional). `findMatchingWagon` vergleicht
+sie, damit zwei Profile gleicher Breite nicht denselben Wagen treffen; ohne `profileId` (alte Wagen
+und die Profile 34er/40er) gilt wie bisher nur die Breite. `checkCase` lässt `profileId` als String
+bis 64 Zeichen oder fehlend zu. Im Dialog „Traverse hinzufügen“ sucht ein Eingabefeld Profile
+(„FD34“), die Längen kommen als Tasten mit Gewicht; ohne Auswahl bleiben die zwei festen Profile
+und die Schnelltasten. Aufnahmeregeln: nur gerade Stücke bis 40 cm Breite (zwei Stück müssen auf den
+80-cm-Wagen), keine Ecken, Kreise oder Pre-Rig; ein Profil ohne irgendein Gewicht gehört nicht in
+den Katalog.
+
 ### Pre-Rig-Traversen (`standing: true`)
 
 Ein zweiter, seit V 0.7.3 unterstützter Aufbau für Moving-Light-Pre-Rig-Traversen (H.O.F. MLT,

@@ -1,7 +1,8 @@
 import { esc } from './dom.js';
 import { QUICK_LENGTHS, trussProfileName } from './caseInfo.js';
 import { isTruss } from '../model/geometry.js';
-import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, splitWagons, findMatchingWagon } from '../model/truss.js';
+import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, wagonWeightFor, splitWagons, findMatchingWagon } from '../model/truss.js';
+import { searchProfiles, profileById, pieceKg } from '../model/trussCatalog.js';
 import { colorFor } from '../data/categories.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
@@ -12,17 +13,69 @@ import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-targe
 // Vorlage. Rein funktional (keine DOM-/Store-Berührung), deshalb wie splitWagons()/wagonWeight()
 // unabhängig testbar.
 // `wagonW` (optional): Wagenbreite der Firma in cm, sonst die Automatik 60/80 (trussDims).
-export function buildWagonCaseType(id, profileName, length, width, count, wagonW) {
-  const truss = { length, width, count, ...(wagonW != null ? { wagonW } : {}) };
+// `profile` (optional): Katalogprofil (js/model/trussCatalog.js); dann kommen Gewicht (wagonWeightFor),
+// Name (Hersteller + Profil) und `truss.profileId` aus dem Katalog. Ohne Profil alles wie bisher.
+export function buildWagonCaseType(id, profileName, length, width, count, wagonW, profile) {
+  const truss = { length, width, count, ...(wagonW != null ? { wagonW } : {}), ...(profile ? { profileId: profile.id } : {}) };
   const { l, w, h } = trussDims(truss);
-  const weight = wagonWeight(length, width, count);
+  const weight = profile ? wagonWeightFor(profile, length, count) : wagonWeight(length, width, count);
   const lengthLabel = (length / 100).toLocaleString('de-DE', { maximumFractionDigits: 2 });
-  const name = `Traversenwagen ${profileName} ${lengthLabel} m (${count} Stück)`;
+  const label = profile ? `${profile.hersteller} ${profile.name}` : profileName;
+  const name = `Traversenwagen ${label} ${lengthLabel} m (${count} Stück)`;
   return {
     id, builtin: false, name, content: '', category: 'Rigging', color: colorFor('Rigging'),
     l, w, h, weight, tippable: false, stackable: true, maxTopLoad: null, stock: null, wheelH: 0,
     kind: 'truss', truss, layers: [1, 2],
   };
+}
+
+// --- Reine Bausteine für die Profilsuche im Dialog (ohne DOM, einzeln testbar) ---
+export const punkteLabel = n => `${n}-Punkt`;
+
+export function originText(art, vergleichId) {
+  if (art === 'hersteller') return 'Herstellerangabe';
+  if (art === 'berechnet') return 'aus Metergewicht berechnet';
+  const v = vergleichId ? profileById(vergleichId) : null;
+  return v ? `geschätzt (Vergleich: ${v.hersteller} ${v.name})` : 'geschätzt';
+}
+
+// Längen-Tasten eines Profils: { cm, label: „3,5 m · 23 kg“, title: Herkunft }.
+export function lengthButtons(profile) {
+  return (profile?.lengths ?? []).map(l => {
+    const m = (l.cm / 100).toLocaleString('de-DE', { maximumFractionDigits: 2 });
+    const kg = l.kg > 0 ? `${l.kg.toLocaleString('de-DE', { maximumFractionDigits: 1 })} kg` : 'Gewicht unbekannt';
+    return { cm: l.cm, label: `${m} m · ${kg}`, title: originText(l.art, l.vergleich) };
+  });
+}
+
+export function profileHitLabel(p) {
+  return `${p.name} · ${p.hersteller} · ${punkteLabel(p.punkte)} · ${p.width} cm`;
+}
+
+// Trefferliste als HTML; alle Katalogtexte über esc(). Leere Liste → Hinweis.
+export function profileHitsHtml(profiles) {
+  if (!profiles.length) return '<p class="hint">Kein Profil gefunden.</p>';
+  return profiles.map(p =>
+    `<button type="button" class="quick-len profile-hit" data-id="${esc(p.id)}">${esc(profileHitLabel(p))}</button>`).join('');
+}
+
+export function lengthButtonsHtml(profile) {
+  return lengthButtons(profile).map(b =>
+    `<button type="button" class="quick-len" data-len="${b.cm}" title="${esc(b.title)}">${esc(b.label)}</button>`).join('');
+}
+
+// Kleinste zulässige Länge im Längenfeld: 50 cm, mit Katalogprofil die kürzeste Katalog-Länge
+// (mindestens 10 cm), damit Tasten wie „0,25 m“ nicht an min="50" scheitern.
+export function minLengthFor(profile) {
+  const cms = (profile?.lengths ?? []).map(l => l.cm).filter(c => c > 0);
+  return cms.length ? Math.max(10, Math.min(50, ...cms)) : 50;
+}
+
+// Herkunft des Gewichts für die gewählte Länge ('' ohne Profil).
+export function profileOriginLine(profile, lengthCm) {
+  if (!profile || !(lengthCm > 0)) return '';
+  const hit = profile.lengths.find(l => l.cm === lengthCm);
+  return `Gewicht: ${originText(hit ? hit.art : pieceKg(profile, lengthCm).art, hit?.vergleich)}`;
 }
 
 // Gruppiert die stehenden Pre-Rig-Presets (truss.standing === true) nach Hersteller/Modell für
@@ -64,9 +117,13 @@ export function openTrussDialog(dlg, opts = {}) {
         <label><input type="radio" name="kind" value="prerig"> Pre-Rig-Traverse (MLT/S36PR)</label>
       </div>
       <fieldset class="classic-only"><legend>Klassischer Wagen</legend>
-        <label>Profil<select name="profile">${TRUSS_PROFILES.map(p => `<option value="${p.width}">${esc(p.name)}</option>`).join('')}</select></label>
+        <label>Profil suchen (z. B. FD34)<input type="search" name="profileSearch" autocomplete="off"></label>
+        <div class="row quick-lengths profile-hits"></div>
+        <p class="hint profile-chosen" hidden><span class="profile-chosen-text"></span> <button type="button" class="quick-len profile-clear">Auswahl aufheben</button></p>
+        <label class="profile-select">Profil<select name="profile">${TRUSS_PROFILES.map(p => `<option value="${p.width}">${esc(p.name)}</option>`).join('')}</select></label>
         <label>Länge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
-        <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
+        <div class="row quick-lengths length-buttons">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
+        <p class="hint length-origin"></p>
         <label>Wagenbreite (cm)<input type="number" name="wagonW" min="20" max="200" step="1" required></label>
         <p class="hint">Wagen unterscheiden sich je Sammlung – die Breite hier an den echten Wagen anpassen.</p>
         <div class="row">
@@ -105,7 +162,7 @@ export function openTrussDialog(dlg, opts = {}) {
     prerigOnly.hidden = !isPrerig;
     f.trussLength.required = !isPrerig; f.total.required = !isPrerig; f.perWagon.required = !isPrerig;
     f.wagonW.required = !isPrerig; f.wagonW.disabled = isPrerig;
-    f.trussLength.disabled = isPrerig; f.total.disabled = isPrerig; f.perWagon.disabled = isPrerig; f.profile.disabled = isPrerig;
+    f.trussLength.disabled = isPrerig; f.total.disabled = isPrerig; f.perWagon.disabled = isPrerig; f.profile.disabled = isPrerig; f.profileSearch.disabled = isPrerig;
     if (f.preset) f.preset.disabled = !isPrerig;
     if (f.prerigTotal) { f.prerigTotal.required = isPrerig; f.prerigTotal.disabled = !isPrerig; }
   }
@@ -125,13 +182,47 @@ export function openTrussDialog(dlg, opts = {}) {
   // Vorbelegung = bisherige Automatik (2 Stück nebeneinander: bis 60 cm → 60, sonst 80); folgt dem
   // Profil, solange der Nutzer die Breite nicht selbst geändert hat.
   let wagonWTouched = false;
-  const autoWagonW = () => (2 * Number(f.profile.value) <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1]);
+  let chosen = null; // gewähltes Katalogprofil; null = die zwei festen Profile (34er/40er)
+  const curWidth = () => (chosen ? chosen.width : Number(f.profile.value));
+  const autoWagonW = () => (2 * curWidth() <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1]);
   f.wagonW.value = autoWagonW();
   f.wagonW.addEventListener('input', () => { wagonWTouched = true; });
   f.profile.addEventListener('change', () => { if (!wagonWTouched) f.wagonW.value = autoWagonW(); });
-  for (const btn of dlg.querySelectorAll('.quick-len')) {
-    btn.addEventListener('click', () => { f.trussLength.value = btn.dataset.len; });
+  const lengthBox = dlg.querySelector('.length-buttons');
+  const originEl = dlg.querySelector('.length-origin');
+  const hitsBox = dlg.querySelector('.profile-hits');
+  const chosenEl = dlg.querySelector('.profile-chosen');
+  const defaultLengthsHtml = lengthBox.innerHTML;
+  const updateOrigin = () => { originEl.textContent = profileOriginLine(chosen, Number(f.trussLength.value)); };
+  lengthBox.addEventListener('click', e => {
+    const btn = e.target.closest('.quick-len');
+    if (!btn) return;
+    f.trussLength.value = btn.dataset.len;
+    updateOrigin();
+  });
+  f.trussLength.addEventListener('input', updateOrigin);
+  function setProfile(p) {
+    chosen = p;
+    f.trussLength.min = minLengthFor(p);
+    dlg.querySelector('.profile-select').hidden = !!p;
+    chosenEl.hidden = !p;
+    if (p) chosenEl.querySelector('.profile-chosen-text').textContent = `Gewählt: ${profileHitLabel(p)}`;
+    lengthBox.innerHTML = p ? lengthButtonsHtml(p) : defaultLengthsHtml;
+    hitsBox.innerHTML = '';
+    if (!wagonWTouched) f.wagonW.value = autoWagonW();
+    updateOrigin();
   }
+  f.profileSearch.addEventListener('input', () => {
+    const q = f.profileSearch.value.trim();
+    hitsBox.innerHTML = q ? profileHitsHtml(searchProfiles(q)) : '';
+  });
+  f.profileSearch.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+  hitsBox.addEventListener('click', e => {
+    const btn = e.target.closest('.profile-hit');
+    const p = btn && profileById(btn.dataset.id);
+    if (p) { setProfile(p); f.profileSearch.value = ''; }
+  });
+  dlg.querySelector('.profile-clear').addEventListener('click', () => setProfile(null));
 
   form.addEventListener('submit', e => {
     const act = e.submitter?.value;
@@ -140,7 +231,7 @@ export function openTrussDialog(dlg, opts = {}) {
     if (kind === 'classic') {
       try {
         splitWagons(Number(f.total.value), Number(f.perWagon.value));
-        trussDims({ length: 1, width: Number(f.profile.value), count: 1, wagonW: Number(f.wagonW.value) });
+        trussDims({ length: 1, width: curWidth(), count: 1, wagonW: Number(f.wagonW.value) });
       } catch { e.preventDefault(); }
     } else if (!prerigCases.length) {
       e.preventDefault();
@@ -153,7 +244,8 @@ export function openTrussDialog(dlg, opts = {}) {
       if (act !== 'save') return resolve(null);
       const kind = kindInputs.find(r => r.checked)?.value ?? 'classic';
       if (kind === 'classic') {
-        const width = Number(f.profile.value);
+        const profile = chosen;
+        const width = curWidth();
         const profileName = trussProfileName(width);
         const length = Number(f.trussLength.value);
         let wagons;
@@ -167,10 +259,10 @@ export function openTrussDialog(dlg, opts = {}) {
           const count = wagons.filter(x => x === n).length;
           // Vorhandenen passenden Wagen-Typ nehmen statt einen zweiten anzulegen (findMatchingWagon).
           const wagonW = Number(f.wagonW.value);
-          const existing = findMatchingWagon(opts.cases ?? [], { width, length, count: n, wagonW, company: target.company, inStock: target.inStock });
+          const existing = findMatchingWagon(opts.cases ?? [], { width, length, count: n, wagonW, company: target.company, inStock: target.inStock, profileId: profile?.id });
           if (existing) { additions.push({ caseId: existing.id, n: count }); continue; }
           const caseType = applyStockTarget(
-            buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, wagonW),
+            buildWagonCaseType(crypto.randomUUID(), profileName, length, width, n, wagonW, profile),
             target);
           const saved = await opts.onNewTruss?.(caseType);
           if (!saved) continue;

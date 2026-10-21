@@ -1,4 +1,5 @@
 import { cornerBoxes } from './geometry.js';
+import { pieceKg } from './trussCatalog.js';
 
 export const DOLLY_WHEEL_H = 12; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
 export const DOLLY_BOARD_H = 3;  // Plattenstärke des Rollbretts (cm, entspricht 20–25 mm real)
@@ -50,6 +51,7 @@ export function findMatchingWagon(cases, spec) {
   return cases.find(c => {
     if (c.kind !== 'truss' || !c.truss || c.truss.standing || c.legacy || c.onlyInPlan) return false;
     if (c.truss.width !== spec.width || c.truss.length !== spec.length || c.truss.count !== spec.count || c.w !== w) return false;
+    if (c.truss.profileId !== spec.profileId) return false;
     return (c.company || '') === company;
   });
 }
@@ -65,6 +67,12 @@ export const TRUSS_DOLLY_KG = 2 * 12;
 
 export function wagonWeight(length, width, count) {
   return Math.round((length / 100) * count * TRUSS_KG_PER_M[width] + TRUSS_DOLLY_KG);
+}
+
+// Gewicht eines Wagens mit Katalogprofil: Stückgewicht (Katalog oder aus kg/m gerechnet) × Anzahl
+// plus Wagen-Grundgewicht. Unbekanntes Stückgewicht zählt 0.
+export function wagonWeightFor(profile, lengthCm, count) {
+  return Math.round(pieceKg(profile, lengthCm).kg * count + TRUSS_DOLLY_KG);
 }
 
 // Teilt eine Gesamtstückzahl auf Wägen mit maximal `perWagon` Stück auf: volle Wägen zuerst, ein

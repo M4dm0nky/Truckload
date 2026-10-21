@@ -73,6 +73,7 @@ export function checkCase(c) {
       && num(t.width) && t.width >= 1 && t.width <= (standing ? TRUSS_LIMITS.standingWidth : TRUSS_LIMITS.width)
       && Number.isInteger(t.count) && t.count >= 1 && t.count <= TRUSS_LIMITS.count
       && (t.wagonW === undefined || (num(t.wagonW) && t.wagonW >= 2 * t.width && t.wagonW <= TRUSS_LIMITS.wagonW))
+      && (t.profileId === undefined || (typeof t.profileId === 'string' && t.profileId.length <= 64))
       && (t.standing === undefined || typeof t.standing === 'boolean')
       && (!standing || (num(t.height) && t.height >= 1 && t.height <= CASE_LIMITS.h))
       && c.tippable !== true;

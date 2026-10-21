@@ -990,3 +990,20 @@ test('parseBundle mit dims: nur unvollständige Cases ist keine leere Datei', ()
   assert.equal(res.incomplete.length, 1);
   assert.deepEqual(res.cases, []);
 });
+
+test('Wagen im alten Schema (ohne profileId) besteht checkCase und lädt unverändert', () => {
+  const truss = { ...own, kind: 'truss', truss: { length: 300, width: 29, count: 4 } };
+  const res = parseBundle(bundleWith({ cases: [truss], trucks: [], plans: [] }));
+  assert.deepEqual(res.cases[0].truss, { length: 300, width: 29, count: 4 });
+});
+test('Wagen mit profileId als String wird akzeptiert', () => {
+  const truss = { ...own, kind: 'truss', truss: { length: 300, width: 29, count: 4, profileId: 'eurotruss-fd34' } };
+  const res = parseBundle(bundleWith({ cases: [truss], trucks: [], plans: [] }));
+  assert.equal(res.cases[0].truss.profileId, 'eurotruss-fd34');
+});
+test('Wagen mit profileId als Zahl oder zu langem String wird abgelehnt', () => {
+  for (const profileId of [5, 'x'.repeat(65), null]) {
+    const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 300, width: 29, count: 4, profileId } }], trucks: [], plans: [] });
+    assert.throws(() => parseBundle(bad), /Traversenwagen/);
+  }
+});

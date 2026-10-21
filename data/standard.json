@@ -1475,14 +1475,14 @@
    "l": 74.5,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 85.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-forte",
@@ -1494,14 +1494,14 @@
    "l": 145,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 155,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-iesprite",
@@ -1513,14 +1513,14 @@
    "l": 68,
    "w": 60,
    "h": 79,
-   "weight": 0,
+   "weight": 71.5,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-iesprite",
@@ -1532,14 +1532,14 @@
    "l": 133,
    "w": 60,
    "h": 79,
-   "weight": 0,
+   "weight": 129.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-megapointe-horizontal",
@@ -1551,14 +1551,14 @@
    "l": 60,
    "w": 60,
    "h": 74.5,
-   "weight": 0,
+   "weight": 55.1,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-megapointe-horizontal",
@@ -1570,14 +1570,14 @@
    "l": 105,
    "w": 60,
    "h": 74.5,
-   "weight": 0,
+   "weight": 93.1,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-megapointe-vertical",
@@ -1589,14 +1589,14 @@
    "l": 62,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 82.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-megapointe",
@@ -1608,14 +1608,14 @@
    "l": 120,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 148.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-tarrantula",
@@ -1627,14 +1627,14 @@
    "l": 60,
    "w": 50,
    "h": 80,
-   "weight": 0,
+   "weight": 52.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-tarrantula",
@@ -1646,14 +1646,14 @@
    "l": 85,
    "w": 60,
    "h": 81,
-   "weight": 0,
+   "weight": 86.9,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-spiider",
@@ -1665,14 +1665,14 @@
    "l": 45,
    "w": 41,
    "h": 60,
-   "weight": 0,
+   "weight": 31.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-spiider",
@@ -1684,14 +1684,14 @@
    "l": 62,
    "w": 60,
    "h": 71,
-   "weight": 0,
+   "weight": 59.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-spiider",
@@ -1703,14 +1703,14 @@
    "l": 120,
    "w": 60,
    "h": 71,
-   "weight": 0,
+   "weight": 105.9,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-tetra2",
@@ -1722,14 +1722,14 @@
    "l": 122,
    "w": 39,
    "h": 25,
-   "weight": 0,
+   "weight": 41.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-triple-top-loader-case-tetra2",
@@ -1741,14 +1741,14 @@
    "l": 120,
    "w": 60,
    "h": 71,
-   "weight": 0,
+   "weight": 107,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-ledbeam-150",
@@ -1760,14 +1760,14 @@
    "l": 37.5,
    "w": 28.5,
    "h": 57.5,
-   "weight": 0,
+   "weight": 18.5,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-ledbeam-150",
@@ -1779,14 +1779,14 @@
    "l": 60,
    "w": 60,
    "h": 59.5,
-   "weight": 0,
+   "weight": 51.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-eight-pack-top-loader-case-ledbeam-150",
@@ -1798,14 +1798,14 @@
    "l": 105,
    "w": 60,
    "h": 59.5,
-   "weight": 0,
+   "weight": 88.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-spikie-motioncamera",
@@ -1817,14 +1817,14 @@
    "l": 37.5,
    "w": 30.5,
    "h": 57,
-   "weight": 0,
+   "weight": 20.6,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-spikie",
@@ -1836,14 +1836,14 @@
    "l": 67.5,
    "w": 60,
    "h": 65,
-   "weight": 0,
+   "weight": 61.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-eight-pack-top-loader-case-spikie",
@@ -1855,14 +1855,14 @@
    "l": 120,
    "w": 60,
    "h": 65,
-   "weight": 0,
+   "weight": 108.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-patt-2017",
@@ -1874,14 +1874,14 @@
    "l": 81,
    "w": 47,
    "h": 78,
-   "weight": 0,
+   "weight": 49.7,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-patt-2017",
@@ -1893,14 +1893,14 @@
    "l": 120,
    "w": 60,
    "h": 105,
-   "weight": 0,
+   "weight": 95.5,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-300-600-dl4",
@@ -1912,14 +1912,14 @@
    "l": 59,
    "w": 56,
    "h": 74,
-   "weight": 0,
+   "weight": 53.9,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-bmfl",
@@ -1931,14 +1931,14 @@
    "l": 74.5,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 81.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-bmfl-followspot",
@@ -1950,14 +1950,14 @@
    "l": 74.5,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 81.1,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-ibar-cycbar-15-12",
@@ -1969,14 +1969,14 @@
    "l": 120,
    "w": 28.5,
    "h": 29,
-   "weight": 0,
+   "weight": 31.5,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-cycfx-8",
@@ -1988,14 +1988,14 @@
    "l": 120,
    "w": 33.5,
    "h": 39,
-   "weight": 0,
+   "weight": 38.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-dl7f",
@@ -2007,14 +2007,14 @@
    "l": 76,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 79.6,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-dl7s",
@@ -2026,14 +2026,14 @@
    "l": 67,
    "w": 60,
    "h": 89,
-   "weight": 0,
+   "weight": 76.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-esprite",
@@ -2045,14 +2045,14 @@
    "l": 68,
    "w": 60,
    "h": 79,
-   "weight": 0,
+   "weight": 66.9,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-ipointe",
@@ -2064,14 +2064,14 @@
    "l": 62,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 76.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-ledwash-800x",
@@ -2083,14 +2083,14 @@
    "l": 40,
    "w": 37,
    "h": 57,
-   "weight": 0,
+   "weight": 26.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-minipointe",
@@ -2102,14 +2102,14 @@
    "l": 42,
    "w": 39.5,
    "h": 59,
-   "weight": 0,
+   "weight": 28.9,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-parfect",
@@ -2121,14 +2121,14 @@
    "l": 36.5,
    "w": 31.5,
    "h": 68,
-   "weight": 0,
+   "weight": 19.6,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-patt-2013",
@@ -2140,14 +2140,14 @@
    "l": 81,
    "w": 47,
    "h": 78,
-   "weight": 0,
+   "weight": 43.6,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-pointe",
@@ -2159,14 +2159,14 @@
    "l": 43.5,
    "w": 40,
    "h": 69,
-   "weight": 0,
+   "weight": 34.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-silverscan",
@@ -2178,14 +2178,14 @@
    "l": 101,
    "w": 54,
    "h": 53,
-   "weight": 0,
+   "weight": 52.6,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-strobe-ip-divine-60-uv-divine-160-rgbw",
@@ -2197,14 +2197,14 @@
    "l": 75.5,
    "w": 35.5,
    "h": 38.5,
-   "weight": 0,
+   "weight": 32.7,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-strobe-colorstrobe",
@@ -2216,14 +2216,14 @@
    "l": 120,
    "w": 60,
    "h": 67.5,
-   "weight": 0,
+   "weight": 67.9,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-t1",
@@ -2235,14 +2235,14 @@
    "l": 68,
    "w": 60,
    "h": 79,
-   "weight": 0,
+   "weight": 63,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-tetra1",
@@ -2254,14 +2254,14 @@
    "l": 75,
    "w": 39,
    "h": 24,
-   "weight": 0,
+   "weight": 26.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-superspikie",
@@ -2273,14 +2273,14 @@
    "l": 50,
    "w": 47,
    "h": 79,
-   "weight": 0,
+   "weight": 45.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-single-top-loader-case-viva-cmy",
@@ -2292,14 +2292,14 @@
    "l": 49,
    "w": 43,
    "h": 79,
-   "weight": 0,
+   "weight": 43.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-300-600-dl4",
@@ -2311,14 +2311,14 @@
    "l": 114,
    "w": 59.5,
    "h": 74.5,
-   "weight": 0,
+   "weight": 97.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-bmfl",
@@ -2330,14 +2330,14 @@
    "l": 145,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 147.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-cycfx-4",
@@ -2349,14 +2349,14 @@
    "l": 120,
    "w": 33.5,
    "h": 39,
-   "weight": 0,
+   "weight": 40,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-cycfx-8",
@@ -2368,14 +2368,14 @@
    "l": 120,
    "w": 59.5,
    "h": 50.5,
-   "weight": 0,
+   "weight": 67.6,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-esprite",
@@ -2387,14 +2387,14 @@
    "l": 133,
    "w": 60,
    "h": 79,
-   "weight": 0,
+   "weight": 120.1,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-ipointe",
@@ -2406,14 +2406,14 @@
    "l": 120,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 136.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-patt-2013",
@@ -2425,14 +2425,14 @@
    "l": 120,
    "w": 60,
    "h": 105,
-   "weight": 0,
+   "weight": 83.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-picklepatt",
@@ -2444,14 +2444,14 @@
    "l": 61,
    "w": 60,
    "h": 89.5,
-   "weight": 0,
+   "weight": 48.9,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-pixelpatt",
@@ -2463,14 +2463,14 @@
    "l": 120,
    "w": 60,
    "h": 129.5,
-   "weight": 0,
+   "weight": 110.7,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-pointe",
@@ -2482,14 +2482,14 @@
    "l": 60,
    "w": 56.5,
    "h": 80,
-   "weight": 0,
+   "weight": 63.6,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-superspikie",
@@ -2501,14 +2501,14 @@
    "l": 62,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 76.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-t1",
@@ -2520,14 +2520,14 @@
    "l": 135,
    "w": 60,
    "h": 79,
-   "weight": 0,
+   "weight": 113.1,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-dual-top-loader-case-viva-cmy",
@@ -2539,14 +2539,14 @@
    "l": 61,
    "w": 60,
    "h": 91,
-   "weight": 0,
+   "weight": 76.7,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-ibar-cycbar-15-12",
@@ -2558,14 +2558,14 @@
    "l": 120,
    "w": 60,
    "h": 52,
-   "weight": 0,
+   "weight": 88.1,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-cycfx-4",
@@ -2577,14 +2577,14 @@
    "l": 120,
    "w": 59.5,
    "h": 50.5,
-   "weight": 0,
+   "weight": 70,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-ledwash-800x",
@@ -2596,14 +2596,14 @@
    "l": 111,
    "w": 59,
    "h": 67,
-   "weight": 0,
+   "weight": 90.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-minipointe",
@@ -2615,14 +2615,14 @@
    "l": 90.5,
    "w": 59,
    "h": 71,
-   "weight": 0,
+   "weight": 89.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-picklepatt",
@@ -2634,14 +2634,14 @@
    "l": 120,
    "w": 60,
    "h": 89.5,
-   "weight": 0,
+   "weight": 82.7,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-pointe",
@@ -2653,14 +2653,14 @@
    "l": 96,
    "w": 60,
    "h": 80.5,
-   "weight": 0,
+   "weight": 108.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-strobe-colorstrobe",
@@ -2672,14 +2672,14 @@
    "l": 120,
    "w": 60,
    "h": 67.5,
-   "weight": 0,
+   "weight": 118.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-superspikie",
@@ -2691,14 +2691,14 @@
    "l": 120,
    "w": 60,
    "h": 88,
-   "weight": 0,
+   "weight": 136.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-quad-top-loader-case-viva-cmy",
@@ -2710,14 +2710,14 @@
    "l": 106,
    "w": 60,
    "h": 91,
-   "weight": 0,
+   "weight": 132.7,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-six-pack-top-loader-case-iparfect-150",
@@ -2729,14 +2729,14 @@
    "l": 114,
    "w": 60,
    "h": 83,
-   "weight": 0,
+   "weight": 100,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-six-pack-top-loader-case-parfect",
@@ -2748,14 +2748,14 @@
    "l": 97,
    "w": 60,
    "h": 79.5,
-   "weight": 0,
+   "weight": 74.7,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-six-pack-top-loader-case-parfect-150",
@@ -2767,14 +2767,14 @@
    "l": 110,
    "w": 60,
    "h": 86,
-   "weight": 0,
+   "weight": 86,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-eight-pack-top-loader-case-iparfect-150",
@@ -2786,14 +2786,14 @@
    "l": 142,
    "w": 60,
    "h": 83,
-   "weight": 0,
+   "weight": 125.2,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-eight-pack-top-loader-case-parfect",
@@ -2805,14 +2805,14 @@
    "l": 120,
    "w": 60,
    "h": 79.5,
-   "weight": 0,
+   "weight": 92,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-robe-eight-pack-top-loader-case-parfect-150",
@@ -2824,14 +2824,14 @@
    "l": 138,
    "w": 60,
    "h": 86,
-   "weight": 0,
+   "weight": 106.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht geschätzt"
   },
   {
    "id": "preset-elation-dtw-blinder-700ip-4-pack-road-case-loaded-4x-dtw-blinder-700ip",
@@ -3033,14 +3033,14 @@
    "l": 102.6,
    "w": 86.7,
    "h": 68.3,
-   "weight": 0,
+   "weight": 127.4,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht berechnet"
   },
   {
    "id": "preset-chauvet-maverick-mk2-wash-and-mk-pyxis-4-road-case",
@@ -3052,14 +3052,14 @@
    "l": 87,
    "w": 84.8,
    "h": 72.2,
-   "weight": 0,
+   "weight": 117.3,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht berechnet"
   },
   {
    "id": "preset-chauvet-rogue-r1x-spot-2-road-case",
@@ -3071,14 +3071,14 @@
    "l": 82.1,
    "w": 81.6,
    "h": 41.8,
-   "weight": 0,
+   "weight": 72.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht berechnet"
   },
   {
    "id": "preset-chauvet-maverick-mk2-spot-profile-and-mk1-spot-hybrid-2-road-case",
@@ -3090,14 +3090,14 @@
    "l": 95.6,
    "w": 93.7,
    "h": 61.9,
-   "weight": 0,
+   "weight": 122.8,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht berechnet"
   },
   {
    "id": "preset-chauvet-rogue-r1-wash-6-road-case",
@@ -3109,14 +3109,14 @@
    "l": 97.6,
    "w": 72.1,
    "h": 64.6,
-   "weight": 0,
+   "weight": 88.5,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht berechnet"
   },
   {
    "id": "preset-chauvet-rogue-r1-hybrid-2-road-case",
@@ -3147,14 +3147,14 @@
    "l": 120.3,
    "w": 98.4,
    "h": 56,
-   "weight": 0,
+   "weight": 125.5,
    "tippable": true,
    "stackable": true,
    "maxTopLoad": null,
    "stock": null,
    "wheelH": 13,
    "dimsInclWheels": true,
-   "note": "Gewicht unbekannt"
+   "note": "Gewicht berechnet"
   },
   {
    "id": "preset-digico-sd7b-flightcase",
