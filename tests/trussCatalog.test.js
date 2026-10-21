@@ -58,3 +58,35 @@ test('Katalog: Schätzung hat ein existierendes Vergleichsprofil oder kg 0', () 
 test('profileById: unbekannte ID liefert undefined', () => {
   assert.equal(profileById('gibt-es-nicht'), undefined);
 });
+
+test('Prolyte: 31 Profile, davon 10 von Prolyte', () => {
+  assert.equal(TRUSS_CATALOG.profiles.length, 31);
+  assert.equal(TRUSS_CATALOG.profiles.filter(p => p.hersteller === 'Prolyte').length, 10);
+});
+test('Prolyte: alle Längen mit Herstellergewicht, ohne Vergleich', () => {
+  for (const p of TRUSS_CATALOG.profiles.filter(q => q.hersteller === 'Prolyte')) for (const l of p.lengths) {
+    assert.equal(l.art, 'hersteller', `${p.id} ${l.cm}`);
+    assert.ok(!('vergleich' in l), `${p.id} ${l.cm}`);
+  }
+});
+test('Prolyte: H40L 300 cm ist 8,7 kg laut Hersteller', () => {
+  assert.deepEqual(pieceKg(profileById('prolyte-h40l'), 300), { kg: 8.7, art: 'hersteller' });
+});
+test('Prolyte: H40D hat 13 Längen, 25 cm 2,35 kg, 500 cm 24,4 kg', () => {
+  const p = profileById('prolyte-h40d');
+  assert.equal(p.lengths.length, 13);
+  assert.equal(p.lengths.find(l => l.cm === 25).kg, 2.35);
+  assert.equal(p.lengths.find(l => l.cm === 500).kg, 24.4);
+});
+test('Prolyte: S36V ohne 160 cm, 300 cm 31,6 kg, 160 cm berechnet', () => {
+  const p = profileById('prolyte-s36v');
+  assert.ok(p);
+  assert.equal(p.punkte, 4);
+  assert.equal(p.width, 36);
+  assert.ok(!p.lengths.some(l => l.cm === 160));
+  assert.equal(p.lengths.find(l => l.cm === 300).kg, 31.6);
+  assert.equal(pieceKg(p, 160).art, 'berechnet');
+});
+test('Prolyte: H30V 100 cm ist 7,0 kg', () => {
+  assert.equal(profileById('prolyte-h30v').lengths.find(l => l.cm === 100).kg, 7.0);
+});
