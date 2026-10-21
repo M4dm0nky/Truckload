@@ -361,7 +361,7 @@ Stückzahl und Wagenbreite, gleiche Firma, weder `legacy` noch `onlyInPlan`. Ohn
 es nie einen Treffer, weil `onlyInPlan`-Typen global sind und sich zwei Loads sonst einen Typ
 teilen würden.
 
-### Traversen-Katalog (seit V 0.17.4)
+### Traversen-Katalog (seit V 0.18.0)
 
 `data/traversen.json` (Format `truckload-truss-catalog`, Version 1) führt Profile je Hersteller mit
 den lieferbaren Längen und dem Stückgewicht: `{ id, hersteller, name, punkte (2|3|4), width, lengths:

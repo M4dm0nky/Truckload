@@ -2,6 +2,31 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.18.0 – 2026-10-21
+
+**Traversen-Katalog und Lampengewichte.**
+
+- **Traverse per Namen wählen:** Im Dialog „Traverse hinzufügen“ sucht ein neues Feld Profile („FD34“).
+  Zu jedem Treffer (Name, Hersteller, 2-, 3- oder 4-Punkt, Breite) zeigt der Dialog die lieferbaren
+  Längen als Tasten mit Stückgewicht; ein Klick setzt die Länge. Das Gewicht des Wagens kommt aus den
+  Daten statt aus der Pauschale von 6 bzw. 8 kg/m.
+- **Herkunft des Gewichts:** Unter den Tasten steht, woher die Zahl stammt: Herstellerangabe, aus dem
+  Metergewicht berechnet (z. B. alle Eurotruss-Stücke und jede Länge außerhalb des Katalogs) oder
+  geschätzt. Prolyte-Gewichte sind geschätzt, aus dem vergleichbaren Profil mit gleicher Punktzahl und
+  Breite; Prolyte H40L, H40D und S36V fehlen, weil dafür kein Vergleich besteht.
+- **28 Profile:** 10 von Eurotruss, 11 von Global Truss, 7 von Prolyte (H30 und X30 in 2-, 3- und
+  4-Punkt, H40V). Nur gerade Stücke bis 40 cm Breite, keine Ecken und Kreise. Ohne Auswahl bleiben die
+  Profile 34er und 40er und die Schnelltasten wie bisher.
+- **Lampencases mit Gewicht:** 72 Robe- und 6 Chauvet-Cases aus 0.17.3 tragen jetzt ein Gewicht: Case
+  plus Lampenzahl mal Netto-Gewicht der Lampe laut Datenblatt (bei mehreren Varianten die schwerste).
+  Das Robe-Case ist geschätzt (13,2 kg je m² Außenfläche, „Gewicht geschätzt“), bei Chauvet ist das
+  Leergewicht bekannt („Gewicht berechnet“). Unbekannt bleiben nur Chauvet Rogue R1 Hybrid und CP Rack
+  (0 kg, „Gewicht unbekannt“).
+- **Alte Daten laden weiter:** Wagen ohne neue Angabe bleiben unverändert. Die Formatversion der
+  Sicherung bleibt 1.
+- **Für NYX:** neue mitgelieferte Datei `data/traversen.json` und die optionale Eigenschaft
+  `truss.profileId` am Traversenwagen; kein neuer Store (`docs/nyx-traversen.md`).
+
 ## V 0.17.3 – 2026-10-20
 
 **Hersteller-Vorlagen für Licht, Pulte und Racks** (144 neue Vorlagen im Standardkatalog).
