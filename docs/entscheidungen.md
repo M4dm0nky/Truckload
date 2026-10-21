@@ -56,3 +56,17 @@ Fehlerstatus. (4) Testlücken: Rollback von `projectRuleSets`/`ruleSets` beim ge
 abgelehnt, bisher nur „ist eine Zahl“), `null`-Einträge in `mitgefuehrt.cases/trucks`.
 Eigene Entscheidung: Eine Datei mit künftiger Kopie-Version wird abgelehnt statt still gelesen; ändert sich das
 Format, muss `MITGEFUEHRT_VERSION` zusammen mit einer Lese-Migration erhöht werden.
+
+## #38 Import: null in Datensätzen, Grenzen der Maße-Nachfrage
+Behoben: `cleanCases` (`js/store/repo.js`) entfernt beim Laden `null` bei Feldern, die fehlen dürfen, aber nicht
+`null` sein dürfen (`content`, `tippable`, `stackable`, `wheels`, `dimsInclWheels`, `company`, `legacy`,
+`onlyInPlan`, und in `truss` `wagonW`, `profileId`, `standing`); es gilt der Vorgabewert. Felder, die `null`
+ausdrücklich erlauben (`maxTopLoad`, `stock`, `kind`, `layers`, `wheelH`), bleiben unberührt. Maße und Gewicht
+werden nie angefasst. Gelesen wurde `checkCase` (`js/store/io.js`). Der bereinigte Stand wird nicht
+zurückgeschrieben; er entsteht bei jedem Laden neu und landet mit dem nächsten Speichern des Cases in der
+Datenbank. Regressionstest mit einem Datensatz im alten Schema (`tests/repo.test.js`).
+Entschieden (E), Entscheidung des Nutzers zu #10: Die Maße-Nachfrage beim Import gilt nur für Cases der
+Sicherung; Traversenwagen (Maße aus `truss`), Sammlungsdateien und die mitgeführte Kopie im Plan lehnen ein
+Case ohne Maße weiter ab; eine Ergänzung gilt je Case-ID (bei verschiedenen Fehlern derselben ID in Plan-Kopie
+und Top-Level-Liste wird nur der Top-Level-Eintrag nachgefragt). `MAX_DEPTH` (4) gilt nur in der Oberfläche;
+eine tiefere Kette aus fremder Datei lädt. Wiedervorlage, wenn Importe in der Praxis an diesen Grenzen scheitern.

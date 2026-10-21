@@ -78,8 +78,26 @@ export async function sanitizeAndWriteBack(raw, write = db.putMany) {
   return clean;
 }
 
-// Nur Objekte, `updatedAt` bereinigt: ein null-Eintrag aus fremden Daten darf nichts abbrechen.
-const cleanCases = list => sanitizeUpdatedAt((Array.isArray(list) ? list : []).filter(c => c && typeof c === 'object'));
+// Felder, die fehlen dürfen, aber nicht `null` sein (checkCase würde das Case beim nächsten Export
+// ablehnen). `null` bedeutet dort „nicht gesetzt“: das Feld entfällt, es gilt der Vorgabewert. Nicht
+// dabei: Felder, die `null` ausdrücklich erlauben (maxTopLoad, stock, kind, layers, wheelH).
+const OPTIONAL_NOT_NULL = ['content', 'tippable', 'stackable', 'wheels', 'dimsInclWheels', 'company', 'legacy', 'onlyInPlan'];
+const OPTIONAL_NOT_NULL_TRUSS = ['wagonW', 'profileId', 'standing'];
+export function dropNullOptionals(c) {
+  const hit = k => c[k] === null;
+  const trussHit = c.truss && typeof c.truss === 'object' && OPTIONAL_NOT_NULL_TRUSS.some(k => c.truss[k] === null);
+  if (!OPTIONAL_NOT_NULL.some(hit) && !trussHit) return c;
+  const out = { ...c };
+  for (const k of OPTIONAL_NOT_NULL) if (out[k] === null) delete out[k];
+  if (trussHit) {
+    out.truss = { ...c.truss };
+    for (const k of OPTIONAL_NOT_NULL_TRUSS) if (out.truss[k] === null) delete out.truss[k];
+  }
+  return out;
+}
+
+// Nur Objekte, `updatedAt` und null-Felder bereinigt: ein null-Eintrag aus fremden Daten darf nichts abbrechen.
+const cleanCases = list => sanitizeUpdatedAt((Array.isArray(list) ? list : []).filter(c => c && typeof c === 'object').map(dropNullOptionals));
 
 export async function loadAll() {
   await db.persist();
