@@ -1,4 +1,4 @@
-import { cornerBoxes } from './geometry.js';
+import { cornerBoxes, boxOf } from './geometry.js';
 import { pieceKg } from './trussCatalog.js';
 
 export const DOLLY_WHEEL_H = 12; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
@@ -116,7 +116,7 @@ const STAND_DOLLY_INSET = 2;         // Einzug des Dollys gegenüber der Travers
 // Rohre sichtbar tragen. `dollies` bleibt das volle Wagenvolumen (Bezugsfläche/Beschriftung).
 // `box` ist die platzierte Box (Truck-Koordinaten); `p.rot` bestimmt, ob die Traversenlänge
 // entlang x oder y verläuft.
-export function trussShape(c, p, box) {
+export function trussShape(c, p, box = boxOf(c, p)) {
   if (c.truss.standing) return standingTrussShape(c.truss, p, box);
   const { width, count } = c.truss;
   const rot90 = ((p.rot ?? 0) % 180) === 90;

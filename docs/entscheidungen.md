@@ -96,3 +96,17 @@ Datei weiter ab.
 Entschieden (E): Die Schreib-Warteschlange wartet auf offene Meldungen (`showAlert`) in einem Vorgang. Die
 Reihenfolge der Schreibvorgänge ist wichtiger als ein schnelles Fortsetzen; eine Meldung innerhalb eines
 Vorgangs ist selten. Wiedervorlage, wenn Nutzer ein „hängendes“ Speichern hinter einer offenen Meldung melden.
+
+## #18 Technische Schulden der Modellschicht
+Behoben: (1) `caseShape(c, p, box = boxOf(c, p))` und `trussShape(c, p, box = boxOf(c, p))`: die Zusage steht
+jetzt in der Signatur; Aufrufer mit eigener Box bleiben unverändert und unverlangsamt. (2) `orderForStacking(group,
+truck)` aus `buildStacks` (`js/model/packer.js`) herausgezogen (Orientierung wählen, Boden-/Nicht-Boden-Stücke
+trennen und sortieren), ohne Verhaltensänderung: `tests/packer-golden.test.js` und `packer-property.test.js`
+bestehen unverändert. (3) Struktursperre für `toPiece` (`tests/modell-schulden.test.js`): jedes Feld aus
+`PIECE_FIELDS` muss „Alles neu packen“ platziert wie in der Ablage überleben; ein neues Stückfeld ohne
+Nachziehen in `pickPieceFields` lässt den Test fehlschlagen (er verlangt dort auch einen Beispielwert).
+Entschieden (E): Traversen-Maße `l/w/h` bleiben gespeichert und zusätzlich abgeleitet (`normalizeCase` beim
+Import, `normalizeOwnCases` beim Laden teilen dieselbe Funktion); ein Umbau (nur `trussDims` liefern) wäre ein
+Datenmodell-Eingriff mit Migration und ist nicht Teil dieses Auftrags. `validatePlan` läuft weiter komplett
+bei jeder Planänderung (Kollisionsprüfung O(n²)); ein Raster ohne realen Bedarf wird nicht gebaut.
+Wiedervorlage, wenn Pläne dreistellige Platzierungszahlen erreichen und die Bedienung spürbar stockt.

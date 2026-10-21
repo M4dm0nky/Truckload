@@ -135,11 +135,27 @@ export function orderSorts(itemList, rules) {
 // auffüllen (Nutzerregel „Letzter Stapel darf aufgefüllt werden“) – mit denselben Grenzen wie
 // immer (gleiche Grundfläche, Lagen je Stück, höchstens 4 Lagen, nichts Schweres auf Leichtes,
 // maxTopLoad). Jeder Stapel trägt `sort` = Index der Sorte, die ihn begonnen hat.
+// Orientierung und Reihenfolge der Stücke EINER Sorte (`group`): wählt je Stück die Lage
+// (chooseOrientation), trennt die Stücke ohne passende Lage ab (`unplaced`) und sortiert den Rest in
+// die Stücke, die auf den Boden dürfen (`withFloor`, nach höchster erlaubter Lage, Gewicht, Grundfläche) und die,
+// die nur oben liegen dürfen (`withoutFloor`, nach niedrigster erlaubter Lage, Gewicht, Grundfläche).
+// Herausgelöst aus buildStacks ohne Verhaltensänderung (tests/packer-golden.test.js hält das fest).
+export function orderForStacking(group, truck) {
+  const maxLayer = (it, c) => Math.max(...pieceLayers(it, c));
+  const minLayer = (it, c) => Math.min(...pieceLayers(it, c));
+  const entries = group.map(it => ({ it, c: it.c, o: chooseOrientation(it.c, truck, it) }));
+  const unplaced = entries.filter(e => !e.o).map(e => e.it);
+  const ready = entries.filter(e => e.o);
+  const withFloor = ready.filter(e => pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
+    maxLayer(a.it, a.c) - maxLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
+  const withoutFloor = ready.filter(e => !pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
+    minLayer(a.it, a.c) - minLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
+  return { withFloor, withoutFloor, unplaced };
+}
+
 export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
   rules ??= legacyRules('volume');
   const stacks = [], unplaced = [];
-  const maxLayer = (it, c) => Math.max(...pieceLayers(it, c));
-  const minLayer = (it, c) => Math.min(...pieceLayers(it, c));
   const fits = (s, it, c, o) => !s.capped && s.key === `${o.d.dx}x${o.d.dy}` && s.items.length < 4
     && pieceLayers(it, c).includes(s.items.length + 1) && canAddToStack(s, c, o.d.dz, truck);
   // `weight` ist das Gesamtgewicht des Stapels (für canAddToStack/maxTopLoad), `ownWeight` nur das
@@ -169,13 +185,9 @@ export function buildStacks(itemList, truck, { rules, mixTop = false } = {}) {
   let prevLast = null; // letzter Stapel, in dem die vorige Sorte zuletzt etwas abgelegt hat
 
   orderSorts(itemList, rules).forEach((group, sort) => {
-    const entries = group.map(it => ({ it, c: it.c, o: chooseOrientation(it.c, truck, it) }));
-    for (const e of entries) if (!e.o) unplaced.push(e.it);
-    const ready = entries.filter(e => e.o);
-    const withFloor = ready.filter(e => pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
-      maxLayer(a.it, a.c) - maxLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
-    const withoutFloor = ready.filter(e => !pieceLayers(e.it, e.c).includes(1)).sort((a, b) =>
-      minLayer(a.it, a.c) - minLayer(b.it, b.c) || b.c.weight - a.c.weight || b.o.d.dx * b.o.d.dy - a.o.d.dx * a.o.d.dy);
+    const ordered = orderForStacking(group, truck);
+    unplaced.push(...ordered.unplaced);
+    const { withFloor, withoutFloor } = ordered;
 
     const own = [];
     let last = null;
