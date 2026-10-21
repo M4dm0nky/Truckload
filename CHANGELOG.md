@@ -2,6 +2,19 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.19.0 – 2026-10-21
+
+**Traversen-Katalog nach den technischen Zeichnungen.**
+
+- **Prolyte H40 (L, D, V):** Breite 39 cm statt 40, nach der technischen Zeichnung im Katalog
+  (387 mm). Die Zeichnungen von H30 (287 mm), X30 (290 mm) und S36V (359 mm) bestätigen die
+  bisherigen Breiten.
+- **Prolyte S36V:** Die Länge 160 cm ist wieder im Katalog, mit dem Gewicht der Herstellerseite
+  (16,54 kg). Der Wert ist leichter als der für 150 cm (18,3 kg); er steht so beim Hersteller.
+- **Robe-Cases:** Die Gewichte bleiben die Rechnung aus Lampe und Case (0.18.0). Eine Gegenüberstellung
+  mit einer anderen Liste lag im Schnitt 13 % höher; beide Zahlen sind keine Herstellerangaben.
+- Keine Änderung am Datenmodell; alte Wagen laden unverändert.
+
 ## V 0.18.5 – 2026-10-21
 
 **Traversen-Katalog: Herstellergewichte statt Schätzung.**
