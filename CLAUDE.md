@@ -138,3 +138,6 @@ Angabe ist schlimmer als eine fehlende — bei Gewichten, Maßen und Quellen gil
 0 oder „unbekannt“ als geraten. Recherchierte Werte gehören mit Quelle dokumentiert
 (siehe `docs/casemasse-gewichte.md`). Eigene Entscheidungen werden als eigene benannt,
 nie als Absprache mit dem Nutzer ausgegeben.
+
+## Gestartete Prozesse IMMER wieder beenden
+Alles, was ich oder Subagenten starten (Hintergrundbefehle, Server, Mitschnitte, Watcher, Builds), beende ich, sobald es seine Aufgabe erfüllt hat. Nach Abbruch oder Timeout und am Sitzungsende prüfe ich auf verwaiste Prozesse und beende sie gezielt. Details: `C:\Dropbox\Incomming\github\CLAUDE.md`, Abschnitt „Gestartete Prozesse IMMER wieder beenden“.
