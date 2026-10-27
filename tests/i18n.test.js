@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import EN from '../js/i18n/en.js';
-import { literals, tCalls, looksGerman } from './i18n-scan.js';
+import { literals, tCalls, looksGerman, shadowsT } from './i18n-scan.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const rel = f => path.relative(ROOT, f).split(path.sep).join('/');
@@ -48,7 +48,7 @@ function usedKeys() {
   for (const f of jsFiles) {
     for (const c of tCalls(read(f))) {
       if (c.key !== null) used.push({ key: fullKey(c), text: c.key, where: `${f}:${c.line}` });
-      else if (c.ident && c.ident in DYNAMIC_KEYS) used.push({ key: DYNAMIC_KEYS[c.ident], text: DYNAMIC_KEYS[c.ident], where: `${f}:${c.line}` });
+      else if (c.ident && Object.hasOwn(DYNAMIC_KEYS, c.ident)) used.push({ key: DYNAMIC_KEYS[c.ident], text: DYNAMIC_KEYS[c.ident], where: `${f}:${c.line}` });
     }
   }
   for (const text of dataTTexts()) used.push({ key: text, text, where: 'index.html' });
@@ -58,7 +58,7 @@ function usedKeys() {
 test('A: jeder t()-Schlüssel hat einen englischen Eintrag mit denselben Platzhaltern', () => {
   const fehler = [];
   for (const u of usedKeys()) {
-    if (!(u.key in EN)) { fehler.push(`${u.where}: kein englischer Eintrag für „${u.key}“`); continue; }
+    if (!Object.hasOwn(EN, u.key)) { fehler.push(`${u.where}: kein englischer Eintrag für „${u.key}“`); continue; }
     // Kontextschlüssel „ctx|text“: Platzhalter nur am Textteil vergleichen
     if (placeholders(u.text) !== placeholders(EN[u.key])) fehler.push(`${u.where}: Platzhalter von „${u.key}“ weichen ab`);
   }
@@ -71,32 +71,54 @@ test('B: kein verwaister Eintrag in en.js', () => {
   for (const f of ['data/standard.json', 'data/meine.json']) {
     for (const c of JSON.parse(read(f)).cases) if (c.note) benutzt.add(c.note);
   }
-  benutzt.add(NOTE_RE.exec(read('js/data/preset-trucks.js'))[2]);
+  const note = NOTE_RE.exec(read('js/data/preset-trucks.js'));
+  assert.ok(note, 'NOTE nicht gefunden: js/data/preset-trucks.js braucht `const NOTE = \'…\';` (Test B liest sie dort)');
+  benutzt.add(note[2]);
   assert.deepEqual(Object.keys(EN).filter(k => !benutzt.has(k)), []);
 });
 
+// Englische Schlüssel samt Textteil von „ctx|text“: ein solches Literal außerhalb von t() ist ein Fund.
+const enTexte = () => new Set(Object.keys(EN).flatMap(k => (k.includes('|') ? [k, k.slice(k.indexOf('|') + 1)] : [k])));
+
 test('C: kein deutscher Text außerhalb von t()', () => {
   const fehler = [];
+  const bekannt = enTexte();
+  // HTML wird erst gescannt, wenn die Seite umgestellt ist (Task 3): bis dahin muss index.html in PENDING stehen.
+  for (const f of ['index.html'].filter(f => !PENDING.includes(f))) fehler.push(`${f}: nicht mehr in PENDING, aber es gibt noch keinen HTML-Scan in Test C`);
   // en.js ist die Übersetzungstabelle: ihre Schlüssel sind absichtlich deutsch
   for (const f of jsFiles.filter(f => !PENDING.includes(f) && f !== 'js/i18n/en.js')) {
     const src = read(f);
     for (const l of literals(src)) {
-      if (!l.inT && looksGerman(l.text) && !ALLOW.some(a => a.file === f && a.text === l.text)) {
-        fehler.push(`${f}:${l.line}: deutsches Literal außerhalb von t(): ${JSON.stringify(l.text)}`);
-      }
+      if (l.inT || ALLOW.some(a => a.file === f && a.text === l.text)) continue;
+      if (looksGerman(l.text)) fehler.push(`${f}:${l.line}: deutsches Literal außerhalb von t(): ${JSON.stringify(l.text)}`);
+      else if (bekannt.has(l.text)) fehler.push(`${f}:${l.line}: Literal entspricht einem en.js-Schlüssel, steht aber außerhalb von t(): ${JSON.stringify(l.text)}`);
     }
     if (f !== 'js/i18n/i18n.js') {
       for (const c of tCalls(src)) {
-        if (c.key === null && !(c.ident && c.ident in DYNAMIC_KEYS)) fehler.push(`${f}:${c.line}: t() mit nicht-literalem Schlüssel`);
+        if (c.key === null && !(c.ident && Object.hasOwn(DYNAMIC_KEYS, c.ident))) fehler.push(`${f}:${c.line}: t() mit nicht-literalem Schlüssel`);
       }
+      for (const h of shadowsT(src)) fehler.push(`${f}:${h.line}: lokale Bindung „t“ verdeckt den Import aus i18n.js, bitte umbenennen`);
     }
   }
   assert.deepEqual(fehler, []);
 });
 
 test('D: looksGerman trifft Deutsch und schweigt auf Englisch', () => {
-  for (const s of ['Alles neu packen', '„X“ ragt über den Laderaum hinaus.', 'Löschen']) assert.equal(looksGerman(s), true, s);
-  for (const s of ['Repack all', 'Load space', 'kg', '#e8b10c', 'standing']) assert.equal(looksGerman(s), false, s);
+  for (const s of ['Alles neu packen', '„X“ ragt über den Laderaum hinaus.', 'Löschen', 'Duplizieren', 'Meine Sammlung',
+    'Ladeplan', 'Bearbeiten', 'Umbenennen', 'Seitenansicht']) assert.equal(looksGerman(s), true, s);
+  for (const s of ['Repack all', 'Load space', 'kg', '#e8b10c', 'standing', 'lautsprecher', 'Duplicate', 'Rename', 'Edit',
+    'Side view', 'Load plan', 'My collection']) assert.equal(looksGerman(s), false, s);
+});
+
+test('D2: shadowsT erkennt lokale Bindungen namens t', () => {
+  for (const s of ['const t = 1;', 'let t;', 'xs.map(t => t.x);', 'xs.map((a, t) => a);', 'function f(a, t) {}', 'const { t } = obj;',
+    'const { a: t } = obj;', 'const [t] = arr;', 'try {} catch (t) {}', 'for (const t of xs) {}']) {
+    assert.equal(shadowsT(s).length > 0, true, s);
+  }
+  for (const s of ['import { t, num } from \'./i18n.js\';', 'const x = t(\'Hallo\');', 'const test = 1;', 'obj.t = 1;', 'xs.map(x => t(\'y\'));',
+    'const { a } = t(\'x\');', 'const o = { t: 1 };', 'f(a, t);']) {
+    assert.equal(shadowsT(s).length, 0, s);
+  }
 });
 
 test('E: PENDING enthält nur existierende Dateien', () => {

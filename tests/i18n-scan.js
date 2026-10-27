@@ -197,11 +197,73 @@ export function tCalls(src) {
   return calls;
 }
 
+import DE_VOKABULAR from './i18n-de-words.js';
+
+// Kurze, sehr häufige Wörter: schlagen an, wo immer sie als ganzes Wort vorkommen.
 const DE_WOERTER = new Set(`und oder nicht kein keine keinen keinem der die das dem den des mit für ist wird noch alle
 neu neue neuer neues gewicht fahrzeug fahrzeuge laden löschen speichern abbrechen schließen hinzufügen
 bearbeiten ansicht höhe breite länge tiefe sind wurde werden zu von auf über unter nach aus bei sich`.split(/\s+/));
 
+// Umlaute/ß, „ “ oder ein Wort der Kurzliste; zusätzlich das Vokabular (tests/i18n-de-words.js),
+// aber nur bei Sätzen oder großgeschriebenen Wörtern – kleingeschriebene Einzelwörter
+// sind meist Bezeichner ('standing', 'lautsprecher', 'mitgefuehrt').
 export function looksGerman(s) {
   if (/[äöüÄÖÜß„“]/.test(s)) return true;
-  return (s.match(/[A-Za-z]+/g) ?? []).some(w => DE_WOERTER.has(w.toLowerCase()));
+  const woerter = s.match(/[A-Za-z]+/g) ?? [];
+  if (woerter.some(w => DE_WOERTER.has(w.toLowerCase()))) return true;
+  if (!/\s/.test(s.trim()) && !/^\p{Lu}/u.test(s)) return false;
+  return woerter.some(w => w.length >= 4 && DE_VOKABULAR.has(w.toLowerCase()));
+}
+
+// Lokale Bindungen namens „t“ (verdecken den Import aus js/i18n/i18n.js): const/let/var t,
+// Parameter von function/Pfeilfunktion/catch, Destrukturierung. Liefert [{ line }].
+export function shadowsT(src) {
+  const { toks } = tokenize(src);
+  const isP = (tk, v) => tk?.type === 'p' && tk.v === v;
+  const open = '([{', close = ')]}';
+  const closeOf = i => {
+    let d = 0;
+    for (let j = i; j < toks.length; j++) {
+      const x = toks[j];
+      if (x.type !== 'p') continue;
+      if (open.includes(x.v)) d++;
+      else if (close.includes(x.v) && --d === 0) return j;
+    }
+    return toks.length - 1;
+  };
+  // t als gebundener Name in einer Parameter-/Destrukturierungsliste (Tiefe 1, auch in { … })
+  const bindsT = (from, to) => {
+    for (let j = from + 1; j < to; j++) {
+      const x = toks[j];
+      if (x.type !== 'id' || x.v !== 't') continue;
+      const p = toks[j - 1], nx = toks[j + 1];
+      if (isP(nx, ':')) continue; // Schlüssel { t: x } bindet x, nicht t
+      if ((isP(p, '(') || isP(p, ',') || isP(p, '{') || isP(p, ':') || isP(p, '[')) &&
+        (isP(nx, ',') || isP(nx, ')') || isP(nx, '}') || isP(nx, ']') || isP(nx, '='))) return toks[j].line;
+    }
+    return 0;
+  };
+  const hits = [];
+  const add = l => { if (l) hits.push({ line: l }); };
+  toks.forEach((tk, i) => {
+    if (tk.type === 'id' && tk.v === 't' && ['const', 'let', 'var'].includes(toks[i - 1]?.v) && toks[i - 1].type === 'id') add(tk.line);
+    if (tk.type === 'id' && ['const', 'let', 'var'].includes(tk.v) && (isP(toks[i + 1], '{') || isP(toks[i + 1], '['))) {
+      add(bindsT(i + 1, closeOf(i + 1)));
+    }
+    if (tk.type === 'id' && (tk.v === 'function' || tk.v === 'catch')) {
+      let j = i + 1;
+      while (toks[j] && !isP(toks[j], '(') && !isP(toks[j], '{') && j < i + 4) j++;
+      if (isP(toks[j], '(')) add(bindsT(j, closeOf(j)));
+    }
+    if (isP(tk, '=') && isP(toks[i + 1], '>')) {
+      const b = toks[i - 1];
+      if (b?.type === 'id' && b.v === 't') add(b.line);
+      else if (isP(b, ')')) {
+        let d = 0, j = i - 1;
+        for (; j >= 0; j--) { if (isP(toks[j], ')')) d++; else if (isP(toks[j], '(') && --d === 0) break; }
+        if (j >= 0) add(bindsT(j, i - 1));
+      }
+    }
+  });
+  return hits;
 }
