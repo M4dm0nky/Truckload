@@ -9,8 +9,9 @@ import { NAME_MAX } from '../model/limits.js';
 import { guarded } from './guarded.js';
 import { piecesOf, activeLkwOf, wizardTruckId } from './core.js';
 import { isMultiLkw } from '../model/lkw.js';
+import { t, date } from '../i18n/i18n.js';
 
-export const MULTI_ADDED_NOTICE = 'Das neue Material ist noch keinem LKW zugeordnet. „Alles neu packen“ verteilt es auf die LKW.';
+export const multiAddedNotice = () => t('Das neue Material ist noch keinem LKW zugeordnet. „Alles neu packen“ verteilt es auf die LKW.');
 
 const $ = sel => document.querySelector(sel);
 
@@ -29,8 +30,10 @@ export function switchPlanState(s, plan) {
 
 // Name der Kopie: „(Kopie)“ anhängen, den Originalnamen aber so weit kürzen, dass das Ergebnis in
 // NAME_MAX passt – sonst wäre die eigene Sicherung nicht importierbar.
-const COPY_SUFFIX = ' (Kopie)';
-export const copyName = name => `${name.slice(0, NAME_MAX - COPY_SUFFIX.length)}${COPY_SUFFIX}`;
+export const copyName = name => {
+  const suffix = t(' (Kopie)');
+  return `${name.slice(0, NAME_MAX - suffix.length)}${suffix}`;
+};
 
 // Nach dem Löschen des aktiven Plans: ein übriger Plan wird aktiv, der letzte führt zurück zum
 // Startbildschirm (plan: null) statt automatisch einen leeren Plan anzulegen.
@@ -46,7 +49,7 @@ export function deletePlanState(s) {
 // bestehen und sein ausstehender Stand ginge verloren).
 export async function removePlanPersisted(planId, { autosave, repo, showAlert }) {
   await autosave.flush();
-  const r = await guarded('Löschen fehlgeschlagen', () => repo.deletePlan(planId), { showAlert });
+  const r = await guarded(t('Löschen fehlgeschlagen'), () => repo.deletePlan(planId), { showAlert });
   if (r.ok) autosave.forget(planId);
   return r;
 }
@@ -82,7 +85,7 @@ export function wirePlans(deps) {
       getCollections: () => store.get().collections,
       trucks: s.trucks,
       defaultTruckId: s.plan ? wizardTruckId(s.trucks, ctx().truck.id) : DEFAULT_TRUCK_ID,
-      defaultName: `Load ${new Date().toLocaleDateString('de-DE')}`,
+      defaultName: t('Load {date}', { date: date(new Date()) }),
       onNewCase: newCaseForWizard,
       onOpenMaterial: openMaterialFromWizard,
       trussDlg: $('#dlg-truss'),
@@ -110,7 +113,7 @@ export function wirePlans(deps) {
       return next;
     });
     // Mehr-LKW: neues Material ist immer unzugeordnet (auch ohne Autopack) – das sagt der Hinweis.
-    if (multi && res.items.length) await showAlert(MULTI_ADDED_NOTICE);
+    if (multi && res.items.length) await showAlert(multiAddedNotice());
     else if (res.autoPack) await warnIfUnplaced();
   }
 
@@ -120,7 +123,7 @@ export function wirePlans(deps) {
   };
   $('#plan-new').onclick = () => runLoadWizard('new');
   $('#plan-rename').onclick = async () => {
-    const name = await showPrompt('Neuer Name:', store.get().plan.name, { maxlength: NAME_MAX });
+    const name = await showPrompt(t('Neuer Name:'), store.get().plan.name, { maxlength: NAME_MAX });
     if (name?.trim()) edit(p => stamp({ ...p, name: name.trim() }));
   };
   $('#plan-dup').onclick = () => {
@@ -129,7 +132,7 @@ export function wirePlans(deps) {
   };
   $('#plan-del').onclick = async () => {
     const s = store.get();
-    if (!await showConfirm(`Ladeplan „${s.plan.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return;
+    if (!await showConfirm(t('Ladeplan „{name}“ löschen?', { name: s.plan.name }), { okLabel: t('Löschen'), danger: true })) return;
     if (!(await removePlanPersisted(s.plan.id, { autosave, repo, showAlert })).ok) return;
     // Nur plans/plan aus dem Schnappschuss vor dem await übernehmen; der übrige aktuelle Zustand bleibt.
     const after = deletePlanState(s);

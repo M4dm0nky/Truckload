@@ -18,8 +18,7 @@ const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })
 
 // Noch nicht umgestellte Dateien. Spätere Tasks streichen ihre Dateien hier.
 export const PENDING = [
-  'js/app.js',
-  ...['js/app', 'js/ui', 'js/data'].flatMap(walk),
+  ...['js/ui', 'js/data'].flatMap(walk).filter(f => f !== 'js/ui/zoom2d.js'),
 ];
 
 // Ausnahmen für Test C: deutsche Literale, die bewusst deutsch bleiben (Daten, keine Anzeige).
@@ -29,6 +28,9 @@ export const ALLOW = [
     'Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', 'Neu laden',
   ].map(text => ({ file: 'index.html', text, why: 'Inline-Notfallmeldung, englisch daneben im selben Objekt (tlTexte); Test H prüft das' })),
   { file: 'js/model/collections.js', text: 'Meine Sammlung', why: 'gespeicherter Wert: Name der festen Sammlung (MEINE_NAME), englisch nur zum Abgleich (MEINE_NAME_EN)' },
+  ...[['js/app/chrome.js', 'Unbehandelte Ablehnung'], ['js/app/chrome.js', 'Offline-Modus nicht verfügbar:'],
+    ['js/app/planView.js', '3D-Ansicht: Laden fehlgeschlagen'], ['js/app/planView.js', '3D-Ansicht: Aktualisierung fehlgeschlagen']]
+    .map(([file, text]) => ({ file, text, why: 'Konsole (Entwicklerdiagnose, nicht für Nutzer)' })),
   { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', 'Migration nach „Sammlungen“ nicht gespeichert:']
     .map(text => ({ file: 'js/store/repo.js', text, why: 'Konsole' })),

@@ -6,8 +6,10 @@ import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { bestandFuer, mitfuehren, referenzen } from '../model/mitgefuehrt.js';
 import { stamp } from '../model/stamp.js';
 import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView, NO_LKW, piecesOf } from '../model/lkw.js';
-import { packAllLkws, unassignedLines, stueck } from '../model/lkw-distribute.js';
+import { packAllLkws, unassignedLines } from '../model/lkw-distribute.js';
 import { packAll, placementToUnplaced } from '../model/actions.js';
+import { rulesFor, describeRule, mixTopFor } from '../model/packRules.js';
+import { t } from '../i18n/i18n.js';
 
 export const caseByIdOf = memoLast(cases => new Map(cases.map(c => [c.id, c])));
 
@@ -50,12 +52,12 @@ export const brauchtAuswahl = act => !OHNE_AUSWAHL.has(act);
 
 // Vorauswahl-Fahrzeug für den Lade-Assistenten: nur eines aus der Bibliothek, sonst das Standardfahrzeug
 // (der Assistent zeigt keine Kopien aus der Projektdatei, ein unbekannter Wert ergäbe eine leere Auswahl).
-export const wizardTruckId = (libraryTrucks, id) => (libraryTrucks.some(t => t.id === id) ? id : DEFAULT_TRUCK_ID);
+export const wizardTruckId = (libraryTrucks, id) => (libraryTrucks.some(tk => tk.id === id) ? id : DEFAULT_TRUCK_ID);
 
 export const bestandOf = s => bestandMemo(s.cases, s.trucks, s.plan ?? null);
 
 const truckFinder = trucks => id =>
-  trucks.find(t => t.id === id) ?? trucks.find(t => t.id === DEFAULT_TRUCK_ID);
+  trucks.find(tk => tk.id === id) ?? trucks.find(tk => tk.id === DEFAULT_TRUCK_ID);
 
 // Kontext für Aktionen: Case-Index, Fahrzeug des Plans bzw. des gewählten LKW (Standardfahrzeug als
 // Rückfall), ID-Quelle. Setzt einen aktiven Plan voraus. Ein-LKW-Plan: genau {caseById, truck, newId}
@@ -70,7 +72,7 @@ export function ctxOf(s, newId) {
   const lkw = lkwsOf(s.plan).find(l => l.id === id);
   return {
     caseById, truck: find(lkw ? lkw.truckId : s.plan.truckId), newId, ausProjekt,
-    truckById: new Map(b.trucks.map(t => [t.id, t])),
+    truckById: new Map(b.trucks.map(tk => [tk.id, tk])),
   };
 }
 // Kontext für planweite Aktionen (alle LKW): Rückfallfahrzeug ist das des Plans (= erster LKW).
@@ -134,8 +136,16 @@ export function distributionNotices(plan, caseById) {
   const lines = unassignedLines(plan, caseById);
   const known = knownLkwIds(plan);
   const left = plan.unplaced.filter(u => known.has(u.lkw)).length;
-  if (left) lines.push(`${stueck(left)} ${left === 1 ? 'passt' : 'passen'} nicht in den LKW und ${left === 1 ? 'bleibt' : 'bleiben'} in „Noch nicht geladen“`);
+  if (left) lines.push(left === 1 ? t('1 Stück passt nicht in den LKW und bleibt in „Noch nicht geladen“') : t('{n} Stücke passen nicht in den LKW und bleiben in „Noch nicht geladen“', { n: left }));
   return lines;
+}
+
+// Tooltip des Knopfs „Pack-Regeln …“: die Rangliste des Plans in Worten (ohne Regeln: nach Name).
+export function packRulesTitle(plan, caseById) {
+  const order = rulesFor(plan).map(r => describeRule(r, caseById)).join(' · ') || t('nach Name');
+  return mixTopFor(plan)
+    ? t('Reihenfolge beim automatischen Packen: {order} · Deckschicht an', { order })
+    : t('Reihenfolge beim automatischen Packen: {order}', { order });
 }
 
 // Der Store liefert bei jeder Änderung neue Objekte; Aufrufer verändern das Ergebnis nicht.

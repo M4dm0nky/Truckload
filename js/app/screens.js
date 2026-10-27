@@ -2,6 +2,7 @@
 // Kein Import von js/app.js (sonst Zyklus); die Verdrahtung (Klick-Handler) kommt als Parameter.
 import { esc } from '../ui/dom.js';
 import { APP_VERSION } from '../version.js';
+import { t } from '../i18n/i18n.js';
 
 // Reine Wahl aus dem Store-Zustand: Material hat Vorrang, ohne Plan ist Start.
 export const screenOf = s => (s.materialOpen ? 'material' : s.plan ? 'plan' : 'start');
@@ -27,14 +28,14 @@ export function renderStartScreen(el, s, handlers) {
     ? `<ul class="start-plans">${plans.map(p => `
         <li><button class="start-plan-item" type="button" data-plan-id="${esc(p.id)}">${esc(p.name)}</button></li>
       `).join('')}</ul>`
-    : `<p class="start-hint">Noch keine gespeicherten Ladepläne.</p>`;
+    : `<p class="start-hint">${t('Noch keine gespeicherten Ladepläne.')}</p>`;
   el.querySelector('#start-actions').innerHTML = `
     <div class="start-main">
-      <button id="start-new" class="primary" type="button">Neuen Load erstellen</button>
-      <button id="start-material" class="primary" type="button" title="Materialverwaltung: Sammlungen, Cases, Lautsprecher, Traversen">Material</button>
+      <button id="start-new" class="primary" type="button">${t('Neuen Load erstellen')}</button>
+      <button id="start-material" class="primary" type="button" title="${t('Materialverwaltung: Sammlungen, Cases, Lautsprecher, Traversen')}">${t('Material')}</button>
     </div>
     ${listHtml}
-    <button id="start-import" type="button" title="JSON-Sicherung einlesen">Sicherung importieren</button>
+    <button id="start-import" type="button" title="${t('JSON-Sicherung einlesen')}">${t('Sicherung importieren')}</button>
     <p class="start-version">V ${esc(APP_VERSION)}</p>
   `;
   el.querySelector('#start-material').onclick = handlers.onMaterial;

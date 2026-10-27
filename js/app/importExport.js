@@ -4,6 +4,7 @@ import { allPlansOf, planZumSpeichern } from './core.js';
 import { downloadJSON } from './download.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from '../store/io.js';
 import { CASE_LIMITS } from '../model/limits.js';
+import { t } from '../i18n/i18n.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -25,7 +26,7 @@ async function askMissingDims(text, bundle, showPrompt) {
   for (;;) {
     const next = current.incomplete.find(x => !asked.has(x.id));
     if (!next) return { bundle: current, dims };
-    let msg = `Case „${next.name}“ hat keine gültigen Maße. Länge × Breite × Höhe in cm eintragen (z. B. 120 × 60 × 80) oder Abbrechen, um es auszulassen.`;
+    let msg = t('Case „{name}“ hat keine gültigen Maße. Länge × Breite × Höhe in cm eintragen (z. B. 120 × 60 × 80) oder Abbrechen, um es auszulassen.', { name: next.name });
     for (;;) {
       const answer = await showPrompt(msg, '');
       if (answer === null) { asked.add(next.id); break; }
@@ -34,7 +35,7 @@ async function askMissingDims(text, bundle, showPrompt) {
         const trial = parseBundle(text, { dims: { ...dims, [next.id]: d } });
         if (!trial.incomplete.some(x => x.id === next.id)) { dims[next.id] = d; current = trial; asked.add(next.id); break; }
       }
-      msg = `Das waren keine gültigen Maße für „${next.name}“. Länge × Breite × Höhe in cm, jeweils größer als 0 und höchstens ${CASE_LIMITS.l} (z. B. 120 × 60 × 80), oder Abbrechen zum Auslassen.`;
+      msg = t('Das waren keine gültigen Maße für „{name}“. Länge × Breite × Höhe in cm, jeweils größer als 0 und höchstens {max} (z. B. 120 × 60 × 80), oder Abbrechen zum Auslassen.', { name: next.name, max: CASE_LIMITS.l });
     }
   }
 }
@@ -42,16 +43,18 @@ async function askMissingDims(text, bundle, showPrompt) {
 // Warntexte für Verweise, die auch NACH dem Zusammenführen ins Leere zeigen. parseBundle kennt nur
 // die Datei (plus Vorlagen), nicht die eigenen lokalen Cases/Fahrzeuge; deshalb filtert diese
 // Funktion `unknownRefs` gegen den lokalen Zustand nach dem Mischen (`{ cases, trucks }`).
-const LIMIT_FIELDS = { weight: ['Gewicht', 'kg'], maxTopLoad: ['Auflast', 'kg'], stock: ['Bestand', 'Stück'] };
+// Je Feld ein ganzer Satz (Feldname und Einheit lassen sich nicht einzeln übersetzen).
+const LIMIT_TEXT = {
+  weight: p => t('Case „{name}“: Gewicht {value} kg liegt über der Grenze von {max} kg – unverändert übernommen.', p),
+  maxTopLoad: p => t('Case „{name}“: Auflast {value} kg liegt über der Grenze von {max} kg – unverändert übernommen.', p),
+  stock: p => t('Case „{name}“: Bestand {value} Stück liegt über der Grenze von {max} Stück – unverändert übernommen.', p),
+};
 // Werte über CASE_LIMITS werden übernommen (nicht abgelehnt), aber genannt.
-export const limitWarnings = overLimit => overLimit.map(({ name, field, value, max }) => {
-  const [label, unit] = LIMIT_FIELDS[field];
-  return `Case „${name}“: ${label} ${value} ${unit} liegt über der Grenze von ${max} ${unit} – unverändert übernommen.`;
-});
+export const limitWarnings = overLimit => overLimit.map(({ name, field, value, max }) => LIMIT_TEXT[field]({ name, value, max }));
 
 // Mehr als `max` Zeilen sprengen den Hinweisdialog; der Rest wird nur gezählt.
 export const capList = (list, max = 10) =>
-  (list.length <= max ? list : [...list.slice(0, max), `… und ${list.length - max} weitere`]);
+  (list.length <= max ? list : [...list.slice(0, max), t('… und {n} weitere', { n: list.length - max })]);
 
 // Nur für Datensätze, die den Abgleich gewonnen haben (merge.winners): hat der lokale, neuere
 // Stand gewonnen, kommt der Datensatz aus der Datei nicht in den Bestand und braucht keine Warnung.
@@ -66,15 +69,15 @@ export function warningsForWinners(bundle, winners, state) {
 
 export function importWarnings(unknownRefs, { cases, trucks }) {
   const caseIds = new Set(cases.map(c => c.id));
-  const truckIds = new Set(trucks.map(t => t.id));
+  const truckIds = new Set(trucks.map(tk => tk.id));
   const warnings = [];
   for (const r of unknownRefs) {
     const kopieC = new Set(r.kopieCases ?? []);
     const missing = r.cases.filter(id => !caseIds.has(id) && !kopieC.has(id)).length;
     if (missing > 0)
-      warnings.push(`Ladeplan „${r.plan}“: ${missing} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.`);
+      warnings.push(t('Ladeplan „{plan}“: {missing} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.', { plan: r.plan, missing }));
     if (r.truck !== null && !truckIds.has(r.truck) && !(r.kopieTrucks ?? []).includes(r.truck))
-      warnings.push(`Ladeplan „${r.plan}“ verweist auf ein unbekanntes Fahrzeug.`);
+      warnings.push(t('Ladeplan „{plan}“ verweist auf ein unbekanntes Fahrzeug.', { plan: r.plan }));
   }
   return warnings;
 }
@@ -106,7 +109,7 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
       if (bundle.incomplete.length > 0) bundle = (await askMissingDims(text, bundle, showPrompt)).bundle;
       skipped = bundle.incomplete;
     } catch (err) {
-      await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
+      await showAlert(t('Import fehlgeschlagen: {detail}', { detail: err?.message ?? t('unbekannter Fehler') }));
       return;
     }
 
@@ -169,22 +172,23 @@ export function wireImportExport({ store, autosave, repo, showAlert, showConfirm
     });
 
     if (importFailed) {
-      const retry = await showConfirm(
-        `Import: Schreiben in die Datenbank fehlgeschlagen (${importErr?.message ?? 'unbekannter Fehler'}). ` +
-        'Der Stand von vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
-      );
+      const retry = await showConfirm(t('Import: Schreiben in die Datenbank fehlgeschlagen ({detail}). Der Stand von vorher ist wiederhergestellt. Sicherung von eben erneut herunterladen?',
+        { detail: importErr?.message ?? t('unbekannter Fehler') }));
       if (retry) downloadJSON(backupName, backupText);
       return;
     }
 
     if (merge.planChanged) store.resetHistory();
     // Reparaturen an Altwerten werden gemeldet, damit der Nutzer sieht, was angepasst wurde.
-    const skippedNote = skipped.map(x => `Case „${x.name}“ ohne gültige Maße – nicht importiert.`);
+    const skippedNote = skipped.map(x => t('Case „{name}“ ohne gültige Maße – nicht importiert.', { name: x.name }));
     const allRepairs = [...bundle.repairs, ...(merge.repairs ?? []), ...skippedNote];
-    const repairNote = allRepairs.length ? `\n\nBeim Import angepasst:\n– ${capList(allRepairs).join('\n– ')}` : '';
+    const repairNote = allRepairs.length ? `\n\n${t('Beim Import angepasst:')}\n– ${capList(allRepairs).join('\n– ')}` : '';
     // Verweise, die nach dem Mischen weder in der Datei noch lokal auflösbar sind.
     const warnings = capList(warningsForWinners(bundle, merge.winners, store.get()));
-    const warnNote = warnings.length ? `\n\nAchtung:\n– ${warnings.join('\n– ')}` : '';
-    await showAlert(`Importiert: ${merge.winners.cases.length} Cases, ${merge.winners.trucks.length} Fahrzeuge, ${merge.winners.plans.length} Ladepläne, ${merge.winners.ruleSets.length} Regelsets, ${(merge.winners.projectRuleSets ?? []).length} Projekt-Regelsets, ${(merge.winners.collections ?? []).length} Sammlungen (neuere lokale Stände behalten).${repairNote}${warnNote}`);
+    const warnNote = warnings.length ? `\n\n${t('Achtung:')}\n– ${warnings.join('\n– ')}` : '';
+    await showAlert(t('Importiert: {cases} Cases, {trucks} Fahrzeuge, {plans} Ladepläne, {ruleSets} Regelsets, {projectRuleSets} Projekt-Regelsets, {collections} Sammlungen (neuere lokale Stände behalten).', {
+      cases: merge.winners.cases.length, trucks: merge.winners.trucks.length, plans: merge.winners.plans.length, ruleSets: merge.winners.ruleSets.length,
+      projectRuleSets: (merge.winners.projectRuleSets ?? []).length, collections: (merge.winners.collections ?? []).length,
+    }) + repairNote + warnNote);
   };
 }

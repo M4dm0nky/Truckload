@@ -12,13 +12,15 @@ import {
 import { MAX_COLLECTIONS } from '../model/limits.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
+import { t } from '../i18n/i18n.js';
 
-const NO_BUILTIN_MOVE = 'Standardvorlagen lassen sich nicht verschieben – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
-const NO_FIXED_COLLECTION = '„Standard“ und „Meine Sammlung“ lassen sich nicht ändern oder löschen.';
-const NO_FIXED_DELETE = '„Standard“ und „Meine Sammlung“ lassen sich nicht löschen.';
-const NO_BUILTIN_DELETE = 'Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
+// Als Funktionen, damit die Sprache beim Anzeigen gilt, nicht beim Laden des Moduls.
+const noBuiltinMove = () => t('Standardvorlagen lassen sich nicht verschieben – „Kopieren“ legt eine eigene Version in einer Sammlung an.');
+const noFixedCollection = () => t('„Standard“ und „Meine Sammlung“ lassen sich nicht ändern oder löschen.');
+const noFixedDelete = () => t('„Standard“ und „Meine Sammlung“ lassen sich nicht löschen.');
+const noBuiltinDelete = () => t('Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Sammlung an.');
 
-const TOO_MANY_COLLECTIONS = `Höchstens ${MAX_COLLECTIONS} Sammlungen.`;
+const tooManyCollections = () => t('Höchstens {max} Sammlungen.', { max: MAX_COLLECTIONS });
 // Eigene Sammlungen ohne „Standard“ und „Meine Sammlung“ – das zählt auch parseBundle.
 const userCollectionCount = collections => collections.filter(c => !c.readOnly && c.id !== MEINE_ID).length;
 
@@ -52,7 +54,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     const target = resolveTarget(rawValue, existing, st.collections, uid);
     const value = stamp({ ...rawValue, collectionId: target.id });
     const collections = target.created ? withBuiltins([...st.collections, stamp(target.created)]) : st.collections;
-    const r = await run('Case konnte nicht gespeichert werden', () => repo.writeCases({
+    const r = await run(t('Case konnte nicht gespeichert werden'), () => repo.writeCases({
       upserts: [value], touchIds: target.created ? [target.id] : [], collections,
     }));
     if (!r.ok) return undefined;
@@ -74,20 +76,20 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   async function removeFromStock(c, { confirmed = false } = {}) {
     if (!c) return false;
     const d = deletionFor(c);
-    if (!d) { await showAlert(NO_BUILTIN_DELETE); return false; }
+    if (!d) { await showAlert(noBuiltinDelete()); return false; }
     if (!confirmed) {
       const used = usage(store.get(), c.id);
-      const msg = used ? `„${c.name}“ wird in ${used} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${c.name}“ löschen?`;
-      if (!await showConfirm(msg, { okLabel: 'Löschen', danger: true })) return false;
+      const msg = used ? t('„{name}“ wird in {used} Ladeplan/-plänen verwendet. Trotzdem löschen?', { name: c.name, used }) : t('„{name}“ löschen?', { name: c.name });
+      if (!await showConfirm(msg, { okLabel: t('Löschen'), danger: true })) return false;
     }
     return serial(async () => {
       // Frisch lesen: ein vorher eingereihtes Umbenennen/Verschieben darf nicht zurückgedreht werden.
       const fresh = store.get().cases.find(x => x.id === c.id);
       if (!fresh) return true;
       const dNow = deletionFor(fresh);
-      if (!dNow) { await showAlert(NO_BUILTIN_DELETE); return false; }
+      if (!dNow) { await showAlert(noBuiltinDelete()); return false; }
       if (dNow.save) return !!await saveCaseNow(dNow.save);
-      const r = await run('Case konnte nicht gelöscht werden', () => repo.writeCases({ removeIds: [dNow.remove], collections: store.get().collections }));
+      const r = await run(t('Case konnte nicht gelöscht werden'), () => repo.writeCases({ removeIds: [dNow.remove], collections: store.get().collections }));
       if (!r.ok) return false;
       store.update(st => ({ ...st, cases: st.cases.filter(x => x.id !== dNow.remove), ...ohneKopie(st, [dNow.remove]) }));
       return true;
@@ -99,16 +101,16 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   // und bekommt künftige Korrekturen. Rückfrage vorab, außerhalb der Warteschlange.
   async function restoreOriginal(caseId) {
     const pre = store.get().cases.find(x => x.id === caseId);
-    if (!originalOf(pre, CASE_LIBRARY)) { await showAlert('Zu diesem Case gibt es keine mitgelieferte Fassung.'); return false; }
+    if (!originalOf(pre, CASE_LIBRARY)) { await showAlert(t('Zu diesem Case gibt es keine mitgelieferte Fassung.')); return false; }
     const used = usage(store.get(), caseId);
-    const usedNote = used ? ` Es wird in ${used} Ladeplan/-plänen verwendet; die Stücke bleiben, ihre Maße ändern sich mit.` : '';
-    if (!await showConfirm(`„${pre.name}“ auf die mitgelieferte Fassung zurücksetzen? Eigene Änderungen, Verschiebung und Ausblenden gehen verloren.${usedNote}`, { okLabel: 'Wiederherstellen', danger: true })) return false;
+    const usedNote = used ? ` ${t('Es wird in {used} Ladeplan/-plänen verwendet; die Stücke bleiben, ihre Maße ändern sich mit.', { used })}` : '';
+    if (!await showConfirm(t('„{name}“ auf die mitgelieferte Fassung zurücksetzen? Eigene Änderungen, Verschiebung und Ausblenden gehen verloren.', { name: pre.name }) + usedNote, { okLabel: t('Wiederherstellen'), danger: true })) return false;
     return serial(async () => {
       const st = store.get();
       const fresh = st.cases.find(x => x.id === caseId);
       const original = originalOf(fresh, CASE_LIBRARY);
       if (!original) return true; // inzwischen schon zurückgesetzt
-      const r = await run('Original konnte nicht wiederhergestellt werden', () => repo.writeCases({ removeIds: [caseId], collections: st.collections }));
+      const r = await run(t('Original konnte nicht wiederhergestellt werden'), () => repo.writeCases({ removeIds: [caseId], collections: st.collections }));
       if (!r.ok) return false;
       store.update(s => ({ ...s, cases: [...s.cases.filter(x => x.id !== caseId), original] }));
       return true;
@@ -119,10 +121,10 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     const st = store.get();
     const err = collectionNameError(name, st.collections) ?? parentError(st.collections, null, parentId);
     if (err) { await showAlert(err); return null; }
-    if (userCollectionCount(st.collections) >= MAX_COLLECTIONS) { await showAlert(TOO_MANY_COLLECTIONS); return null; }
+    if (userCollectionCount(st.collections) >= MAX_COLLECTIONS) { await showAlert(tooManyCollections()); return null; }
     const meta = stamp({ id: uid(), name: name.trim(), ...(parentId ? { parentId } : {}) });
     const collections = withBuiltins([...st.collections, meta]);
-    const r = await run('Sammlung konnte nicht angelegt werden', () => repo.writeCases({ touchIds: [meta.id], collections }));
+    const r = await run(t('Sammlung konnte nicht angelegt werden'), () => repo.writeCases({ touchIds: [meta.id], collections }));
     if (!r.ok) return null;
     store.update(s => ({ ...s, collections }));
     return meta.id;
@@ -130,14 +132,14 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
 
   const renameCollection = (id, name) => serial(async () => {
     const st = store.get();
-    if (!ownMeta(st, id)) { await showAlert(NO_FIXED_COLLECTION); return false; }
+    if (!ownMeta(st, id)) { await showAlert(noFixedCollection()); return false; }
     const err = collectionNameError(name, st.collections, id);
     if (err) { await showAlert(err); return false; }
     const to = name.trim();
     const collections = withBuiltins(st.collections.map(c => (c.id === id ? stamp({ ...c, name: to }) : c)));
     // `company` einer eigenen Sammlung ist ihr Name; die Cases ziehen mit.
     const renamed = st.cases.filter(c => c.collectionId === id).map(c => stamp({ ...c, company: to }));
-    const r = await run('Sammlung konnte nicht umbenannt werden', () => repo.writeCases({ upserts: renamed, touchIds: [id], collections }));
+    const r = await run(t('Sammlung konnte nicht umbenannt werden'), () => repo.writeCases({ upserts: renamed, touchIds: [id], collections }));
     if (!r.ok) return false;
     const ids = new Set(renamed.map(c => c.id));
     store.update(s => ({ ...s, collections, cases: [...s.cases.filter(x => !ids.has(x.id)), ...renamed] }));
@@ -146,7 +148,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
 
   const moveCollection = (id, parentId) => serial(async () => {
     const st = store.get();
-    if (!ownMeta(st, id)) { await showAlert(NO_FIXED_COLLECTION); return false; }
+    if (!ownMeta(st, id)) { await showAlert(noFixedCollection()); return false; }
     const err = parentError(st.collections, id, parentId);
     if (err) { await showAlert(err); return false; }
     const collections = withBuiltins(st.collections.map(c => {
@@ -154,7 +156,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       const { parentId: _p, ...rest } = c;
       return stamp({ ...rest, ...(parentId ? { parentId } : {}) });
     }));
-    const r = await run('Sammlung konnte nicht verschoben werden', () => repo.writeCases({ touchIds: [id], collections }));
+    const r = await run(t('Sammlung konnte nicht verschoben werden'), () => repo.writeCases({ touchIds: [id], collections }));
     if (!r.ok) return false;
     store.update(s => ({ ...s, collections }));
     return true;
@@ -171,22 +173,25 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     // Rückfrage außerhalb der Warteschlange (sie soll Schreibvorgänge nicht aufhalten).
     const pre = store.get();
     const meta0 = ownMeta(pre, id);
-    if (!meta0) { await showAlert(NO_FIXED_DELETE); return false; }
+    if (!meta0) { await showAlert(noFixedDelete()); return false; }
     const { gone: gone0, inside: inside0 } = insideOf(pre);
     const used = inside0.reduce((n, c) => n + usage(pre, c.id), 0);
-    const usedNote = used ? ` Die Einträge werden in ${used} Ladeplan/-plänen verwendet.` : '';
-    if (!await showConfirm(`Sammlung „${meta0.name}“ mit ${inside0.length} Einträgen${gone0.size > 1 ? ` und ${gone0.size - 1} Untersammlungen` : ''} löschen?${usedNote}`, { okLabel: 'Löschen', danger: true })) return false;
+    const usedNote = used ? ` ${t('Die Einträge werden in {used} Ladeplan/-plänen verwendet.', { used })}` : '';
+    const question = gone0.size > 1
+      ? t('Sammlung „{name}“ mit {n} Einträgen und {sub} Untersammlungen löschen?', { name: meta0.name, n: inside0.length, sub: gone0.size - 1 })
+      : t('Sammlung „{name}“ mit {n} Einträgen löschen?', { name: meta0.name, n: inside0.length });
+    if (!await showConfirm(question + usedNote, { okLabel: t('Löschen'), danger: true })) return false;
     return serial(async () => {
       const st = store.get();
-      if (!ownMeta(st, id)) { await showAlert(NO_FIXED_DELETE); return false; }
+      if (!ownMeta(st, id)) { await showAlert(noFixedDelete()); return false; }
       const { gone, inside } = insideOf(st);
       const ds = inside.map(deletionFor);
-      if (ds.includes(null)) { await showAlert(NO_BUILTIN_DELETE); return false; }
+      if (ds.includes(null)) { await showAlert(noBuiltinDelete()); return false; }
       // Die Überlagerung behält `company` (Name der gelöschten Sammlung): so bleibt die Anzeige
       // „· Name“ und die Dolly-/Traversen-Zuordnung alter Pläne erhalten.
       const hidden = ds.filter(d => d.save).map(d => stamp({ ...d.save, collectionId: MEINE_ID }));
       const collections = withBuiltins(st.collections.filter(c => !gone.has(c.id)));
-      const r = await run('Sammlung konnte nicht gelöscht werden', () => repo.writeCases({ upserts: hidden, deleteCollectionIds: [...gone], collections }));
+      const r = await run(t('Sammlung konnte nicht gelöscht werden'), () => repo.writeCases({ upserts: hidden, deleteCollectionIds: [...gone], collections }));
       if (!r.ok) return false;
       const keep = new Set(hidden.map(c => c.id));
       const removedIds = ds.filter(d => d.remove).map(d => d.remove);
@@ -203,7 +208,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     const c = st.cases.find(x => x.id === caseId);
     const target = st.collections.find(x => x.id === collectionId && !x.readOnly);
     if (!c || !target) return false;
-    if (c.builtin && c.id.startsWith('preset-')) { await showAlert(NO_BUILTIN_MOVE); return false; }
+    if (c.builtin && c.id.startsWith('preset-')) { await showAlert(noBuiltinMove()); return false; }
     if (collectionIdOf(c) === target.id) return true;
     return !!await saveCaseNow(stamp(moveCase(c, target, CASE_LIBRARY.find(x => x.id === c.id))));
   });
@@ -216,7 +221,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     const plan = planCollectionImport(st.collections, file, uid);
     // Eine neue Sammlung über der Grenze würde die eigene Sicherung unlesbar machen (parseBundle).
     if (userCollectionCount(plan.merged) > Math.max(MAX_COLLECTIONS, userCollectionCount(st.collections))) {
-      await showAlert(TOO_MANY_COLLECTIONS);
+      await showAlert(tooManyCollections());
       return null;
     }
     const local = new Map(st.cases.map(c => [c.id, c]));
@@ -224,7 +229,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       const cur = local.get(c.id);
       return !cur || cur.builtin || typeof c.updatedAt !== 'string' || typeof cur.updatedAt !== 'string' || c.updatedAt >= cur.updatedAt;
     }).map(c => stamp(c));
-    const r = await run('Sammlung konnte nicht importiert werden', () => repo.writeCases({ upserts, touchIds: [plan.meta.id], collections: plan.merged }));
+    const r = await run(t('Sammlung konnte nicht importiert werden'), () => repo.writeCases({ upserts, touchIds: [plan.meta.id], collections: plan.merged }));
     if (!r.ok) return null;
     const ids = new Set(upserts.map(c => c.id));
     store.update(s => ({ ...s, collections: plan.merged, cases: [...s.cases.filter(x => !ids.has(x.id)), ...upserts] }));
@@ -239,9 +244,9 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   async function saveRuleSet(name, rules, mixTop, ort = 'bibliothek') {
     const o = ORT[ort] ?? ORT.bibliothek;
     const existing = (store.get()[o.key] ?? []).find(r => r.name.toLowerCase() === name.toLowerCase());
-    if (existing && !await showConfirm(`Regelset „${existing.name}“ überschreiben?`, { okLabel: 'Überschreiben', danger: true })) return undefined;
+    if (existing && !await showConfirm(t('Regelset „{name}“ überschreiben?', { name: existing.name }), { okLabel: t('Überschreiben'), danger: true })) return undefined;
     const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
-    const r = await run('Regelset konnte nicht gespeichert werden', () => o.save(value));
+    const r = await run(t('Regelset konnte nicht gespeichert werden'), () => o.save(value));
     if (!r.ok) return undefined;
     store.update(s => ({ ...s, [o.key]: [...(s[o.key] ?? []).filter(x => x.id !== value.id), value] }));
     return value;
@@ -250,8 +255,8 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   async function deleteRuleSet(id, ort = 'bibliothek') {
     const o = ORT[ort] ?? ORT.bibliothek;
     const set = (store.get()[o.key] ?? []).find(x => x.id === id);
-    if (set && !await showConfirm(`Regelset „${set.name}“ löschen?`, { okLabel: 'Löschen', danger: true })) return false;
-    const r = await run('Regelset konnte nicht gelöscht werden', () => o.del(id));
+    if (set && !await showConfirm(t('Regelset „{name}“ löschen?', { name: set.name }), { okLabel: t('Löschen'), danger: true })) return false;
+    const r = await run(t('Regelset konnte nicht gelöscht werden'), () => o.del(id));
     if (!r.ok) return false;
     store.update(s => ({ ...s, [o.key]: (s[o.key] ?? []).filter(x => x.id !== id) }));
     return true;
@@ -260,9 +265,9 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   // Speichert das Fahrzeug und liefert den gestempelten Wert (undefined bei Fehler).
   async function saveTruck(rawValue) {
     const value = stamp(rawValue);
-    const r = await run('Fahrzeug konnte nicht gespeichert werden', () => repo.saveTruck(value));
+    const r = await run(t('Fahrzeug konnte nicht gespeichert werden'), () => repo.saveTruck(value));
     if (!r.ok) return undefined;
-    store.update(s => ({ ...s, trucks: [...s.trucks.filter(t => t.id !== value.id), value] }));
+    store.update(s => ({ ...s, trucks: [...s.trucks.filter(tk => tk.id !== value.id), value] }));
     return value;
   }
 
@@ -270,20 +275,20 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   // Aufrufer über edit()) und deren LKW (plan.lkws) auf den Standardtruck um, sonst schöbe ctx() ihnen
   // still den Sattelauflieger unter. Liefert false, wenn das Löschen selbst scheiterte.
   async function deleteTruck(truckId) {
-    const r = await run('Fahrzeug konnte nicht gelöscht werden', () => repo.deleteTruck(truckId));
+    const r = await run(t('Fahrzeug konnte nicht gelöscht werden'), () => repo.deleteTruck(truckId));
     if (!r.ok) return false;
     const s1 = store.get();
     const fixPlan = p => repointTruck(p, truckId, DEFAULT_TRUCK_ID);
     const fixedOthers = s1.plans.map(fixPlan);
     const changedOthers = fixedOthers.filter((p, i) => p !== s1.plans[i]);
-    store.update(s => ({ ...s, trucks: s.trucks.filter(t => t.id !== truckId), plans: fixedOthers }));
+    store.update(s => ({ ...s, trucks: s.trucks.filter(tk => tk.id !== truckId), plans: fixedOthers }));
     if (changedOthers.length) {
       try {
         await Promise.all(changedOthers.map(repo.savePlan));
       } catch (err) {
         // Unbehandelt hätte das eine tote Rejection UND einen toten truckId-Verweis
         // hinterlassen.
-        await showAlert(`Fahrzeug gelöscht, aber ${changedOthers.length} Plan(e) konnten nicht aktualisiert werden: ${err?.message ?? 'unbekannter Fehler'}. Bitte prüfen und ggf. erneut speichern.`);
+        await showAlert(t('Fahrzeug gelöscht, aber {n} Plan(e) konnten nicht aktualisiert werden: {detail}. Bitte prüfen und ggf. erneut speichern.', { n: changedOthers.length, detail: err?.message ?? t('unbekannter Fehler') }));
       }
     }
     return true;

@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n.js';
+
 // Drucken über einen Host (NYX, docs/nyx-host.md „Drucken“): NYX liefert Titelkopf und
 // Abschluss, erzeugt die PDF selbst (printToPDF) und öffnet sie – Electron zeigt bei
 // window.print() keine Druckvorschau. Ohne DOM und ohne Store: alles Nötige kommt herein, deshalb
@@ -7,7 +9,7 @@
 export function druckTitel(doc, { plan, truck, lkwName, alle = false }) {
   const name = plan?.name ?? '';
   if (doc === 'labels') return name;
-  const zusatz = alle ? 'alle LKW' : lkwName || truck?.name;
+  const zusatz = alle ? t('alle LKW') : lkwName || truck?.name;
   return zusatz ? `${name} – ${zusatz}` : name;
 }
 

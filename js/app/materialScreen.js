@@ -12,11 +12,12 @@ import { parseCollectionFile, exportCollectionFile, collectionFileName } from '.
 import { downloadJSON, watchFileDialogClose } from './download.js';
 import { usage } from './core.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
+import { t } from '../i18n/i18n.js';
 
 const $ = sel => document.querySelector(sel);
 
 async function pickCase(title, cases) {
-  if (!cases.length) { await showAlert('Keine passende Box vorhanden.'); return null; }
+  if (!cases.length) { await showAlert(t('Keine passende Box vorhanden.')); return null; }
   const id = await showPick(title, cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })));
   return id == null ? null : cases.find(c => c.id === id);
 }
@@ -44,7 +45,7 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
   // Zielsammlung für „Kopieren“/„In Bestand übernehmen“: Meta der gewählten Sammlung; null = abgebrochen.
   const pickCollection = async () => {
     const cols = store.get().collections;
-    const id = await showPick('In welche Sammlung?', collectionRows(cols)
+    const id = await showPick(t('In welche Sammlung?'), collectionRows(cols)
       .filter(({ collection }) => !collection.readOnly)
       .map(({ collection, depth }) => ({ value: collection.id, label: `${'– '.repeat(depth)}${collection.name}` })));
     return id == null ? null : cols.find(c => c.id === (id || MEINE_ID)) ?? null;
@@ -78,12 +79,12 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
       const created = new Set((res?.newCases ?? []).map(c => c.id));
       for (const a of res?.additions ?? []) {
         const existing = created.has(a.caseId) ? null : store.get().cases.find(c => c.id === a.caseId);
-        if (existing) await showAlert(`Diesen Traversenwagen gibt es in dieser Sammlung schon: ${existing.name}.`);
+        if (existing) await showAlert(t('Diesen Traversenwagen gibt es in dieser Sammlung schon: {name}.', { name: existing.name }));
       }
       return res;
     },
     onNewDolly: async collectionId => {
-      const base = await pickCase('Welche Box kommt auf den Dolly?', store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
+      const base = await pickCase(t('Welche Box kommt auf den Dolly?'), store.get().cases.filter(c => c.dollyPrompt && isInStock(c)));
       if (base) await openDollyDialog($('#dlg-dolly'), { baseCase: base, existingCases: store.get().cases, onNewDollyStack: saveCase, stock: { mode: 'fixed', company: nameOf(collectionId) } });
     },
     onCopy: async id => {
@@ -126,10 +127,10 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
           try {
             const parsed = parseCollectionFile(await file.text());
             const meta = await persistence.importCollectionFile(parsed);
-            if (meta && parsed.repairs?.length) await showAlert(`Beim Import repariert:\n${parsed.repairs.join('\n')}`);
+            if (meta && parsed.repairs?.length) await showAlert(t('Beim Import repariert:\n{repairs}', { repairs: parsed.repairs.join('\n') }));
             done(meta);
           } catch (err) {
-            await showAlert(`Import fehlgeschlagen: ${err?.message ?? 'unbekannter Fehler'}`);
+            await showAlert(t('Import fehlgeschlagen: {detail}', { detail: err?.message ?? t('unbekannter Fehler') }));
             done(null);
           }
         });
