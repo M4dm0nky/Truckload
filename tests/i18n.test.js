@@ -24,6 +24,10 @@ export const PENDING = [
 
 // Ausnahmen für Test C: deutsche Literale, die bewusst deutsch bleiben (Daten, keine Anzeige).
 export const ALLOW = [
+  ...[
+    'Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.',
+    'Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', 'Neu laden',
+  ].map(text => ({ file: 'index.html', text, why: 'Inline-Notfallmeldung, englisch daneben im selben Objekt (tlTexte); Test H prüft das' })),
   { file: 'js/i18n/i18n.js', text: 'Bühne', why: 'Schlüssel der Gewerk-Tabelle: gespeicherte Daten bleiben deutsch' },
 ];
 
@@ -84,6 +88,12 @@ test('C: kein deutscher Text außerhalb von t()', () => {
     const h = htmlScan(read('index.html'));
     for (const x of h.texte) if (!x.marked && looksGerman(x.text)) fehler.push(`index.html:${x.line}: deutscher Text ohne data-t: ${JSON.stringify(x.text)}`);
     for (const x of h.attribute) if (!x.marked && looksGerman(x.text)) fehler.push(`index.html:${x.line}: deutsches ${x.attr} ohne data-t-${x.attr}: ${JSON.stringify(x.text)}`);
+    // Inline-Skripte laufen vor den Modulen: deutsche Literale nur mit ALLOW-Eintrag (englisches Gegenstück, Test H)
+    for (const m of read('index.html').matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+      for (const l of literals(m[1])) {
+        if (looksGerman(l.text) && !ALLOW.some(a => a.file === 'index.html' && a.text === l.text)) fehler.push(`index.html: deutsches Literal im Inline-Skript: ${JSON.stringify(l.text)}`);
+      }
+    }
     for (const x of h.gemischt) fehler.push(`index.html:${x.line}: data-t-Element <${x.text}> enthält Kindelemente (Text in eigenes <span data-t> auslagern)`);
   }
   // en.js ist die Übersetzungstabelle: ihre Schlüssel sind absichtlich deutsch
@@ -166,6 +176,25 @@ test('G: translateDom setzt lang, übersetzt nur auf Englisch und lässt Deutsch
   } finally {
     setLang('de'); delete globalThis.document;
     delete EN['Neu laden']; delete EN['Hinweis schließen'];
+  }
+});
+
+test('H: Inline-Notfallmeldung liefert mit ?lang=en englische Texte, ohne Parameter die deutschen', () => {
+  const src = read('index.html').match(/<script>([\s\S]*?)<\/script>/)[1];
+  const lauf = search => {
+    const win = { addEventListener() {}, location: { search } };
+    new Function('window', 'document', src)(win, {});
+    return [win.tlLadefehlerText(new SyntaxError('Unexpected token')), win.tlLadefehlerText(null)];
+  };
+  const en = lauf('?lang=en');
+  assert.deepEqual(en.map(r => r.neuLaden), [false, true]);
+  for (const r of en) assert.equal(looksGerman(r.text), false, r.text);
+  assert.match(en[0].text, /too old/);
+  assert.match(en[1].text, /reload/i);
+  for (const search of ['', '?lang=de', '?lang=fr']) {
+    const de = lauf(search);
+    assert.match(de[0].text, /^Dieser Browser ist zu alt/);
+    assert.match(de[1].text, /^Die App konnte nicht vollständig geladen werden\. Bitte neu laden\. $/);
   }
 });
 

@@ -16,13 +16,21 @@
     // Welcher Text zum Fehler passt (reine Funktion, tests/pwa.test.js führt dieses Skript aus).
     // Ein SyntaxError ohne „fehlender Export“-Meldung ist die JSON-Modul-Syntax in einem zu alten Browser:
     // erneutes Laden hilft dort nicht, also kein „Neu laden“.
+    // Das Skript läuft vor den Modulen und kann i18n.js nicht importieren: Sprache und Texte stehen hier selbst.
+    var tlEn = new URLSearchParams(window.location ? window.location.search : '').get('lang') === 'en';
+    var tlTexte = {
+      zuAlt: ['Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.', 'This browser is too old for Truckload. You need Chrome or Edge 123 or later, Safari 17.2 or later, or Firefox 138 or later.'],
+      unvollstaendig: ['Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', 'The app could not be loaded completely. Please reload. '],
+      neuLaden: ['Neu laden', 'Reload']
+    };
+    function tlText(name) { return tlTexte[name][tlEn ? 1 : 0]; }
     window.tlLadefehlerText = function (error) {
       var msg = error && error.message ? String(error.message) : '';
       var mix = /export named|requested module|does not provide|doesn't provide|binding|import not found|not found in module/i.test(msg);
       if (error instanceof SyntaxError && !mix) {
-        return { text: 'Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.', neuLaden: false };
+        return { text: tlText('zuAlt'), neuLaden: false };
       }
-      return { text: 'Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', neuLaden: true };
+      return { text: tlText('unvollstaendig'), neuLaden: true };
     };
     window.addEventListener('error', e => {
       const t = e.target;
@@ -41,7 +49,7 @@
       if (info.neuLaden) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.textContent = 'Neu laden';
+        btn.textContent = tlText('neuLaden');
         btn.addEventListener('click', () => location.reload());
         box.append(btn);
       }

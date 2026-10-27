@@ -2,7 +2,9 @@
 // Erzeugt einmalig: alle Wörter aus den String-/Template-Literalen von js/ (Stand vor der
 // Umstellung), die nicht in /usr/share/dict/words stehen, danach von Hand um Bezeichner,
 // CSS-/DOM-Namen, englische Fachwörter und Markennamen bereinigt. Nicht neu erzeugen;
-// fehlt ein Wort, hier ergänzen. Verwendung: looksGerman() in tests/i18n-scan.js.
+// fehlt ein Wort, hier ergänzen.
+// Nachtrag (Task 3): dasselbe Verfahren für die Texte aus index.html (Body, title/aria-label, Inline-Skript).
+// Zusätzlich von Hand: „drucken“ steht im System-Wörterbuch, ist aber ein deutsches Oberflächenwort. Verwendung: looksGerman() in tests/i18n-scan.js.
 export default new Set(`
   abbrechen aber abgebrochen abgewählt abgleichen ablage ablegen ablehnung abschluss achtung
   aktualisiert aktualisierung aktuell alles andere anderen angeglichen angehakt angelegt
@@ -53,4 +55,8 @@ export default new Set(`
   zuordnung zurück zurückgeschrieben zurückgesetzt zurückholen zurücksetzen zusammenstellen
   zwei zählen älteren ändern änderungen öffnet über übereinander übereinandergestellt
   überlagerung übernehmen übernommen überschneidet überschreiben überschreitet überstieg
+  drucken lagen schwarz abhakliste auftreten beiden blass bogen eines einfügen erkennt erzwingt etiketten etikettengröße
+  fehlender ganzen gebraucht gedruckt gegenseitig gehören herauszoomen hineinzoomen hinweis höhere
+  kann klein können lege mausrad mehrere meldet offen rückansicht strg umstellen versionsmix
+  vollständig vorhandenen weise weiteren wiederholen wischen zeichnen zoomt öffne
 `.split(/\s+/).filter(Boolean));

@@ -202,7 +202,7 @@ import DE_VOKABULAR from './i18n-de-words.js';
 // Kurze, sehr häufige Wörter: schlagen an, wo immer sie als ganzes Wort vorkommen.
 const DE_WOERTER = new Set(`und oder nicht kein keine keinen keinem der die das dem den des mit für ist wird noch alle
 neu neue neuer neues gewicht fahrzeug fahrzeuge laden löschen speichern abbrechen schließen hinzufügen
-bearbeiten ansicht höhe breite länge tiefe sind wurde werden zu von auf über unter nach aus bei sich`.split(/\s+/));
+bis bearbeiten ansicht höhe breite länge tiefe sind wurde werden zu von auf über unter nach aus bei sich`.split(/\s+/));
 
 // Umlaute/ß, „ “ oder ein Wort der Kurzliste; zusätzlich das Vokabular (tests/i18n-de-words.js),
 // aber nur bei Sätzen oder großgeschriebenen Wörtern – kleingeschriebene Einzelwörter
