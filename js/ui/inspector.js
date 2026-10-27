@@ -1,12 +1,13 @@
 import { esc, fmtM, ORIENTATION_LABEL, swatch } from './dom.js';
 import { outerDims, wheelFace, layersOf, pieceLayers, canTip, isTruss } from '../model/geometry.js';
 import { MAX_LABEL, CASE_LIMITS } from '../model/limits.js';
+import { t, num } from '../i18n/i18n.js';
 
 // Reihenfolge und Beschriftung der Rollenrichtungs-Knöpfe. Koordinaten: x wächst zur Trucktür
 // (+x = Tür, -x = Front); die Seitenansicht zeigt die y0-Seite (kleines y) als „links“, die
 // gegenüberliegende (großes y) als „rechts“ (siehe js/ui/projection.js / view2d.js).
 const WHEEL_FACE_ORDER = ['+x', '-x', '-y', '+y'];
-const WHEEL_FACE_LABEL = { '+x': 'Tür', '-x': 'Front', '-y': 'links', '+y': 'rechts' };
+const wheelFaceLabel = face => ({ '+x': t('Tür'), '-x': t('Front'), '-y': t('links'), '+y': t('rechts') })[face];
 
 // Darf der Inspector das Gewicht dieses Case-Typs ändern? Eigene Cases (nicht builtin) und
 // Firmen-Vorlagen (`lib-`, werden als Überlagerung mit gleicher ID gespeichert, siehe
@@ -16,27 +17,27 @@ export function weightEditable(c) {
   if (!c || isTruss(c)) return false;
   return !c.builtin || String(c.id).startsWith('lib-');
 }
-const PRESET_WEIGHT_HINT = 'Standardvorlage – über „Kopieren“ in der Materialverwaltung ändern';
 const isPreset = c => c?.builtin === true && String(c.id).startsWith('preset-');
 
 // Zahlenfeld (kg) für ein editierbares Gewicht, sonst der Wert als Text plus – bei Standardvorlagen –
 // der Hinweis, wie man ihn ändert.
 export function weightField(c, { gesperrt = false } = {}) {
   if (!gesperrt && weightEditable(c)) {
-    return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">gilt für alle Stücke dieses Typs</small>`;
+    return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">${t('gilt für alle Stücke dieses Typs')}</small>`;
   }
   return `${esc(c.weight)} kg`;
 }
 // Kopie aus der Projektdatei (steht nicht in der eigenen Bibliothek): nur lesbar, bis sie übernommen ist.
 // Ausrichtung und Drehung eines Stücks als Text: „stehend“, „stehend, um 180° gedreht“. Die Drehung
 // geht um die senkrechte Achse; „stehend, 180°“ ließ offen, was die Zahl meint.
-export const orientationText = p =>
-  `${ORIENTATION_LABEL[p.orientation]}${p.rot ? `, um ${p.rot}° gedreht` : ''}`;
+export const orientationText = p => (p.rot
+  ? t('{label}, um {rot}° gedreht', { label: ORIENTATION_LABEL[p.orientation], rot: p.rot })
+  : ORIENTATION_LABEL[p.orientation]);
 
-export const AUS_PROJEKT_HINWEIS = 'Aus der Projektdatei – nicht in deiner Bibliothek';
-const uebernehmenKnopf = act => `<button data-act="${act}">In meine Bibliothek übernehmen</button>`;
-const kopieBlock = act => `<p class="hint insp-aus-projekt">${AUS_PROJEKT_HINWEIS}</p>${uebernehmenKnopf(act)}`;
-const weightHint = c => (isPreset(c) ? `<p class="hint insp-weight-hint">${PRESET_WEIGHT_HINT}</p>` : '');
+export const ausProjektHinweis = () => t('Aus der Projektdatei – nicht in deiner Bibliothek');
+const uebernehmenKnopf = act => `<button data-act="${act}">${t('In meine Bibliothek übernehmen')}</button>`;
+const kopieBlock = act => `<p class="hint insp-aus-projekt">${ausProjektHinweis()}</p>${uebernehmenKnopf(act)}`;
+const weightHint = c => (isPreset(c) ? `<p class="hint insp-weight-hint">${t('Standardvorlage – über „Kopieren“ in der Materialverwaltung ändern')}</p>` : '');
 
 // Block „Laden“ – für ein platziertes Stück (piece = das Placement, tippedOn aus der
 // Orientierung) genauso wie für ein Ablage-Stück (piece = der Ablage-Eintrag, tippedOn aus
@@ -51,11 +52,11 @@ function loadBlock(piece, c, tippedOn) {
   return `
     <div class="insp-load">
       <span class="wiz-layers">
-        <span class="wiz-layers-label">Lage</span>
+        <span class="wiz-layers-label">${t('Lage', null, 'layer')}</span>
         ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-layer="${n}" ${layers.includes(n) ? 'checked' : ''} ${allowed.includes(n) ? '' : 'disabled'}>${n}</label>`).join('')}
       </span>
-      <label class="check wiz-tipped"><input type="checkbox" name="tipped" ${tippedOn ? 'checked' : ''} ${tippable ? '' : 'disabled'}>getippt</label>
-      <small class="hint wiz-layer-hint" hidden>Mindestens eine Lage nötig.</small>
+      <label class="check wiz-tipped"><input type="checkbox" name="tipped" ${tippedOn ? 'checked' : ''} ${tippable ? '' : 'disabled'}>${t('getippt')}</label>
+      <small class="hint wiz-layer-hint" hidden>${t('Mindestens eine Lage nötig.')}</small>
     </div>`;
 }
 
@@ -63,8 +64,8 @@ function loadBlock(piece, c, tippedOn) {
 // auf „Ohne LKW“. `lkw` = { options: [{ id, name }], current: id | null } oder null (Ein-LKW-Plan).
 export function lkwField(lkw) {
   if (!lkw) return '';
-  return `<label class="insp-lkw">LKW<select name="lkw">
-          <option value="" ${lkw.current ? '' : 'selected'}>Ohne LKW</option>
+  return `<label class="insp-lkw">${t('LKW')}<select name="lkw">
+          <option value="" ${lkw.current ? '' : 'selected'}>${t('Ohne LKW')}</option>
           ${lkw.options.map(o => `<option value="${esc(o.id)}" ${o.id === lkw.current ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}
         </select></label>`;
 }
@@ -72,16 +73,16 @@ export function lkwField(lkw) {
 // `lkw` (optional): Mehr-LKW-Plan, siehe lkwField; zusätzlich `name` (gewählter LKW, für die Überschrift
 // der Summen) und `none` (Reiter „Ohne LKW“: keine Fahrzeugsummen).
 export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [], lkw = null, ausProjekt = { cases: new Set(), trucks: new Set() } }) {
-  const t = result.totals;
-  const pct = t.payload > 0 ? Math.min(100, Math.round(t.weight / t.payload * 100)) : 0;
+  const tot = result.totals;
+  const pct = tot.payload > 0 ? Math.min(100, Math.round(tot.weight / tot.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
   const wheelRow = tipped ? `
       <div class="insp-wheels">
-        <span class="hint">Rollen zeigen nach:</span>
+        <span class="hint">${t('Rollen zeigen nach:')}</span>
         <div class="btns">
           ${WHEEL_FACE_ORDER.map(face => {
             const active = wheelFace(selected.p) === face;
-            return `<button data-act="wheel-face" data-face="${face}" class="${active ? 'on' : ''}">${WHEEL_FACE_LABEL[face]}</button>`;
+            return `<button data-act="wheel-face" data-face="${face}" class="${active ? 'on' : ''}">${wheelFaceLabel(face)}</button>`;
           }).join('')}
         </div>
       </div>` : '';
@@ -93,72 +94,80 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       <h2>${swatch(selected.color)}${result.sequence.get(selected.id)}. ${esc(selected.label)}</h2>
       ${selected.c.content ? `<p class="content">${esc(selected.c.content)}</p>` : ''}
       <div class="insp-label">
-        <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selected.label)}"></label>
-        <label>Farbe<input type="color" name="color" value="${esc(selected.color)}"></label>
-        <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selected.p.group ?? '')}"></label>
+        <label>${t('Beschriftung')}<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selected.label)}"></label>
+        <label>${t('Farbe')}<input type="color" name="color" value="${esc(selected.color)}"></label>
+        <label>${t('Gruppe')}<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="${t('keine')}" value="${esc(selected.p.group ?? '')}"></label>
       </div>
       ${lkwField(lkw)}
       <dl>
-        <dt>Lage</dt><dd>${esc(orientationText(selected.p))} · Lage ${esc(result.layers.get(selected.id))}</dd>
-        <dt>Maße stehend</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
-        <dt>Position</dt><dd>${fmtM(selected.box.x0)} ab Stirnwand · y ${Math.round(selected.box.y0)} · z ${Math.round(selected.box.z0)} cm</dd>
-        <dt>Gewicht</dt><dd>${weightField(selected.c, { gesperrt: kopie })} · Last obendrauf ${Math.round(result.load.get(selected.id) ?? 0)} kg${selected.c.maxTopLoad != null ? ` / max. ${esc(selected.c.maxTopLoad)}` : ''}</dd>
+        <dt>${t('Lage', null, 'layer')}</dt><dd>${esc(t('{orientation} · Lage {n}', { orientation: orientationText(selected.p), n: result.layers.get(selected.id) }))}</dd>
+        <dt>${t('Maße stehend')}</dt><dd>${dims.l}×${dims.w}×${dims.h} cm</dd>
+        <dt>${t('Position')}</dt><dd>${t('{x} ab Stirnwand · y {y} · z {z} cm', { x: fmtM(selected.box.x0), y: Math.round(selected.box.y0), z: Math.round(selected.box.z0) })}</dd>
+        <dt>${t('Gewicht')}</dt><dd>${weightField(selected.c, { gesperrt: kopie })} · ${selected.c.maxTopLoad != null
+          ? t('Last obendrauf {kg} kg / max. {max}', { kg: Math.round(result.load.get(selected.id) ?? 0), max: esc(selected.c.maxTopLoad) })
+          : t('Last obendrauf {kg} kg', { kg: Math.round(result.load.get(selected.id) ?? 0) })}</dd>
       </dl>
       ${weightHint(selected.c)}
       ${kopie ? kopieBlock('uebernehmen-case') : ''}
       ${wheelRow}
       ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
-        <button data-act="rotate">Drehen <kbd>R</kbd></button>
-        <button data-act="tip" ${canTip(selected.c) ? '' : 'disabled title="Case ist nicht tippbar"'}>Tippen <kbd>T</kbd></button>
-        <button data-act="dup">Duplizieren <kbd>D</kbd></button>
-        <button data-act="tray">In Ablage</button>
-        ${kopie ? '' : '<button data-act="edit-case">Case bearbeiten</button>'}
-        <button data-act="delete" class="danger">Entfernen <kbd>Entf</kbd></button>
+        <button data-act="rotate">${t('Drehen')} <kbd>R</kbd></button>
+        <button data-act="tip" ${canTip(selected.c) ? '' : `disabled title="${t('Case ist nicht tippbar')}"`}>${t('Tippen')} <kbd>T</kbd></button>
+        <button data-act="dup">${t('Duplizieren')} <kbd>D</kbd></button>
+        <button data-act="tray">${t('In Ablage')}</button>
+        ${kopie ? '' : `<button data-act="edit-case">${t('Case bearbeiten')}</button>`}
+        <button data-act="delete" class="danger">${t('Entfernen')} <kbd>${t('Entf')}</kbd></button>
       </div>
       ${(result.byPlacement.get(selected.id) ?? []).map(i => `<p class="issue">${esc(i.message)}</p>`).join('')}
     </section>` : (selectedUnplaced ? `
     <section class="insp-sel insp-unplaced" data-id="${esc(selectedUnplaced.id)}">
       <h2>${swatch(selectedUnplaced.color)}${esc(selectedUnplaced.label)}</h2>
-      <p class="hint">Noch nicht geladen</p>
+      <p class="hint">${t('Noch nicht geladen')}</p>
       <div class="insp-label">
-        <label>Beschriftung<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selectedUnplaced.label)}"></label>
-        <label>Farbe<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
-        <label>Gruppe<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="keine" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
+        <label>${t('Beschriftung')}<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selectedUnplaced.label)}"></label>
+        <label>${t('Farbe')}<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
+        <label>${t('Gruppe')}<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="${t('keine')}" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
       </div>
       ${lkwField(lkw)}
-      <p class="insp-weight-row">Gewicht: ${weightField(selectedUnplaced.c, { gesperrt: kopie })}</p>
+      <p class="insp-weight-row">${t('Gewicht: {field}', { field: weightField(selectedUnplaced.c, { gesperrt: kopie }) })}</p>
       ${weightHint(selectedUnplaced.c)}
       ${kopie ? kopieBlock('uebernehmen-case') : ''}
       ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
       <div class="btns">
-        ${kopie ? '' : '<button data-act="edit-case">Case bearbeiten</button>'}
-        <button data-act="delete" class="danger">Entfernen</button>
+        ${kopie ? '' : `<button data-act="edit-case">${t('Case bearbeiten')}</button>`}
+        <button data-act="delete" class="danger">${t('Entfernen')}</button>
       </div>
-    </section>` : '<p class="hint">Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.</p>');
+    </section>` : `<p class="hint">${t('Case anklicken, um es zu bearbeiten. Ziehen verschiebt, Stapel wandern mit.')}</p>`);
 
+  const cogP = tot.cog && { x: fmtM(tot.cog.x), y: Math.round(tot.cog.y - truck.w / 2) };
+  const cogText = !tot.cog ? '–' : tot.cog.source === 'volume'
+    ? t('{x} ab Stirnwand, {y} cm aus der Mitte (ersatzweise über das Volumen geschätzt: Cases ohne Gewicht zählen dabei wie voll beladen)', cogP)
+    : t('{x} ab Stirnwand, {y} cm aus der Mitte', cogP);
   const totalsAndIssues = lkw?.none ? '' : `
     <section class="insp-totals">
-      <h3>Ladung – ${lkw?.name ? `${esc(lkw.name)} · ` : ''}${esc(truck.name)}</h3>
-      <div class="bar ${t.weight > t.payload ? 'over' : ''}"><span style="width:${pct}%"></span></div>
-      <p>${Math.round(t.weight).toLocaleString('de-DE')} / ${t.payload.toLocaleString('de-DE')} kg Nutzlast${t.withoutWeight ? ` · <span class="hint">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig</span>` : ''}</p>
+      <h3>${t('Ladung')} – ${lkw?.name ? `${esc(lkw.name)} · ` : ''}${esc(truck.name)}</h3>
+      <div class="bar ${tot.weight > tot.payload ? 'over' : ''}"><span style="width:${pct}%"></span></div>
+      <p>${t('{weight} / {payload} kg Nutzlast', { weight: num(Math.round(tot.weight)), payload: num(tot.payload) })}${tot.withoutWeight ? ` · <span class="hint">${tot.withoutWeight === 1
+        ? t('1 Case ohne Gewicht – die Nutzlast oben ist unvollständig')
+        : t('{n} Cases ohne Gewicht – die Nutzlast oben ist unvollständig', { n: tot.withoutWeight })}</span>` : ''}</p>
       ${truckKopie ? kopieBlock('uebernehmen-truck') : ''}
       <dl>
-        <dt>Cases</dt><dd>${t.count}</dd>
-        <dt>Lademeter</dt><dd>${fmtM(t.loadMeters * 100)} von ${fmtM(truck.l)}</dd>
-        <dt>Volumen</dt><dd>${Math.round(t.volumeRatio * 100)} %</dd>
-        <dt>Schwerpunkt</dt><dd>${t.cog ? `${fmtM(t.cog.x)} ab Stirnwand, ${Math.round(t.cog.y - truck.w / 2)} cm aus der Mitte${t.cog.source === 'volume' ? ' (ersatzweise über das Volumen geschätzt: Cases ohne Gewicht zählen dabei wie voll beladen)' : ''}` : '–'}</dd>
+        <dt>${t('Cases')}</dt><dd>${tot.count}</dd>
+        <dt>${t('Lademeter')}</dt><dd>${t('{a} von {b}', { a: fmtM(tot.loadMeters * 100), b: fmtM(truck.l) })}</dd>
+        <dt>${t('Volumen')}</dt><dd>${Math.round(tot.volumeRatio * 100)} %</dd>
+        <dt>${t('Schwerpunkt')}</dt><dd>${cogText}</dd>
       </dl>
     </section>
     <section class="insp-issues">
-      <h3>Warnungen (${result.issues.length})</h3>
+      <h3>${t('Warnungen ({n})', { n: result.issues.length })}</h3>
       ${result.issues.map(i => `<p class="issue" ${i.placementId ? `data-select="${esc(i.placementId)}"` : ''}>${
         i.placementId && result.sequence.has(i.placementId) ? `<b>${result.sequence.get(i.placementId)}.</b> ` : ''}${esc(i.message)}</p>`).join('')
-        || '<p class="ok">Alles in Ordnung.</p>'}
+        || `<p class="ok">${t('Alles in Ordnung.')}</p>`}
     </section>`;
   const html = `<datalist id="insp-group-list">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
     ${sel}${totalsAndIssues}
-    <p class="hint">Tasten: R drehen · T tippen · W Rollenrichtung · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig</p>`;
+    <p class="hint">${t('Tasten: R drehen · T tippen · W Rollenrichtung · D duplizieren · Pfeile schieben (⇧ = 1 cm) · Entf entfernen · ⌘Z rückgängig')}</p>`;
   if (html === el.__lastHtml) return;
   const focus = captureFocus(el);
   el.innerHTML = html;

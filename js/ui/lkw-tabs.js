@@ -6,6 +6,7 @@ import { esc } from './dom.js';
 import { MAX_LKW } from '../model/limits.js';
 import { lkwsOf, NO_LKW, piecesOf } from '../model/lkw.js';
 import { unassignedLines, stueck } from '../model/lkw-distribute.js';
+import { t, num } from '../i18n/i18n.js';
 const weightOf = c => (c && typeof c.weight === 'number' && Number.isFinite(c.weight) && c.weight > 0 ? c.weight : 0);
 
 // Modell der Leiste. `active` ist der gültige Reiter (activeLkwOf). Liefert null für Ein-LKW-Pläne.
@@ -15,13 +16,13 @@ export function lkwTabsModel({ plan, trucks, caseById, active }) {
   if (!lkws.length) return null;
   const pieces = piecesOf(plan);
   const known = new Set(lkws.map(l => l.id));
-  const truckName = id => (trucks.find(t => t.id === id) ?? { name: 'unbekanntes Fahrzeug' }).name;
+  const truckName = id => (trucks.find(tk => tk.id === id) ?? { name: t('unbekanntes Fahrzeug') }).name;
   const tabs = lkws.map(l => ({
     id: l.id, label: `${l.name} · ${truckName(l.truckId)}`,
     count: pieces.filter(x => x.lkw === l.id).length, active: l.id === active,
   }));
   const free = pieces.filter(x => !known.has(x.lkw));
-  if (free.length) tabs.push({ id: NO_LKW, label: 'Ohne LKW', count: free.length, active: active === NO_LKW, none: true });
+  if (free.length) tabs.push({ id: NO_LKW, label: t('Ohne LKW'), count: free.length, active: active === NO_LKW, none: true });
   let weight = 0, withoutWeight = 0;
   for (const x of pieces) {
     const w = weightOf(caseById.get(x.caseId));
@@ -35,19 +36,19 @@ export function lkwTabsModel({ plan, trucks, caseById, active }) {
   };
 }
 
-const kg = n => `${Math.round(n).toLocaleString('de-DE')} kg`;
+const kg = n => `${num(Math.round(n))} kg`;
 export function sumText(sum) {
-  const parts = [`Gesamt ${stueck(sum.total)}`, kg(sum.weight)];
-  if (sum.withoutWeight) parts[1] += ` (${sum.withoutWeight} ohne Gewicht)`;
+  const parts = [t('Gesamt {stueck}', { stueck: stueck(sum.total) }), kg(sum.weight)];
+  if (sum.withoutWeight) parts[1] += ` ${t('({n} ohne Gewicht)', { n: sum.withoutWeight })}`;
   if (sum.unassigned) parts.push(sum.unassignedLines.join(' · '));
   return parts.join(' · ');
 }
 
 export function tabsHtml(model) {
-  const tabs = model.tabs.map(t =>
-    `<button type="button" class="lkw-tab${t.active ? ' on' : ''}${t.none ? ' none' : ''}" data-lkw="${esc(t.id)}" aria-pressed="${t.active}">${esc(t.label)} <small>(${t.count})</small></button>`).join('');
-  const add = `<button type="button" data-act="add" ${model.canAdd ? '' : 'disabled title="Höchstzahl an LKW erreicht"'}>+ LKW</button>`;
-  const edit = `<button type="button" data-act="edit" ${model.tabs.some(t => t.active && !t.none) ? '' : 'disabled'}>LKW bearbeiten</button>`;
+  const tabs = model.tabs.map(tab =>
+    `<button type="button" class="lkw-tab${tab.active ? ' on' : ''}${tab.none ? ' none' : ''}" data-lkw="${esc(tab.id)}" aria-pressed="${tab.active}">${esc(tab.label)} <small>(${tab.count})</small></button>`).join('');
+  const add = `<button type="button" data-act="add" ${model.canAdd ? '' : `disabled title="${t('Höchstzahl an LKW erreicht')}"`}>${t('+ LKW')}</button>`;
+  const edit = `<button type="button" data-act="edit" ${model.tabs.some(tab => tab.active && !tab.none) ? '' : 'disabled'}>${t('LKW bearbeiten')}</button>`;
   return `<div class="lkw-tab-row">${tabs}<span class="grow"></span>${add}${edit}</div><p class="lkw-sum hint">${esc(sumText(model.sum))}</p>`;
 }
 

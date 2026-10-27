@@ -16,9 +16,13 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })
   .flatMap(e => (e.isDirectory() ? walk(`${d}/${e.name}`) : e.name.endsWith('.js') ? [`${d}/${e.name}`] : []));
 
+// js/ui-Dateien, die schon über t() laufen (js/data ist ganz umgestellt).
+const UMGESTELLT_UI = ['zoom2d', 'inspector', 'case-editor', 'caseInfo', 'caseGroups', 'library', 'material', 'stock-target',
+  'confirmDialog', 'dom', 'lkw-editor', 'lkw-tabs', 'truck-editor'].map(n => `js/ui/${n}.js`);
+
 // Noch nicht umgestellte Dateien. Spätere Tasks streichen ihre Dateien hier.
 export const PENDING = [
-  ...['js/ui', 'js/data'].flatMap(walk).filter(f => f !== 'js/ui/zoom2d.js'),
+  ...['js/ui'].flatMap(walk).filter(f => !UMGESTELLT_UI.includes(f)),
 ];
 
 // Ausnahmen für Test C: deutsche Literale, die bewusst deutsch bleiben (Daten, keine Anzeige).
@@ -31,6 +35,12 @@ export const ALLOW = [
   ...[['js/app/chrome.js', 'Unbehandelte Ablehnung'], ['js/app/chrome.js', 'Offline-Modus nicht verfügbar:'],
     ['js/app/planView.js', '3D-Ansicht: Laden fehlgeschlagen'], ['js/app/planView.js', '3D-Ansicht: Aktualisierung fehlgeschlagen']]
     .map(([file, text]) => ({ file, text, why: 'Konsole (Entwicklerdiagnose, nicht für Nutzer)' })),
+  ...[['js/data/categories.js', ['Licht', 'Bühne', 'Sonderbau', 'Sonstiges']], ['js/ui/case-editor.js', ['Sonstiges']], ['js/ui/caseGroups.js', ['Sonderbau']]]
+    .flatMap(([file, texte]) => texte.map(text => ({ file, text, why: 'gespeicherter Wert: Gewerk (Daten bleiben deutsch, Anzeige über trade())' }))),
+  { file: 'js/data/preset-trucks.js', text: 'Richtwert – mit dem echten Fahrzeug abgleichen', why: 'Hinweis eines mitgelieferten Fahrzeugs: bleibt in den Daten deutsch, Anzeige über builtinNote() (englischer Eintrag in en.js)' },
+  ...['Sprinter kurz', 'Sprinter lang', 'Trailer 40 t Koffer', 'Trailer 40 t Koffer extra hoch', 'Trailer 40 t Gardine']
+    .map(text => ({ file: 'js/data/preset-trucks.js', text, why: 'Bibliotheksname' })),
+  { file: 'js/ui/inspector.js', text: '<p class="hint insp-aus-projekt">', why: 'CSS-Klassenname (insp-aus-projekt), kein Anzeigetext' },
   { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', 'Migration nach „Sammlungen“ nicht gespeichert:']
     .map(text => ({ file: 'js/store/repo.js', text, why: 'Konsole' })),

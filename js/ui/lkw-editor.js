@@ -4,13 +4,16 @@ import { esc } from './dom.js';
 import { showAlert, showConfirm } from './confirmDialog.js';
 import { NAME_MAX } from '../model/limits.js';
 import { CATEGORIES } from '../data/categories.js';
+import { t, trade } from '../i18n/i18n.js';
 
-export const CATEGORY_HINT = 'Kein Haken = Rest-LKW (nimmt alles, was sonst keiner annimmt)';
-export const LAST_LKW_MESSAGE = 'Der letzte LKW lässt sich nicht löschen – ein Plan mit mehreren LKW braucht mindestens einen. „Truck entladen“ räumt ihn stattdessen leer.';
+// Die Sprache steht beim Laden der Seite fest (?lang=), darum reicht t() auf Modulebene.
+export const CATEGORY_HINT = t('Kein Haken = Rest-LKW (nimmt alles, was sonst keiner annimmt)');
+export const LAST_LKW_MESSAGE = t('Der letzte LKW lässt sich nicht löschen – ein Plan mit mehreren LKW braucht mindestens einen. „Truck entladen“ räumt ihn stattdessen leer.');
 
 // Rückfrage vor dem Löschen: nennt, was mit den Stücken passiert (sie werden keinem LKW zugeordnet).
-export const deleteQuestion = (name, pieces) =>
-  `LKW „${name}“ löschen?${pieces ? ` Seine ${pieces} Stücke werden keinem LKW mehr zugeordnet (Platzierungen wandern nach „Noch nicht geladen“).` : ''}`;
+export const deleteQuestion = (name, pieces) => (pieces
+  ? t('LKW „{name}“ löschen? Seine {pieces} Stücke werden keinem LKW mehr zugeordnet (Platzierungen wandern nach „Noch nicht geladen“).', { name, pieces })
+  : t('LKW „{name}“ löschen?', { name }));
 
 // Sortierung wie in der Kopfleiste: Vorlagen vorn, eigene danach alphabetisch.
 const sortTrucks = trucks => [...trucks].sort((a, b) =>
@@ -28,20 +31,20 @@ export async function openLkwEditor(dlg, lkw, { trucks, defaultTruckId, isLast =
   const truckId = lkw?.truckId ?? defaultTruckId;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${isNew ? 'Neuer LKW' : 'LKW bearbeiten'}</h2>
-      <label>Name<input name="name" required maxlength="${NAME_MAX}" placeholder="z. B. LKW Ton"></label>
-      <label>Fahrzeug<select name="truck">${sortTrucks(trucks).map(t =>
-        `<option value="${esc(t.id)}" ${t.id === truckId ? 'selected' : ''}>${esc(t.name)}${t.builtin ? '' : ' ★'} – ${t.l}×${t.w}×${t.h}</option>`).join('')}</select></label>
-      <fieldset class="lkw-cats"><legend>Gewerke</legend>
+      <h2>${isNew ? t('Neuer LKW') : t('LKW bearbeiten')}</h2>
+      <label>${t('Name')}<input name="name" required maxlength="${NAME_MAX}" placeholder="${t('z. B. LKW Ton')}"></label>
+      <label>${t('Fahrzeug')}<select name="truck">${sortTrucks(trucks).map(tk =>
+        `<option value="${esc(tk.id)}" ${tk.id === truckId ? 'selected' : ''}>${esc(tk.name)}${tk.builtin ? '' : ' ★'} – ${tk.l}×${tk.w}×${tk.h}</option>`).join('')}</select></label>
+      <fieldset class="lkw-cats"><legend>${t('Gewerke')}</legend>
         <div class="lkw-cat-list">${CATEGORIES.map(c =>
-          `<label class="check"><input type="checkbox" name="cat" value="${esc(c.name)}" ${lkw?.categories?.includes(c.name) ? 'checked' : ''}>${esc(c.name)}</label>`).join('')}</div>
+          `<label class="check"><input type="checkbox" name="cat" value="${esc(c.name)}" ${lkw?.categories?.includes(c.name) ? 'checked' : ''}>${esc(trade(c.name))}</label>`).join('')}</div>
         <p class="hint">${esc(CATEGORY_HINT)}</p>
       </fieldset>
       <menu>
-        <button value="delete" class="danger" formnovalidate ${isNew ? 'hidden' : ''}>Löschen</button>
+        <button value="delete" class="danger" formnovalidate ${isNew ? 'hidden' : ''}>${t('Löschen')}</button>
         <span class="grow"></span>
-        <button value="cancel" formnovalidate>Abbrechen</button>
-        <button value="save" class="primary">Speichern</button>
+        <button value="cancel" formnovalidate>${t('Abbrechen')}</button>
+        <button value="save" class="primary">${t('Speichern')}</button>
       </menu>
     </form>`;
   const f = dlg.querySelector('form').elements;
@@ -51,7 +54,7 @@ export async function openLkwEditor(dlg, lkw, { trucks, defaultTruckId, isLast =
       const act = dlg.returnValue;
       if (act === 'delete') {
         if (isLast) { showAlert(LAST_LKW_MESSAGE).then(() => resolve(null)); return; }
-        showConfirm(deleteQuestion(lkw.name, pieces), { okLabel: 'Löschen', danger: true })
+        showConfirm(deleteQuestion(lkw.name, pieces), { okLabel: t('Löschen'), danger: true })
           .then(ok => resolve(ok ? { action: 'delete' } : null));
         return;
       }
