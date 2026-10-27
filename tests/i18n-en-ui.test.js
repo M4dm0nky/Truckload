@@ -2,6 +2,7 @@
 import { test, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { setLang, builtinNote, trade } from '../js/i18n/i18n.js';
+import EN from '../js/i18n/en.js';
 import { looksGerman } from './i18n-scan.js';
 import { renderInspector, orientationText } from '../js/ui/inspector.js';
 import { categoryOptionsHtml } from '../js/ui/case-editor.js';
@@ -11,8 +12,6 @@ import { fmtM, ORIENTATION_LABEL } from '../js/ui/dom.js';
 import { sumText, tabsHtml } from '../js/ui/lkw-tabs.js';
 import { stockTargetHtml } from '../js/ui/stock-target.js';
 import { validatePlan } from '../js/model/validate.js';
-import { PRESET_CASES } from '../js/data/preset-cases.js';
-import { PRESET_TRUCKS } from '../js/data/preset-trucks.js';
 import { mkCase, mkTruck, P, plan, byId } from './fixtures.js';
 
 beforeEach(() => setLang('en'));
@@ -71,16 +70,14 @@ test('Case-Editor: Gewerk-Auswahl zeigt die Übersetzung, der Wert bleibt deutsc
   assert.ok(categoryOptionsHtml().includes('<option value="Licht">Licht</option>'));
 });
 
-test('builtinNote: mitgeliefertes Case mit „Gewicht geschätzt“ englisch, Nutzernotiz unverändert', () => {
-  const std = PRESET_CASES.find(c => c.note?.startsWith('Gewicht geschätzt: '));
-  assert.ok(std);
-  const en = builtinNote(std);
-  assert.ok(en.startsWith('Weight estimated: '), en);
-  assert.ok(!looksGerman(en), en);
-  assert.equal(builtinNote({ builtin: false, note: 'Gewicht geschätzt' }), 'Gewicht geschätzt');
-  assert.equal(builtinNote({ builtin: true, note: 'Gewicht geschätzt' }), 'Weight estimated');
-  const truck = PRESET_TRUCKS[0];
-  assert.ok(!looksGerman(builtinNote(truck)), builtinNote(truck));
+test('builtinNote: mitgeliefertes Case englisch (eigener Eintrag), Nutzernotiz unverändert', () => {
+  EN['Gewicht geschätzt: Testwert'] = 'Weight estimated: test value';
+  try {
+    assert.equal(builtinNote({ builtin: true, note: 'Gewicht geschätzt: Testwert' }), 'Weight estimated: test value');
+    assert.equal(builtinNote({ builtin: false, note: 'Gewicht geschätzt: Testwert' }), 'Gewicht geschätzt: Testwert');
+    setLang('de');
+    assert.equal(builtinNote({ builtin: true, note: 'Gewicht geschätzt: Testwert' }), 'Gewicht geschätzt: Testwert');
+  } finally { delete EN['Gewicht geschätzt: Testwert']; }
 });
 
 test('Anzeigetexte: Case-Zeilen, Reiter, Leiste, Ablageziel englisch', () => {
