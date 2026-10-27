@@ -6,7 +6,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import EN from '../js/i18n/en.js';
-import { literals, tCalls, looksGerman, shadowsT } from './i18n-scan.js';
+import { literals, tCalls, looksGerman, shadowsT, htmlScan, dataTTexts } from './i18n-scan.js';
+import { translateDom } from '../js/i18n/dom.js';
+import { setLang } from '../js/i18n/i18n.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const rel = f => path.relative(ROOT, f).split(path.sep).join('/');
@@ -16,7 +18,7 @@ const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })
 
 // Noch nicht umgestellte Dateien. Spätere Tasks streichen ihre Dateien hier.
 export const PENDING = [
-  'index.html', 'js/app.js',
+  'js/app.js',
   ...['js/app', 'js/ui', 'js/model', 'js/store', 'js/data'].flatMap(walk),
 ];
 
@@ -32,13 +34,6 @@ const DYNAMIC_KEYS = { MEINE_NAME: 'Meine Sammlung' };
 const jsFiles = walk('js');
 const NOTE_RE = /const NOTE = (['"`])(.*?)\1;/;
 
-// data-t*-Texte aus index.html (data-t, data-t-title, …); Entitäten zurückwandeln.
-function dataTTexts() {
-  const html = read('index.html');
-  return [...html.matchAll(/data-t[\w-]*="([^"]*)"/g)].map(m => m[1]
-    .replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
-}
-
 const placeholders = s => [...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort().join(',');
 const fullKey = c => (c.ctx ? `${c.ctx}|${c.key}` : c.key);
 
@@ -51,7 +46,7 @@ function usedKeys() {
       else if (c.ident && Object.hasOwn(DYNAMIC_KEYS, c.ident)) used.push({ key: DYNAMIC_KEYS[c.ident], text: DYNAMIC_KEYS[c.ident], where: `${f}:${c.line}` });
     }
   }
-  for (const text of dataTTexts()) used.push({ key: text, text, where: 'index.html' });
+  for (const text of dataTTexts(read('index.html'))) used.push({ key: text, text, where: 'index.html' });
   return used;
 }
 
@@ -83,8 +78,14 @@ const enTexte = () => new Set(Object.keys(EN).flatMap(k => (k.includes('|') ? [k
 test('C: kein deutscher Text außerhalb von t()', () => {
   const fehler = [];
   const bekannt = enTexte();
-  // HTML wird erst gescannt, wenn die Seite umgestellt ist (Task 3): bis dahin muss index.html in PENDING stehen.
-  for (const f of ['index.html'].filter(f => !PENDING.includes(f))) fehler.push(`${f}: nicht mehr in PENDING, aber es gibt noch keinen HTML-Scan in Test C`);
+  // index.html: sichtbare Textknoten und title/aria-label/placeholder/alt außerhalb von <script>/<style>
+  // müssen ihr data-t-Zeichen tragen, sobald sie deutsch wirken
+  if (!PENDING.includes('index.html')) {
+    const h = htmlScan(read('index.html'));
+    for (const x of h.texte) if (!x.marked && looksGerman(x.text)) fehler.push(`index.html:${x.line}: deutscher Text ohne data-t: ${JSON.stringify(x.text)}`);
+    for (const x of h.attribute) if (!x.marked && looksGerman(x.text)) fehler.push(`index.html:${x.line}: deutsches ${x.attr} ohne data-t-${x.attr}: ${JSON.stringify(x.text)}`);
+    for (const x of h.gemischt) fehler.push(`index.html:${x.line}: data-t-Element <${x.text}> enthält Kindelemente (Text in eigenes <span data-t> auslagern)`);
+  }
   // en.js ist die Übersetzungstabelle: ihre Schlüssel sind absichtlich deutsch
   for (const f of jsFiles.filter(f => !PENDING.includes(f) && f !== 'js/i18n/en.js')) {
     const src = read(f);
@@ -93,7 +94,8 @@ test('C: kein deutscher Text außerhalb von t()', () => {
       if (looksGerman(l.text)) fehler.push(`${f}:${l.line}: deutsches Literal außerhalb von t(): ${JSON.stringify(l.text)}`);
       else if (bekannt.has(l.text)) fehler.push(`${f}:${l.line}: Literal entspricht einem en.js-Schlüssel, steht aber außerhalb von t(): ${JSON.stringify(l.text)}`);
     }
-    if (f !== 'js/i18n/i18n.js') {
+    // i18n.js und dom.js sind der Übersetzungsmechanismus selbst: dort ist t(<Variable>) gewollt
+    if (f !== 'js/i18n/i18n.js' && f !== 'js/i18n/dom.js') {
       for (const c of tCalls(src)) {
         if (c.key === null && !(c.ident && Object.hasOwn(DYNAMIC_KEYS, c.ident))) fehler.push(`${f}:${c.line}: t() mit nicht-literalem Schlüssel`);
       }
@@ -118,6 +120,52 @@ test('D2: shadowsT erkennt lokale Bindungen namens t', () => {
   for (const s of ['import { t, num } from \'./i18n.js\';', 'const x = t(\'Hallo\');', 'const test = 1;', 'obj.t = 1;', 'xs.map(x => t(\'y\'));',
     'const { a } = t(\'x\');', 'const o = { t: 1 };', 'f(a, t);']) {
     assert.equal(shadowsT(s).length, 0, s);
+  }
+});
+
+test('F: der HTML-Scan findet unmarkierte Texte und liest die Marker', () => {
+  const h = htmlScan('<title>Truckload</title><script>var x = "Löschen";</script><button title="Hinweis schließen" data-t-title>×</button>'
+    + '<p>Lösche   alles</p><span data-t>Alles\n neu</span><b aria-label="Schließen">x</b><i data-t><u>Kind</u></i>');
+  assert.deepEqual(h.texte.filter(x => !x.marked && looksGerman(x.text)).map(x => x.text), ['Lösche alles']);
+  assert.deepEqual(h.attribute.filter(x => !x.marked && looksGerman(x.text)).map(x => x.text), ['Schließen']);
+  assert.deepEqual(h.markiert.map(x => x.text).sort(), ['Alles neu', 'Hinweis schließen', 'Kind']);
+  assert.deepEqual(h.gemischt.map(x => x.text), ['i']);
+  for (const s of ['Truckload', 'V 0.20.0', '×', '↶', '↷', '−', '+', '2D', '3D']) assert.equal(looksGerman(s), false, s);
+});
+
+// Minimales DOM-Double: nur die API, die translateDom benutzt.
+function el(attrs, textContent = '') {
+  const a = { ...attrs };
+  return { textContent, getAttribute: n => (n in a ? a[n] : null), setAttribute: (n, v) => { a[n] = v; } };
+}
+
+test('G: translateDom setzt lang, übersetzt nur auf Englisch und lässt Deutsch unverändert', () => {
+  EN['Neu laden'] = 'Reload';
+  EN['Hinweis schließen'] = 'Dismiss';
+  const mk = () => ({
+    btn: el({ 'data-t': '' }, '\n   Neu  laden '),
+    x: el({ 'data-t-aria-label': '', 'aria-label': 'Hinweis schließen', title: 'Bleibt' }, '×'),
+    fremd: el({ 'data-t': '' }, 'Ohne Eintrag'),
+  });
+  const root = els => ({ querySelectorAll: () => Object.values(els) });
+  globalThis.document = { documentElement: { lang: 'de' } };
+  try {
+    const de = mk();
+    setLang('de'); translateDom(root(de));
+    assert.equal(document.documentElement.lang, 'de');
+    assert.equal(de.btn.textContent, '\n   Neu  laden ');
+    assert.equal(de.x.getAttribute('aria-label'), 'Hinweis schließen');
+    const en = mk();
+    setLang('en'); translateDom(root(en));
+    assert.equal(document.documentElement.lang, 'en');
+    assert.equal(en.btn.textContent, 'Reload');
+    assert.equal(en.x.getAttribute('aria-label'), 'Dismiss');
+    assert.equal(en.x.getAttribute('title'), 'Bleibt');
+    assert.equal(en.x.textContent, '×');
+    assert.equal(en.fremd.textContent, 'Ohne Eintrag');
+  } finally {
+    setLang('de'); delete globalThis.document;
+    delete EN['Neu laden']; delete EN['Hinweis schließen'];
   }
 });
 

@@ -71,6 +71,7 @@
   <link rel="modulepreload" href="js/data/categories.js">
   <link rel="modulepreload" href="js/data/preset-cases.js">
   <link rel="modulepreload" href="js/data/preset-trucks.js">
+  <link rel="modulepreload" href="js/i18n/dom.js">
   <link rel="modulepreload" href="js/i18n/en.js">
   <link rel="modulepreload" href="js/i18n/i18n.js">
   <link rel="modulepreload" href="js/model/actions.js">
@@ -134,11 +135,11 @@
   <div id="storage-warning" class="banner banner-warn" hidden></div>
   <div id="error-banner" class="banner banner-warn" role="alert" hidden>
     <span id="error-banner-text"></span>
-    <button id="error-banner-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>
+    <button id="error-banner-close" class="banner-close" type="button" aria-label="Hinweis schließen" data-t-aria-label>×</button>
   </div>
   <div id="tab-warning" class="banner banner-warn" hidden>
-    Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.
-    <button id="tab-warning-close" class="banner-close" type="button" aria-label="Hinweis schließen">×</button>
+    <span data-t>Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.</span>
+    <button id="tab-warning-close" class="banner-close" type="button" aria-label="Hinweis schließen" data-t-aria-label>×</button>
   </div>
   <!-- Liegt außerhalb von header.topbar, damit sie auch erreichbar ist, wenn dieser
        (Startbildschirm, kein Plan gewählt) `hidden` ist – siehe #import-btn dort und
@@ -147,7 +148,7 @@
   <section id="start-screen" class="start-screen">
     <div class="start-card">
       <h1>Truckload</h1>
-      <p>Lege einen neuen Ladeplan an oder öffne einen vorhandenen.</p>
+      <p data-t>Lege einen neuen Ladeplan an oder öffne einen vorhandenen.</p>
       <div id="start-actions"></div>
     </div>
   </section>
@@ -156,78 +157,78 @@
     <strong class="brand">Truckload <span id="app-version" class="version">V 0.20.0</span></strong>
     <span id="save-status" class="save-status" hidden></span>
     <div class="group">
-      <select id="plan-select" title="Ladeplan"></select>
-      <button id="plan-new">Neu</button>
-      <button id="plan-rename">Umbenennen</button>
-      <button id="plan-dup">Duplizieren</button>
-      <button id="plan-del" class="danger">Löschen</button>
+      <select id="plan-select" title="Ladeplan" data-t-title></select>
+      <button id="plan-new" data-t>Neu</button>
+      <button id="plan-rename" data-t>Umbenennen</button>
+      <button id="plan-dup" data-t>Duplizieren</button>
+      <button id="plan-del" class="danger" data-t>Löschen</button>
     </div>
     <div class="group">
-      <select id="truck-select" title="Fahrzeug"></select>
-      <button id="truck-edit">Bearbeiten</button>
-      <button id="truck-new">+ Fahrzeug</button>
-      <button id="material-open" type="button" title="Materialverwaltung">Material</button>
+      <select id="truck-select" title="Fahrzeug" data-t-title></select>
+      <button id="truck-edit" data-t>Bearbeiten</button>
+      <button id="truck-new" data-t>+ Fahrzeug</button>
+      <button id="material-open" type="button" title="Materialverwaltung" data-t-title data-t>Material</button>
     </div>
     <div class="group">
-      <button id="lkw-multi" type="button" title="Plan auf mehrere LKW umstellen und einen weiteren LKW anlegen">Mehrere LKW</button>
+      <button id="lkw-multi" type="button" title="Plan auf mehrere LKW umstellen und einen weiteren LKW anlegen" data-t-title data-t>Mehrere LKW</button>
     </div>
     <div class="group">
-      <button id="pack-all" class="primary">Alles neu packen</button>
-      <button id="pack-rest">Rest einpacken</button>
-      <button id="pack-rules" type="button">Pack-Regeln …</button>
-      <button id="unload-all" title="Alle Cases zurück nach „Noch nicht geladen“, um von Hand zu laden">Truck entladen</button>
+      <button id="pack-all" class="primary" data-t>Alles neu packen</button>
+      <button id="pack-rest" data-t>Rest einpacken</button>
+      <button id="pack-rules" type="button" data-t>Pack-Regeln …</button>
+      <button id="unload-all" title="Alle Cases zurück nach „Noch nicht geladen“, um von Hand zu laden" data-t-title data-t>Truck entladen</button>
     </div>
     <div class="group seg">
       <button id="mode-2d" class="on">2D</button>
       <button id="mode-3d">3D</button>
     </div>
     <div id="layer-group" class="group">
-      <span class="seg-label">Lagen</span>
-      <select id="layer-limit" title="Höhere Lagen blass zeichnen">
-        <option value="">alle</option>
-        <option value="1">bis 1</option>
-        <option value="2">bis 2</option>
-        <option value="3">bis 3</option>
+      <span class="seg-label" data-t>Lagen</span>
+      <select id="layer-limit" title="Höhere Lagen blass zeichnen" data-t-title>
+        <option value="" data-t>alle</option>
+        <option value="1" data-t>bis 1</option>
+        <option value="2" data-t>bis 2</option>
+        <option value="3" data-t>bis 3</option>
       </select>
     </div>
     <div class="group seg">
-      <span class="seg-label">Case-Farbe</span>
-      <button id="colors-black" class="on">Schwarz</button>
-      <button id="colors-trade">Gewerk</button>
-      <button id="colors-weight">Gewicht</button>
+      <span class="seg-label" data-t>Case-Farbe</span>
+      <button id="colors-black" class="on" data-t>Schwarz</button>
+      <button id="colors-trade" data-t>Gewerk</button>
+      <button id="colors-weight" data-t>Gewicht</button>
     </div>
     <span class="grow"></span>
     <div class="group">
-      <button id="undo" title="Rückgängig (⌘Z)">↶</button>
-      <button id="redo" title="Wiederholen (⇧⌘Z)">↷</button>
-      <button id="export" title="Alles als JSON-Datei sichern">Sichern</button>
-      <button id="import-btn" type="button" title="JSON-Sicherung einlesen">Importieren</button>
-      <select id="print-doc" title="Was gedruckt wird">
-        <option value="plan">Ladeplan</option>
-        <option value="checklist">Abhakliste</option>
-        <option value="unload">Ausladeliste</option>
-        <option value="labels">Etiketten</option>
+      <button id="undo" title="Rückgängig (⌘Z)" data-t-title>↶</button>
+      <button id="redo" title="Wiederholen (⇧⌘Z)" data-t-title>↷</button>
+      <button id="export" title="Alles als JSON-Datei sichern" data-t-title data-t>Sichern</button>
+      <button id="import-btn" type="button" title="JSON-Sicherung einlesen" data-t-title data-t>Importieren</button>
+      <select id="print-doc" title="Was gedruckt wird" data-t-title>
+        <option value="plan" data-t>Ladeplan</option>
+        <option value="checklist" data-t>Abhakliste</option>
+        <option value="unload" data-t>Ausladeliste</option>
+        <option value="labels" data-t>Etiketten</option>
       </select>
-      <select id="print-scope" title="Welche LKW gedruckt werden" hidden>
-        <option value="one">dieser LKW</option>
-        <option value="all">alle LKW</option>
+      <select id="print-scope" title="Welche LKW gedruckt werden" data-t-title hidden>
+        <option value="one" data-t>dieser LKW</option>
+        <option value="all" data-t>alle LKW</option>
       </select>
-      <select id="print-label-size" title="Etikettengröße" hidden>
-        <option value="large">Etiketten groß – Avery 3425 (105 × 57 mm, 10 je Bogen)</option>
-        <option value="small">Etiketten klein – Avery 3474 (70 × 37 mm, 24 je Bogen)</option>
+      <select id="print-label-size" title="Etikettengröße" data-t-title hidden>
+        <option value="large" data-t>Etiketten groß – Avery 3425 (105 × 57 mm, 10 je Bogen)</option>
+        <option value="small" data-t>Etiketten klein – Avery 3474 (70 × 37 mm, 24 je Bogen)</option>
       </select>
-      <button id="print">Drucken</button>
+      <button id="print" data-t>Drucken</button>
     </div>
   </header>
   <main class="layout" hidden>
     <aside id="library" class="panel library"></aside>
     <section class="stage">
       <div id="lkw-tabs" class="lkw-tabs" hidden></div>
-      <p id="lkw-none-hint" class="lkw-none-hint" hidden>Diese Stücke gehören keinem LKW. „Alles neu packen“ verteilt sie auf die LKW, oder weise sie rechts im Feld „LKW“ einem LKW zu.</p>
+      <p id="lkw-none-hint" class="lkw-none-hint" hidden data-t>Diese Stücke gehören keinem LKW. „Alles neu packen“ verteilt sie auf die LKW, oder weise sie rechts im Feld „LKW“ einem LKW zu.</p>
       <div id="views2d" class="views2d">
-        <figure class="view view-top"><figcaption>Draufsicht <small>Stirnwand links · Tür rechts</small><span class="zoom" data-zoom="svg-top"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" aria-label="Ganzen Truck zeigen">Alles</button><button type="button" data-z="scroll" title="Mausrad / Trackpad: Automatisch erkennt Rad (zoomt) und Wischen (verschiebt). Zoomen oder Verschieben erzwingt eines von beiden; Strg oder Pinch zoomt immer. Klick wechselt." aria-label="Rad: Auto – Scrollverhalten (Automatisch), Klick wechselt">Rad: Auto</button></span></figcaption><svg id="svg-top"></svg></figure>
-        <figure class="view view-side"><figcaption>Seitenansicht <small>von links</small><span class="zoom" data-zoom="svg-side"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" aria-label="Ganzen Truck zeigen">Alles</button><button type="button" data-z="scroll" title="Mausrad / Trackpad: Automatisch erkennt Rad (zoomt) und Wischen (verschiebt). Zoomen oder Verschieben erzwingt eines von beiden; Strg oder Pinch zoomt immer. Klick wechselt." aria-label="Rad: Auto – Scrollverhalten (Automatisch), Klick wechselt">Rad: Auto</button></span></figcaption><svg id="svg-side"></svg></figure>
-        <figure class="view view-rear"><figcaption>Rückansicht <small>von der Tür</small><span class="zoom" data-zoom="svg-rear"><button type="button" data-z="out" title="Herauszoomen" aria-label="Herauszoomen">−</button><button type="button" data-z="in" title="Hineinzoomen" aria-label="Hineinzoomen">+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" aria-label="Ganzen Truck zeigen">Alles</button><button type="button" data-z="scroll" title="Mausrad / Trackpad: Automatisch erkennt Rad (zoomt) und Wischen (verschiebt). Zoomen oder Verschieben erzwingt eines von beiden; Strg oder Pinch zoomt immer. Klick wechselt." aria-label="Rad: Auto – Scrollverhalten (Automatisch), Klick wechselt">Rad: Auto</button></span></figcaption><svg id="svg-rear"></svg></figure>
+        <figure class="view view-top"><figcaption><span data-t>Draufsicht</span> <small data-t>Stirnwand links · Tür rechts</small><span class="zoom" data-zoom="svg-top"><button type="button" data-z="out" title="Herauszoomen" data-t-title aria-label="Herauszoomen" data-t-aria-label>−</button><button type="button" data-z="in" title="Hineinzoomen" data-t-title aria-label="Hineinzoomen" data-t-aria-label>+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" data-t-title aria-label="Ganzen Truck zeigen" data-t-aria-label data-t>Alles</button><button type="button" data-z="scroll" title="Mausrad / Trackpad: Automatisch erkennt Rad (zoomt) und Wischen (verschiebt). Zoomen oder Verschieben erzwingt eines von beiden; Strg oder Pinch zoomt immer. Klick wechselt." data-t-title aria-label="Rad: Auto – Scrollverhalten (Automatisch), Klick wechselt" data-t-aria-label data-t>Rad: Auto</button></span></figcaption><svg id="svg-top"></svg></figure>
+        <figure class="view view-side"><figcaption><span data-t>Seitenansicht</span> <small data-t>von links</small><span class="zoom" data-zoom="svg-side"><button type="button" data-z="out" title="Herauszoomen" data-t-title aria-label="Herauszoomen" data-t-aria-label>−</button><button type="button" data-z="in" title="Hineinzoomen" data-t-title aria-label="Hineinzoomen" data-t-aria-label>+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" data-t-title aria-label="Ganzen Truck zeigen" data-t-aria-label data-t>Alles</button><button type="button" data-z="scroll" title="Mausrad / Trackpad: Automatisch erkennt Rad (zoomt) und Wischen (verschiebt). Zoomen oder Verschieben erzwingt eines von beiden; Strg oder Pinch zoomt immer. Klick wechselt." data-t-title aria-label="Rad: Auto – Scrollverhalten (Automatisch), Klick wechselt" data-t-aria-label data-t>Rad: Auto</button></span></figcaption><svg id="svg-side"></svg></figure>
+        <figure class="view view-rear"><figcaption><span data-t>Rückansicht</span> <small data-t>von der Tür</small><span class="zoom" data-zoom="svg-rear"><button type="button" data-z="out" title="Herauszoomen" data-t-title aria-label="Herauszoomen" data-t-aria-label>−</button><button type="button" data-z="in" title="Hineinzoomen" data-t-title aria-label="Hineinzoomen" data-t-aria-label>+</button><button type="button" data-z="all" title="Ganzen Truck zeigen" data-t-title aria-label="Ganzen Truck zeigen" data-t-aria-label data-t>Alles</button><button type="button" data-z="scroll" title="Mausrad / Trackpad: Automatisch erkennt Rad (zoomt) und Wischen (verschiebt). Zoomen oder Verschieben erzwingt eines von beiden; Strg oder Pinch zoomt immer. Klick wechselt." data-t-title aria-label="Rad: Auto – Scrollverhalten (Automatisch), Klick wechselt" data-t-aria-label data-t>Rad: Auto</button></span></figcaption><svg id="svg-rear"></svg></figure>
       </div>
       <div id="view3d" class="view3d" hidden></div>
       <p id="view3d-stale" class="view3d-stale" role="status" hidden></p>

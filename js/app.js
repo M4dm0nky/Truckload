@@ -19,6 +19,10 @@ import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf, planZumSpeich
 import { isMultiLkw } from './model/lkw.js';
 import * as A from './model/actions.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
+import { translateDom } from './i18n/dom.js';
+
+// Statisches HTML übersetzen (Englisch) und <html lang> setzen, bevor irgendetwas rendert.
+translateDom(document);
 
 installEarlyHandlers(repo);
 

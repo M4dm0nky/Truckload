@@ -36,6 +36,7 @@ const ASSETS = [
   'js/data/categories.js',
   'js/data/preset-cases.js',
   'js/data/preset-trucks.js',
+  'js/i18n/dom.js',
   'js/i18n/en.js',
   'js/i18n/i18n.js',
   'js/model/actions.js',

@@ -267,3 +267,67 @@ export function shadowsT(src) {
   });
   return hits;
 }
+
+// ---- HTML (index.html) ----
+import { normalisiert } from '../js/i18n/dom.js';
+
+const VOID = new Set(['meta', 'link', 'input', 'br', 'hr', 'img', 'source', 'area', 'base', 'col', 'embed', 'param', 'track', 'wbr']);
+const ATTR_MIT_TEXT = ['title', 'aria-label', 'placeholder', 'alt'];
+const entitaeten = s => s.replace(/&quot;/g, '"').replace(/&#39;/g, '\'').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+function attrs(raw) {
+  const out = {};
+  for (const m of raw.matchAll(/([^\s=/"']+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g)) out[m[1].toLowerCase()] = entitaeten(m[2] ?? m[3] ?? m[4] ?? '');
+  return out;
+}
+
+// Zerlegt HTML in Elemente und Textknoten (ohne <script>/<style>/Kommentare).
+// Liefert { texte: [{ text, line, marked }], attribute: [{ attr, text, line, marked }],
+// markiert: [{ text, kind, line }], gemischt: [{ text, line }] }.
+// „marked“: der Text steht in einem data-t-Element bzw. trägt das passende data-t-<attr>.
+// markiert = alle Texte, die translateDom übersetzt (Schlüssel normalisiert).
+// gemischt = data-t-Elemente mit Kindelementen (translateDom würde sie zerstören).
+export function htmlScan(html) {
+  const texte = [], attribute = [], markiert = [], gemischt = [];
+  const stack = []; // { name, marked, idx }
+  const re = /<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>|<!doctype[^>]*>|<(\/?)([a-zA-Z][\w-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/gi;
+  let pos = 0;
+  const lineAt = i => html.slice(0, i).split('\n').length;
+  const text = (s, at) => {
+    const t = normalisiert(entitaeten(s));
+    if (!t) return;
+    const top = stack.find(e => e.marked);
+    texte.push({ text: t, line: lineAt(at), marked: !!top });
+    if (top) top.buf.push(t);
+  };
+  for (let m; (m = re.exec(html));) {
+    text(html.slice(pos, m.index), pos);
+    pos = re.lastIndex;
+    if (!m[3]) continue; // Kommentar, Doctype, script, style
+    const name = m[3].toLowerCase();
+    if (m[2]) { // schließendes Tag
+      const k = stack.map(e => e.name).lastIndexOf(name);
+      if (k >= 0) {
+        for (const e of stack.splice(k)) if (e.dataT) markiert.push({ text: normalisiert(e.buf.join(' ')), kind: 'data-t', line: e.line });
+      }
+      continue;
+    }
+    const a = attrs(m[4]);
+    const line = lineAt(m.index);
+    if (stack.length) { const p = stack[stack.length - 1]; if (p.dataT) gemischt.push({ text: p.name, line }); }
+    for (const at of ATTR_MIT_TEXT) {
+      if (a[at] === undefined || normalisiert(a[at]) === '') continue;
+      const marked = a[`data-t-${at}`] !== undefined;
+      attribute.push({ attr: at, text: normalisiert(a[at]), line, marked });
+      if (marked) markiert.push({ text: normalisiert(a[at]), kind: `data-t-${at}`, line });
+    }
+    if (!VOID.has(name) && !m[0].endsWith('/>')) {
+      stack.push({ name, marked: a['data-t'] !== undefined || stack.some(e => e.marked), dataT: a['data-t'] !== undefined, buf: [], line });
+    }
+  }
+  text(html.slice(pos), pos);
+  return { texte, attribute, markiert, gemischt };
+}
+
+// Die Texte, die translateDom übersetzt (Schlüssel für en.js).
+export const dataTTexts = html => htmlScan(html).markiert.map(x => x.text);
