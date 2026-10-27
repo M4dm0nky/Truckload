@@ -87,7 +87,7 @@ function capFits(s, it, c, o, truck) {
   if (!top.c.stackable) return null;
   const capZ = s.cap ? s.cap.z : s.height;
   if (capZ + o.d.dz > truck.h + 1e-6) return null;
-  const sum = s.items.slice(n).reduce((t, x) => t + x.c.weight, 0) + c.weight;
+  const sum = s.items.slice(n).reduce((acc, x) => acc + x.c.weight, 0) + c.weight;
   if (sum > top.c.weight) return null;
   let above = sum;
   for (let i = n - 1; i >= 0; i--) {

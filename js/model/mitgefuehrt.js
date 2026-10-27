@@ -3,6 +3,8 @@
 // 2026-10-14-truckload-projektdatei-vollstaendig-design.md im NYX-Repo).
 // Regel: die Bibliothek gewinnt immer, die Kopie füllt nur fehlende IDs. Rein, ohne DOM und Store.
 
+import { t } from '../i18n/i18n.js';
+
 export const MITGEFUEHRT_VERSION = 1;
 
 const gueltig = x => x && typeof x === 'object' && typeof x.id === 'string' && x.id !== '';
@@ -28,8 +30,8 @@ export function bestandFuer(cases, trucks, plan) {
   if (!m) return { cases, trucks, ausProjekt: { cases: new Set(), trucks: new Set() } };
   const r = referenzen(plan);
   const c = ergaenze(cases, m.cases, r.caseIds);
-  const t = ergaenze(trucks, m.trucks, r.truckIds);
-  return { cases: c.liste, trucks: t.liste, ausProjekt: { cases: c.ids, trucks: t.ids } };
+  const tr = ergaenze(trucks, m.trucks, r.truckIds);
+  return { cases: c.liste, trucks: tr.liste, ausProjekt: { cases: c.ids, trucks: tr.ids } };
 }
 
 // --- Entscheidungen der Oberfläche über Kopien (rein, damit sie ohne DOM testbar sind) ---
@@ -38,16 +40,16 @@ export const istKopieCase = (ausProjekt, id) => !!ausProjekt?.cases?.has(id);
 export const istKopieTruck = (ausProjekt, id) => !!ausProjekt?.trucks?.has(id);
 
 // Kennzeichnung eines Fahrzeugs in der Fahrzeugauswahl: Vorlage ohne Zeichen, eigenes ★, Kopie ◇.
-export function truckMarke(t, ausProjekt) {
-  if (istKopieTruck(ausProjekt, t.id)) return { zeichen: ' ◇', title: 'Aus der Projektdatei – nicht in deiner Bibliothek' };
-  return { zeichen: t.builtin ? '' : ' ★', title: '' };
+export function truckMarke(truck, ausProjekt) {
+  if (istKopieTruck(ausProjekt, truck.id)) return { zeichen: ' ◇', title: t('Aus der Projektdatei – nicht in deiner Bibliothek') };
+  return { zeichen: truck.builtin ? '' : ' ★', title: '' };
 }
 
 // Der Fahrzeug-Stift: eine Kopie ist gesperrt, bis sie übernommen ist. `truck` ist das gewählte Fahrzeug
 // (null im Reiter „Ohne LKW“, dort sperrt der Aufrufer ohnehin).
 export function truckStiftSperre(ausProjekt, truck) {
   const kopie = !!truck && istKopieTruck(ausProjekt, truck.id);
-  return { gesperrt: kopie, title: kopie ? 'Aus der Projektdatei – erst in die Bibliothek übernehmen' : '' };
+  return { gesperrt: kopie, title: kopie ? t('Aus der Projektdatei – erst in die Bibliothek übernehmen') : '' };
 }
 
 // Entfernt gelöschte IDs aus der Kopie des Plans (sonst füllte bestandOf die Lücke aus dem alten
@@ -75,7 +77,7 @@ export function mitfuehren(plan, cases, trucks) {
   const b = bestandFuer(cases, trucks, plan);
   const r = referenzen(plan);
   const caseById = new Map(b.cases.map(c => [c.id, c]));
-  const truckById = new Map(b.trucks.map(t => [t.id, t]));
+  const truckById = new Map(b.trucks.map(tr => [tr.id, tr]));
   const neu = {
     version: MITGEFUEHRT_VERSION,
     cases: [...r.caseIds].sort().map(id => caseById.get(id)).filter(Boolean).map(ohneSammlung),

@@ -1,5 +1,6 @@
 import { chooseOrientation } from './packer.js';
 import { canTip, pieceLayers } from './geometry.js';
+import { t, num } from '../i18n/i18n.js';
 
 // Warum steht ein Stück in der Ablage? Nur Gründe, die allein aus Stück, Case-Typ und Fahrzeug folgen und
 // unabhängig davon wahr sind, ob je gepackt wurde (die Ablage füllt sich auch durch „In Ablage“, „Alles
@@ -16,21 +17,21 @@ export function unplacedReason(piece, c, truck) {
   const reasons = [];
   if (!chooseOrientation(c, truck, piece)) {
     if (piece?.tipped === true && chooseOrientation(c, truck, { ...piece, tipped: false })) {
-      reasons.push('auf „getippt“ gesetzt, passt aber nur stehend');
+      reasons.push(t('auf „getippt“ gesetzt, passt aber nur stehend'));
     } else if (piece?.tipped === false && canTip(c) && chooseOrientation(c, truck, { ...piece, tipped: undefined })) {
-      reasons.push('auf „nicht tippen“ gesetzt, passt aber nur getippt');
+      reasons.push(t('auf „nicht tippen“ gesetzt, passt aber nur getippt'));
     } else {
-      reasons.push('zu groß für den Laderaum');
+      reasons.push(t('zu groß für den Laderaum'));
     }
   }
   if (c.weight > 0 && truck.payload > 0 && c.weight > truck.payload) {
-    reasons.push(`zu schwer für die Nutzlast des Fahrzeugs (${fmt(c.weight)} kg, erlaubt ${fmt(truck.payload)} kg)`);
+    reasons.push(t('zu schwer für die Nutzlast des Fahrzeugs ({kg} kg, erlaubt {payload} kg)', { kg: fmt(c.weight), payload: fmt(truck.payload) }));
   }
   const layers = pieceLayers(piece, c);
   if (!layers.includes(1)) {
-    reasons.push(`erlaubte Lagen ${layers.join(', ')}: darf nur auf anderen Stücken stehen`);
+    reasons.push(t('erlaubte Lagen {layers}: darf nur auf anderen Stücken stehen', { layers: layers.join(', ') }));
   }
   return reasons.length ? reasons.join('; ') : null;
 }
 
-const fmt = n => Math.round(n).toLocaleString('de-DE');
+const fmt = n => num(Math.round(n));

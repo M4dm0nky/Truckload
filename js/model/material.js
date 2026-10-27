@@ -1,4 +1,5 @@
 import { MAX_FIRM } from './limits.js';
+import { t } from '../i18n/i18n.js';
 
 // Materialbestand (docs/superpowers/specs/2026-10-09-materialverwaltung-design.md):
 // Firma = `company`-String am Case, keine eigene Tabelle. Reine Funktionen, kein DOM, kein Store.
@@ -41,9 +42,9 @@ export const ausgeblendeteUeberlagerungen = (cases, shipped) => cases.filter(c =
 
 export function firmNameError(name) {
   const n = (name ?? '').trim();
-  if (!n) return 'Sammlungsname fehlt.';
-  if (n.length > MAX_FIRM) return `Sammlungsname: höchstens ${MAX_FIRM} Zeichen.`;
-  if (/^__.*__$/.test(n)) return 'Dieser Sammlungsname ist reserviert.';
+  if (!n) return t('Sammlungsname fehlt.');
+  if (n.length > MAX_FIRM) return t('Sammlungsname: höchstens {max} Zeichen.', { max: MAX_FIRM });
+  if (/^__.*__$/.test(n)) return t('Dieser Sammlungsname ist reserviert.');
   return null;
 }
 

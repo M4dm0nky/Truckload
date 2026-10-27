@@ -1,5 +1,6 @@
 import { EPS, archBoxes, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, pieceLayers, isTruss, canTip } from './geometry.js';
 import { buildItems } from './items.js';
+import { t } from '../i18n/i18n.js';
 
 const SUPPORT_MIN = 0.8;
 const IMBALANCE_RATIO = 0.1;
@@ -40,23 +41,23 @@ export function validatePlan(plan, caseById, truck) {
   // vorzutäuschen.
   for (const p of missing)
     add(p.id, 'missingCase',
-      `„${p.label ?? p.caseId}“ hat keinen bekannten Case-Typ mehr – die Position wird nicht auf Kollisionen geprüft.`);
+      t('„{name}“ hat keinen bekannten Case-Typ mehr – die Position wird nicht auf Kollisionen geprüft.', { name: p.label ?? p.caseId }));
 
   for (const it of items) {
     const b = it.box, n = it.label;
     if (b.x0 < -EPS || b.y0 < -EPS || b.z0 < -EPS
       || b.x1 > truck.l + EPS || b.y1 > truck.w + EPS || b.z1 > truck.h + EPS)
-      add(it.id, 'outOfBounds', `„${n}“ ragt über den Laderaum hinaus.`);
-    if (arches.some(a => overlaps(a, b))) add(it.id, 'arch', `„${n}“ kollidiert mit einem Radkasten.`);
+      add(it.id, 'outOfBounds', t('„{name}“ ragt über den Laderaum hinaus.', { name: n }));
+    if (arches.some(a => overlaps(a, b))) add(it.id, 'arch', t('„{name}“ kollidiert mit einem Radkasten.', { name: n }));
     // Traversenwagen sind geometrisch immer „standing“ (effectiveDims); ihre p.orientation bleibt unbeachtet.
     if (!isTruss(it.c) && it.p.orientation !== 'standing' && !canTip(it.c))
-      add(it.id, 'notTippable', `„${n}“ darf nicht getippt werden.`);
+      add(it.id, 'notTippable', t('„{name}“ darf nicht getippt werden.', { name: n }));
   }
 
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
     if (!overlaps(items[i].box, items[j].box)) continue;
-    add(items[i].id, 'collision', `„${items[i].label}“ überschneidet sich mit „${items[j].label}“.`);
-    add(items[j].id, 'collision', `„${items[j].label}“ überschneidet sich mit „${items[i].label}“.`);
+    add(items[i].id, 'collision', t('„{a}“ überschneidet sich mit „{b}“.', { a: items[i].label, b: items[j].label }));
+    add(items[j].id, 'collision', t('„{a}“ überschneidet sich mit „{b}“.', { a: items[j].label, b: items[i].label }));
   }
 
   // Die Auflage jedes Stücks über dem Boden einmal berechnen; Unterstützungs-, Last- und Lagen-
@@ -74,9 +75,9 @@ export function validatePlan(plan, caseById, truck) {
     // ein Case mit Grundfläche 0 würde sonst stillschweigend als „sicher“ durchgehen.
     const fa = footprintArea(it.box);
     if (fa <= 0 || area / fa < SUPPORT_MIN)
-      add(it.id, 'unsupported', `„${it.label}“ steht nicht sicher (unter ${SUPPORT_MIN * 100} % Auflage).`);
+      add(it.id, 'unsupported', t('„{name}“ steht nicht sicher (unter {pct} % Auflage).', { name: it.label, pct: SUPPORT_MIN * 100 }));
     for (const s of sup) if (!s.c.stackable)
-      add(it.id, 'notStackable', `„${it.label}“ steht auf „${s.label}“, das nicht stapelbar ist.`);
+      add(it.id, 'notStackable', t('„{name}“ steht auf „{under}“, das nicht stapelbar ist.', { name: it.label, under: s.label }));
   }
 
   const load = new Map(items.map(it => [it.id, 0]));
@@ -91,22 +92,22 @@ export function validatePlan(plan, caseById, truck) {
   for (const it of items) {
     const max = it.c.maxTopLoad;
     if (max != null && load.get(it.id) > max + 1e-6)
-      add(it.id, 'overload', `Auf „${it.label}“ lasten ${Math.round(load.get(it.id))} kg (max. ${max} kg).`);
+      add(it.id, 'overload', t('Auf „{name}“ lasten {kg} kg (max. {max} kg).', { name: it.label, kg: Math.round(load.get(it.id)), max }));
   }
 
   const layers = layerMap(items, supporters);
   for (const it of items) {
     const n = layers.get(it.id);
-    if (n > 4) add(it.id, 'tooManyLayers', `„${it.label}“ steht in Lage ${n} – mehr als 4 Lagen sind nicht vorgesehen.`);
+    if (n > 4) add(it.id, 'tooManyLayers', t('„{name}“ steht in Lage {n} – mehr als 4 Lagen sind nicht vorgesehen.', { name: it.label, n }));
     else {
       const allowed = pieceLayers(it.p, it.c);
-      if (!allowed.includes(n)) add(it.id, 'layer', `„${it.label}“ darf nicht in Lage ${n} stehen (erlaubt: ${[...allowed].sort((a, b) => a - b).join(', ')}).`);
+      if (!allowed.includes(n)) add(it.id, 'layer', t('„{name}“ darf nicht in Lage {n} stehen (erlaubt: {allowed}).', { name: it.label, n, allowed: [...allowed].sort((a, b) => a - b).join(', ') }));
     }
   }
 
   const weight = items.reduce((s, it) => s + it.c.weight, 0);
   if (weight > truck.payload)
-    add(null, 'tooHeavy', `Gesamtgewicht ${Math.round(weight)} kg überschreitet die Nutzlast von ${truck.payload} kg.`);
+    add(null, 'tooHeavy', t('Gesamtgewicht {kg} kg überschreitet die Nutzlast von {payload} kg.', { kg: Math.round(weight), payload: truck.payload }));
 
   // Cases ohne recherchiertes Gewicht tragen 0 kg ein (bewusst, statt geraten – CLAUDE.md
   // „Haltung“). Der ANGEZEIGTE Schwerpunkt schaltet für die ganze Ladung auf eine Volumen-Näherung
@@ -144,15 +145,19 @@ export function validatePlan(plan, caseById, truck) {
 
   if (withoutWeight === 0) {
     if (isImbalanced(cogWeight))
-      add(null, 'imbalance', `Ladung ist einseitig: Schwerpunkt ${Math.round(deviation(cogWeight))} cm aus der Mitte.`);
+      add(null, 'imbalance', t('Ladung ist einseitig: Schwerpunkt {cm} cm aus der Mitte.', { cm: Math.round(deviation(cogWeight)) }));
   } else {
     const weightHit = isImbalanced(cogWeight);
     const volumeHit = isImbalanced(cogVolume);
     if (weightHit || volumeHit) {
-      const parts = [];
-      if (weightHit) parts.push(`${Math.round(deviation(cogWeight))} cm aus der Mitte (aus den bekannten Gewichten)`);
-      if (volumeHit) parts.push(`${Math.round(deviation(cogVolume))} cm aus der Mitte (Volumen-Schätzung, Cases ohne Gewicht zählen dabei wie voll beladen)`);
-      add(null, 'imbalance', `Ladung ist einseitig: Schwerpunkt ${parts.join(' bzw. ')}.`);
+      const w = weightHit ? Math.round(deviation(cogWeight)) : 0, v = volumeHit ? Math.round(deviation(cogVolume)) : 0;
+      // drei vollständige Sätze statt zusammengesetzter Teile (Übersetzung braucht ganze Sätze)
+      const msg = weightHit && volumeHit
+        ? t('Ladung ist einseitig: Schwerpunkt {w} cm aus der Mitte (aus den bekannten Gewichten) bzw. {v} cm aus der Mitte (Volumen-Schätzung, Cases ohne Gewicht zählen dabei wie voll beladen).', { w, v })
+        : weightHit
+          ? t('Ladung ist einseitig: Schwerpunkt {w} cm aus der Mitte (aus den bekannten Gewichten).', { w })
+          : t('Ladung ist einseitig: Schwerpunkt {v} cm aus der Mitte (Volumen-Schätzung, Cases ohne Gewicht zählen dabei wie voll beladen).', { v });
+      add(null, 'imbalance', msg);
     }
   }
 

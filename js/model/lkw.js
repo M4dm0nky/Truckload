@@ -15,6 +15,7 @@ import { stamp } from './stamp.js';
 import { placementToUnplaced } from './actions.js';
 import { MAX_LKW, NAME_MAX } from './limits.js';
 import { CATEGORIES } from '../data/categories.js';
+import { t } from '../i18n/i18n.js';
 
 // Pseudo-ID des Reiters „Ohne LKW“ (nicht zugeordnete Stücke); nie eine echte LKW-ID (UUIDs).
 export const NO_LKW = '__ohne-lkw';
@@ -36,7 +37,7 @@ export function resolveLkwId(plan, id) {
 }
 const withLkw = (x, id) => ({ ...x, lkw: id });
 const withoutLkw = x => { const { lkw: _drop, ...rest } = x; return rest; };
-const validTruck = t => typeof t === 'string' && t !== '';
+const validTruck = id => typeof id === 'string' && id !== '';
 const defaultId = () => crypto.randomUUID();
 
 // Gewerke: nur bekannte Namen aus CATEGORIES, ohne Duplikate, in Eingabereihenfolge.
@@ -125,7 +126,7 @@ export function convertToMulti(plan, newId = defaultId) {
   const id = newId();
   return stamp({
     ...plan,
-    lkws: [{ id, name: 'LKW 1', truckId: plan.truckId, categories: [] }],
+    lkws: [{ id, name: t('LKW {n}', { n: 1 }), truckId: plan.truckId, categories: [] }],
     placements: plan.placements.map(p => withLkw(p, id)),
     unplaced: plan.unplaced.map(u => withLkw(u, id)),
   });
@@ -137,7 +138,7 @@ export function addLkw(plan, { name, truckId, categories } = {}, newId = default
   if (base.lkws.length >= MAX_LKW) return plan;
   const lkw = {
     id: newId(),
-    name: cleanName(name, `LKW ${base.lkws.length + 1}`),
+    name: cleanName(name, t('LKW {n}', { n: base.lkws.length + 1 })),
     // Fahrzeug immer ein nichtleerer String (der Import lehnt sonst ab): Rückfall erster LKW.
     truckId: validTruck(truckId) ? truckId : base.lkws[0].truckId,
     categories: cleanCategories(categories),

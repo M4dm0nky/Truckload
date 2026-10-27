@@ -19,7 +19,7 @@ const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })
 // Noch nicht umgestellte Dateien. Spätere Tasks streichen ihre Dateien hier.
 export const PENDING = [
   'js/app.js',
-  ...['js/app', 'js/ui', 'js/model', 'js/store', 'js/data'].flatMap(walk),
+  ...['js/app', 'js/ui', 'js/store', 'js/data'].flatMap(walk),
 ];
 
 // Ausnahmen für Test C: deutsche Literale, die bewusst deutsch bleiben (Daten, keine Anzeige).
@@ -28,6 +28,9 @@ export const ALLOW = [
     'Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.',
     'Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', 'Neu laden',
   ].map(text => ({ file: 'index.html', text, why: 'Inline-Notfallmeldung, englisch daneben im selben Objekt (tlTexte); Test H prüft das' })),
+  { file: 'js/model/collections.js', text: 'Meine Sammlung', why: 'gespeicherter Wert: Name der festen Sammlung (MEINE_NAME), englisch nur zum Abgleich (MEINE_NAME_EN)' },
+  { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
+  { file: 'js/model/audioDolly.js', text: 'er (auf Dolly)', why: 'gespeicherter Wert: der erzeugte Case-Name steht im Datensatz, io.js parst ihn (Daten bleiben deutsch)' },
   { file: 'js/i18n/i18n.js', text: 'Bühne', why: 'Schlüssel der Gewerk-Tabelle: gespeicherte Daten bleiben deutsch' },
 ];
 
@@ -70,6 +73,8 @@ test('B: kein verwaister Eintrag in en.js', () => {
   for (const f of ['data/standard.json', 'data/meine.json']) {
     for (const c of JSON.parse(read(f)).cases) if (c.note) benutzt.add(c.note);
   }
+  // MEINE_NAME_EN (js/model/collections.js) liest den Eintrag direkt aus en.js, nicht über t()
+  benutzt.add(DYNAMIC_KEYS.MEINE_NAME);
   const note = NOTE_RE.exec(read('js/data/preset-trucks.js'));
   assert.ok(note, 'NOTE nicht gefunden: js/data/preset-trucks.js braucht `const NOTE = \'…\';` (Test B liest sie dort)');
   benutzt.add(note[2]);
