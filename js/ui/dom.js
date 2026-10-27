@@ -16,7 +16,9 @@ export const toSvg = (svg, x, y) => new DOMPoint(x, y).matrixTransform(svg.getSc
 // Id des Cases unter dem Zeiger, null auf freier Fläche.
 export const caseIdAt = e => e.target.closest('g.case')?.dataset.id ?? null;
 
-export const fmtM = cm => `${num(cm / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })} m`;
+// Zwei Nachkommastellen: gerundet wird wie bisher mit toFixed (Binärwert), nur das Zahlenformat folgt der Sprache.
+export const fmt2 = v => num(Number(v.toFixed(2)), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+export const fmtM = cm => `${fmt2(cm / 100)} m`;
 
 // Farbkästchen vor einem Case-/Stück-Namen. esc() schützt nicht innerhalb von style="…": Die Farbe
 // kommt heute aus einem Farbwähler oder einer geprüften Datei (COLOR_RE in js/store/io.js), aber

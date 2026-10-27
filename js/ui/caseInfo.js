@@ -4,6 +4,7 @@
 import { layersOf, outerDims, isTruss, canTip } from '../model/geometry.js';
 import { TRUSS_PROFILES } from '../model/truss.js';
 import { t, num } from '../i18n/i18n.js';
+import { fmt2 } from './dom.js';
 
 export const QUICK_LENGTHS = [100, 200, 240, 250, 300, 400];
 
@@ -28,7 +29,7 @@ export function fmtNum(n) {
 function trussCore(c) {
   const p = {
     profile: trussProfileName(c.truss.width),
-    length: num(c.truss.length / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }),
+    length: fmt2(c.truss.length / 100),
     count: c.truss.count, w: fmtNum(c.w), weight: fmtNum(c.weight),
   };
   return c.truss.standing

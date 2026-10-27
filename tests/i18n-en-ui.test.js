@@ -98,3 +98,16 @@ test('Anzeigetexte: Case-Zeilen, Reiter, Leiste, Ablageziel englisch', () => {
   assert.ok(!looksGerman(sichtbar(stock).replace('Acme', '')), sichtbar(stock));
   assert.match(stock, /My collection/);
 });
+
+test('fmtM/fmt2: Deutsch rundet wie das alte toFixed (Halbschritte), Englisch mit Punkt', () => {
+  setLang('de');
+  const alt = cm => `${(cm / 100).toFixed(2).replace('.', ',')} m`;
+  for (const cm of [1.5, 4.5, 0.5, 2.5, 123, 1362, 100000.5]) assert.equal(fmtM(cm), alt(cm), String(cm));
+  assert.equal(fmtM(1.5), '0,01 m');
+  assert.equal(fmtM(4.5), '0,04 m');
+  const truss = mkCase('t1', 100, 50, 50, { kind: 'truss', truss: { length: 4.5, width: 29, count: 4 }, weight: 40 });
+  assert.match(caseLine(truss), /· 0,04 m ·/);
+  setLang('en');
+  assert.equal(fmtM(1.5), '0.01 m');
+  assert.equal(fmtM(150), '1.50 m');
+});
