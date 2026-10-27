@@ -7,10 +7,12 @@
 // catch-Block, der err.message liest, darf am Fehlerpfad nicht selbst sterben. Auch ein
 // synchroner Wurf des Hosts wird zur Ablehnung, sonst liefe er am Autosave vorbei.
 
+import { t } from '../i18n/i18n.js';
+
 const asError = err => {
   if (err instanceof Error) return err;
   const msg = typeof err === 'string' ? err : err?.message ?? err?.error;
-  return new Error(msg ? String(msg) : 'NYX-Speicher nicht erreichbar');
+  return new Error(msg ? String(msg) : t('NYX-Speicher nicht erreichbar'));
 };
 
 function call(fn) {
@@ -24,7 +26,7 @@ function call(fn) {
 // Eine Nicht-Liste ist ein Fehler, kein leerer Bestand: still [] sähe für den Nutzer aus, als
 // wären alle Cases oder Pläne gelöscht.
 export const getAll = (host, store) => call(() => host.getAll(store)).then(list => {
-  if (!Array.isArray(list)) throw new Error(`NYX lieferte für „${store}“ keine Liste`);
+  if (!Array.isArray(list)) throw new Error(t('NYX lieferte für „{store}“ keine Liste', { store }));
   return list;
 });
 export const put = (host, store, value) => call(() => host.put(store, value)).then(() => undefined);

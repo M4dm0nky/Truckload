@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n.js';
 import * as hostDb from './hostDb.js';
 
 // Läuft Truckload als Tab in NYX, setzt NYX `globalThis.truckloadHost` (docs/nyx-host.md), und
@@ -60,7 +61,7 @@ export function open() {
 // Ein abgelehntes/abgebrochenes `tx.error` ist nicht verlässlich gefüllt (in Chrome bei einem
 // `tx.abort()` z. B. `null`); wer daraus `err.message` liest, bekommt einen TypeError statt der
 // eigentlichen Meldung. Deshalb hier immer ein echtes Error-Objekt.
-const txFailure = tx => tx.error ?? new Error('IndexedDB-Transaktion fehlgeschlagen oder abgebrochen');
+const txFailure = tx => tx.error ?? new Error(t('IndexedDB-Transaktion fehlgeschlagen oder abgebrochen'));
 
 function run(store, mode, fn) {
   return open().then(db => new Promise((resolve, reject) => {
@@ -84,7 +85,8 @@ function run(store, mode, fn) {
 // IndexedDB hatte das die kaputte DB von selbst, beim Host scheitern Lesen und Schreiben
 // unabhängig. Die Sperre gilt bis zum Neuladen der Seite, ein neues Modul beginnt ohne sie.
 let ladenFehlgeschlagen = false;
-const sperre = () => Promise.reject(new Error('Laden aus NYX fehlgeschlagen – Truckload bitte neu laden.'));
+// Die Kennung `code` ist der stabile Vergleich (Tests, Aufrufer); der Text ist nur Anzeige.
+const sperre = () => Promise.reject(Object.assign(new Error(t('Laden aus NYX fehlgeschlagen – Truckload bitte neu laden.')), { code: 'host-load-failed' }));
 
 export const getAll = store => (host()
   ? hostDb.getAll(host(), store).catch(err => { ladenFehlgeschlagen = true; throw err; })

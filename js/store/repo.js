@@ -1,10 +1,11 @@
+import { t } from '../i18n/i18n.js';
 import * as db from './db.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { normalizeCase, mergeById, dropStrayLegacy } from './io.js';
 import { stamp } from '../model/stamp.js';
-import { composeRecords, withBuiltins, recordsAfterChanges, MEINE_ID, MEINE_NAME, STANDARD_ID } from '../model/collections.js';
+import { composeRecords, withBuiltins, recordsAfterChanges, MEINE_ID, MEINE_NAME, MEINE_NAME_EN, STANDARD_ID } from '../model/collections.js';
 import { MAX_FIRM } from '../model/limits.js';
 
 // Reicht die db.js-Rückrufe weiter: die App-Schicht importiert db.js nicht selbst, sondern nur
@@ -153,7 +154,7 @@ export function loadAllFallback() {
 export function repairImportedCollections(local, incoming) {
   const merged = mergeById(local, incoming);
   const won = new Set(incoming.filter(x => merged.find(m => m.id === x.id) === x));
-  const taken = new Set([STANDARD_ID, MEINE_NAME.toLowerCase(), ...merged.filter(m => !won.has(m)).map(m => m.name.toLowerCase())]);
+  const taken = new Set([STANDARD_ID, MEINE_NAME.toLowerCase(), MEINE_NAME_EN.toLowerCase(), ...merged.filter(m => !won.has(m)).map(m => m.name.toLowerCase())]);
   let renamed = 0;
   let loops = 0;
   const fixed = new Map();
@@ -187,8 +188,12 @@ export function repairImportedCollections(local, incoming) {
     }
   }
   const repairs = [];
-  if (renamed > 0) repairs.push(`${renamed} Sammlung${renamed === 1 ? '' : 'en'}: Name gab es lokal schon – umbenannt.`);
-  if (loops > 0) repairs.push(`${loops} Sammlung${loops === 1 ? '' : 'en'}: Oberebene bildete mit dem lokalen Bestand eine Schleife – auf die oberste Ebene gesetzt.`);
+  if (renamed > 0) repairs.push(renamed === 1
+    ? t('1 Sammlung: Name gab es lokal schon – umbenannt.')
+    : t('{n} Sammlungen: Name gab es lokal schon – umbenannt.', { n: renamed }));
+  if (loops > 0) repairs.push(loops === 1
+    ? t('1 Sammlung: Oberebene bildete mit dem lokalen Bestand eine Schleife – auf die oberste Ebene gesetzt.')
+    : t('{n} Sammlungen: Oberebene bildete mit dem lokalen Bestand eine Schleife – auf die oberste Ebene gesetzt.', { n: loops }));
   return { incoming: incoming.map(x => fixed.get(x) ?? x), repairs };
 }
 
@@ -246,7 +251,7 @@ export function mergeImportedBundle({ cases, trucks, plans, plan, ruleSets = [],
   };
 }
 
-export const saveTruck = t => db.put('trucks', t);
+export const saveTruck = truck => db.put('trucks', truck);
 export const deleteTruck = id => db.del('trucks', id);
 export const savePlan = p => db.put('plans', p);
 export const deletePlan = id => db.del('plans', id);

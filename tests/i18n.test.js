@@ -19,7 +19,7 @@ const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })
 // Noch nicht umgestellte Dateien. Spätere Tasks streichen ihre Dateien hier.
 export const PENDING = [
   'js/app.js',
-  ...['js/app', 'js/ui', 'js/store', 'js/data'].flatMap(walk),
+  ...['js/app', 'js/ui', 'js/data'].flatMap(walk),
 ];
 
 // Ausnahmen für Test C: deutsche Literale, die bewusst deutsch bleiben (Daten, keine Anzeige).
@@ -30,7 +30,9 @@ export const ALLOW = [
   ].map(text => ({ file: 'index.html', text, why: 'Inline-Notfallmeldung, englisch daneben im selben Objekt (tlTexte); Test H prüft das' })),
   { file: 'js/model/collections.js', text: 'Meine Sammlung', why: 'gespeicherter Wert: Name der festen Sammlung (MEINE_NAME), englisch nur zum Abgleich (MEINE_NAME_EN)' },
   { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
-  { file: 'js/model/audioDolly.js', text: 'er (auf Dolly)', why: 'gespeicherter Wert: der erzeugte Case-Name steht im Datensatz, io.js parst ihn (Daten bleiben deutsch)' },
+  ...['Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', 'Migration nach „Sammlungen“ nicht gespeichert:']
+    .map(text => ({ file: 'js/store/repo.js', text, why: 'Konsole' })),
+  { file: 'js/store/repo.js', text: 'saveImportWinners: Sammlungsliste fehlt.', why: 'Entwicklerfehler (Aufrufvertrag), nie für Nutzer bestimmt' },
   { file: 'js/i18n/i18n.js', text: 'Bühne', why: 'Schlüssel der Gewerk-Tabelle: gespeicherte Daten bleiben deutsch' },
 ];
 
