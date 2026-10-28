@@ -108,7 +108,7 @@ gleich vorkommen. Ein deutsches Wörterbuch gibt es nicht.
 | Fest gespeicherte, vom Code verglichene Namen (z. B. `MEINE_NAME = 'Meine Sammlung'`, Kennungen, Format-/Store-Namen) | bleiben im Datensatz deutsch; wird so ein Name angezeigt, geht er über `t()` |
 | Vom Code erzeugte Namen, die danach Nutzerdaten sind (neuer Plan, „LKW 2“, Dolly-Namen aus `dollyName`) | in der aktiven Sprache erzeugt; danach Nutzerdaten, keine Rückübersetzung. Vorher prüfen, ob irgendein Code den Namen vergleicht – dann gilt die Zeile darüber |
 | Mitgelieferte Bibliothek, Fahrzeugvorlagen-Namen, Nutzerdaten | nicht übersetzt (Namen, `content`, `layers`, Firmen) |
-| Wiederkehrende Standard-Hinweise mitgelieferter Datensätze (`note` bei `builtin`: „Gewicht geschätzt“, „Gewicht berechnet“, „Richtwert – Maße und Gewicht an dein Case anpassen“, „Gewicht geschätzt: leeres Rack, Standard 75 kg/m³“, `NOTE` in `preset-trucks.js`) | Daten bleiben unverändert; nur die **Anzeige** bei mitgelieferten Datensätzen schlägt den Text im Wörterbuch nach (`t(note)`); einmalige Hinweise und Hinweise eigener Cases bleiben wie gespeichert (eigene Entscheidung: das sind Bedienhinweise, kein Name, und es sind nur eine Handvoll fester Sätze) |
+| Standard-Hinweise mitgelieferter Datensätze (`note` bei `builtin`, `NOTE` in `preset-trucks.js`) | Die Notizen werden in der Oberfläche nirgends angezeigt, deshalb gibt es keine Notiz-Übersetzungen; die Daten bleiben unverändert. `builtinNote()` bleibt für eine spätere Notiz-Anzeige vorbereitet (`t(note)` bei `builtin`) |
 | `MEINE_NAME` („Meine Sammlung“) | bleibt gespeichert; Anzeige der Sammlung mit `MEINE_ID` über `t()` („My collection“). Der Abgleich in `collections.js`/`io.js` (Firmenname = Meine Sammlung) erkennt zusätzlich den englischen Namen |
 | Vom Code erzeugte LKW-Namen (`'LKW 1'`, `` `LKW ${n}` `` in `js/model/lkw.js`) | in der aktiven Sprache („Truck 1“); kein Code zählt oder vergleicht diese Namen (geprüft 2026-10-27), gemischte Folgen nach Sprachwechsel sind hinnehmbar, es sind Nutzerdaten |
 | Konsolen-Ausgaben, Code-Kommentare, Docs | nicht übersetzt |
@@ -177,6 +177,22 @@ Ergänzt (eigene Entscheidung, Aniflu sieht durch):
 | Projekt-Regelset | Project rule set | |
 | Sicherung | Backup | |
 | Packliste / Checkliste | Packing list / Checklist | |
+| (auf Dolly) | (on dolly) | |
+| Rollen | Castors | |
+| Rollenhöhe | Castor height | |
+| Stück | item / items | |
+| Case-Typ | Case type | |
+| Schwerpunkt | Centre of gravity | |
+| Große zuerst | Largest first | Schlüssel in `en.js` ist „Große zuerst“ |
+| Stückzahl zuerst | Highest quantity first | |
+| zuerst (Stirnwand) | first (front wall) | |
+| zuletzt (Tür) | last (door) | |
+| Ablage / Noch nicht geladen | Not loaded yet | Schaltfläche „In Ablage“ = „Set aside“ |
+| Pack-Reihenfolge | Packing order | |
+| Lademeter | Load metres | |
+| Material / Materialverwaltung | Stock / Stock management | |
+| Standardkatalog | Default catalogue | |
+| Kompletter Bestand | Whole stock | |
 
 Weitere Begriffe, die beim Übersetzen auftauchen, kommen in diese Tabelle (Spec mitpflegen), damit
 derselbe deutsche Begriff überall gleich übersetzt wird.
