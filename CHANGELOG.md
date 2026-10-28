@@ -2,6 +2,19 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.21.0 – 2026-10-28
+
+**Truckload spricht Englisch (Stufe 1, Issue #42).** Die Oberfläche gibt es jetzt auf Deutsch und
+Englisch; Deutsch bleibt die Ausgangssprache und sieht unverändert aus.
+
+- **Englisch über `?lang=en`:** alle Bildschirme, Assistenten, Dialoge, Meldungen und der Druck.
+  Zahlen und Datum im britischen Format, Gewerke in der Anzeige übersetzt (Licht → Lighting).
+- **Daten bleiben sprachfrei:** Sicherungen, Exporte und gespeicherte Gewerke sind in beiden Sprachen
+  gleich; alte Sicherungen laden auch auf Englisch. Namen der mitgelieferten Bibliothek bleiben deutsch.
+- **NYX:** Englisch ist dort noch nicht freigeschaltet. Erst nach dem Gegenlesen der englischen Texte
+  folgt `sprachen.json` (Stufe 2).
+- **Neue Texte nur über `t()`:** Tests verhindern deutsche Texte ohne englischen Eintrag.
+
 ## V 0.20.0 – 2026-10-21
 
 **Issues auf null: Fehler behoben, Entscheidungen festgehalten.** Die Begründung zu jedem erledigten
