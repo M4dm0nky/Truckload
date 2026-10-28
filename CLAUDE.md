@@ -14,7 +14,14 @@ wird dort geschlossen, ein neuer als Issue angelegt, nicht in einer Datei gesamm
 - **Nutzereingaben nur über `esc()`** aus `js/ui/dom.js`, wenn sie in HTML landen. In SVG
   gilt `textContent`, nie `innerHTML`. Case-Namen, Beschriftungen, Hersteller- und
   Firmennamen kommen teils aus fremden Importdateien.
-- **Oberfläche auf Deutsch**, mit typografischen Anführungszeichen „…“.
+- **Oberfläche auf Deutsch und Englisch**, Deutsch ist die Ausgangssprache (deutsche Texte mit
+  „…“; Englisch britisch, Satzanfang groß, Glossar in der Spec
+  `docs/superpowers/specs/2026-10-27-mehrsprachigkeit-design.md`).
+- **Neue Texte nur über `t()`** aus `js/i18n/i18n.js`; der englische Eintrag in `js/i18n/en.js`
+  gehört dazu. `tests/i18n.test.js` erzwingt das. In `index.html` stehen statische Texte mit
+  `data-t`/`data-t-title`/`data-t-aria-label`. Gespeicherte Daten werden nie übersetzt:
+  Gewerke und `MEINE_NAME` bleiben deutsch, erzeugte Namen (LKW, Dolly) entstehen in der
+  beim Anlegen aktiven Sprache und bleiben danach unverändert.
 - **Der Begriff heißt „tippen“, nie „kippen“.** Ein Case wird nach vorn auf die Seite
   getippt. Das ist die Sprache des Nutzers; „kippen“ bedeutet hier etwas anderes.
 - **Eine einzige Versionsnummer überall.** Quelle ist `js/version.js`; `package.json`,

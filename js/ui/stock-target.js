@@ -1,6 +1,7 @@
 import { esc } from './dom.js';
-import { collectionNameError } from '../model/collections.js';
+import { collectionNameError, MEINE_NAME } from '../model/collections.js';
 import { MAX_FIRM } from '../model/limits.js';
+import { t } from '../i18n/i18n.js';
 
 // Auswahlwert für „+ Neue Sammlung …“ – der Name kommt dann aus dem Feld `stockNewCompany`
 // (Nutzer-Feedback 2026-10-09: neue Sammlung direkt beim Ablegen im Wizard, ohne Umweg über die
@@ -17,15 +18,15 @@ export const newCompanyError = (selectValue, newName, inStock = true, collection
 // Traversen- und Dolly-Dialog. 'choose' = Wizard (Häkchen + Ziel), 'fixed' = Materialseite.
 export function stockTargetHtml(stock) {
   if (stock.mode === 'fixed') {
-    return `<p class="hint stock-target">${stock.company ? `Sammlung: ${esc(stock.company)}` : 'Meine Sammlung'}</p>`;
+    return `<p class="hint stock-target">${stock.company ? t('Sammlung: {name}', { name: esc(stock.company) }) : t(MEINE_NAME)}</p>`;
   }
   const opts = stock.companies.map(n =>
     `<option value="${esc(n)}"${n === stock.defaultCompany ? ' selected' : ''}>${esc(n)}</option>`).join('');
-  return `<fieldset class="stock-target"><legend>Materialbestand</legend>
-      <label class="check"><input type="checkbox" name="inStock" checked> Im Materialbestand ablegen</label>
-      <label>Ablegen in<select name="stockCompany"><option value="">Meine Sammlung</option>${opts}<option value="${NEW_FIRM}">+ Neue Sammlung …</option></select></label>
-      <label class="stock-new" hidden>Name der neuen Sammlung<input name="stockNewCompany" maxlength="${MAX_FIRM}"></label>
-      <p class="hint">Ohne Häkchen gilt das Case nur für diesen Load.</p>
+  return `<fieldset class="stock-target"><legend>${t('Materialbestand')}</legend>
+      <label class="check"><input type="checkbox" name="inStock" checked> ${t('Im Materialbestand ablegen')}</label>
+      <label>${t('Ablegen in')}<select name="stockCompany"><option value="">${t(MEINE_NAME)}</option>${opts}<option value="${NEW_FIRM}">${t('+ Neue Sammlung …')}</option></select></label>
+      <label class="stock-new" hidden>${t('Name der neuen Sammlung')}<input name="stockNewCompany" maxlength="${MAX_FIRM}"></label>
+      <p class="hint">${t('Ohne Häkchen gilt das Case nur für diesen Load.')}</p>
     </fieldset>`;
 }
 

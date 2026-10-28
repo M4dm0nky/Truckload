@@ -7,8 +7,6 @@ import assert from 'node:assert/strict';
 globalThis.indexedDB = { open() { throw new Error('IndexedDB benutzt'); } };
 const db = await import('../js/store/db.js');
 
-const MELDUNG = 'Laden aus NYX fehlgeschlagen – Truckload bitte neu laden.';
-
 function fakeHost(getAll) {
   const calls = [];
   return {
@@ -38,7 +36,7 @@ test('nach gescheitertem Lesen sperrt db.js put, del, putMany und writeMany, lee
   globalThis.truckloadHost = host;
   try {
     await assert.rejects(db.getAll('plans'), err => err === fehler);
-    const sperre = err => err instanceof Error && err.message === MELDUNG;
+    const sperre = err => err instanceof Error && err.code === 'host-load-failed';
     await assert.rejects(db.put('cases', { id: 'c' }), sperre);
     await assert.rejects(db.del('plans', 'p'), sperre);
     await assert.rejects(db.putMany([{ store: 'cases', value: { id: 'c' } }]), sperre);

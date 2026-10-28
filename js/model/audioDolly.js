@@ -1,6 +1,7 @@
 import { colorFor } from '../data/categories.js';
 import { CASE_LIMITS, NAME_MAX } from './limits.js';
 import { slug } from './slug.js';
+import { t } from '../i18n/i18n.js';
 
 // Recherche: Carvin DB521018 (81×75×20 cm, 18,3 kg, 4× 127-mm-Lenkrollen), SYNQ SQ-218 Dolly
 // (11 kg, 4× 100-mm-Schwerlastrollen), DAS PL-EV118S (~81×71×18 cm Versandmaß, ~11 kg) –
@@ -85,9 +86,20 @@ export function maxDollyCount(baseCase) {
 // „<Basis> N er (auf Dolly)“ höchstens NAME_MAX lang: ein zu langer Basisname wird mit „…“
 // gekürzt, der Zusatz bleibt vollständig (sonst lehnte der Import das Case ab).
 export function dollyName(baseName, n) {
-  const suffix = ` ${n}er (auf Dolly)`;
+  const suffix = t(' {n}er (auf Dolly)', { n });
   const room = NAME_MAX - suffix.length;
   return `${baseName.length > room ? `${baseName.slice(0, room - 1)}…` : baseName}${suffix}`;
+}
+
+// Liest einen erzeugten Dolly-Namen in beiden Sprachen („K2 4er (auf Dolly)“ / „K2 ×4 (on dolly)“),
+// egal in welcher Sprache die App gerade läuft: der Name steht im Datensatz. → { base, n } oder null.
+const DOLLY_NAME_RE = [/^(.*) (\d+)er \(auf Dolly\)$/, /^(.*) ×(\d+) \(on dolly\)$/];
+export function parseDollyName(name) {
+  for (const re of DOLLY_NAME_RE) {
+    const m = re.exec(name);
+    if (m) return { base: m[1], n: m[2] };
+  }
+  return null;
 }
 
 export function dollyStackCase(baseCase, n, wagen = {}, company = '', existingCases = []) {

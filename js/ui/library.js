@@ -1,6 +1,7 @@
 import { esc, swatch, icon } from './dom.js';
 import { caseDetail } from './caseInfo.js';
 import { unplacedReason } from '../model/unplacedReason.js';
+import { t } from '../i18n/i18n.js';
 
 // Was muss die Seitenleiste bei einer Zustandsänderung tun? 'full' = Inhalt neu bauen,
 // 'sel' = nur die Auswahl-Klasse umschalten, 'none' = nichts. In „Noch nicht geladen“ zählt nur
@@ -14,9 +15,10 @@ export function libraryRenderMode(prev, next, view) {
   return prev.selectedId !== next.selectedId ? 'sel' : 'none';
 }
 
-const VIEWS = [
-  { id: 'unplaced', label: 'Noch nicht geladen' },
-  { id: 'all', label: 'Alles Material' },
+// Funktion statt Konstante: die Sprache steht erst beim Aufruf fest (Tests schalten sie um).
+const views = () => [
+  { id: 'unplaced', label: t('Noch nicht geladen') },
+  { id: 'all', label: t('Alles Material') },
 ];
 
 // Seitenleiste zeigt NUR den Inhalt des aktuellen Loads (platzierte + unplatzierte Stücke),
@@ -30,14 +32,14 @@ export function mountLibrary(el, h) {
     <div class="lib-head">
       <h2>Load</h2>
       <div class="lib-head-btns">
-        <button data-act="load" class="primary">+ Material hinzufügen</button>
+        <button data-act="load" class="primary">${t('+ Material hinzufügen')}</button>
       </div>
     </div>
-    <div class="seg case-tabs lib-view-toggle">${VIEWS.map((v, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-view="${v.id}">${esc(v.label)}</button>`).join('')}</div>
+    <div class="seg case-tabs lib-view-toggle">${views().map((v, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-view="${v.id}">${esc(v.label)}</button>`).join('')}</div>
     <div class="lib-content"></div>`;
   const viewBtns = [...el.querySelectorAll('.lib-view-toggle button')];
   const content = el.querySelector('.lib-content');
-  let view = VIEWS[0].id; // 'unplaced'
+  let view = 'unplaced';
   let last = null;
   // Gründe der Ablage-Stücke, je Stand von Ablage/Cases/Fahrzeug einmal berechnet.
   let reasons = null;
@@ -56,19 +58,19 @@ export function mountLibrary(el, h) {
 
   // Löschen nur in der Materialverwaltung (Nutzerwunsch 2026-10-09)
   function groupHeading(c, caseId, count) {
-    const name = c?.name ?? 'Unbekanntes Case';
+    const name = c?.name ?? t('Unbekanntes Case');
     return `
       <div class="lib-group-head">
         ${swatch(c?.color)}
         <span class="lib-text"><b>${esc(name)}</b><small>${count}× ${esc(c ? caseDetail(c) : '')}</small></span>
-        <button data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? 'Als eigenes Case kopieren' : 'Bearbeiten'}">${icon('pencil-simple')}</button>
+        <button data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? t('Als eigenes Case kopieren') : t('Bearbeiten')}">${icon('pencil-simple')}</button>
       </div>`;
   }
 
   function pieceRow(caseId, u, placed) {
     const c = last.byId.get(caseId);
     const color = u.color ?? c?.color ?? '#888';
-    const label = u.label ?? c?.name ?? 'Unbekanntes Case';
+    const label = u.label ?? c?.name ?? t('Unbekanntes Case');
     const selCls = u.id === last.selectedId ? ' sel' : '';
     if (placed) {
       return `<div class="lib-item${selCls}" data-case="${esc(caseId)}" data-placed="${esc(u.id)}">
@@ -79,7 +81,7 @@ export function mountLibrary(el, h) {
     return `<div class="lib-item${selCls}" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
       ${swatch(color)}
       <span class="lib-text">${esc(label)}${reason ? `<small class="lib-reason">${esc(reason)}</small>` : ''}</span>
-      <button data-act="tray-remove" title="Entfernen" aria-label="Entfernen">−</button></div>`;
+      <button data-act="tray-remove" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">−</button></div>`;
   }
 
   // Reiner Auswahlwechsel: nur die Klasse umschalten, kein Neuaufbau.
@@ -102,8 +104,8 @@ export function mountLibrary(el, h) {
     }
     if (groups.size === 0) {
       content.innerHTML = view === 'all'
-        ? '<p class="hint">Noch kein Material in diesem Load. „+ Material hinzufügen“ öffnet den Katalog.</p>'
-        : '<p class="hint">Leer. Mit „+ Material hinzufügen“ Cases anlegen, dann ziehen oder „Rest einpacken“.</p>';
+        ? `<p class="hint">${t('Noch kein Material in diesem Load. „+ Material hinzufügen“ öffnet den Katalog.')}</p>`
+        : `<p class="hint">${t('Leer. Mit „+ Material hinzufügen“ Cases anlegen, dann ziehen oder „Rest einpacken“.')}</p>`;
       return;
     }
     content.innerHTML = [...groups].map(([caseId, entries]) => {

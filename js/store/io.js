@@ -5,12 +5,13 @@ import { trussDims } from '../model/truss.js';
 import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
-import { upgradeDollyStack, dollyName } from '../model/audioDolly.js';
+import { upgradeDollyStack, dollyName, parseDollyName } from '../model/audioDolly.js';
 import { pickPieceFields } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
-import { MEINE_NAME } from '../model/collections.js';
+import { MEINE_NAME, MEINE_NAME_EN } from '../model/collections.js';
 import { MITGEFUEHRT_VERSION } from '../model/mitgefuehrt.js';
 import { slug } from '../model/slug.js';
+import { t } from '../i18n/i18n.js';
 
 // FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
 const FORMAT = 'truckload';
@@ -27,8 +28,15 @@ const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const colorOk = x => x.color === undefined || COLOR_RE.test(x.color);
 const updatedAtOk = x => x.updatedAt === undefined || typeof x.updatedAt === 'string';
 
+// Eine Meldung je Art, damit jeder Satz ganz in t() steht.
+const NAME_TOO_LONG = {
+  case: p => t('Case „{name}…“: Name zu lang (höchstens {max} Zeichen).', p),
+  truck: p => t('Fahrzeug „{name}…“: Name zu lang (höchstens {max} Zeichen).', p),
+  lkw: p => t('LKW „{name}…“: Name zu lang (höchstens {max} Zeichen).', p),
+  plan: p => t('Ladeplan „{name}…“: Name zu lang (höchstens {max} Zeichen).', p),
+};
 const nameTooLong = (kind, x) => x.name.length > NAME_MAX
-  && new Error(`${kind} „${x.name.slice(0, 20)}…“: Name zu lang (höchstens ${NAME_MAX} Zeichen).`);
+  && new Error(NAME_TOO_LONG[kind]({ name: x.name.slice(0, 20), max: NAME_MAX }));
 
 // Gewicht, Auflast und Bestand über CASE_LIMITS lehnen den Import NICHT ab (eigene Entscheidung:
 // ein schweres Spezialcase soll die ganze Sicherung nicht unlesbar machen). Der Wert bleibt
@@ -41,13 +49,13 @@ function overLimit(c) {
 }
 
 export function checkCase(c) {
-  if (!c || typeof c.id !== 'string' || typeof c.name !== 'string') throw new Error('Case ohne ID oder Name in der Datei.');
-  const tooLong = nameTooLong('Case', c);
+  if (!c || typeof c.id !== 'string' || typeof c.name !== 'string') throw new Error(t('Case ohne ID oder Name in der Datei.'));
+  const tooLong = nameTooLong('case', c);
   if (tooLong) throw tooLong;
-  for (const k of ['l', 'w', 'h']) if (!num(c[k]) || c[k] <= 0 || c[k] > CASE_LIMITS[k]) throw new Error(`Case „${c.name}“ hat ungültige Maße.`);
-  if (!softOk(c.weight, false)) throw new Error(`Case „${c.name}“ hat ein ungültiges Gewicht.`);
-  if (!colorOk(c)) throw new Error(`Case „${c.name}“ hat eine ungültige Farbe.`);
-  if (!updatedAtOk(c)) throw new Error(`Case „${c.name}“ hat einen ungültigen Zeitstempel.`);
+  for (const k of ['l', 'w', 'h']) if (!num(c[k]) || c[k] <= 0 || c[k] > CASE_LIMITS[k]) throw new Error(t('Case „{name}“ hat ungültige Maße.', { name: c.name }));
+  if (!softOk(c.weight, false)) throw new Error(t('Case „{name}“ hat ein ungültiges Gewicht.', { name: c.name }));
+  if (!colorOk(c)) throw new Error(t('Case „{name}“ hat eine ungültige Farbe.', { name: c.name }));
+  if (!updatedAtOk(c)) throw new Error(t('Case „{name}“ hat einen ungültigen Zeitstempel.', { name: c.name }));
   const wheelHOk = c.wheelH == null || (num(c.wheelH) && c.wheelH >= 0 && c.wheelH <= CASE_LIMITS.wheelH
     && (c.dimsInclWheels === false || c.wheelH < c.h));
   const layersOk = c.layers == null || layersValid(c.layers);
@@ -61,24 +69,24 @@ export function checkCase(c) {
     && (c.legacy === undefined || typeof c.legacy === 'boolean')
     && (c.onlyInPlan === undefined || typeof c.onlyInPlan === 'boolean')
     && wheelHOk && layersOk && kindOk;
-  if (!propsOk) throw new Error(`Case „${c.name}“ hat ungültige Eigenschaften.`);
+  if (!propsOk) throw new Error(t('Case „{name}“ hat ungültige Eigenschaften.', { name: c.name }));
   if (isTruss(c)) {
-    const t = c.truss;
+    const tr = c.truss;
     // standing: true (Pre-Rig-Traversen wie H.O.F. MLT/Prolyte S36PR) sind EIN stehendes Stück,
     // width meint dort die Standfläche (bis TRUSS_LIMITS.standingWidth, s. STAND_FOOTPRINT_W in
     // truss.js), nicht den Wagen-Querschnitt (max. TRUSS_LIMITS.width) der stapelnden F34/F40-
     // Variante. Brauchen zusätzlich height.
-    const standing = t?.standing === true;
-    const trussOk = t
-      && num(t.length) && t.length >= 1 && t.length <= TRUSS_LIMITS.length
-      && num(t.width) && t.width >= 1 && t.width <= (standing ? TRUSS_LIMITS.standingWidth : TRUSS_LIMITS.width)
-      && Number.isInteger(t.count) && t.count >= 1 && t.count <= TRUSS_LIMITS.count
-      && (t.wagonW === undefined || (num(t.wagonW) && t.wagonW >= 2 * t.width && t.wagonW <= TRUSS_LIMITS.wagonW))
-      && (t.profileId === undefined || (typeof t.profileId === 'string' && t.profileId.length <= 64))
-      && (t.standing === undefined || typeof t.standing === 'boolean')
-      && (!standing || (num(t.height) && t.height >= 1 && t.height <= CASE_LIMITS.h))
+    const standing = tr?.standing === true;
+    const trussOk = tr
+      && num(tr.length) && tr.length >= 1 && tr.length <= TRUSS_LIMITS.length
+      && num(tr.width) && tr.width >= 1 && tr.width <= (standing ? TRUSS_LIMITS.standingWidth : TRUSS_LIMITS.width)
+      && Number.isInteger(tr.count) && tr.count >= 1 && tr.count <= TRUSS_LIMITS.count
+      && (tr.wagonW === undefined || (num(tr.wagonW) && tr.wagonW >= 2 * tr.width && tr.wagonW <= TRUSS_LIMITS.wagonW))
+      && (tr.profileId === undefined || (typeof tr.profileId === 'string' && tr.profileId.length <= 64))
+      && (tr.standing === undefined || typeof tr.standing === 'boolean')
+      && (!standing || (num(tr.height) && tr.height >= 1 && tr.height <= CASE_LIMITS.h))
       && c.tippable !== true;
-    if (!trussOk) throw new Error(`Case „${c.name}“ hat ungültige Traversenwagen-Werte.`);
+    if (!trussOk) throw new Error(t('Case „{name}“ hat ungültige Traversenwagen-Werte.', { name: c.name }));
   }
 }
 // `legacy` (ausgeblendet) gilt nur für Überlagerungen von Firmen-Vorlagen (`lib-`). Frühere
@@ -110,14 +118,14 @@ function checkArch(a) {
   return a && num(a.x) && a.x >= 0 && num(a.l) && a.l > 0 && num(a.w) && a.w > 0 && num(a.h) && a.h > 0
     && ARCH_SIDES.includes(a.side);
 }
-export function checkTruck(t) {
-  if (!t || typeof t.id !== 'string' || typeof t.name !== 'string') throw new Error('Fahrzeug ohne ID oder Name in der Datei.');
-  const tooLong = nameTooLong('Fahrzeug', t);
+export function checkTruck(tk) {
+  if (!tk || typeof tk.id !== 'string' || typeof tk.name !== 'string') throw new Error(t('Fahrzeug ohne ID oder Name in der Datei.'));
+  const tooLong = nameTooLong('truck', tk);
   if (tooLong) throw tooLong;
-  for (const k of ['l', 'w', 'h', 'payload']) if (!num(t[k]) || t[k] <= 0) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Werte.`);
-  if (!updatedAtOk(t)) throw new Error(`Fahrzeug „${t.name}“ hat einen ungültigen Zeitstempel.`);
-  if (t.wheelArches != null && !Array.isArray(t.wheelArches)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
-  if (!arr(t.wheelArches ?? []).every(checkArch)) throw new Error(`Fahrzeug „${t.name}“ hat ungültige Radkästen.`);
+  for (const k of ['l', 'w', 'h', 'payload']) if (!num(tk[k]) || tk[k] <= 0) throw new Error(t('Fahrzeug „{name}“ hat ungültige Werte.', { name: tk.name }));
+  if (!updatedAtOk(tk)) throw new Error(t('Fahrzeug „{name}“ hat einen ungültigen Zeitstempel.', { name: tk.name }));
+  if (tk.wheelArches != null && !Array.isArray(tk.wheelArches)) throw new Error(t('Fahrzeug „{name}“ hat ungültige Radkästen.', { name: tk.name }));
+  if (!arr(tk.wheelArches ?? []).every(checkArch)) throw new Error(t('Fahrzeug „{name}“ hat ungültige Radkästen.', { name: tk.name }));
 }
 const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.label.length <= MAX_LABEL);
 // Stück-eigene layers: dieselbe Prüfung wie layersOk für Case-Typen (checkCase oben), nur
@@ -135,39 +143,39 @@ const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk
 const MAX_LKW_CATEGORIES = 32;
 function checkLkws(p) {
   if (p.lkws === undefined || p.lkws === null) return; // null = fehlendes Feld
-  const bad = () => new Error(`Ladeplan „${p.name}“ hat ungültige LKW.`);
+  const bad = () => new Error(t('Ladeplan „{name}“ hat ungültige LKW.', { name: p.name }));
   if (!Array.isArray(p.lkws) || p.lkws.length > MAX_LKW) throw bad();
   for (const l of p.lkws) {
     if (!l || typeof l.id !== 'string' || typeof l.name !== 'string' || typeof l.truckId !== 'string'
       || !Array.isArray(l.categories) || l.categories.length > MAX_LKW_CATEGORIES
       || !l.categories.every(c => typeof c === 'string' && c.length <= MAX_LABEL)) throw bad();
-    const tooLong = nameTooLong('LKW', l);
+    const tooLong = nameTooLong('lkw', l);
     if (tooLong) throw tooLong;
   }
   const lkwIds = p.lkws.map(l => l.id);
-  if (new Set(lkwIds).size !== lkwIds.length) throw new Error(`Ladeplan „${p.name}“ enthält doppelte LKW-IDs.`);
+  if (new Set(lkwIds).size !== lkwIds.length) throw new Error(t('Ladeplan „{name}“ enthält doppelte LKW-IDs.', { name: p.name }));
 }
 export function checkPlan(p) {
   if (!p || typeof p.id !== 'string' || typeof p.name !== 'string' || !Array.isArray(p.placements) || typeof p.truckId !== 'string')
-    throw new Error('Ungültiger Ladeplan in der Datei.');
-  const tooLong = nameTooLong('Ladeplan', p);
+    throw new Error(t('Ungültiger Ladeplan in der Datei.'));
+  const tooLong = nameTooLong('plan', p);
   if (tooLong) throw tooLong;
-  if (!updatedAtOk(p)) throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Zeitstempel.`);
+  if (!updatedAtOk(p)) throw new Error(t('Ladeplan „{name}“ hat einen ungültigen Zeitstempel.', { name: p.name }));
   if (p.notes !== undefined && (typeof p.notes !== 'string' || p.notes.length > 2000))
-    throw new Error(`Ladeplan „${p.name}“ hat ungültige Notizen.`);
+    throw new Error(t('Ladeplan „{name}“ hat ungültige Notizen.', { name: p.name }));
   if (p.packOrder !== undefined && !PACK_ORDERS.includes(p.packOrder))
-    throw new Error(`Ladeplan „${p.name}“ hat eine unbekannte Pack-Reihenfolge.`);
+    throw new Error(t('Ladeplan „{name}“ hat eine unbekannte Pack-Reihenfolge.', { name: p.name }));
   if (p.packRules !== undefined && !rulesOk(p.packRules))
-    throw new Error(`Ladeplan „${p.name}“ hat ungültige Pack-Regeln.`);
+    throw new Error(t('Ladeplan „{name}“ hat ungültige Pack-Regeln.', { name: p.name }));
   if (p.mixTop !== undefined && typeof p.mixTop !== 'boolean')
-    throw new Error(`Ladeplan „${p.name}“ hat einen ungültigen Deckschicht-Schalter.`);
+    throw new Error(t('Ladeplan „{name}“ hat einen ungültigen Deckschicht-Schalter.', { name: p.name }));
   if (p.mitgefuehrt !== undefined) {
     const m = p.mitgefuehrt;
-    const bad = () => new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.`);
+    const bad = () => new Error(t('Ladeplan „{name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.', { name: p.name }));
     if (!m || typeof m !== 'object' || m.version !== MITGEFUEHRT_VERSION || !Array.isArray(m.cases) || !Array.isArray(m.trucks)
       || m.cases.length > MAX_MITGEFUEHRT_CASES || m.trucks.length > MAX_LKW + 1) throw bad();
     try { m.cases.forEach(checkCase); m.trucks.forEach(checkTruck); } catch (e) {
-      throw new Error(`Ladeplan „${p.name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge: ${e.message}`);
+      throw new Error(t('Ladeplan „{name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge: {detail}', { name: p.name, detail: e.message }));
     }
   }
   checkLkws(p);
@@ -178,17 +186,17 @@ export function checkPlan(p) {
   const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u)
     && pieceLayersOk(u) && tippedOk(u) && groupOk(u) && lkwRefOk(u);
   if (!p.placements.every(placementOk) || !arr(p.unplaced).every(unplacedOk))
-    throw new Error(`Ladeplan „${p.name}“ enthält ungültige Platzierungen.`);
+    throw new Error(t('Ladeplan „{name}“ enthält ungültige Platzierungen.', { name: p.name }));
   const pieceIds = [...p.placements, ...arr(p.unplaced)].map(x => x.id);
   if (new Set(pieceIds).size !== pieceIds.length)
-    throw new Error(`Ladeplan „${p.name}“ enthält doppelte Stück-IDs.`);
+    throw new Error(t('Ladeplan „{name}“ enthält doppelte Stück-IDs.', { name: p.name }));
 }
 
 export function checkRuleSet(rs) {
   const name = typeof rs?.name === 'string' ? rs.name : '';
   if (!rs || typeof rs.id !== 'string' || !name.trim() || name.length > MAX_RULESET_NAME || !rulesOk(rs.rules) || !updatedAtOk(rs)
     || (rs.mixTop !== undefined && typeof rs.mixTop !== 'boolean'))
-    throw new Error(`Regelset „${name || '?'}“ ist ungültig.`);
+    throw new Error(t('Regelset „{name}“ ist ungültig.', { name: name || '?' }));
 }
 
 const MAX_COLLECTION_ID = 64;
@@ -196,18 +204,18 @@ const COLLECTION_RESERVED = /^__.*__$/;
 // Sammlung als Meta (im Bundle): nur Kennung, Name und Oberebene. Die Cases stehen im Bundle
 // flach in `cases` und tragen `collectionId`.
 export function checkCollection(m) {
-  if (!m || typeof m.id !== 'string' || typeof m.name !== 'string' || m.id === '') throw new Error('Sammlung ohne ID oder Name in der Datei.');
-  if (m.id.length > MAX_COLLECTION_ID) throw new Error(`Sammlung „${m.name.slice(0, 20)}“: ID zu lang (höchstens ${MAX_COLLECTION_ID} Zeichen).`);
-  if (m.name.length > MAX_FIRM) throw new Error(`Sammlung „${m.name.slice(0, 20)}…“: Name zu lang (höchstens ${MAX_FIRM} Zeichen).`);
-  if (!m.name.trim()) throw new Error('Sammlung ohne Namen in der Datei.');
-  if (m.parentId !== undefined && typeof m.parentId !== 'string') throw new Error(`Sammlung „${m.name}“ hat eine ungültige Oberebene.`);
-  if (!updatedAtOk(m)) throw new Error(`Sammlung „${m.name}“ hat einen ungültigen Zeitstempel.`);
+  if (!m || typeof m.id !== 'string' || typeof m.name !== 'string' || m.id === '') throw new Error(t('Sammlung ohne ID oder Name in der Datei.'));
+  if (m.id.length > MAX_COLLECTION_ID) throw new Error(t('Sammlung „{name}“: ID zu lang (höchstens {max} Zeichen).', { name: m.name.slice(0, 20), max: MAX_COLLECTION_ID }));
+  if (m.name.length > MAX_FIRM) throw new Error(t('Sammlung „{name}…“: Name zu lang (höchstens {max} Zeichen).', { name: m.name.slice(0, 20), max: MAX_FIRM }));
+  if (!m.name.trim()) throw new Error(t('Sammlung ohne Namen in der Datei.'));
+  if (m.parentId !== undefined && typeof m.parentId !== 'string') throw new Error(t('Sammlung „{name}“ hat eine ungültige Oberebene.', { name: m.name }));
+  if (!updatedAtOk(m)) throw new Error(t('Sammlung „{name}“ hat einen ungültigen Zeitstempel.', { name: m.name }));
 }
 
 export function exportBundle({ cases, trucks, plans, ruleSets = [], collections = [], projectRuleSets = [] }, now = new Date()) {
   return JSON.stringify({
     format: FORMAT, version: VERSION, appVersion: APP_VERSION, exportedAt: now.toISOString(),
-    cases: cases.filter(c => !c.builtin), trucks: trucks.filter(t => !t.builtin), plans, ruleSets,
+    cases: cases.filter(c => !c.builtin), trucks: trucks.filter(tk => !tk.builtin), plans, ruleSets,
     // Standard und Meine sind fest; nur eigene Sammlungen gehören in die Datei.
     collections: collections.filter(c => !c.readOnly && c.id !== 'meine')
       .map(({ id, name, parentId, updatedAt }) => ({ id, name, ...(parentId ? { parentId } : {}), ...(updatedAt ? { updatedAt } : {}) })),
@@ -216,7 +224,11 @@ export function exportBundle({ cases, trucks, plans, ruleSets = [], collections 
   }, null, 2);
 }
 
-const FIELD_LABELS = { cases: 'Cases', trucks: 'Fahrzeuge', plans: 'Ladepläne', ruleSets: 'Regelsets', collections: 'Sammlungen', projectRuleSets: 'Projekt-Regelsets' };
+// Getter, damit die Bezeichnung die Sprache zum Zeitpunkt der Meldung trifft.
+const FIELD_LABELS = {
+  get cases() { return t('Cases'); }, get trucks() { return t('Fahrzeuge'); }, get plans() { return t('Ladepläne'); },
+  get ruleSets() { return t('Regelsets'); }, get collections() { return t('Sammlungen'); }, get projectRuleSets() { return t('Projekt-Regelsets'); },
+};
 
 // Zwei Werte aus älteren Wizard-/Editor-Vorgaben reißen sonst die harte Alles-oder-nichts-Grenze
 // beim Import, obwohl sie reparierbar sind: eine zu lange Beschriftung (früher bis 50 Zeichen,
@@ -246,13 +258,13 @@ const dimsOk = c => ['l', 'w', 'h'].every(k => num(c[k]) && c[k] > 0 && c[k] <= 
 // Traversenwagen leiten ihre Maße aus `truss` ab und werden hier nicht nachgefragt.
 export function parseBundle(text, { dims } = {}) {
   let data;
-  try { data = JSON.parse(text); } catch { throw new Error('Die Datei ist kein gültiges JSON.'); }
-  if (data?.format !== FORMAT) throw new Error('Keine Truckload-Datei.');
-  if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
-  if (data.version > VERSION) throw new Error('Die Datei stammt aus einer neueren Version.');
+  try { data = JSON.parse(text); } catch { throw new Error(t('Die Datei ist kein gültiges JSON.')); }
+  if (data?.format !== FORMAT) throw new Error(t('Keine Truckload-Datei.'));
+  if (!num(data.version)) throw new Error(t('Die Datei hat keine gültige Versionsangabe.'));
+  if (data.version > VERSION) throw new Error(t('Die Datei stammt aus einer neueren Version.'));
   for (const field of ['cases', 'trucks', 'plans', 'ruleSets', 'collections', 'projectRuleSets']) {
     if (data[field] !== undefined && !Array.isArray(data[field]))
-      throw new Error(`Das Feld „${FIELD_LABELS[field]}“ in der Datei ist beschädigt.`);
+      throw new Error(t('Das Feld „{field}“ in der Datei ist beschädigt.', { field: FIELD_LABELS[field] }));
   }
   const incomplete = [];
   const rawCases = arr(data.cases).filter(c => !isPreset(c)).flatMap(c => {
@@ -267,17 +279,17 @@ export function parseBundle(text, { dims } = {}) {
     incomplete.push({ id: c.id, name: c.name });
     return [];
   });
-  const rawTrucks = arr(data.trucks).filter(t => !isPreset(t));
+  const rawTrucks = arr(data.trucks).filter(tk => !isPreset(tk));
   const rawPlans = arr(data.plans).map(p => ({ ...p, unplaced: arr(p?.unplaced), notes: p?.notes ?? '' }));
   const ruleSets = arr(data.ruleSets);
   const projectRuleSets = arr(data.projectRuleSets);
-  if (arr(data.collections).length > MAX_COLLECTIONS) throw new Error('Die Datei enthält zu viele Sammlungen.');
+  if (arr(data.collections).length > MAX_COLLECTIONS) throw new Error(t('Die Datei enthält zu viele Sammlungen.'));
   // Feste und mitgelieferte Sammlungen kommen nie aus einer Datei; Null-Einträge bleiben stehen
   // und lehnt checkCollection ab.
   const rawCollectionsIn = arr(data.collections).filter(m => m?.id !== 'standard' && m?.id !== 'meine'
     && !m?.builtin && !m?.readOnly && !(typeof m?.id === 'string' && m.id.startsWith('preset-')));
   if (rawCases.length === 0 && incomplete.length === 0 && rawTrucks.length === 0 && rawPlans.length === 0 && ruleSets.length === 0 && projectRuleSets.length === 0 && rawCollectionsIn.length === 0)
-    throw new Error('Die Datei enthält keine Daten.');
+    throw new Error(t('Die Datei enthält keine Daten.'));
 
   // Namen waren bis V 0.13.10 teils unbegrenzt (Plan umbenennen, „(Kopie)“, Dolly-Stack aus einem
   // bereits langen Namen: bis 91 Zeichen); ein zu langer Name von Ladeplan, Case oder Fahrzeug wird
@@ -288,11 +300,11 @@ export function parseBundle(text, { dims } = {}) {
   const cutName = (kind, name) => {
     if (typeof name !== 'string' || name.length <= NAME_MAX) return name;
     nameRepairs[kind]++;
-    const dolly = kind === 'case' && /^(.*) (\d+)er \(auf Dolly\)$/.exec(name);
-    return dolly ? dollyName(dolly[1], dolly[2]) : name.slice(0, NAME_MAX);
+    const dolly = kind === 'case' && parseDollyName(name);
+    return dolly ? dollyName(dolly.base, dolly.n) : name.slice(0, NAME_MAX);
   };
   const withCutName = (kind, x) => (x && typeof x.name === 'string' && x.name.length > NAME_MAX ? { ...x, name: cutName(kind, x.name) } : x);
-  const trucks = rawTrucks.map(t => withCutName('truck', t));
+  const trucks = rawTrucks.map(tk => withCutName('truck', tk));
 
   let wheelHRepairs = 0;
   const cases = rawCases.map(c => {
@@ -311,13 +323,15 @@ export function parseBundle(text, { dims } = {}) {
   // möglich (validatePlan warnt nur). coordMax = 2 × größte Fahrzeugabmessung (mitgelieferte und
   // die der Datei), mindestens COORD_MAX – ein langes eigenes Fahrzeug löst die Reparatur also nie
   // für legitime Positionen aus.
-  const coordMax = Math.max(COORD_MAX, 2 * Math.max(0, ...trucks.flatMap(t => [t.l, t.w, t.h]).filter(num)));
+  const coordMax = Math.max(COORD_MAX, 2 * Math.max(0, ...trucks.flatMap(tk => [tk.l, tk.w, tk.h]).filter(num)));
   const farOut = x => x && typeof x === 'object' && ['x', 'y', 'z'].some(k => num(x[k]) && Math.abs(x[k]) > coordMax);
   const planRepairs = [];
   const movePlaced = p => {
     if (!Array.isArray(p.placements) || !p.placements.some(farOut)) return p;
     const out = p.placements.filter(farOut);
-    planRepairs.push(`Ladeplan „${p.name}“: ${out.length} ${out.length === 1 ? 'Platzierung' : 'Platzierungen'} außerhalb des Fahrzeugbereichs – in die Ablage verschoben.`);
+    planRepairs.push(out.length === 1
+      ? t('Ladeplan „{name}“: 1 Platzierung außerhalb des Fahrzeugbereichs – in die Ablage verschoben.', { name: p.name })
+      : t('Ladeplan „{name}“: {n} Platzierungen außerhalb des Fahrzeugbereichs – in die Ablage verschoben.', { name: p.name, n: out.length }));
     return {
       ...p,
       placements: p.placements.filter(x => !farOut(x)),
@@ -341,9 +355,9 @@ export function parseBundle(text, { dims } = {}) {
     if (nStale === 0 && toTray.length === 0) return p;
     const strip = x => (stale(x) ? (({ lkw: _d, ...rest }) => rest)(x) : x);
     const parts = [];
-    if (nStale > 0) parts.push(`${nStale} ${nStale === 1 ? 'Stück' : 'Stücke'} mit unbekanntem LKW-Verweis – Zuordnung entfernt`);
-    if (toTray.length > 0) parts.push(`${toTray.length} ${toTray.length === 1 ? 'Platzierung' : 'Platzierungen'} ohne LKW – in die Ablage verschoben`);
-    planRepairs.push(`Ladeplan „${p.name}“: ${parts.join('; ')}.`);
+    if (nStale > 0) parts.push(nStale === 1 ? t('1 Stück mit unbekanntem LKW-Verweis – Zuordnung entfernt') : t('{n} Stücke mit unbekanntem LKW-Verweis – Zuordnung entfernt', { n: nStale }));
+    if (toTray.length > 0) parts.push(toTray.length === 1 ? t('1 Platzierung ohne LKW – in die Ablage verschoben') : t('{n} Platzierungen ohne LKW – in die Ablage verschoben', { n: toTray.length }));
+    planRepairs.push(t('Ladeplan „{name}“: {parts}.', { name: p.name, parts: parts.join('; ') }));
     return {
       ...p,
       placements: p.placements.filter(x => !toTray.includes(x)).map(strip),
@@ -356,7 +370,7 @@ export function parseBundle(text, { dims } = {}) {
   const realignTruck = p => {
     const first = Array.isArray(p.lkws) ? p.lkws[0]?.truckId : undefined;
     if (typeof first !== 'string' || first === p.truckId) return p;
-    planRepairs.push(`Ladeplan „${p.name}“: Fahrzeug des Plans an das des ersten LKW angeglichen.`);
+    planRepairs.push(t('Ladeplan „{name}“: Fahrzeug des Plans an das des ersten LKW angeglichen.', { name: p.name }));
     return { ...p, truckId: first };
   };
   // Die mitgeführte Kopie bekommt dieselben Reparaturen wie die Top-Level-Cases und Fahrzeuge
@@ -371,7 +385,7 @@ export function parseBundle(text, { dims } = {}) {
         if (fixed) wheelHRepairs++;
         return withCutName('case', fixed ?? c);
       }),
-      trucks: m.trucks.map(t => withCutName('truck', t)),
+      trucks: m.trucks.map(tk => withCutName('truck', tk)),
     };
   };
   const plans = rawPlans.map(movePlaced).map(fixLkwRefs).map(realignTruck).map(p => ({
@@ -390,7 +404,7 @@ export function parseBundle(text, { dims } = {}) {
   // Nur Kennung, Name, Oberebene, Zeitstempel übernehmen (wie exportBundle); fremde Felder
   // (readOnly, builtin, cases …) bleiben draußen. Reservierte oder doppelte Namen (ohne
   // Groß-/Kleinschreibung, auch gegen die festen Sammlungen) werden umbenannt und gemeldet.
-  const takenNames = new Set(['standard', MEINE_NAME.toLowerCase()]);
+  const takenNames = new Set(['standard', MEINE_NAME.toLowerCase(), MEINE_NAME_EN.toLowerCase()]);
   let nameCollectionRepairs = 0;
   const uniqueName = name => {
     const base = name.trim();
@@ -438,11 +452,11 @@ export function parseBundle(text, { dims } = {}) {
   // Doppelte IDs in derselben Liste lassen mergeById/winners still Datensätze verschlucken.
   for (const [field, list] of [['cases', cases], ['trucks', trucks], ['plans', plans], ['ruleSets', ruleSets], ['projectRuleSets', projectRuleSets], ['collections', collections]]) {
     const dup = list.map(x => x.id).find((id, i, ids) => ids.indexOf(id) !== i);
-    if (dup !== undefined) throw new Error(`Die Datei enthält doppelte IDs bei ${FIELD_LABELS[field]} („${dup}“).`);
+    if (dup !== undefined) throw new Error(t('Die Datei enthält doppelte IDs bei {field} („{id}“).', { field: FIELD_LABELS[field], id: dup }));
   }
 
   const knownCaseIds = new Set([...cases.map(c => c.id), ...CASE_LIBRARY.map(c => c.id), ...PRESET_CASES.map(c => c.id)]);
-  const knownTruckIds = new Set([...trucks.map(t => t.id), ...PRESET_TRUCKS.map(t => t.id)]);
+  const knownTruckIds = new Set([...trucks.map(tk => tk.id), ...PRESET_TRUCKS.map(tk => tk.id)]);
   // Unbekannte Verweise nur als IDs liefern: ob ein Case oder Fahrzeug wirklich fehlt, zeigt erst
   // der Abgleich mit dem lokalen Bestand nach dem Zusammenführen (js/app/importExport.js, dort
   // entsteht auch der Warntext). Ein Plan, der auf ein eigenes lokales Case verweist, das nicht
@@ -451,27 +465,40 @@ export function parseBundle(text, { dims } = {}) {
   for (const p of plans) {
     const missingCases = [...p.placements, ...p.unplaced].map(x => x.caseId).filter(id => !knownCaseIds.has(id));
     const truck = knownTruckIds.has(p.truckId) ? null : p.truckId;
-    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck, ...(p.mitgefuehrt ? { kopieCases: p.mitgefuehrt.cases.map(c => c.id), kopieTrucks: p.mitgefuehrt.trucks.map(t => t.id) } : {}) });
+    if (missingCases.length > 0 || truck !== null) unknownRefs.push({ planId: p.id, plan: p.name, cases: missingCases, truck, ...(p.mitgefuehrt ? { kopieCases: p.mitgefuehrt.cases.map(c => c.id), kopieTrucks: p.mitgefuehrt.trucks.map(tk => tk.id) } : {}) });
   }
 
   const repairs = [];
   if (wheelHRepairs > 0)
-    repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.`);
+    repairs.push(wheelHRepairs === 1
+      ? t('1 Case: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.')
+      : t('{n} Cases: Rollenhöhe erreichte oder überstieg die Case-Höhe (Vorgabe bis V 0.6) – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.', { n: wheelHRepairs }));
   if (labelRepairs > 0)
-    repairs.push(`${labelRepairs} Beschriftung${labelRepairs === 1 ? '' : 'en'} länger als ${MAX_LABEL} Zeichen (Vorgabe bis V 0.6) – gekürzt.`);
+    repairs.push(labelRepairs === 1
+      ? t('1 Beschriftung länger als {max} Zeichen (Vorgabe bis V 0.6) – gekürzt.', { max: MAX_LABEL })
+      : t('{n} Beschriftungen länger als {max} Zeichen (Vorgabe bis V 0.6) – gekürzt.', { n: labelRepairs, max: MAX_LABEL }));
 
   if (nameCollectionRepairs > 0)
-    repairs.push(`${nameCollectionRepairs} Sammlung${nameCollectionRepairs === 1 ? '' : 'en'}: Name doppelt oder reserviert – umbenannt.`);
+    repairs.push(nameCollectionRepairs === 1
+      ? t('1 Sammlung: Name doppelt oder reserviert – umbenannt.')
+      : t('{n} Sammlungen: Name doppelt oder reserviert – umbenannt.', { n: nameCollectionRepairs }));
   if (parentRepairs > 0)
-    repairs.push(`${parentRepairs} Sammlung${parentRepairs === 1 ? '' : 'en'}: Oberebene unbekannt oder Schleife – auf die oberste Ebene gesetzt.`);
+    repairs.push(parentRepairs === 1
+      ? t('1 Sammlung: Oberebene unbekannt oder Schleife – auf die oberste Ebene gesetzt.')
+      : t('{n} Sammlungen: Oberebene unbekannt oder Schleife – auf die oberste Ebene gesetzt.', { n: parentRepairs }));
   if (unknownCollectionRefs > 0)
-    repairs.push(`${unknownCollectionRefs} Case${unknownCollectionRefs === 1 ? '' : 's'}: Sammlung unbekannt – nach „Meine Sammlung“ gelegt.`);
+    repairs.push(unknownCollectionRefs === 1
+      ? t('1 Case: Sammlung unbekannt – nach „Meine Sammlung“ gelegt.')
+      : t('{n} Cases: Sammlung unbekannt – nach „Meine Sammlung“ gelegt.', { n: unknownCollectionRefs }));
   repairs.push(...planRepairs);
-  const nameNote = (n, one, many) =>
-    n > 0 && repairs.push(`${n} ${n === 1 ? one : many}: Name länger als ${NAME_MAX} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.`);
-  nameNote(nameRepairs.plan, 'Ladeplan', 'Ladepläne');
-  nameNote(nameRepairs.case, 'Case', 'Cases');
-  nameNote(nameRepairs.truck, 'Fahrzeug', 'Fahrzeuge');
+  const max = NAME_MAX;
+  const nameNote = (n, one, many) => n > 0 && repairs.push(n === 1 ? one : many(n));
+  nameNote(nameRepairs.plan, t('1 Ladeplan: Name länger als {max} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.', { max }),
+    n => t('{n} Ladepläne: Name länger als {max} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.', { n, max }));
+  nameNote(nameRepairs.case, t('1 Case: Name länger als {max} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.', { max }),
+    n => t('{n} Cases: Name länger als {max} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.', { n, max }));
+  nameNote(nameRepairs.truck, t('1 Fahrzeug: Name länger als {max} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.', { max }),
+    n => t('{n} Fahrzeuge: Name länger als {max} Zeichen (bis V 0.13.10 unbegrenzt) – gekürzt.', { n, max }));
 
   return { cases: casesWithCollection.map(c => normalizeCase(dropStrayLegacy(c))), collections, trucks, plans, ruleSets, projectRuleSets, unknownRefs, repairs, incomplete, overLimit: cases.flatMap(overLimit) };
 }
@@ -507,17 +534,17 @@ export function exportCollectionFile({ id, name }, cases, now = new Date()) {
 
 export function parseCollectionFile(text) {
   let data;
-  try { data = JSON.parse(text); } catch { throw new Error('Die Datei ist kein gültiges JSON.'); }
-  if (data?.format !== COLLECTION_FORMAT) throw new Error('Keine Sammlungsdatei von Truckload.');
-  if (!num(data.version)) throw new Error('Die Datei hat keine gültige Versionsangabe.');
-  if (data.version > COLLECTION_VERSION) throw new Error('Die Datei stammt aus einer neueren Version.');
+  try { data = JSON.parse(text); } catch { throw new Error(t('Die Datei ist kein gültiges JSON.')); }
+  if (data?.format !== COLLECTION_FORMAT) throw new Error(t('Keine Sammlungsdatei von Truckload.'));
+  if (!num(data.version)) throw new Error(t('Die Datei hat keine gültige Versionsangabe.'));
+  if (data.version > COLLECTION_VERSION) throw new Error(t('Die Datei stammt aus einer neueren Version.'));
   const m = data.collection;
   if (!m || typeof m.id !== 'string' || typeof m.name !== 'string' || !m.name.trim())
-    throw new Error('Die Sammlung in der Datei hat keine ID oder keinen Namen.');
-  if (m.id === '' || m.id.length > MAX_COLLECTION_ID) throw new Error('Die Sammlung in der Datei hat keine gültige ID.');
-  if (m.name.length > MAX_FIRM) throw new Error(`Sammlungsname zu lang (höchstens ${MAX_FIRM} Zeichen).`);
-  if (COLLECTION_RESERVED.test(m.name.trim())) throw new Error('Dieser Sammlungsname ist reserviert.');
-  if (!Array.isArray(data.cases)) throw new Error('Das Feld „Cases“ in der Datei ist beschädigt.');
+    throw new Error(t('Die Sammlung in der Datei hat keine ID oder keinen Namen.'));
+  if (m.id === '' || m.id.length > MAX_COLLECTION_ID) throw new Error(t('Die Sammlung in der Datei hat keine gültige ID.'));
+  if (m.name.length > MAX_FIRM) throw new Error(t('Sammlungsname zu lang (höchstens {max} Zeichen).', { max: MAX_FIRM }));
+  if (COLLECTION_RESERVED.test(m.name.trim())) throw new Error(t('Dieser Sammlungsname ist reserviert.'));
+  if (!Array.isArray(data.cases)) throw new Error(t('Das Feld „{field}“ in der Datei ist beschädigt.', { field: FIELD_LABELS.cases }));
   // Dieselben Altschema-Reparaturen wie bei der Sicherung (Rollenhöhe, Namenslänge) statt Ablehnung;
   // `repairs` nennt, was repariert wurde. Eine Beschriftung gibt es am Case nicht (sie gehört zum
   // Stück im Ladeplan), eine Sammlungsdatei hat also nur diese beiden Fälle.
@@ -528,15 +555,19 @@ export function parseCollectionFile(text) {
     const r = fixed ?? c;
     if (typeof r?.name !== 'string' || r.name.length <= NAME_MAX) return r;
     nameRepairs++;
-    const dolly = /^(.*) (\d+)er \(auf Dolly\)$/.exec(r.name);
-    return { ...r, name: dolly ? dollyName(dolly[1], dolly[2]) : r.name.slice(0, NAME_MAX) };
+    const dolly = parseDollyName(r.name);
+    return { ...r, name: dolly ? dollyName(dolly.base, dolly.n) : r.name.slice(0, NAME_MAX) };
   });
   cases.forEach(checkCase);
   const repairs = [];
-  if (wheelHRepairs > 0) repairs.push(`${wheelHRepairs} Case${wheelHRepairs === 1 ? '' : 's'}: Rollenhöhe erreichte oder überstieg die Case-Höhe – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.`);
-  if (nameRepairs > 0) repairs.push(`${nameRepairs} Case${nameRepairs === 1 ? '' : 's'}: Name länger als ${NAME_MAX} Zeichen – gekürzt.`);
+  if (wheelHRepairs > 0) repairs.push(wheelHRepairs === 1
+    ? t('1 Case: Rollenhöhe erreichte oder überstieg die Case-Höhe – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.')
+    : t('{n} Cases: Rollenhöhe erreichte oder überstieg die Case-Höhe – Rollenhöhe auf 0 gesetzt und Rollen abgewählt.', { n: wheelHRepairs }));
+  if (nameRepairs > 0) repairs.push(nameRepairs === 1
+    ? t('1 Case: Name länger als {max} Zeichen – gekürzt.', { max: NAME_MAX })
+    : t('{n} Cases: Name länger als {max} Zeichen – gekürzt.', { n: nameRepairs, max: NAME_MAX }));
   const ids = cases.map(c => c.id);
-  if (new Set(ids).size !== ids.length) throw new Error('Die Datei enthält doppelte Case-IDs.');
+  if (new Set(ids).size !== ids.length) throw new Error(t('Die Datei enthält doppelte Case-IDs.'));
   return {
     collection: { id: m.id, name: m.name.trim() },
     cases: cases.map(c => normalizeCase(dropStrayLegacy(c))),

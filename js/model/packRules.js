@@ -1,4 +1,5 @@
 import { outerDims, isTruss } from './geometry.js';
+import { t, trade } from '../i18n/i18n.js';
 
 // Pack-Regeln je Load (Nutzerwunsch 2026-09-30, Spec docs/superpowers/specs/2026-09-30-pack-regeln-
 // design.md): eine Rangliste, die die sortenreinen Blöcke (Case-Typ + Gruppe) von der Stirnwand
@@ -10,15 +11,19 @@ const MAX_RULE_VALUE = 200;
 const SELECT_BY = ['truss', 'group', 'case', 'category'];
 const MEASURE_BY = ['volume', 'count'];
 const POSITIONS = ['first', 'last'];
-export const POS_LABEL = { first: 'zuerst (Stirnwand)', last: 'zuletzt (Tür)' };
+// Getter statt fester Texte: die Beschriftung folgt der aktiven Sprache, die Form (Object.entries) bleibt.
+export const POS_LABEL = {
+  get first() { return t('zuerst (Stirnwand)'); },
+  get last() { return t('zuletzt (Tür)'); },
+};
 // Reihenfolge und Beschriftung für die Auswahl „Regel hinzufügen“ (js/ui/pack-rules.js).
 export const RULE_KINDS = [
-  { by: 'group', label: 'Gruppe' },
-  { by: 'case', label: 'Case-Typ' },
-  { by: 'category', label: 'Gewerk' },
-  { by: 'truss', label: 'Traversen' },
-  { by: 'volume', label: 'Große zuerst' },
-  { by: 'count', label: 'Stückzahl zuerst' },
+  { by: 'group', get label() { return t('Gruppe'); } },
+  { by: 'case', get label() { return t('Case-Typ'); } },
+  { by: 'category', get label() { return t('Gewerk'); } },
+  { by: 'truss', get label() { return t('Traversen'); } },
+  { by: 'volume', get label() { return t('Große zuerst'); } },
+  { by: 'count', get label() { return t('Stückzahl zuerst'); } },
 ];
 
 export const volumeOf = c => { const { l, w, h } = outerDims(c); return l * w * h; };
@@ -138,20 +143,20 @@ export function ruleTargets(pieces, caseById) {
   };
 }
 
-export function ruleActive(r, t) {
-  if (r.by === 'truss') return t.hasTruss;
-  if (r.by === 'group') return t.groups.includes(r.value);
-  if (r.by === 'case') return t.cases.some(c => c.id === r.value);
-  if (r.by === 'category') return t.categories.includes(r.value);
+export function ruleActive(r, targets) {
+  if (r.by === 'truss') return targets.hasTruss;
+  if (r.by === 'group') return targets.groups.includes(r.value);
+  if (r.by === 'case') return targets.cases.some(c => c.id === r.value);
+  if (r.by === 'category') return targets.categories.includes(r.value);
   return true;
 }
 
 export function describeRule(r, caseById) {
-  if (r.by === 'volume') return 'Große zuerst';
-  if (r.by === 'count') return 'Stückzahl zuerst';
+  if (r.by === 'volume') return t('Große zuerst');
+  if (r.by === 'count') return t('Stückzahl zuerst');
   const pos = POS_LABEL[r.pos];
-  if (r.by === 'truss') return `Traversen: ${pos}`;
-  if (r.by === 'group') return `Gruppe „${r.value}“: ${pos}`;
-  if (r.by === 'case') return `Case-Typ „${caseById.get(r.value)?.name ?? r.value}“: ${pos}`;
-  return `Gewerk „${r.value}“: ${pos}`;
+  if (r.by === 'truss') return t('Traversen: {pos}', { pos });
+  if (r.by === 'group') return t('Gruppe „{value}“: {pos}', { value: r.value, pos });
+  if (r.by === 'case') return t('Case-Typ „{name}“: {pos}', { name: caseById.get(r.value)?.name ?? r.value, pos });
+  return t('Gewerk „{value}“: {pos}', { value: trade(r.value), pos });
 }

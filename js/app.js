@@ -19,6 +19,11 @@ import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf, planZumSpeich
 import { isMultiLkw } from './model/lkw.js';
 import * as A from './model/actions.js';
 import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
+import { translateDom } from './i18n/dom.js';
+import { t } from './i18n/i18n.js';
+
+// Statisches HTML übersetzen (Englisch) und <html lang> setzen, bevor irgendetwas rendert.
+translateDom(document);
 
 installEarlyHandlers(repo);
 
@@ -66,10 +71,11 @@ async function warnIfUnplaced() {
   const s = store.get();
   const n = activeViewOf(s.plan, s.activeLkw).unplaced.length;
   if (!n) return;
-  const what = isMultiLkw(s.plan) ? 'LKW' : 'Truck';
+  // Ganze Sätze je Fall (Mehr-LKW-Pläne sagen „LKW“, Ein-LKW-Pläne „Truck“, Einzahl/Mehrzahl getrennt).
+  const multi = isMultiLkw(s.plan);
   const msg = n === 1
-    ? `1 Case passt nicht in den ${what} und bleibt in „Noch nicht geladen“.`
-    : `${n} Cases passen nicht in den ${what} und bleiben in „Noch nicht geladen“.`;
+    ? (multi ? t('1 Case passt nicht in den LKW und bleibt in „Noch nicht geladen“.') : t('1 Case passt nicht in den Truck und bleibt in „Noch nicht geladen“.'))
+    : (multi ? t('{n} Cases passen nicht in den LKW und bleiben in „Noch nicht geladen“.', { n }) : t('{n} Cases passen nicht in den Truck und bleiben in „Noch nicht geladen“.', { n }));
   await showAlert(msg);
 }
 

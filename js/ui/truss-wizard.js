@@ -1,4 +1,5 @@
 import { esc } from './dom.js';
+import { t, num } from '../i18n/i18n.js';
 import { QUICK_LENGTHS, trussProfileName } from './caseInfo.js';
 import { isTruss } from '../model/geometry.js';
 import { TRUSS_PROFILES, DOLLY_WIDTHS, trussDims, wagonWeight, wagonWeightFor, splitWagons, findMatchingWagon } from '../model/truss.js';
@@ -19,6 +20,7 @@ export function buildWagonCaseType(id, profileName, length, width, count, wagonW
   const truss = { length, width, count, ...(wagonW != null ? { wagonW } : {}), ...(profile ? { profileId: profile.id } : {}) };
   const { l, w, h } = trussDims(truss);
   const weight = profile ? wagonWeightFor(profile, length, count) : wagonWeight(length, width, count);
+  // Der Name wird gespeichert: bleibt deutsch (Daten), auch bei englischer Oberfläche.
   const lengthLabel = (length / 100).toLocaleString('de-DE', { maximumFractionDigits: 2 });
   const label = profile ? `${profile.hersteller} ${profile.name}` : profileName;
   const name = `Traversenwagen ${label} ${lengthLabel} m (${count} Stück)`;
@@ -30,20 +32,20 @@ export function buildWagonCaseType(id, profileName, length, width, count, wagonW
 }
 
 // --- Reine Bausteine für die Profilsuche im Dialog (ohne DOM, einzeln testbar) ---
-export const punkteLabel = n => `${n}-Punkt`;
+export const punkteLabel = n => t('{n}-Punkt', { n });
 
 export function originText(art, vergleichId) {
-  if (art === 'hersteller') return 'Herstellerangabe';
-  if (art === 'berechnet') return 'aus Metergewicht berechnet';
+  if (art === 'hersteller') return t('Herstellerangabe');
+  if (art === 'berechnet') return t('aus Metergewicht berechnet');
   const v = vergleichId ? profileById(vergleichId) : null;
-  return v ? `geschätzt (Vergleich: ${v.hersteller} ${v.name})` : 'geschätzt';
+  return v ? t('geschätzt (Vergleich: {profil})', { profil: `${v.hersteller} ${v.name}` }) : t('geschätzt');
 }
 
 // Längen-Tasten eines Profils: { cm, label: „3,5 m · 23 kg“, title: Herkunft }.
 export function lengthButtons(profile) {
   return (profile?.lengths ?? []).map(l => {
-    const m = (l.cm / 100).toLocaleString('de-DE', { maximumFractionDigits: 2 });
-    const kg = l.kg > 0 ? `${l.kg.toLocaleString('de-DE', { maximumFractionDigits: 1 })} kg` : 'Gewicht unbekannt';
+    const m = num(l.cm / 100, { maximumFractionDigits: 2 });
+    const kg = l.kg > 0 ? `${num(l.kg, { maximumFractionDigits: 1 })} kg` : t('Gewicht unbekannt');
     return { cm: l.cm, label: `${m} m · ${kg}`, title: originText(l.art, l.vergleich) };
   });
 }
@@ -54,7 +56,7 @@ export function profileHitLabel(p) {
 
 // Trefferliste als HTML; alle Katalogtexte über esc(). Leere Liste → Hinweis.
 export function profileHitsHtml(profiles) {
-  if (!profiles.length) return '<p class="hint">Kein Profil gefunden.</p>';
+  if (!profiles.length) return `<p class="hint">${t('Kein Profil gefunden.')}</p>`;
   return profiles.map(p =>
     `<button type="button" class="quick-len profile-hit" data-id="${esc(p.id)}">${esc(profileHitLabel(p))}</button>`).join('');
 }
@@ -75,7 +77,7 @@ export function minLengthFor(profile) {
 export function profileOriginLine(profile, lengthCm) {
   if (!profile || !(lengthCm > 0)) return '';
   const hit = profile.lengths.find(l => l.cm === lengthCm);
-  return `Gewicht: ${originText(hit ? hit.art : pieceKg(profile, lengthCm).art, hit?.vergleich)}`;
+  return t('Gewicht: {field}', { field: originText(hit ? hit.art : pieceKg(profile, lengthCm).art, hit?.vergleich) });
 }
 
 // Gruppiert die stehenden Pre-Rig-Presets (truss.standing === true) nach Hersteller/Modell für
@@ -86,7 +88,7 @@ function groupPrerigCases(cases) {
   const groups = new Map();
   for (const c of cases) {
     const m = c.name.match(/^Traversenwagen (.+?) ([\d,]+\s*m) – (.+)$/);
-    const groupLabel = m ? `${m[3]} ${m[1]}` : 'Sonstige';
+    const groupLabel = m ? `${m[3]} ${m[1]}` : t('Sonstige');
     const optionLabel = m ? m[2] : c.name;
     if (!groups.has(groupLabel)) groups.set(groupLabel, []);
     groups.get(groupLabel).push({ id: c.id, label: optionLabel });
@@ -121,41 +123,41 @@ export function openTrussDialog(dlg, opts = {}) {
 
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>Traverse hinzufügen</h2>
+      <h2>${t('Traverse hinzufügen')}</h2>
       <div class="row kind-switch">
-        <label><input type="radio" name="kind" value="classic" checked> Klassische Traverse (F34/F40)</label>
-        <label><input type="radio" name="kind" value="prerig"> Pre-Rig-Traverse (MLT/S36PR)</label>
+        <label><input type="radio" name="kind" value="classic" checked> ${t('Klassische Traverse (F34/F40)')}</label>
+        <label><input type="radio" name="kind" value="prerig"> ${t('Pre-Rig-Traverse (MLT/S36PR)')}</label>
       </div>
-      <fieldset class="classic-only"><legend>Klassischer Wagen</legend>
-        <label>Profil suchen (z. B. FD34)<input type="search" name="profileSearch" autocomplete="off"></label>
+      <fieldset class="classic-only"><legend>${t('Klassischer Wagen')}</legend>
+        <label>${t('Profil suchen (z. B. FD34)')}<input type="search" name="profileSearch" autocomplete="off"></label>
         <div class="row quick-lengths profile-hits"></div>
-        <p class="hint profile-chosen" hidden><span class="profile-chosen-text"></span> <button type="button" class="quick-len profile-clear">Auswahl aufheben</button></p>
-        <label class="profile-select">Profil<select name="profile">${TRUSS_PROFILES.map(p => `<option value="${p.width}">${esc(p.name)}</option>`).join('')}</select></label>
-        <label>Länge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
+        <p class="hint profile-chosen" hidden><span class="profile-chosen-text"></span> <button type="button" class="quick-len profile-clear">${t('Auswahl aufheben')}</button></p>
+        <label class="profile-select">${t('Profil')}<select name="profile">${TRUSS_PROFILES.map(p => `<option value="${p.width}">${esc(p.name)}</option>`).join('')}</select></label>
+        <label>${t('Länge (cm)')}<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
         <div class="row quick-lengths length-buttons">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
         <p class="hint length-origin"></p>
-        <label>Wagenbreite (cm)<input type="number" name="wagonW" min="20" max="200" step="1" required></label>
-        <p class="hint">Wagen unterscheiden sich je Sammlung – die Breite hier an den echten Wagen anpassen.</p>
+        <label>${t('Wagenbreite (cm)')}<input type="number" name="wagonW" min="20" max="200" step="1" required></label>
+        <p class="hint">${t('Wagen unterscheiden sich je Sammlung – die Breite hier an den echten Wagen anpassen.')}</p>
         <div class="row">
-          <label>Gesamtstückzahl<input type="number" name="total" min="1" step="1" required></label>
-          <label>Stück pro Wagen<input type="number" name="perWagon" min="1" max="12" step="1" required></label>
+          <label>${t('Gesamtstückzahl')}<input type="number" name="total" min="1" step="1" required></label>
+          <label>${t('Stück pro Wagen')}<input type="number" name="perWagon" min="1" max="12" step="1" required></label>
         </div>
         <p class="hint wagons-hint"></p>
         <p class="hint form-error" role="alert" hidden></p>
         ${stockTargetHtml(stock)}
       </fieldset>
-      <fieldset class="prerig-only" hidden><legend>Pre-Rig-Traverse</legend>
+      <fieldset class="prerig-only" hidden><legend>${t('Pre-Rig-Traverse')}</legend>
         ${prerigCases.length
-          ? `<label>Modell<select name="preset">${presetOptionsHtml}</select></label>
-             <label>Gesamtstückzahl<input type="number" name="prerigTotal" min="1" step="1" required></label>
-             <label class="check"><input type="checkbox" name="gestapelt" checked> gestapelt</label>
-             <p class="hint">Zwei Einheiten werden beim Packen automatisch übereinandergestellt, wenn das Platz spart.</p>`
-          : '<p class="hint">Keine Pre-Rig-Vorlagen verfügbar.</p>'}
+          ? `<label>${t('Modell')}<select name="preset">${presetOptionsHtml}</select></label>
+             <label>${t('Gesamtstückzahl')}<input type="number" name="prerigTotal" min="1" step="1" required></label>
+             <label class="check"><input type="checkbox" name="gestapelt" checked> ${t('gestapelt')}</label>
+             <p class="hint">${t('Zwei Einheiten werden beim Packen automatisch übereinandergestellt, wenn das Platz spart.')}</p>`
+          : `<p class="hint">${t('Keine Pre-Rig-Vorlagen verfügbar.')}</p>`}
       </fieldset>
       <menu>
-        <button value="cancel" formnovalidate>Abbrechen</button>
+        <button value="cancel" formnovalidate>${t('Abbrechen')}</button>
         <span class="grow"></span>
-        <button value="save" class="primary">Hinzufügen</button>
+        <button value="save" class="primary">${t('Hinzufügen')}</button>
       </menu>
     </form>`;
 
@@ -184,7 +186,7 @@ export function openTrussDialog(dlg, opts = {}) {
     const total = Number(f.total.value), perWagon = Number(f.perWagon.value);
     try {
       const n = splitWagons(total, perWagon).length;
-      wagonsHint.textContent = `→ ${n} Wagen`;
+      wagonsHint.textContent = t('→ {n} Wagen', { n });
     } catch {
       wagonsHint.textContent = '';
     }
@@ -217,7 +219,7 @@ export function openTrussDialog(dlg, opts = {}) {
     f.trussLength.min = minLengthFor(p);
     dlg.querySelector('.profile-select').hidden = !!p;
     chosenEl.hidden = !p;
-    if (p) chosenEl.querySelector('.profile-chosen-text').textContent = `Gewählt: ${profileHitLabel(p)}`;
+    if (p) chosenEl.querySelector('.profile-chosen-text').textContent = t('Gewählt: {profil}', { profil: profileHitLabel(p) });
     lengthBox.innerHTML = p ? lengthButtonsHtml(p) : defaultLengthsHtml;
     hitsBox.innerHTML = '';
     if (!wagonWTouched) f.wagonW.value = autoWagonW();

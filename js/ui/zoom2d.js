@@ -6,6 +6,7 @@
 // Eine viewBox ist hier { x, y, w, h }. `full` ist der ganze Truck samt Rand (wie renderView sie
 // ohne Zoom setzt) – weiter heraus geht es nicht, der Ausschnitt bleibt immer darin.
 import { caseIdAt, toSvg } from './dom.js';
+import { t } from '../i18n/i18n.js';
 
 export const MIN_VIEW_W = 40; // cm – engster Ausschnitt (eigene Festlegung)
 const STEP = 1.5;              // Faktor je Knopfdruck
@@ -104,9 +105,14 @@ export function classifyWheel(e, state, now) {
 
 // --- Umschalter „Scrollen“: Automatisch / Zoomen / Verschieben (gilt für alle 2D-Ansichten) ---
 export const SCROLL_MODES = ['auto', 'zoom', 'pan'];
-export const SCROLL_LABELS = { auto: 'Automatisch', zoom: 'Zoomen', pan: 'Verschieben' };
+// Getter: die Sprache gilt beim Lesen, nicht beim Laden des Moduls.
+export const SCROLL_LABELS = {
+  get auto() { return t('Automatisch'); }, get zoom() { return t('Zoomen'); }, get pan() { return t('Verschieben'); },
+};
 // Kurzform für den schmalen Knopf (Rückansicht ist eng).
-export const SCROLL_SHORT = { auto: 'Rad: Auto', zoom: 'Rad: Zoom', pan: 'Rad: Schieben' };
+export const SCROLL_SHORT = {
+  get auto() { return t('Rad: Auto'); }, get zoom() { return t('Rad: Zoom'); }, get pan() { return t('Rad: Schieben'); },
+};
 const SCROLL_KEY = 'truckload.scrollMode';
 export const nextScrollMode = m => SCROLL_MODES[(SCROLL_MODES.indexOf(m) + 1) % SCROLL_MODES.length];
 const defaultStore = () => { try { return globalThis.localStorage; } catch { return undefined; } };

@@ -62,6 +62,25 @@ kann einen Plan für die Dauer eines Imports aus der automatischen Buchhaltung h
 ist die Speicher-Logik mit `node --test` prüfbar, obwohl `js/app.js` selbst ein
 Top-Level-`await`-Modul mit DOM-Zugriff ist.
 
+## Sprache
+
+Die Oberfläche gibt es auf Deutsch und Englisch (#42); Deutsch ist die Ausgangssprache.
+
+- `js/i18n/i18n.js`: `t(text, params, ctx)` – der deutsche Text ist der Schlüssel, bei mehrdeutigen
+  Wörtern `ctx|text`. `num()` und `date()` formatieren mit `de-DE` bzw. `en-GB`. `trade()` übersetzt
+  Gewerke nur für die Anzeige. `lang` wird einmal aus `?lang=en` gelesen (Vorgabe `de`).
+- `js/i18n/en.js`: nur das Wörterbuch, sonst nichts.
+- `js/i18n/dom.js`: `translateDom` ersetzt die Marker (`data-t`, `data-t-title`,
+  `data-t-aria-label`, `data-t-placeholder`) in `index.html`.
+- Das Inline-Skript im `<head>` (`tlTexte`) trägt die Ersatztexte für den Ladefehler, bevor
+  Module laufen; es kann `i18n.js` nicht importieren.
+- Gespeicherte Daten bleiben sprachfrei: Gewerke und `MEINE_NAME` deutsch, erzeugte Namen in der
+  Sprache beim Anlegen, danach nie neu übersetzt.
+- Tests: `tests/i18n.test.js` hat die Sperren A–H (jeder Schlüssel hat einen Eintrag mit denselben
+  Platzhaltern, keine verwaisten Einträge, kein deutscher Text außerhalb von `t()`, HTML-Scan).
+  `tests/i18n-en-*.test.js` prüfen die englische Ausgabe, `tests/i18n-daten.test.js`, dass die
+  Daten sprachfrei bleiben.
+
 ## Service Worker und Ladefehler
 
 `sw.js` hält die App offline vor (Asset-Liste `ASSETS`, Cache-Name `truckload-v<Version>`):

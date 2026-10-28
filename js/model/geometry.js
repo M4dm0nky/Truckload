@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n.js';
 export const EPS = 0.5;
 export const ORIENTATIONS = ['standing', 'tipLong', 'tipShort'];
 // Die vier gültigen Rotationen; einzige Quelle für packer.js und io.js.
@@ -55,7 +56,7 @@ export function localDims(c, orientation) {
     case 'standing': return { a: l, b: w, c: h };
     case 'tipLong':  return { a: l, b: h, c: w };
     case 'tipShort': return { a: h, b: w, c: l };
-    default: throw new Error(`Unbekannte Lage: ${orientation}`);
+    default: throw new Error(t('Unbekannte Lage: {orientation}', { orientation }));
   }
 }
 

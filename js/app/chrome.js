@@ -10,11 +10,13 @@ import { isMultiLkw, lkwsOf, NO_LKW } from '../model/lkw.js';
 import { printSectionsOf } from './core.js';
 import { druckeMitHost, druckTitel, createDruckSperre } from './hostPrint.js';
 import { showAlert } from '../ui/confirmDialog.js';
+import { t } from '../i18n/i18n.js';
 
 const $ = sel => document.querySelector(sel);
 
-const BLOCKED_TEXT = 'Truckload ist in einem anderen Fenster noch in einer älteren Version geöffnet – bitte dort schließen, dann lädt diese Seite weiter.';
-const VERSION_CHANGE_TEXT = 'Neue Version in einem anderen Fenster – bitte neu laden.';
+// Als Funktionen, damit die Sprache beim Anzeigen gilt, nicht beim Laden des Moduls.
+const blockedText = () => t('Truckload ist in einem anderen Fenster noch in einer älteren Version geöffnet – bitte dort schließen, dann lädt diese Seite weiter.');
+const versionChangeText = () => t('Neue Version in einem anderen Fenster – bitte neu laden.');
 
 // Muss vor dem ersten await der App laufen: der Auffangnetz-Hinweis erfasst so auch Startfehler,
 // und die Verbindungs-Rückrufe müssen vor repo.loadAll() stehen, damit der erste
@@ -29,21 +31,21 @@ export function installEarlyHandlers(repo) {
     const text = document.getElementById('error-banner-text');
     if (!el || !text) return;
     el.hidden = false;
-    text.textContent = `Unerwarteter Fehler: ${e.reason?.message || String(e.reason)}`;
+    text.textContent = t('Unerwarteter Fehler: {detail}', { detail: e.reason?.message || String(e.reason) });
   });
   repo.setBlockedHandler(() => {
     const el = $('#storage-warning');
     el.hidden = false;
-    el.textContent = BLOCKED_TEXT;
+    el.textContent = blockedText();
   });
   repo.setUnblockedHandler(() => {
     const el = $('#storage-warning');
-    if (el.textContent === BLOCKED_TEXT) el.hidden = true;
+    if (el.textContent === blockedText()) el.hidden = true;
   });
   repo.setVersionChangeHandler(() => {
     const el = $('#storage-warning');
     el.hidden = false;
-    el.textContent = VERSION_CHANGE_TEXT;
+    el.textContent = versionChangeText();
   });
 }
 
@@ -54,11 +56,11 @@ export function setSaveStatus(status, err) {
   if (status === 'saving') {
     el.hidden = false;
     el.classList.remove('error');
-    el.textContent = 'Speichert …';
+    el.textContent = t('Speichert …');
   } else if (status === 'error') {
     el.hidden = false;
     el.classList.add('error');
-    el.textContent = `Nicht gespeichert – ${err?.message ?? 'Fehler beim Speichern'}. Bitte über „Sichern“ exportieren.`;
+    el.textContent = t('Nicht gespeichert – {detail}. Bitte über „Sichern“ exportieren.', { detail: err?.message ?? t('Fehler beim Speichern') });
   } else {
     el.hidden = true;
     el.classList.remove('error');
@@ -78,7 +80,7 @@ export function showStorageError(err) {
   if (!err) return;
   const el = $('#storage-warning');
   el.hidden = false;
-  el.textContent = 'Speicher nicht verfügbar — eigene Cases, Fahrzeuge und Ladepläne konnten nicht geladen werden, Änderungen werden nicht gesichert. Über „Importieren“ lässt sich eine Sicherungsdatei laden.';
+  el.textContent = t('Speicher nicht verfügbar — eigene Cases, Fahrzeuge und Ladepläne konnten nicht geladen werden, Änderungen werden nicht gesichert. Über „Importieren“ lässt sich eine Sicherungsdatei laden.');
 }
 
 // Zweiter Tab: nur erkennen und melden, kein Abgleich der Stände. Jeder Tab meldet sich beim
@@ -94,9 +96,9 @@ export function wireBanners() {
     let announced = false;
     tabChannel.onmessage = () => {
       $('#tab-warning').hidden = false;
-      if (!announced) { announced = true; tabChannel.postMessage('hallo'); }
+      if (!announced) { announced = true; tabChannel.postMessage('hello'); }
     };
-    tabChannel.postMessage('hallo');
+    tabChannel.postMessage('hello');
   }
 }
 
@@ -206,7 +208,7 @@ export function wirePrint({ store, derive }) {
     }
     const host = globalThis.truckloadHost;
     if (host?.print) {
-      const lkwName = onFree ? 'Ohne LKW' : lkw?.name;
+      const lkwName = onFree ? t('Ohne LKW') : lkw?.name;
       sperre.lauf(() => druckeMitHost({
         host, doc, titel: druckTitel(doc, { plan: s.plan, truck: d.truck, lkwName, alle: all }),
         einsetzen: (kopf, abschluss) => {
@@ -218,7 +220,7 @@ export function wirePrint({ store, derive }) {
         },
         setPage: setPrintPage,
         clearPage: clearPrintPage,
-        zeigeFehler: m => showAlert(`Drucken fehlgeschlagen: ${m}`),
+        zeigeFehler: m => showAlert(t('Drucken fehlgeschlagen: {detail}', { detail: m })),
       }));
       return;
     }

@@ -7,6 +7,7 @@ import { showConfirm } from './confirmDialog.js';
 import { esc } from './dom.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
+import { t, trade } from '../i18n/i18n.js';
 
 const DEFAULTS = { name: '', content: '', category: 'Sonstiges', l: 120, w: 60, h: 60, weight: 50,
   tippable: true, stackable: true, maxTopLoad: null, stock: null };
@@ -25,6 +26,10 @@ export function retainedFields(v, { isNew, fromTemplate, overrideBuiltin }) {
     onlyInPlan: v.onlyInPlan,
   };
 }
+
+// Gewerk-Auswahl: der Wert bleibt der deutsche Name (gespeichert), sichtbar ist die Übersetzung.
+export const categoryOptionsHtml = () =>
+  CATEGORIES.map(k => `<option value="${esc(k.name)}">${esc(trade(k.name))}</option>`).join('');
 
 export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
   // Ein noch offener Dialog: sein `close`-Listener hängt an `dlg` selbst, überlebt also das
@@ -45,79 +50,79 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
   const dim = n => `type="number" name="${n}" min="1" max="${CASE_LIMITS[n]}" step="any" required`;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${isNew ? 'Neues Case' : 'Case bearbeiten'}</h2>
-      ${fromTemplate ? '<p class="hint">Vorlage (Richtwert) – Speichern legt eine eigene Kopie an.</p>' : ''}
-      <label>Name<input name="name" required maxlength="${NAME_MAX}" placeholder="z. B. Kabelcase Strom 1"></label>
-      <label>Inhalt<textarea name="content" rows="3" placeholder="z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m"></textarea></label>
+      <h2>${isNew ? t('Neues Case') : t('Case bearbeiten')}</h2>
+      ${fromTemplate ? `<p class="hint">${t('Vorlage (Richtwert) – Speichern legt eine eigene Kopie an.')}</p>` : ''}
+      <label>${t('Name')}<input name="name" required maxlength="${NAME_MAX}" placeholder="${t('z. B. Kabelcase Strom 1')}"></label>
+      <label>${t('Inhalt')}<textarea name="content" rows="3" placeholder="${t('z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m')}"></textarea></label>
       <div class="row">
-        <label>Gewerk<select name="category">${CATEGORIES.map(k => `<option>${esc(k.name)}</option>`).join('')}</select></label>
-        <label>Farbe<input type="color" name="color"></label>
+        <label>${t('Gewerk')}<select name="category">${categoryOptionsHtml()}</select></label>
+        <label>${t('Farbe')}<input type="color" name="color"></label>
       </div>
       <div class="row kind-switch">
-        <label><input type="radio" name="kind" value="case"> Case</label>
-        <label><input type="radio" name="kind" value="truss"> Traversenwagen</label>
+        <label><input type="radio" name="kind" value="case"> ${t('Case')}</label>
+        <label><input type="radio" name="kind" value="truss"> ${t('Traversenwagen')}</label>
       </div>
-      <fieldset class="case-only"><legend>Maße stehend (cm)</legend>
-        <div class="row"><label>Länge<input ${dim('l')}></label><label>Breite<input ${dim('w')}></label><label>Höhe<input ${dim('h')}></label></div>
+      <fieldset class="case-only"><legend>${t('Maße stehend (cm)')}</legend>
+        <div class="row"><label>${t('Länge')}<input ${dim('l')}></label><label>${t('Breite')}<input ${dim('w')}></label><label>${t('Höhe')}<input ${dim('h')}></label></div>
         <p class="hint outer-dims-hint"></p>
       </fieldset>
-      <fieldset class="case-only"><legend>Rollen</legend>
-        <label class="check"><input type="checkbox" name="wheels"> mit Rollen</label>
+      <fieldset class="case-only"><legend>${t('Rollen')}</legend>
+        <label class="check"><input type="checkbox" name="wheels"> ${t('mit Rollen')}</label>
         <div class="row">
-          <label>Rollenhöhe<select name="wheelPreset">
+          <label>${t('Rollenhöhe')}<select name="wheelPreset">
             ${WHEEL_PRESETS.map(p => `<option value="${p.h}">${esc(p.name)} – ${p.h} cm</option>`).join('')}
-            <option value="custom">eigene …</option>
+            <option value="custom">${t('eigene …')}</option>
           </select></label>
-          <label class="wheel-custom-label">eigene Höhe (cm)<input type="number" name="wheelHCustom" min="1" max="40" step="1"></label>
+          <label class="wheel-custom-label">${t('eigene Höhe (cm)')}<input type="number" name="wheelHCustom" min="1" max="40" step="1"></label>
         </div>
         <div class="row">
-          <label class="check"><input type="radio" name="dimsInclWheels" value="incl"> Maß ist inkl. Rollen</label>
-          <label class="check"><input type="radio" name="dimsInclWheels" value="excl"> Maß ist ohne Rollen – Rollen dazurechnen</label>
+          <label class="check"><input type="radio" name="dimsInclWheels" value="incl"> ${t('Maß ist inkl. Rollen')}</label>
+          <label class="check"><input type="radio" name="dimsInclWheels" value="excl"> ${t('Maß ist ohne Rollen – Rollen dazurechnen')}</label>
         </div>
-        <p class="hint wheel-h-hint" hidden>Rollenhöhe muss kleiner als die Case-Höhe sein (Maß ist inkl. Rollen).</p>
+        <p class="hint wheel-h-hint" hidden>${t('Rollenhöhe muss kleiner als die Case-Höhe sein (Maß ist inkl. Rollen).')}</p>
       </fieldset>
-      <fieldset class="truss-only" hidden><legend>Traversenwagen</legend>
+      <fieldset class="truss-only" hidden><legend>${t('Traversenwagen')}</legend>
         <div class="row">
-          <label>Traversenlänge (cm)<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
+          <label>${t('Traversenlänge (cm)')}<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
         </div>
         <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
         <div class="row">
-          <label>Traversenbreite<select name="trussWidthProfile">
+          <label>${t('Traversenbreite')}<select name="trussWidthProfile">
             ${TRUSS_PROFILES.map(p => `<option value="${p.width}">${p.name} – ${p.width} cm</option>`).join('')}
-            <option value="custom">eigene …</option>
+            <option value="custom">${t('eigene …')}</option>
           </select></label>
-          <label>eigene Breite (cm)<input type="number" name="trussWidthCustom" min="1" max="40" step="1" required></label>
-          <label>Anzahl Stück<input type="number" name="trussCount" min="1" max="12" step="1" required></label>
+          <label>${t('eigene Breite (cm)')}<input type="number" name="trussWidthCustom" min="1" max="40" step="1" required></label>
+          <label>${t('Anzahl Stück')}<input type="number" name="trussCount" min="1" max="12" step="1" required></label>
         </div>
         <p class="hint truss-dims"></p>
-        <p class="hint truss-hint" hidden>Traversenlänge, -breite und Stückzahl müssen größer als 0 sein.</p>
-        <p class="hint truss-width-hint" hidden>Traversenbreite max. 40 cm (Wagen 60er oder 80er)</p>
+        <p class="hint truss-hint" hidden>${t('Traversenlänge, -breite und Stückzahl müssen größer als 0 sein.')}</p>
+        <p class="hint truss-width-hint" hidden>${t('Traversenbreite max. 40 cm (Wagen 60er oder 80er)')}</p>
       </fieldset>
       <div class="row">
-        <label>Gewicht beladen (kg)<input type="number" name="weight" min="0" max="${CASE_LIMITS.weight}" step="any" required></label>
-        <label>Bestand (Stück)<input type="number" name="stock" min="0" max="${CASE_LIMITS.stock}" step="1"></label>
+        <label>${t('Gewicht beladen (kg)')}<input type="number" name="weight" min="0" max="${CASE_LIMITS.weight}" step="any" required></label>
+        <label>${t('Bestand (Stück)')}<input type="number" name="stock" min="0" max="${CASE_LIMITS.stock}" step="1"></label>
       </div>
-      <label class="check case-only"><input type="checkbox" name="tippable"> tippbar (darf auf die Seite getippt werden)</label>
-      <label class="check"><input type="checkbox" name="stackable"> stapelbar (darf etwas obendrauf)</label>
-      <label>Max. Last obendrauf (kg, leer = unbegrenzt)<input type="number" name="maxTopLoad" min="0" max="${CASE_LIMITS.maxTopLoad}" step="1"></label>
-      <fieldset><legend>Erlaubte Lagen</legend>
+      <label class="check case-only"><input type="checkbox" name="tippable"> ${t('tippbar (darf auf die Seite getippt werden)')}</label>
+      <label class="check"><input type="checkbox" name="stackable"> ${t('stapelbar (darf etwas obendrauf)')}</label>
+      <label>${t('Max. Last obendrauf (kg, leer = unbegrenzt)')}<input type="number" name="maxTopLoad" min="0" max="${CASE_LIMITS.maxTopLoad}" step="1"></label>
+      <fieldset><legend>${t('Erlaubte Lagen')}</legend>
         <div class="row">
-          ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" class="layer-check" value="${n}"> Lage ${n}</label>`).join('')}
+          ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" class="layer-check" value="${n}"> ${t('Lage {n}', { n })}</label>`).join('')}
         </div>
-        <p class="hint layer-hint" hidden>Mindestens eine Lage muss ausgewählt sein.</p>
+        <p class="hint layer-hint" hidden>${t('Mindestens eine Lage muss ausgewählt sein.')}</p>
       </fieldset>
       ${stock ? stockTargetHtml(stock) : ''}
       <menu>
-        ${allowDelete && !isNew ? '<button value="delete" class="danger" formnovalidate>Löschen</button>' : ''}
+        ${allowDelete && !isNew ? `<button value="delete" class="danger" formnovalidate>${t('Löschen')}</button>` : ''}
         <span class="grow"></span>
-        <button value="cancel" formnovalidate>Abbrechen</button>
-        <button value="save" class="primary">Speichern</button>
+        <button value="cancel" formnovalidate>${t('Abbrechen')}</button>
+        <button value="save" class="primary">${t('Speichern')}</button>
       </menu>
     </form>`;
   const form = dlg.querySelector('form');
   const f = form.elements;
   wireStockTarget(form, stock?.collections ?? []);
-  f.name.value = fromTemplate ? `${v.name} (eigenes)` : v.name;
+  f.name.value = fromTemplate ? t('{name} (eigenes)', { name: v.name }) : v.name;
   f.content.value = v.content;
   f.category.value = v.category;
   f.color.value = v.color;
@@ -159,7 +164,7 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
     if (!(l > 0 && w > 0 && h > 0)) { outerDimsHint.textContent = ''; return; }
     const inclChecked = inclWheelsChecked();
     const d = outerDims({ l, w, h, wheels: f.wheels.checked, wheelH: currentWheelH(), dimsInclWheels: inclChecked });
-    outerDimsHint.textContent = `→ im Truck ${d.l} × ${d.w} × ${d.h} cm`;
+    outerDimsHint.textContent = t('→ im Truck {l} × {w} × {h} cm', { l: d.l, w: d.w, h: d.h });
   }
   function updateWheelsUi() {
     const on = f.wheels.checked;
@@ -206,20 +211,20 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
     return { length: Number(f.trussLength.value), width, count: Number(f.trussCount.value),
       ...(truss0.wagonW != null ? { wagonW: truss0.wagonW } : {}) };
   }
-  function trussFieldsValid(t) {
-    return t.length > 0 && t.width > 0 && t.count > 0;
+  function trussFieldsValid(tr) {
+    return tr.length > 0 && tr.width > 0 && tr.count > 0;
   }
   function updateTrussDims() {
     trussHint.hidden = true;
-    const t = currentTruss();
-    trussWidthHint.hidden = !(t.width > 40);
-    if (t.width > 40) {
+    const tr = currentTruss();
+    trussWidthHint.hidden = !(tr.width > 40);
+    if (tr.width > 40) {
       trussDimsHint.textContent = '';
       return;
     }
-    if (trussFieldsValid(t)) {
-      const d = trussDims(t);
-      trussDimsHint.textContent = `→ im Truck ${d.l} × ${d.w} × ${d.h} cm`;
+    if (trussFieldsValid(tr)) {
+      const d = trussDims(tr);
+      trussDimsHint.textContent = t('→ im Truck {l} × {w} × {h} cm', { l: d.l, w: d.w, h: d.h });
     } else {
       trussDimsHint.textContent = '';
     }
@@ -285,11 +290,11 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
     }
     const kind = kindInputs.find(cb => cb.checked)?.value ?? 'case';
     if (kind === 'truss') {
-      const t = currentTruss();
-      if (t.width > 40) {
+      const tr = currentTruss();
+      if (tr.width > 40) {
         e.preventDefault();
         trussWidthHint.hidden = false;
-      } else if (!trussFieldsValid(t)) {
+      } else if (!trussFieldsValid(tr)) {
         e.preventDefault();
         trussHint.hidden = false;
       }
@@ -309,8 +314,8 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
     dlg.addEventListener('close', () => {
       const act = dlg.returnValue;
       if (act === 'delete') {
-        const msg = usedIn ? `„${v.name}“ wird in ${usedIn} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${v.name}“ löschen?`;
-        showConfirm(msg, { okLabel: 'Löschen', danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
+        const msg = usedIn ? t('„{name}“ wird in {used} Ladeplan/-plänen verwendet. Trotzdem löschen?', { name: v.name, used: usedIn }) : t('„{name}“ löschen?', { name: v.name });
+        showConfirm(msg, { okLabel: t('Löschen'), danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
         return;
       }
       if (act !== 'save') return resolve(null);

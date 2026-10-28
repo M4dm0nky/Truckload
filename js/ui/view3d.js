@@ -300,7 +300,7 @@ export async function createView3d(container) {
     const innerN = outerN === n0 ? n1 : n0;
     const towardOuter = outerN > innerN ? 1 : -1; // Richtung von der Karosserie zur Rollen-Außenseite
 
-    const r = wh * 0.42, t = r * 0.8;
+    const r = wh * 0.42, rad = r * 0.8;
     const centerN = outerN - towardOuter * r; // r nach innen von der Außenfläche – berührt sie nur tangential
 
     const a1_0 = w[`${a1}0`], a1_1 = w[`${a1}1`];
@@ -321,9 +321,9 @@ export async function createView3d(container) {
     pos[n] = centerN;
 
     const wheelCyl = new THREE.Mesh(GEO_CYL, wheelMat);
-    wheelCyl.scale.set(r, t, r);
+    wheelCyl.scale.set(r, rad, r);
     const hubCyl = new THREE.Mesh(GEO_CYL, MAT_HUB);
-    hubCyl.scale.set(r * 0.5, t * 1.15, r * 0.5);
+    hubCyl.scale.set(r * 0.5, rad * 1.15, r * 0.5);
     if (a1 === 'x') { wheelCyl.rotation.z = Math.PI / 2; hubCyl.rotation.z = Math.PI / 2; }
     wheelCyl.position.set(pos.x, pos.y, pos.z);
     hubCyl.position.copy(wheelCyl.position);

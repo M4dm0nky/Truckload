@@ -6,6 +6,7 @@ import { packAll, packRest, placementToUnplaced } from './actions.js';
 import { chooseOrientation } from './packer.js';
 import { volumeOf } from './packRules.js';
 import { CATEGORIES } from '../data/categories.js';
+import { t, trade } from '../i18n/i18n.js';
 import { lkwsOf, isMultiLkw, lkwView, mergeLkwView } from './lkw.js';
 
 const truckOf = (lkw, ctx) => ctx.truckById?.get(lkw.truckId) ?? ctx.truck;
@@ -106,13 +107,15 @@ export function packAllLkws(plan, ctx) {
 }
 
 // „1 Stück“ / „n Stücke“ – eine Quelle für alle Hinweistexte zu LKW.
-export const stueck = n => (n === 1 ? '1 Stück' : `${n} Stücke`);
+export const stueck = n => (n === 1 ? t('1 Stück') : t('{n} Stücke', { n }));
 
 // Hinweiszeilen zu nicht zugeordneten Stücken: „12 Stücke ohne LKW (Strom)“, unbekannter Case:
 // „n Stücke mit unbekanntem Case“. Ein-LKW-Plan: leer.
 export const unassignedLines = (plan, caseById) =>
   unassignedByCategory(plan, caseById).map(({ category, count }) =>
-    (category === null ? `${stueck(count)} mit unbekanntem Case` : `${stueck(count)} ohne LKW (${category})`));
+    (category === null
+      ? t('{stueck} mit unbekanntem Case', { stueck: stueck(count) })
+      : t('{stueck} ohne LKW ({category})', { stueck: stueck(count), category: trade(category) })));
 
 // Nicht zugeordnete Stücke je Gewerk für den Hinweis der Oberfläche („12 Stücke ohne LKW (Strom)“):
 // [{ category, count }] in CATEGORIES-Reihenfolge. Case ohne Gewerk zählt als „Sonstiges“, ein

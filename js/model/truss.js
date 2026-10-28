@@ -1,5 +1,6 @@
 import { cornerBoxes, boxOf } from './geometry.js';
 import { pieceKg } from './trussCatalog.js';
+import { t } from '../i18n/i18n.js';
 
 export const DOLLY_WHEEL_H = 12; // Rollenbereich: 100-mm-Lenkrolle + Anschraubplatte (cm)
 export const DOLLY_BOARD_H = 3;  // Plattenstärke des Rollbretts (cm, entspricht 20–25 mm real)
@@ -26,10 +27,10 @@ export const MAX_TRUSS_WIDTH = DOLLY_WIDTHS.at(-1) / 2;
 export function trussDims({ length, width, count, standing, height, wagonW }) {
   if (standing) return { l: length, w: width, h: height };
   if (width > MAX_TRUSS_WIDTH)
-    throw new Error(`Traversenbreite ${width} cm überschreitet die Grenze von ${MAX_TRUSS_WIDTH} cm.`);
+    throw new Error(t('Traversenbreite {width} cm überschreitet die Grenze von {max} cm.', { width, max: MAX_TRUSS_WIDTH }));
   const perRow = 2;
   if (wagonW != null && wagonW < perRow * width)
-    throw new Error(`Wagenbreite ${wagonW} cm ist schmaler als zwei Traversenstücke (${perRow * width} cm).`);
+    throw new Error(t('Wagenbreite {wagonW} cm ist schmaler als zwei Traversenstücke ({min} cm).', { wagonW, min: perRow * width }));
   const w = wagonW ?? (perRow * width <= DOLLY_WIDTHS[0] ? DOLLY_WIDTHS[0] : DOLLY_WIDTHS[1]);
   const h = DOLLY_H + Math.ceil(count / perRow) * width;
   return { l: length, w, h };
@@ -79,7 +80,7 @@ export function wagonWeightFor(profile, lengthCm, count) {
 // letzter Restwagen falls nötig. splitWagons(16, 8) → [8, 8]; splitWagons(17, 8) → [8, 8, 1].
 // Wirft bei ungültigen Eingaben (≤ 0), damit ein Tippfehler nicht zu einem Wagen mit 0 Stück führt.
 export function splitWagons(total, perWagon) {
-  if (!(total > 0) || !(perWagon > 0)) throw new Error('Stückzahl und Stück je Wagen müssen größer als 0 sein.');
+  if (!(total > 0) || !(perWagon > 0)) throw new Error(t('Stückzahl und Stück je Wagen müssen größer als 0 sein.'));
   const full = Math.floor(total / perWagon);
   const rest = total % perWagon;
   return [...Array(full).fill(perWagon), ...(rest ? [rest] : [])];

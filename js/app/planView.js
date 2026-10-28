@@ -4,7 +4,7 @@
 import * as A from '../model/actions.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { WHEEL_FACES, wheelFace } from '../model/geometry.js';
-import { rulesFor, ruleTargets, describeRule, mixTopFor } from '../model/packRules.js';
+import { rulesFor, ruleTargets, mixTopFor } from '../model/packRules.js';
 import { renderView, attachTopInteractions, attachSelect } from '../ui/view2d.js';
 import { mountLibrary } from '../ui/library.js';
 import { openPackRules } from '../ui/pack-rules.js';
@@ -17,10 +17,11 @@ import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
 import { createView3d } from '../ui/view3d.js';
 import { attachZoom, zoomIn, zoomOut, resetZoom, getScrollMode, setScrollMode, nextScrollMode, SCROLL_LABELS, SCROLL_SHORT } from '../ui/zoom2d.js';
-import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, bestandOf, repointTruck, distributionNotices, brauchtAuswahl } from './core.js';
+import { allPlansOf, piecesOf, truckUsage, NO_LKW, activeLkwOf, packAllOf, bestandOf, repointTruck, distributionNotices, brauchtAuswahl, packRulesTitle } from './core.js';
 import { lkwsOf, isMultiLkw, addLkw, updateLkw, removeLkw, moveToLkw } from '../model/lkw.js';
 import { mountLkwTabs, lkwTabsModel } from '../ui/lkw-tabs.js';
 import { openLkwEditor } from '../ui/lkw-editor.js';
+import { t } from '../i18n/i18n.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -147,7 +148,7 @@ export function mountPlanView(deps) {
     const mode = getScrollMode();
     document.querySelectorAll('.zoom [data-z="scroll"]').forEach(b => {
       b.textContent = SCROLL_SHORT[mode];
-      b.setAttribute('aria-label', `${SCROLL_SHORT[mode]} – Scrollverhalten (${SCROLL_LABELS[mode]}), Klick wechselt`);
+      b.setAttribute('aria-label', t('{short} – Scrollverhalten ({label}), Klick wechselt', { short: SCROLL_SHORT[mode], label: SCROLL_LABELS[mode] }));
     });
   }
   syncScrollButtons();
@@ -213,9 +214,9 @@ export function mountPlanView(deps) {
       await persistence.saveCase(alsEigenesCase(c, MEINE_ID));
     },
     'uebernehmen-truck': async () => {
-      const t = ctx().truck;
-      if (!t || !ctx().ausProjekt.trucks.has(t.id)) return;
-      await persistence.saveTruck({ ...t, builtin: false });
+      const tr = ctx().truck;
+      if (!tr || !ctx().ausProjekt.trucks.has(tr.id)) return;
+      await persistence.saveTruck({ ...tr, builtin: false });
     },
     // Mit `face` setzt die Aktion genau diese Radseite (Inspector-Knopf), ohne reihum weiter.
     'wheel-face': (id, face) => {
@@ -301,8 +302,8 @@ export function mountPlanView(deps) {
     // Bei mehreren LKW ordnet „Alles neu packen“ auch die Zuordnung neu: Rückfrage, sobald es Stücke gibt.
     const needsAsk = multi && lkwsOf(s.plan).length >= 2 ? piecesOf(s.plan).length > 0 : s.plan.placements.length > 0;
     const question = multi && lkwsOf(s.plan).length >= 2
-      ? 'Alle Cases neu auf die LKW verteilen und anordnen? (Rückgängig mit ⌘Z möglich)'
-      : 'Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)';
+      ? t('Alle Cases neu auf die LKW verteilen und anordnen? (Rückgängig mit ⌘Z möglich)')
+      : t('Alle Cases neu anordnen? (Rückgängig mit ⌘Z möglich)');
     if (needsAsk && !await showConfirm(question)) return;
     editWhole((p, c) => packAllOf(p, c));
     if (multi) await warnAfterDistribution();
@@ -334,8 +335,10 @@ export function mountPlanView(deps) {
   $('#unload-all').onclick = async () => {
     const s = store.get();
     if (!derive(s).view.placements.length) return;
-    const where = isMultiLkw(s.plan) ? 'diesem LKW' : 'dem Truck';
-    if (!await showConfirm(`Alle Cases aus ${where} zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)`)) return;
+    const question = isMultiLkw(s.plan)
+      ? t('Alle Cases aus diesem LKW zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)')
+      : t('Alle Cases aus dem Truck zurück nach „Noch nicht geladen“ legen? (Rückgängig mit ⌘Z möglich)');
+    if (!await showConfirm(question)) return;
     edit(p => A.unloadAll(p));
     select(null);
   };
@@ -377,15 +380,15 @@ export function mountPlanView(deps) {
     // Fahrzeuge folgen alphabetisch.
     const sortedTrucks = [...d.bestand.trucks].sort((a, b) =>
       a.builtin === b.builtin ? a.name.localeCompare(b.name, 'de') : a.builtin ? -1 : 1);
-    const truckHtml = sortedTrucks.map(t => {
-      const marke = truckMarke(t, d.ausProjekt);
-      return `<option value="${esc(t.id)}"${marke.title ? ` title="${esc(marke.title)}"` : ''} ${t.id === d.truck.id ? 'selected' : ''}>${esc(t.name)}${marke.zeichen} – ${t.l}×${t.w}×${t.h}</option>`;
+    const truckHtml = sortedTrucks.map(tk => {
+      const marke = truckMarke(tk, d.ausProjekt);
+      return `<option value="${esc(tk.id)}"${marke.title ? ` title="${esc(marke.title)}"` : ''} ${tk.id === d.truck.id ? 'selected' : ''}>${esc(tk.name)}${marke.zeichen} – ${tk.l}×${tk.w}×${tk.h}</option>`;
     }).join('');
     if (truckHtml !== lastTruckHtml) $('#truck-select').innerHTML = lastTruckHtml = truckHtml;
     $('#undo').disabled = !store.canUndo();
     $('#redo').disabled = !store.canRedo();
     $('#unload-all').disabled = !d.view.placements.length;
-    $('#pack-rules').title = `Reihenfolge beim automatischen Packen: ${rulesFor(s.plan).map(r => describeRule(r, d.caseById)).join(' · ') || 'nach Name'}${mixTopFor(s.plan) ? ' · Deckschicht an' : ''}`;
+    $('#pack-rules').title = packRulesTitle(s.plan, d.caseById);
   });
 
   // --- Fahrzeuge ---
@@ -423,7 +426,7 @@ export function mountPlanView(deps) {
         view3d = await (view3dLoading ??= createView3d($('#view3d')));
       } catch (err) {
         console.error('3D-Ansicht: Laden fehlgeschlagen', err);
-        $('#view3d').textContent = '3D-Ansicht konnte nicht geladen werden (vendor/ fehlt?).';
+        $('#view3d').textContent = t('3D-Ansicht konnte nicht geladen werden (vendor/ fehlt?).');
         view3dFailed = true;
         // createView3d() räumt bei einem Fehler im eigenen Aufbau den WebGL-Kontext selbst auf,
         // bevor es wirft; hier gibt es deshalb nie ein view3d-Objekt, das freizugeben wäre.
@@ -439,7 +442,7 @@ export function mountPlanView(deps) {
       console.error('3D-Ansicht: Aktualisierung fehlgeschlagen', err);
       // Die Szene zeigt den Stand vor dem Fehler: kleiner Hinweis (eigenes Element, nur textContent),
       // verschwindet beim nächsten erfolgreichen update() oder im Wechsel auf 2D.
-      if (stale) { stale.textContent = '3D-Ansicht nicht aktuell – bitte Ansicht wechseln'; stale.hidden = false; }
+      if (stale) { stale.textContent = t('3D-Ansicht nicht aktuell – bitte Ansicht wechseln'); stale.hidden = false; }
     }
   });
 

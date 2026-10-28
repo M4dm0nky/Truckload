@@ -34,13 +34,13 @@ export function wheelView(mode, face) {
   return 'hidden';
 }
 
-export function stripRect(r, side, t) {
+export function stripRect(r, side, dick) {
   const w = r.u1 - r.u0, h = r.v1 - r.v0;
   switch (side) {
-    case 'u0': return { x: r.u0, y: r.v0, width: t, height: h };
-    case 'u1': return { x: r.u1 - t, y: r.v0, width: t, height: h };
-    case 'v0': return { x: r.u0, y: r.v0, width: w, height: t };
-    case 'v1': return { x: r.u0, y: r.v1 - t, width: w, height: t };
+    case 'u0': return { x: r.u0, y: r.v0, width: dick, height: h };
+    case 'u1': return { x: r.u1 - dick, y: r.v0, width: dick, height: h };
+    case 'v0': return { x: r.u0, y: r.v0, width: w, height: dick };
+    case 'v1': return { x: r.u0, y: r.v1 - dick, width: w, height: dick };
     default: throw new Error(`Unbekannte Seite: ${side}`);
   }
 }
@@ -53,6 +53,6 @@ export function stripRect(r, side, t) {
 export function wheelStripRect(outer, body, mode, face) {
   const side = wheelStrip(mode, face);
   if (side === null) return null;
-  const t = Math.abs(outer[side] - body[side]);
-  return t > 0.01 ? stripRect(outer, side, t) : null;
+  const dick = Math.abs(outer[side] - body[side]);
+  return dick > 0.01 ? stripRect(outer, side, dick) : null;
 }

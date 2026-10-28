@@ -1,5 +1,7 @@
 import { MAX_FIRM } from './limits.js';
 import { isInStock } from './material.js';
+import { t } from '../i18n/i18n.js';
+import EN from '../i18n/en.js';
 
 // Sammlungen (docs/superpowers/specs/2026-10-13-sammlungen-design.md). Reine Funktionen ohne DOM
 // und ohne Store. Eine Sammlung ist ein Datensatz { id, name, parentId?, updatedAt, cases[] };
@@ -7,6 +9,8 @@ import { isInStock } from './material.js';
 export const STANDARD_ID = 'standard';
 export const MEINE_ID = 'meine';
 export const MEINE_NAME = 'Meine Sammlung';
+// Englischer Anzeigename: dieselbe Sammlung kann in einer Firmenangabe englisch benannt sein (nur zum Abgleich, nie gespeichert).
+export const MEINE_NAME_EN = EN[MEINE_NAME];
 export const MAX_DEPTH = 4;
 
 const BUILTIN = [
@@ -99,11 +103,11 @@ function subtreeHeight(collections, id, seen = new Set()) {
 
 export function collectionNameError(name, collections, exceptId = null) {
   const n = String(name ?? '').trim();
-  if (!n) return 'Sammlungsname fehlt.';
-  if (n.length > MAX_FIRM) return `Sammlungsname: höchstens ${MAX_FIRM} Zeichen.`;
-  if (/^__.*__$/.test(n)) return 'Dieser Sammlungsname ist reserviert.';
+  if (!n) return t('Sammlungsname fehlt.');
+  if (n.length > MAX_FIRM) return t('Sammlungsname: höchstens {max} Zeichen.', { max: MAX_FIRM });
+  if (/^__.*__$/.test(n)) return t('Dieser Sammlungsname ist reserviert.');
   if (collections.some(c => c.id !== exceptId && c.name.toLowerCase() === n.toLowerCase()))
-    return `Eine Sammlung „${n}“ gibt es schon.`;
+    return t('Eine Sammlung „{name}“ gibt es schon.', { name: n });
   return null;
 }
 
@@ -111,10 +115,10 @@ export function collectionNameError(name, collections, exceptId = null) {
 export function parentError(collections, id, parentId) {
   if (!parentId) return null;
   const parent = collections.find(c => c.id === parentId);
-  if (!parent || parent.readOnly) return 'Unter dieser Sammlung ist das nicht möglich.';
-  if (id && descendantIds(collections, id).has(parentId)) return 'Eine Sammlung lässt sich nicht in sich selbst verschieben.';
+  if (!parent || parent.readOnly) return t('Unter dieser Sammlung ist das nicht möglich.');
+  if (id && descendantIds(collections, id).has(parentId)) return t('Eine Sammlung lässt sich nicht in sich selbst verschieben.');
   const below = id ? subtreeHeight(collections, id) : 1;
-  if (depthOf(collections, parentId) + below > MAX_DEPTH) return `Höchstens ${MAX_DEPTH} Ebenen.`;
+  if (depthOf(collections, parentId) + below > MAX_DEPTH) return t('Höchstens {max} Ebenen.', { max: MAX_DEPTH });
   return null;
 }
 
@@ -128,7 +132,7 @@ export function resolveTarget(c, existing, collections, newId) {
   const own = [c.collectionId, existing && collectionIdOf(existing)].find(id => id && writable(id));
   if (own) return { id: own };
   const company = typeof c.company === 'string' ? c.company.trim() : '';
-  if (!company || company.toLowerCase() === MEINE_NAME.toLowerCase()) return { id: MEINE_ID };
+  if (!company || [MEINE_NAME, MEINE_NAME_EN].some(m => m.toLowerCase() === company.toLowerCase())) return { id: MEINE_ID };
   const byName = collections.find(x => !x.readOnly && x.id !== MEINE_ID && x.name.toLowerCase() === company.toLowerCase());
   if (byName) return { id: byName.id };
   // Der Name einer festen Sammlung (Standard) oder ein unzulässiger Name legt keine Sammlung an.
@@ -166,7 +170,7 @@ export function recordsAfterChanges(records, metas, { upserts = [], removeIds = 
     if (!touched.has(id)) {
       const cur = byId.get(id);
       const meta = metas.find(m => m.id === id);
-      if (!meta) throw new Error(`Sammlung „${id}“ unbekannt`);
+      if (!meta) throw new Error(t('Sammlung „{id}“ unbekannt', { id }));
       const { parentId: _p, ...rest } = cur ?? {};
       touched.set(id, {
         ...rest, id, name: meta.name, ...(meta.parentId ? { parentId: meta.parentId } : {}),
@@ -178,8 +182,8 @@ export function recordsAfterChanges(records, metas, { upserts = [], removeIds = 
   const drop = new Set([...removeIds, ...upserts.map(c => c.id)]);
   for (const r of records) {
     if (Array.isArray(r.cases) && r.cases.some(c => drop.has(c.id))) {
-      const t = touch(r.id);
-      t.cases = t.cases.filter(c => !drop.has(c.id));
+      const rec = touch(r.id);
+      rec.cases = rec.cases.filter(c => !drop.has(c.id));
     }
   }
   for (const c of upserts) {

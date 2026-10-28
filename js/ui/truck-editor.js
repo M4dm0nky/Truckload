@@ -1,42 +1,43 @@
 import { showConfirm } from './confirmDialog.js';
 import { NAME_MAX } from '../model/limits.js';
+import { t } from '../i18n/i18n.js';
 
-export async function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
+export async function openTruckEditor(dlg, truck, { usedIn = 0 } = {}) {
   if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
     const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
     dlg.returnValue = 'cancel'; dlg.close();
     await closed;
   }
-  const isNew = !t || t.builtin;
-  const arch = t?.wheelArches?.[0];
+  const isNew = !truck || truck.builtin;
+  const arch = truck?.wheelArches?.[0];
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${isNew ? 'Neues Fahrzeug' : 'Fahrzeug bearbeiten'}</h2>
-      ${t?.builtin ? '<p class="hint">Vorlage (Richtwert) – Speichern legt ein eigenes Fahrzeug an.</p>' : ''}
-      <label>Name<input name="name" required maxlength="${NAME_MAX}" placeholder="z. B. Firmen-7,5-Tonner"></label>
-      <fieldset><legend>Laderaum innen (cm)</legend>
-        <div class="row"><label>Länge<input type="number" name="l" min="50" max="2000" required></label>
-        <label>Breite<input type="number" name="w" min="50" max="300" required></label>
-        <label>Höhe<input type="number" name="h" min="50" max="400" required></label></div>
+      <h2>${isNew ? t('Neues Fahrzeug') : t('Fahrzeug bearbeiten')}</h2>
+      ${truck?.builtin ? `<p class="hint">${t('Vorlage (Richtwert) – Speichern legt ein eigenes Fahrzeug an.')}</p>` : ''}
+      <label>${t('Name')}<input name="name" required maxlength="${NAME_MAX}" placeholder="${t('z. B. Firmen-7,5-Tonner')}"></label>
+      <fieldset><legend>${t('Laderaum innen (cm)')}</legend>
+        <div class="row"><label>${t('Länge')}<input type="number" name="l" min="50" max="2000" required></label>
+        <label>${t('Breite')}<input type="number" name="w" min="50" max="300" required></label>
+        <label>${t('Höhe')}<input type="number" name="h" min="50" max="400" required></label></div>
       </fieldset>
-      <label>Nutzlast (kg)<input type="number" name="payload" min="1" required></label>
-      <label class="check"><input type="checkbox" name="arches"> Radkästen im Laderaum (beidseitig)</label>
+      <label>${t('Nutzlast (kg)')}<input type="number" name="payload" min="1" required></label>
+      <label class="check"><input type="checkbox" name="arches"> ${t('Radkästen im Laderaum (beidseitig)')}</label>
       <div class="row arch-fields">
-        <label>ab Stirnwand<input type="number" name="ax" min="0"></label>
-        <label>Länge<input type="number" name="al" min="1"></label>
-        <label>Breite<input type="number" name="aw" min="1"></label>
-        <label>Höhe<input type="number" name="ah" min="1"></label>
+        <label>${t('ab Stirnwand')}<input type="number" name="ax" min="0"></label>
+        <label>${t('Länge')}<input type="number" name="al" min="1"></label>
+        <label>${t('Breite')}<input type="number" name="aw" min="1"></label>
+        <label>${t('Höhe')}<input type="number" name="ah" min="1"></label>
       </div>
       <menu>
-        <button value="delete" class="danger" formnovalidate ${isNew ? 'hidden' : ''}>Löschen</button>
+        <button value="delete" class="danger" formnovalidate ${isNew ? 'hidden' : ''}>${t('Löschen')}</button>
         <span class="grow"></span>
-        <button value="cancel" formnovalidate>Abbrechen</button>
-        <button value="save" class="primary">Speichern</button>
+        <button value="cancel" formnovalidate>${t('Abbrechen')}</button>
+        <button value="save" class="primary">${t('Speichern')}</button>
       </menu>
     </form>`;
   const f = dlg.querySelector('form').elements;
-  f.name.value = t ? (t.builtin ? `${t.name} (eigenes)` : t.name) : '';
-  for (const k of ['l', 'w', 'h', 'payload']) f[k].value = t?.[k] ?? '';
+  f.name.value = truck ? (truck.builtin ? t('{name} (eigenes)', { name: truck.name }) : truck.name) : '';
+  for (const k of ['l', 'w', 'h', 'payload']) f[k].value = truck?.[k] ?? '';
   f.arches.checked = !!arch;
   [f.ax.value, f.al.value, f.aw.value, f.ah.value] = arch ? [arch.x, arch.l, arch.w, arch.h] : ['', 100, 22, 30];
   const sync = () => {
@@ -49,15 +50,15 @@ export async function openTruckEditor(dlg, t, { usedIn = 0 } = {}) {
     dlg.addEventListener('close', () => {
       const act = dlg.returnValue;
       if (act === 'delete') {
-        const msg = usedIn ? `„${t.name}“ wird in ${usedIn} Ladeplan/-plänen verwendet. Trotzdem löschen?` : `„${t.name}“ löschen?`;
-        showConfirm(msg, { okLabel: 'Löschen', danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
+        const msg = usedIn ? t('„{name}“ wird in {used} Ladeplan/-plänen verwendet. Trotzdem löschen?', { name: truck.name, used: usedIn }) : t('„{name}“ löschen?', { name: truck.name });
+        showConfirm(msg, { okLabel: t('Löschen'), danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
         return;
       }
       if (act !== 'save') return resolve(null);
       const wheelArches = f.arches.checked && f.ax.value !== ''
         ? [{ x: +f.ax.value, l: +f.al.value, w: +f.aw.value, h: +f.ah.value, side: 'both' }] : [];
       resolve({ action: 'save', value: {
-        id: isNew ? crypto.randomUUID() : t.id, builtin: false,
+        id: isNew ? crypto.randomUUID() : truck.id, builtin: false,
         name: f.name.value.trim(), l: +f.l.value, w: +f.w.value, h: +f.h.value,
         payload: +f.payload.value, wheelArches,
       } });

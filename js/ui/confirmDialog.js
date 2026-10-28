@@ -1,4 +1,5 @@
 import { esc } from './dom.js';
+import { t } from '../i18n/i18n.js';
 
 // Eigene Popups statt der nativen confirm()/alert()/prompt() – gleiches Muster wie
 // openCaseEditor/openTruckEditor (<dialog> mit <form method="dialog">, Auflösung im
@@ -17,11 +18,11 @@ function open(html) {
 
 export function showAlert(message) {
   const d = open(`<form method="dialog" class="editor"><p>${esc(message)}</p>
-    <menu><span class="grow"></span><button value="ok" class="primary">OK</button></menu></form>`);
+    <menu><span class="grow"></span><button value="ok" class="primary">${t('OK')}</button></menu></form>`);
   return new Promise(resolve => d.addEventListener('close', () => resolve(undefined), { once: true }));
 }
 
-export function showConfirm(message, { okLabel = 'OK', cancelLabel = 'Abbrechen', danger = false } = {}) {
+export function showConfirm(message, { okLabel = t('OK'), cancelLabel = t('Abbrechen'), danger = false } = {}) {
   const d = open(`<form method="dialog" class="editor"><p>${esc(message)}</p>
     <menu><span class="grow"></span><button value="cancel" formnovalidate>${esc(cancelLabel)}</button>
     <button value="ok" class="${danger ? 'danger' : 'primary'}">${esc(okLabel)}</button></menu></form>`);
@@ -33,7 +34,7 @@ export function showConfirm(message, { okLabel = 'OK', cancelLabel = 'Abbrechen'
 export function showPick(title, options) {
   const d = document.getElementById('dlg-pick');
   d.innerHTML = `<form method="dialog" class="editor"><label>${esc(title)}<select name="v">${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></label>
-    <menu><span class="grow"></span><button value="cancel" formnovalidate>Abbrechen</button><button value="ok" class="primary">OK</button></menu></form>`;
+    <menu><span class="grow"></span><button value="cancel" formnovalidate>${t('Abbrechen')}</button><button value="ok" class="primary">${t('OK')}</button></menu></form>`;
   const sel = d.querySelector('select');
   d.returnValue = ''; // sonst liefert Escape den Wert des vorigen Aufrufs
   d.showModal();
@@ -44,8 +45,8 @@ export function showPick(title, options) {
 export function showPrompt(message, defaultValue = '', { maxlength } = {}) {
   const max = Number.isInteger(maxlength) && maxlength > 0 ? ` maxlength="${maxlength}"` : '';
   const d = open(`<form method="dialog" class="editor"><label>${esc(message)}<input name="value" value="${esc(defaultValue)}"${max}></label>
-    <menu><span class="grow"></span><button value="cancel" formnovalidate>Abbrechen</button>
-    <button value="ok" class="primary">OK</button></menu></form>`);
+    <menu><span class="grow"></span><button value="cancel" formnovalidate>${t('Abbrechen')}</button>
+    <button value="ok" class="primary">${t('OK')}</button></menu></form>`);
   const input = d.querySelector('input');
   queueMicrotask(() => input.focus());
   return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? input.value : null), { once: true }));

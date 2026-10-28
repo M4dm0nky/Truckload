@@ -1,4 +1,5 @@
 import { esc } from './dom.js';
+import { t } from '../i18n/i18n.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.js';
 
@@ -39,20 +40,19 @@ export function openDollyDialog(dlg, opts = {}) {
 
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${esc(base.name)} auf Dolly laden</h2>
-      <p class="hint">Line-Array-Elemente und Subwoofer stehen immer auf einem Dolly mit
-        Schwerlastrollen – wie viele Boxen übereinander?</p>
-      <label>Stückzahl auf diesem Dolly<input type="number" name="n" min="1" max="${maxN}" step="1" value="1" required></label>
+      <h2>${t('{name} auf Dolly laden', { name: esc(base.name) })}</h2>
+      <p class="hint">${t('Line-Array-Elemente und Subwoofer stehen immer auf einem Dolly mit Schwerlastrollen – wie viele Boxen übereinander?')}</p>
+      <label>${t('Stückzahl auf diesem Dolly')}<input type="number" name="n" min="1" max="${maxN}" step="1" value="1" required></label>
       <div class="row">
-        <label>Wagen Breite (cm)<input type="number" name="wl" min="20" max="400" step="1" value="${esc(base.l)}" required></label>
-        <label>Wagen Tiefe (cm)<input type="number" name="ww" min="20" max="250" step="1" value="${dollyDepth(base.w)}" required></label>
+        <label>${t('Wagen Breite (cm)')}<input type="number" name="wl" min="20" max="400" step="1" value="${esc(base.l)}" required></label>
+        <label>${t('Wagen Tiefe (cm)')}<input type="number" name="ww" min="20" max="250" step="1" value="${dollyDepth(base.w)}" required></label>
       </div>
       <p class="hint wagen-hint"></p>
       ${stockTargetHtml(stock)}
       <menu>
-        <button value="cancel" formnovalidate>Abbrechen</button>
+        <button value="cancel" formnovalidate>${t('Abbrechen')}</button>
         <span class="grow"></span>
-        <button value="save" class="primary">Hinzufügen</button>
+        <button value="save" class="primary">${t('Hinzufügen')}</button>
       </menu>
     </form>`;
 
@@ -66,7 +66,7 @@ export function openDollyDialog(dlg, opts = {}) {
   const wagen = () => ({ l: Number(f.wl.value), w: Number(f.ww.value) });
   const wagenValid = () => { const g = wagen(); return g.l >= 20 && g.w >= 20; };
   const updateWagenHint = () => {
-    wagenHint.textContent = wagenValid() ? `Wagen: ${wagen().l} × ${wagen().w} cm (B × T)` : '';
+    wagenHint.textContent = wagenValid() ? t('Wagen: {l} × {w} cm (B × T)', { l: wagen().l, w: wagen().w }) : '';
   };
   for (const name of ['wl', 'ww']) f[name].addEventListener('input', updateWagenHint);
   updateWagenHint();

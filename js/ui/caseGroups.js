@@ -3,6 +3,7 @@
 // beide Listen gleich anfühlen und Such-/Gewerk-/Firmenfilter identisch wirken.
 import { isTruss } from '../model/geometry.js';
 import { descendantIds, collectionIdOf } from '../model/collections.js';
+import { t } from '../i18n/i18n.js';
 
 // Sentinel für den Firmen-Filter: „nur Cases OHNE company“ – der Vorgabewert im Lade-Wizard
 // (Nutzerwunsch 2026-10-06: firmen-gebrandete Cases wie „-CAB“ sollen nie von selbst
@@ -21,11 +22,12 @@ export function companiesOf(cases) {
 // Merkmale schließen sich gegenseitig aus (ein Sonderbau ist nie gleichzeitig eine Traverse),
 // alles andere landet im Cases-Reiter. Reine Klassifikation, kein Filtern nach Suche/Gewerk/
 // Firma – das übernimmt groupCases() weiterhin, angewandt auf die per Reiter vorgefilterte Liste.
+// label als Getter: die Sprache steht erst beim Zugriff fest (Tests schalten sie um).
 export const CASE_TABS = [
-  { id: 'cases', label: 'Cases' },
-  { id: 'lautsprecher', label: 'Lautsprecher' },
-  { id: 'traversen', label: 'Traversen' },
-  { id: 'sonderbau', label: 'Sonderbau' },
+  { id: 'cases', get label() { return t('Cases'); } },
+  { id: 'lautsprecher', get label() { return t('Lautsprecher'); } },
+  { id: 'traversen', get label() { return t('Traversen'); } },
+  { id: 'sonderbau', get label() { return t('Sonderbau'); } },
 ];
 export function caseKind(c) {
   if (isTruss(c)) return 'traversen';
@@ -70,7 +72,7 @@ export function groupCases(cases, { q = '', cat = '', company = '', collection =
 export function renderGroupList(target, groups, rowFn, emptyTexts) {
   const { own, presets, list } = groups;
   target.innerHTML = `
-      <h3>Eigene Cases (${own.length})</h3>${own.map(rowFn).join('') || emptyTexts.own}
-      <h3>Vorlagen (${presets.length})${emptyTexts.presetsHeading ?? ''}</h3>${presets.map(rowFn).join('') || emptyTexts.presets}
-      <h3>Cases aus deiner Liste (${list.length})</h3>${list.map(rowFn).join('') || emptyTexts.list}`;
+      <h3>${t('Eigene Cases ({n})', { n: own.length })}</h3>${own.map(rowFn).join('') || emptyTexts.own}
+      <h3>${t('Vorlagen ({n})', { n: presets.length })}${emptyTexts.presetsHeading ?? ''}</h3>${presets.map(rowFn).join('') || emptyTexts.presets}
+      <h3>${t('Cases aus deiner Liste ({n})', { n: list.length })}</h3>${list.map(rowFn).join('') || emptyTexts.list}`;
 }

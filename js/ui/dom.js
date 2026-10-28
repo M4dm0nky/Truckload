@@ -1,3 +1,5 @@
+import { t, num } from '../i18n/i18n.js';
+
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ESC[ch]);
 
@@ -14,7 +16,9 @@ export const toSvg = (svg, x, y) => new DOMPoint(x, y).matrixTransform(svg.getSc
 // Id des Cases unter dem Zeiger, null auf freier Fläche.
 export const caseIdAt = e => e.target.closest('g.case')?.dataset.id ?? null;
 
-export const fmtM = cm => `${(cm / 100).toFixed(2).replace('.', ',')} m`;
+// Zwei Nachkommastellen: gerundet wird wie bisher mit toFixed (Binärwert), nur das Zahlenformat folgt der Sprache.
+export const fmt2 = v => num(Number(v.toFixed(2)), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+export const fmtM = cm => `${fmt2(cm / 100)} m`;
 
 // Farbkästchen vor einem Case-/Stück-Namen. esc() schützt nicht innerhalb von style="…": Die Farbe
 // kommt heute aus einem Farbwähler oder einer geprüften Datei (COLOR_RE in js/store/io.js), aber
@@ -37,12 +41,13 @@ const ICON_PATHS = {
 };
 export function icon(name) {
   const d = ICON_PATHS[name];
-  if (!d) throw new Error(`Unbekanntes Icon „${name}“.`);
+  if (!d) throw new Error(`Unknown icon: ${name}`);
   return `<svg class="icon" viewBox="0 0 256 256" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
 }
 
+// Getter statt fester Texte: die Sprache steht erst beim Zugriff fest (Tests schalten sie um).
 export const ORIENTATION_LABEL = {
-  standing: 'stehend',
-  tipLong: 'getippt (Längsseite)',
-  tipShort: 'getippt (Stirnseite)',
+  get standing() { return t('stehend'); },
+  get tipLong() { return t('getippt (Längsseite)'); },
+  get tipShort() { return t('getippt (Stirnseite)'); },
 };
