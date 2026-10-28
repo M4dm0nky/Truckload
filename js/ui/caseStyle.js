@@ -49,8 +49,8 @@ export function weightRange(items) {
 // damit „unbekannt“ nicht wie „am leichtesten“ aussieht (Regel s. o.).
 export function weightColor(kg, range) {
   if (!(kg > 0) || range === null) return WEIGHT_UNKNOWN;
-  const t = range.max === range.min ? 0.5 : (kg - range.min) / (range.max - range.min);
-  const mix = (a, b) => Math.round(a + (b - a) * t);
+  const anteil = range.max === range.min ? 0.5 : (kg - range.min) / (range.max - range.min);
+  const mix = (a, b) => Math.round(a + (b - a) * anteil);
   const [r, g, b] = [0, 1, 2].map(i => mix(WEIGHT_LIGHT[i], WEIGHT_HEAVY[i]));
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }

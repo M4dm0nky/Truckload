@@ -1,9 +1,11 @@
 import { esc } from './dom.js';
 import { MAX_RULESET_NAME } from '../model/limits.js';
+import { t } from '../i18n/i18n.js';
 import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, ruleActive } from '../model/packRules.js';
 
 const ORTE = ['projekt', 'bibliothek'];
-const ORT_LABEL = { projekt: 'Projekt', bibliothek: 'Bibliothek' };
+// Getter statt fester Texte: die Sprache steht erst beim Zugriff fest (Tests schalten sie um).
+const ORT_LABEL = { get projekt() { return t('Projekt'); }, get bibliothek() { return t('Bibliothek'); } };
 
 export function setOptions(projectSets, librarySets) {
   const gruppe = (ort, list) => (list.length
@@ -39,40 +41,39 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
 
   dlg.innerHTML = `
     <form method="dialog" class="editor pack-rules">
-      <h2>Pack-Regeln</h2>
-      <p class="hint">Oben steht die wichtigste Regel, bei Gleichstand entscheidet die nächste. Jeder Case-Typ bleibt
-        ein eigener Block, Stücke mit Gruppe bilden einen eigenen Block. „zuerst“ heißt an der Stirnwand, „zuletzt“ an der Tür.</p>
+      <h2>${t('Pack-Regeln')}</h2>
+      <p class="hint">${t('Oben steht die wichtigste Regel, bei Gleichstand entscheidet die nächste. Jeder Case-Typ bleibt ein eigener Block, Stücke mit Gruppe bilden einen eigenen Block. „zuerst“ heißt an der Stirnwand, „zuletzt“ an der Tür.')}</p>
       <ol class="rule-list"></ol>
-      <label class="check"><input type="checkbox" name="mixTop"> Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf</label>
-      <small class="hint">Cases ohne Gewicht (0 kg) werden nicht gemischt. Die Lagen je Stück gelten weiter.</small>
+      <label class="check"><input type="checkbox" name="mixTop"> ${t('Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf')}</label>
+      <small class="hint">${t('Cases ohne Gewicht (0 kg) werden nicht gemischt. Die Lagen je Stück gelten weiter.')}</small>
       <fieldset class="rule-add">
-        <legend>Regel hinzufügen</legend>
+        <legend>${t('Regel hinzufügen')}</legend>
         <div class="rule-add-row">
           <select name="by">${RULE_KINDS.map(k => `<option value="${k.by}">${esc(k.label)}</option>`).join('')}</select>
           <select name="value"></select>
           <select name="pos">${Object.entries(POS_LABEL).map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('')}</select>
-          <button type="button" data-act="add">+ Regel</button>
+          <button type="button" data-act="add">${t('+ Regel')}</button>
         </div>
       </fieldset>
       <fieldset class="rule-sets">
-        <legend>Regelsets</legend>
+        <legend>${t('Regelsets')}</legend>
         <div class="rule-add-row">
           <select name="set"></select>
-          <button type="button" data-act="apply-set">Übernehmen</button>
-          <button type="button" data-act="delete-set" class="danger">Löschen</button>
+          <button type="button" data-act="apply-set">${t('Übernehmen')}</button>
+          <button type="button" data-act="delete-set" class="danger">${t('Löschen')}</button>
         </div>
         <div class="rule-add-row rule-save-row">
-          <input name="setName" maxlength="${MAX_RULESET_NAME}" placeholder="Name, z. B. „Tour-Standard“">
-          <select name="setOrt" aria-label="Speicherort"><option value="projekt" selected>im Projekt</option><option value="bibliothek">in der Bibliothek</option></select>
-          <button type="button" data-act="save-set">Als Regelset speichern</button>
+          <input name="setName" maxlength="${MAX_RULESET_NAME}" placeholder="${t('Name, z. B. „Tour-Standard“')}">
+          <select name="setOrt" aria-label="${t('Speicherort')}"><option value="projekt" selected>${t('im Projekt')}</option><option value="bibliothek">${t('in der Bibliothek')}</option></select>
+          <button type="button" data-act="save-set">${t('Als Regelset speichern')}</button>
         </div>
         <small class="hint rule-set-hint" hidden></small>
       </fieldset>
       <menu>
-        <button value="cancel" formnovalidate>Abbrechen</button>
+        <button value="cancel" formnovalidate>${t('Abbrechen')}</button>
         <span class="grow"></span>
-        <button value="save">Speichern</button>
-        <button value="repack" class="primary">Speichern und neu packen</button>
+        <button value="save">${t('Speichern')}</button>
+        <button value="repack" class="primary">${t('Speichern und neu packen')}</button>
       </menu>
     </form>`;
 
@@ -93,7 +94,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
     f.pos.hidden = f.by.value === 'volume' || f.by.value === 'count';
     f.value.innerHTML = opts?.length
       ? opts.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')
-      : '<option value="">(keine in diesem Load)</option>';
+      : `<option value="">${t('(keine in diesem Load)')}</option>`;
     addBtn.disabled = !!opts && !opts.length;
   }
   function renderList() {
@@ -101,16 +102,16 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
       const active = ruleActive(r, targets);
       return `
         <li class="rule ${active ? '' : 'inactive'}" data-i="${i}">
-          <span class="rule-text">${esc(describeRule(r, caseById))}${active ? '' : ' <small>(nicht in diesem Load)</small>'}</span>
-          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="Nach oben" aria-label="Nach oben">↑</button>
-          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="Nach unten" aria-label="Nach unten">↓</button>
-          <button type="button" data-act="remove" title="Regel entfernen" aria-label="Regel entfernen">×</button>
+          <span class="rule-text">${esc(describeRule(r, caseById))}${active ? '' : ` <small>${t('(nicht in diesem Load)')}</small>`}</span>
+          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="${t('Nach oben')}" aria-label="${t('Nach oben')}">↑</button>
+          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="${t('Nach unten')}" aria-label="${t('Nach unten')}">↓</button>
+          <button type="button" data-act="remove" title="${t('Regel entfernen')}" aria-label="${t('Regel entfernen')}">×</button>
         </li>`;
-    }).join('') || '<li class="hint">Keine Regel – dann entscheidet der Name.</li>';
+    }).join('') || `<li class="hint">${t('Keine Regel – dann entscheidet der Name.')}</li>`;
   }
   function renderSets() {
     const any = projSets.length + sets.length > 0;
-    f.set.innerHTML = any ? setOptions(projSets, sets) : '<option value="">(noch keine Regelsets)</option>';
+    f.set.innerHTML = any ? setOptions(projSets, sets) : `<option value="">${t('(noch keine Regelsets)')}</option>`;
     dlg.querySelector('[data-act="apply-set"]').disabled = !any;
     dlg.querySelector('[data-act="delete-set"]').disabled = !any;
   }
@@ -146,14 +147,14 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
     if (act === 'apply-set') {
       const v = parseSetValue(f.set.value);
       const s = v && listOf(v.ort).find(x => x.id === v.id);
-      if (s) { cur = [...s.rules]; f.mixTop.checked = s.mixTop === true; showSetHint(`Regelset „${s.name}“ übernommen.`); }
+      if (s) { cur = [...s.rules]; f.mixTop.checked = s.mixTop === true; showSetHint(t('Regelset „{name}“ übernommen.', { name: s.name })); }
     }
     if (act === 'delete-set') {
       const v = parseSetValue(f.set.value);
       const s = v && listOf(v.ort).find(x => x.id === v.id);
       if (s && await onDeleteRuleSet?.(s.id, v.ort)) {
         if (v.ort === 'projekt') projSets = projSets.filter(x => x.id !== s.id); else sets = sets.filter(x => x.id !== s.id);
-        showSetHint(`Regelset „${s.name}“ gelöscht.`);
+        showSetHint(t('Regelset „{name}“ gelöscht.', { name: s.name }));
       }
       renderSets();
     }
@@ -168,7 +169,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
         f.setName.value = '';
         renderSets();
         f.set.value = `${ort}:${saved.id}`;
-        showSetHint(`Regelset „${saved.name}“ gespeichert.`);
+        showSetHint(t('Regelset „{name}“ gespeichert.', { name: saved.name }));
       }
     }
     renderList();

@@ -8,6 +8,7 @@ import { archBoxes } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
 import { trussShape, TUBE_R_RATIO } from '../model/truss.js';
 import { estimateTextWidth } from './textMetrics.js';
+import { t } from '../i18n/i18n.js';
 
 // 2D ist die nüchterne Planungsansicht – „Tetris“: jedes Stück ist ein Rechteck im belegten
 // Außenmaß inkl. Rollen (`it.box`, siehe docs/architektur.md, „Rollen im Maß“). Die reale
@@ -310,7 +311,7 @@ export function renderView(svg, mode, { truck, result, selectedId, labels = true
 
   const cog = result.totals.cog;
   if (mode === 'top' && cog) svgEl('circle', { cx: cog.x, cy: truck.w - cog.y, r: 12, class: 'cog' }, svg)
-    .appendChild(svgEl('title')).textContent = 'Schwerpunkt';
+    .appendChild(svgEl('title')).textContent = t('Schwerpunkt');
 }
 
 export function attachSelect(svg, onSelect) {

@@ -16,14 +16,14 @@ export function speakerUnits(body, unitH) {
 // Vierkantrohr, keine durchgehende Platte. Reicht über den vollen Fußabdruck `box` (nicht nur
 // `body`), damit er unter dem Korpus sichtbar hervorsteht wie beim echten Dolly.
 export function speakerDollyFrame(box, dollyZ1) {
-  const t = 2.2;
+  const dick = 2.2;
   const z1 = Math.max(box.z0 + 0.1, dollyZ1 - 1);
-  const z0 = Math.max(box.z0, z1 - t);
+  const z0 = Math.max(box.z0, z1 - dick);
   return [
-    { x0: box.x0, x1: box.x1, y0: box.y0, y1: box.y0 + t, z0, z1 },
-    { x0: box.x0, x1: box.x1, y0: box.y1 - t, y1: box.y1, z0, z1 },
-    { x0: box.x0, x1: box.x0 + t, y0: box.y0, y1: box.y1, z0, z1 },
-    { x0: box.x1 - t, x1: box.x1, y0: box.y0, y1: box.y1, z0, z1 },
+    { x0: box.x0, x1: box.x1, y0: box.y0, y1: box.y0 + dick, z0, z1 },
+    { x0: box.x0, x1: box.x1, y0: box.y1 - dick, y1: box.y1, z0, z1 },
+    { x0: box.x0, x1: box.x0 + dick, y0: box.y0, y1: box.y1, z0, z1 },
+    { x0: box.x1 - dick, x1: box.x1, y0: box.y0, y1: box.y1, z0, z1 },
   ];
 }
 // Anbauteile EINER Lautsprecher-Box in lokalen cm-Koordinaten (Breite W entlang x, Tiefe D
@@ -59,13 +59,13 @@ export function speakerUnitParts(W, D, H) {
 
 // Die 12 Kanten eines Korpus als Alu-Profilstäbe (3×3 cm, leicht über die Flächen hinausstehend).
 export function edgeBars(b, out) {
-  const t = 1.5, ext = 0.3;
+  const dick = 1.5, ext = 0.3;
   for (const y of [b.y0, b.y1]) for (const z of [b.z0, b.z1])
-    out.push({ x0: b.x0 - ext, x1: b.x1 + ext, y0: y - t, y1: y + t, z0: z - t, z1: z + t });
+    out.push({ x0: b.x0 - ext, x1: b.x1 + ext, y0: y - dick, y1: y + dick, z0: z - dick, z1: z + dick });
   for (const x of [b.x0, b.x1]) for (const z of [b.z0, b.z1])
-    out.push({ x0: x - t, x1: x + t, y0: b.y0 - ext, y1: b.y1 + ext, z0: z - t, z1: z + t });
+    out.push({ x0: x - dick, x1: x + dick, y0: b.y0 - ext, y1: b.y1 + ext, z0: z - dick, z1: z + dick });
   for (const x of [b.x0, b.x1]) for (const y of [b.y0, b.y1])
-    out.push({ x0: x - t, x1: x + t, y0: y - t, y1: y + t, z0: b.z0 - ext, z1: b.z1 + ext });
+    out.push({ x0: x - dick, x1: x + dick, y0: y - dick, y1: y + dick, z0: b.z0 - ext, z1: b.z1 + ext });
 }
 
 // Butterfly-Verschlüsse auf dem Deckelfuge-Band: 2 auf den Längsseiten (y0/y1), 1 auf jeder

@@ -1,4 +1,5 @@
 import { esc } from './dom.js';
+import { t } from '../i18n/i18n.js';
 import { layersOf, canTip } from '../model/geometry.js';
 import { NEUTRAL_COMPANY } from './caseGroups.js';
 import { MAX_LABEL } from '../model/limits.js';
@@ -8,7 +9,7 @@ import { collectionRows, STANDARD_ID, MEINE_ID } from '../model/collections.js';
 // (als Baum eingerückt; eine Eltern-Sammlung schließt ihre Untersammlungen ein, groupCases).
 export function searchInOptionsHtml(collections, selected) {
   const opt = (v, label) => `<option value="${esc(v)}"${v === selected ? ' selected' : ''}>${esc(label)}</option>`;
-  return opt(NEUTRAL_COMPANY, 'Standardkatalog') + opt('', 'Kompletter Bestand') + collectionRows(collections).map(({ collection, depth }) => opt(collection.id, `nur ${'– '.repeat(depth)}${collection.name}`)).join('');
+  return opt(NEUTRAL_COMPANY, t('Standardkatalog')) + opt('', t('Kompletter Bestand')) + collectionRows(collections).map(({ collection, depth }) => opt(collection.id, t('nur {name}', { name: `${'– '.repeat(depth)}${collection.name}` }))).join('');
 }
 // Vorgabe-Ablageziel für neue Cases: der Name der gewählten eigenen Sammlung, sonst keiner
 // (= „Meine Sammlung“).
@@ -104,6 +105,6 @@ export const autoPackAfterStacked = (current, userTouched) => (userTouched ? cur
 export function companyFilterAfterChange(prev, collections) {
   const fort = prev !== NEUTRAL_COMPANY && prev !== '' && !collections.some(c => c.id === prev);
   return fort
-    ? { value: NEUTRAL_COMPANY, hinweis: 'Sammlung nicht mehr vorhanden – Filter zurückgesetzt.' }
+    ? { value: NEUTRAL_COMPANY, hinweis: t('Sammlung nicht mehr vorhanden – Filter zurückgesetzt.') }
     : { value: prev, hinweis: '' };
 }

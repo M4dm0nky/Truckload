@@ -108,3 +108,85 @@ test('fmtM/fmt2: Deutsch rundet wie das alte toFixed (Halbschritte), Englisch mi
   assert.equal(fmtM(1.5), '0.01 m');
   assert.equal(fmtM(150), '1.50 m');
 });
+
+// ---- Task 7: Druck, Pack-Regeln, Assistenten ----------------------------------------------
+import { printHTML, buildChecklist, buildUnloadList, buildLabels, buildPrintAll, buildChecklistAll, buildLabelsAll } from '../js/ui/print.js';
+import { setOptions } from '../js/ui/pack-rules.js';
+import { searchInOptionsHtml, companyFilterAfterChange } from '../js/ui/wizard-items.js';
+import { originText, lengthButtons, profileHitsHtml, punkteLabel, profileOriginLine } from '../js/ui/truss-wizard.js';
+import { singleFixture } from './print-fixture.js';
+
+// Nutzerdaten (Plan-, Case-, Fahrzeugnamen, Beschriftungen) entfernen; übrig bleibt der eigene Text.
+const ohneDaten = html => sichtbar(html)
+  .replace(/Rack &lt;A&gt;|Rack &lt;1&gt;|Show &lt;b&gt;&amp;&lt;\/b&gt; Tour|Sprinter &quot;XL&quot;|Kabel &amp; Co|Zwei|Drei|Offen|Case c2|Case c1|c1|c2/g, ' ');
+const wurzel = () => ({ innerHTML: '', querySelectorAll: () => [{ querySelector: () => null }], querySelector: () => null });
+const heute = new Date().toLocaleDateString('en-GB');
+
+test('Druck englisch: Ladeplan ohne deutschen Rest, Datum und Zahlen im britischen Format', () => {
+  const { plan: p, truck, result } = singleFixture();
+  const html = printHTML({ plan: p, truck, result });
+  const text = ohneDaten(html);
+  assert.ok(!looksGerman(text), text.replace(/\s+/g, ' '));
+  assert.ok(html.includes(heute), `Datum ${heute}`);
+  assert.match(html, /Inside \d+×\d+×\d+ cm/);
+  assert.match(html, /load metres/);
+  assert.match(html, /Top view \(front wall on the left\)/);
+  assert.match(html, /<th>Layer<\/th>/);
+  assert.match(html, /without a weight/);
+});
+
+test('Druck englisch: Abhak-, Ausladeliste und Etiketten ohne deutschen Rest', () => {
+  const { plan: p, truck, result } = singleFixture();
+  for (const build of [buildChecklist, buildUnloadList]) {
+    const root = wurzel();
+    build(root, { plan: p, truck, result });
+    const text = ohneDaten(root.innerHTML);
+    assert.ok(!looksGerman(text), text.replace(/\s+/g, ' '));
+    assert.ok(root.innerHTML.includes(heute));
+    assert.match(root.innerHTML, /1 item not loaded/);
+  }
+  const root = wurzel();
+  buildUnloadList(root, { plan: p, truck, result });
+  assert.match(root.innerHTML, /Unloading list – /);
+  assert.match(root.innerHTML, /Unloaded by/);
+  const lab = wurzel();
+  buildLabels(lab, { plan: p, result });
+  assert.match(lab.innerHTML, /1 of 3/);
+});
+
+test('Druck englisch: alle LKW inkl. „Ohne LKW“-Abschnitt', () => {
+  const { plan: p, truck, result } = singleFixture();
+  const free = { plan: { name: 'Plan', unplaced: [{ caseId: 'zzz' }, { caseId: 'c1', label: 'Offen' }] }, caseById: new Map([['c1', { name: 'c1', color: '#fff' }]]) };
+  const sections = [{ lkw: { name: 'LKW 1' }, plan: p, truck, result }];
+  const root = wurzel();
+  buildChecklistAll(root, sections, { free });
+  assert.ok(!looksGerman(ohneDaten(root.innerHTML).replace(/LKW 1|Plan/g, ' ')), ohneDaten(root.innerHTML));
+  assert.match(root.innerHTML, /2 items without a truck/);
+  assert.match(root.innerHTML, /unknown case/);
+  assert.match(root.innerHTML, /not loaded/);
+  const lab = wurzel();
+  buildLabelsAll(lab, sections, { free });
+  assert.match(lab.innerHTML, /No truck/);
+  const all = wurzel();
+  buildPrintAll(all, sections, { free, draw: () => {} });
+  assert.ok(!looksGerman(ohneDaten(all.innerHTML).replace(/LKW 1|Plan/g, ' ')));
+});
+
+test('Pack-Regeln, Suchen-in, Traversen-Dialog: englische Bausteine', () => {
+  const opts = setOptions([{ id: 'a', name: 'Set A' }], [{ id: 'b', name: 'Set B' }]);
+  assert.match(opts, /label="Project"/);
+  assert.match(opts, /label="Library"/);
+  const so = searchInOptionsHtml([], '');
+  assert.ok(so.includes('Whole stock') && so.includes('Default catalogue'));
+  assert.equal(companyFilterAfterChange('weg', []).hinweis, 'Collection no longer exists – filter reset.');
+  assert.equal(originText('berechnet'), 'calculated from weight per metre');
+  assert.equal(originText('hersteller'), "Manufacturer's figure");
+  assert.equal(punkteLabel(3), '3-point');
+  assert.match(profileHitsHtml([]), /No profile found/);
+  const [b1, b2] = lengthButtons({ lengths: [{ cm: 350, kg: 23.5, art: 'hersteller' }, { cm: 100, kg: 0, art: 'berechnet' }] });
+  assert.equal(b1.label, '3.5 m · 23.5 kg');
+  assert.equal(b2.label, '1 m · Weight unknown');
+  assert.equal(profileOriginLine({ lengths: [{ cm: 350, kg: 1, art: 'hersteller' }] }, 350), 'Weight: Manufacturer\'s figure');
+  setLang('de');
+  assert.equal(lengthButtons({ lengths: [{ cm: 350, kg: 23.5, art: 'hersteller' }] })[0].label, '3,5 m · 23,5 kg');
+});

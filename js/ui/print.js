@@ -1,53 +1,67 @@
 import { APP_VERSION } from '../version.js';
 import { esc, safeColor, swatch, fmtM, ORIENTATION_LABEL } from './dom.js';
 import { renderView } from './view2d.js';
+import { t, num, date } from '../i18n/i18n.js';
 
 // Angaben, die auf jeder Druckart im Kopf stehen – ein gemeinsamer Baustein statt doppelter
 // esc()/toLocaleString()-Aufrufe in buildPrint und buildChecklist.
 function headInfo({ plan, truck, result, lkw }) {
-  const t = result.totals;
+  const totals = result.totals;
   return {
     plan: esc(plan.name),
     truck: esc(truck.name),
     // Nur bei „alle LKW“ gesetzt; sonst '' – dann bleibt das Markup eines Ein-LKW-Plans unverändert.
     lkw: lkw ? esc(lkw.name) : '',
-    date: new Date().toLocaleDateString('de-DE'),
-    count: t.count,
-    weight: Math.round(t.weight).toLocaleString('de-DE'),
+    date: date(new Date()),
+    count: totals.count,
+    weight: num(Math.round(totals.weight)),
     version: APP_VERSION,
   };
+}
+
+// Zählung „n Cases“ (im Deutschen auch bei 1 so, im Englischen „1 case“).
+const casesText = n => (n === 1 ? t('1 Cases') : t('{n} Cases', { n }));
+
+// Hinweis „Cases ohne Gewicht“ (ohne Schlusspunkt); mit `volume` kommt der Hinweis zur Schwerpunktschätzung dazu.
+function noWeightText(n, volume) {
+  if (volume) {
+    return n === 1
+      ? t('1 Case ohne Gewicht – die Nutzlast oben ist unvollständig; Schwerpunkt ersatzweise über das Volumen geschätzt (Cases ohne Gewicht zählen dabei wie voll beladen)')
+      : t('{n} Cases ohne Gewicht – die Nutzlast oben ist unvollständig; Schwerpunkt ersatzweise über das Volumen geschätzt (Cases ohne Gewicht zählen dabei wie voll beladen)', { n });
+  }
+  return n === 1 ? t('1 Case ohne Gewicht – die Nutzlast oben ist unvollständig') : t('{n} Cases ohne Gewicht – die Nutzlast oben ist unvollständig', { n });
 }
 
 const sortedBySequence = result => [...result.items].sort((a, b) => result.sequence.get(a.id) - result.sequence.get(b.id));
 
 // Warnungen aus dem Packergebnis, gemeinsam für Ladeplan und Abhakliste.
 const issuesHTML = result => result.issues.length
-  ? `<section class="p-issues"><b>Achtung:</b> ${result.issues.map(i => esc(i.message)).join(' · ')}</section>`
+  ? `<section class="p-issues"><b>${t('Achtung:')}</b> ${result.issues.map(i => esc(i.message)).join(' · ')}</section>`
   : '';
 
 // Reines HTML-Bauen, ohne DOM-Zugriff – testbar ohne jsdom. buildPrint hängt danach die SVGs
 // über root.querySelector ein (das braucht echtes DOM und bleibt deshalb dort).
 export function printHTML({ plan, truck, result, lkw }) {
-  const t = result.totals;
+  const totals = result.totals;
   const h = headInfo({ plan, truck, result, lkw });
   const rows = sortedBySequence(result);
   return `
     <header>
       <h1>${h.plan}${h.lkw ? ` – ${h.lkw}` : ''}</h1>
-      <p>${h.truck} · Innen ${truck.l}×${truck.w}×${truck.h} cm · ${h.date}
-        · ${h.weight} / ${truck.payload.toLocaleString('de-DE')} kg
-        · ${fmtM(t.loadMeters * 100)} Lademeter · ${h.count} Cases · Truckload V ${h.version}</p>
-      ${t.withoutWeight ? `<p class="p-noweight">${t.withoutWeight} Case${t.withoutWeight === 1 ? '' : 's'} ohne Gewicht – die Nutzlast oben ist unvollständig${t.cog && t.cog.source === 'volume' ? '; Schwerpunkt ersatzweise über das Volumen geschätzt (Cases ohne Gewicht zählen dabei wie voll beladen)' : ''}.</p>` : ''}
+      <p>${h.truck} · ${t('Innen {l}×{w}×{h} cm', { l: truck.l, w: truck.w, h: truck.h })} · ${h.date}
+        · ${h.weight} / ${num(truck.payload)} kg
+        · ${t('{lm} Lademeter', { lm: fmtM(totals.loadMeters * 100) })} · ${casesText(h.count)} · Truckload V ${h.version}</p>
+      ${totals.withoutWeight ? `<p class="p-noweight">${noWeightText(totals.withoutWeight, totals.cog && totals.cog.source === 'volume')}.</p>` : ''}
     </header>
-    <figure><figcaption>Draufsicht (Stirnwand links)</figcaption><svg class="p-top"></svg></figure>
-    <figure><figcaption>Seitenansicht (von links)</figcaption><svg class="p-side"></svg></figure>
+    <figure><figcaption>${t('Draufsicht (Stirnwand links)')}</figcaption><svg class="p-top"></svg></figure>
+    <figure><figcaption>${t('Seitenansicht (von links)')}</figcaption><svg class="p-side"></svg></figure>
     ${issuesHTML(result)}
     <table>
-      <thead><tr><th>Nr.</th><th>Beschriftung</th><th>Case</th><th>Inhalt</th><th>Ausrichtung</th><th>ab Stirnwand</th><th>Höhe</th><th>Lage</th><th>kg</th></tr></thead>
+      <thead><tr><th>${t('Nr.')}</th><th>${t('Beschriftung')}</th><th>Case</th><th>${t('Inhalt')}</th><th>${t('Ausrichtung')}</th><th>${t('ab Stirnwand')}</th><th>${t('Höhe')}</th><th>${t('Lage', null, 'layer')}</th><th>kg</th></tr></thead>
       <tbody>${rows.map(it => `<tr>
         <td>${result.sequence.get(it.id)}</td><td>${esc(it.label)}</td><td>${esc(it.c.name)}</td><td>${esc(it.c.content)}</td>
         <td>${ORIENTATION_LABEL[it.p.orientation]}</td><td>${fmtM(it.box.x0)}</td>
-        <td>${it.box.z0 > 0 ? `${Math.round(it.box.z0)} cm` : 'Boden'}</td><td>${result.layers.get(it.id)}</td><td>${esc(it.c.weight)}</td></tr>`).join('')}
+        <td>${it.box.z0 > 0 ? `${Math.round(it.box.z0)} cm` : t('Boden')}</td><td>${result.layers.get(it.id)}</td><td>${esc(it.c.weight)}</td></tr>`).join('')}
       </tbody>
     </table>`;
 }
@@ -74,8 +88,9 @@ export function buildPrint(root, { plan, truck, result, colorMode = 'black', lkw
 // die Liste vollständig ab, während Cases in der Halle stehen bleiben – genau das Missgeschick,
 // das die Abhakliste verhindern soll. Dasselbe gilt für die Warnungen aus dem Packergebnis, die
 // der Ladeplan schon druckt.
-const CHECKLIST = { title: '', reversed: false, signLabel: 'Geladen von' };
-const UNLOAD = { title: 'Ausladeliste – ', reversed: true, signLabel: 'Entladen von' };
+// Getter statt fester Texte: die Sprache steht erst beim Zugriff fest (Tests schalten sie um).
+const CHECKLIST = { title: '', reversed: false, get signLabel() { return t('Geladen von'); } };
+const UNLOAD = { get title() { return t('Ausladeliste – '); }, reversed: true, get signLabel() { return t('Entladen von'); } };
 
 export function buildChecklist(root, { plan, truck, result, lkw }) {
   listDoc(root, { plan, truck, result, lkw }, CHECKLIST);
@@ -98,21 +113,21 @@ function listHTML({ plan, truck, result, lkw }, { title, reversed, signLabel }) 
   return `
     <header>
       <h1>${title}${h.plan}${h.lkw ? ` – ${h.lkw}` : ''}</h1>
-      <p>${h.truck} · ${h.date} · ${h.count} Cases · ${h.weight} kg · Truckload V ${h.version}</p>
-      ${offen ? `<p class="p-open"><b>${offen} Stück nicht geladen</b> – ${offen === 1 ? 'es steht' : 'sie stehen'} nicht auf dieser Liste.</p>` : ''}
+      <p>${h.truck} · ${h.date} · ${casesText(h.count)} · ${h.weight} kg · Truckload V ${h.version}</p>
+      ${offen ? `<p class="p-open">${offen === 1 ? t('<b>1 Stück nicht geladen</b> – es steht nicht auf dieser Liste.') : t('<b>{n} Stück nicht geladen</b> – sie stehen nicht auf dieser Liste.', { n: offen })}</p>` : ''}
     </header>
     ${issuesHTML(result)}
     <ul class="checklist">${rows.map(it => `<li>
         <span class="num">${result.sequence.get(it.id)}</span>
         ${swatch(it.color)}
         <span class="label">${esc(it.label)} <small>(${esc(it.c.name)})</small></span>
-        <span class="layer">Lage ${result.layers.get(it.id)}</span>
+        <span class="layer">${t('Lage', null, 'layer')} ${result.layers.get(it.id)}</span>
         <span class="tick"></span>
       </li>`).join('')}
     </ul>
     <footer class="signoff">
       <span class="sign">${signLabel} <span class="line"></span></span>
-      <span class="sign">Datum <span class="line"></span></span>
+      <span class="sign">${t('Datum')} <span class="line"></span></span>
     </footer>`;
 }
 
@@ -147,7 +162,7 @@ function labelsHTML({ plan, result, lkw }) {
         <span class="seq">${n}</span>
         <span class="name">${esc(it.label)}</span>
         <span class="bar" style="background:${safeColor(it.color)}"></span>
-        ${metaHTML(planName, lkw ? esc(lkw.name) : '', `${n} von ${total}`)}
+        ${metaHTML(planName, lkw ? esc(lkw.name) : '', t('{a} von {b}', { a: n, b: total }))}
       </div>`;
   }).join('');
 }
@@ -174,11 +189,12 @@ function freeHTML({ plan, caseById }, title = '') {
   const items = plan.unplaced;
   const n = items.length;
   const h = headInfoFree(plan);
+  const stueck = n === 1 ? t('1 Stück') : t('{n} Stücke', { n });
   return `
     <header>
-      <h1>${title}${h.plan} – Ohne LKW</h1>
-      <p>${h.date} · ${n} Stück${n === 1 ? '' : 'e'} · Truckload V ${h.version}</p>
-      <p class="p-open"><b>${n} Stück${n === 1 ? '' : 'e'} ohne LKW</b> – ${n === 1 ? 'es ist' : 'sie sind'} keinem Fahrzeug zugeordnet und nicht geladen.</p>
+      <h1>${title}${h.plan} – ${t('Ohne LKW')}</h1>
+      <p>${h.date} · ${stueck} · Truckload V ${h.version}</p>
+      <p class="p-open">${n === 1 ? t('<b>1 Stück ohne LKW</b> – es ist keinem Fahrzeug zugeordnet und nicht geladen.') : t('<b>{n} Stücke ohne LKW</b> – sie sind keinem Fahrzeug zugeordnet und nicht geladen.', { n })}</p>
     </header>
     <ul class="checklist">${items.map(u => {
       const { label, color, caseName } = freePiece(u, caseById);
@@ -186,7 +202,7 @@ function freeHTML({ plan, caseById }, title = '') {
         <span class="num">–</span>
         ${swatch(color)}
         <span class="label">${esc(label)} <small>(${esc(caseName)})</small></span>
-        <span class="layer">nicht geladen</span>
+        <span class="layer">${t('nicht geladen')}</span>
         <span class="tick"></span>
       </li>`;
     }).join('')}
@@ -195,9 +211,9 @@ function freeHTML({ plan, caseById }, title = '') {
 // Beschriftung und Farbe wie in js/model/items.js: fehlt beides am Stück, gelten Case-Name und -Farbe.
 const freePiece = (u, caseById) => {
   const c = caseById.get(u.caseId);
-  return { label: u.label ?? c?.name ?? u.caseId, color: u.color ?? c?.color, caseName: c?.name ?? 'unbekannter Case' };
+  return { label: u.label ?? c?.name ?? u.caseId, color: u.color ?? c?.color, caseName: c?.name ?? t('unbekannter Case') };
 };
-const headInfoFree = plan => ({ plan: esc(plan.name), date: new Date().toLocaleDateString('de-DE'), version: APP_VERSION });
+const headInfoFree = plan => ({ plan: esc(plan.name), date: date(new Date()), version: APP_VERSION });
 
 const hasFree = free => !!free && free.plan.unplaced.length > 0;
 
@@ -233,7 +249,7 @@ export function buildLabelsAll(root, sections, { free = null } = {}) {
         <span class="seq">–</span>
         <span class="name">${esc(label)}</span>
         <span class="bar" style="background:${safeColor(color)}"></span>
-        ${metaHTML(planName, 'Ohne LKW', `${i + 1} von ${total}`)}
+        ${metaHTML(planName, t('Ohne LKW'), t('{a} von {b}', { a: i + 1, b: total }))}
       </div>`;
     }).join(''));
   }

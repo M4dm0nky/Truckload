@@ -16,14 +16,8 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })
   .flatMap(e => (e.isDirectory() ? walk(`${d}/${e.name}`) : e.name.endsWith('.js') ? [`${d}/${e.name}`] : []));
 
-// js/ui-Dateien, die schon über t() laufen (js/data ist ganz umgestellt).
-const UMGESTELLT_UI = ['zoom2d', 'inspector', 'case-editor', 'caseInfo', 'caseGroups', 'library', 'material', 'stock-target',
-  'confirmDialog', 'dom', 'lkw-editor', 'lkw-tabs', 'truck-editor'].map(n => `js/ui/${n}.js`);
-
-// Noch nicht umgestellte Dateien. Spätere Tasks streichen ihre Dateien hier.
-export const PENDING = [
-  ...['js/ui'].flatMap(walk).filter(f => !UMGESTELLT_UI.includes(f)),
-];
+// Alle Dateien laufen über t(); die Liste bleibt als Sperre (Test F2) und Haken für Test C/E.
+export const PENDING = [];
 
 // Ausnahmen für Test C: deutsche Literale, die bewusst deutsch bleiben (Daten, keine Anzeige).
 export const ALLOW = [
@@ -41,6 +35,16 @@ export const ALLOW = [
   ...['Sprinter kurz', 'Sprinter lang', 'Trailer 40 t Koffer', 'Trailer 40 t Koffer extra hoch', 'Trailer 40 t Gardine']
     .map(text => ({ file: 'js/data/preset-trucks.js', text, why: 'Bibliotheksname' })),
   { file: 'js/ui/inspector.js', text: '<p class="hint insp-aus-projekt">', why: 'CSS-Klassenname (insp-aus-projekt), kein Anzeigetext' },
+  ...[['js/ui/dolly-wizard.js', '" required></label>\n      </div>\n      <p class="hint wagen-hint"></p>\n      '],
+    ['js/ui/load-wizard.js', '</button>\n          <button type="button" data-act="sonderbau">'],
+    ['js/ui/pack-rules.js', '"><option value="projekt" selected>'], ['js/ui/pack-rules.js', '</option><option value="bibliothek">'],
+    ['js/ui/truss-wizard.js', '<input type="number" name="prerigTotal" min="1" step="1" required></label>\n             <label class="check"><input type="checkbox" name="gestapelt" checked> ']]
+    .map(([file, text]) => ({ file, text, why: 'CSS-Klassen-/Wertnamen im Markup (wagen-hint, sonderbau, projekt, bibliothek, gestapelt), kein Anzeigetext' })),
+  ...['Unbekannte Ansicht: ', 'unproject nur für die Draufsicht', 'Unbekannte Seite: ']
+    .map(text => ({ file: 'js/ui/projection.js', text, why: 'Entwicklerfehler (Aufrufvertrag), nie für Nutzer bestimmt' })),
+  ...['Traversenwagen ', ' Stück)']
+    .map(text => ({ file: 'js/ui/truss-wizard.js', text, why: 'gespeicherter Case-Name eines Traversenwagens (Daten bleiben deutsch; groupPrerigCases liest das Schema)' })),
+  { file: 'js/ui/load-wizard.js', text: 'Sonderbau', why: 'gespeicherter Wert: Gewerk (Daten bleiben deutsch, Anzeige über trade())' },
   { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', 'Migration nach „Sammlungen“ nicht gespeichert:']
     .map(text => ({ file: 'js/store/repo.js', text, why: 'Konsole' })),
@@ -215,6 +219,10 @@ test('H: Inline-Notfallmeldung liefert mit ?lang=en englische Texte, ohne Parame
     assert.match(de[0].text, /^Dieser Browser ist zu alt/);
     assert.match(de[1].text, /^Die App konnte nicht vollständig geladen werden\. Bitte neu laden\. $/);
   }
+});
+
+test('F2: PENDING ist leer – alle Dateien laufen über t()', () => {
+  assert.deepEqual(PENDING, []);
 });
 
 test('E: PENDING enthält nur existierende Dateien', () => {

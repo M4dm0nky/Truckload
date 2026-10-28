@@ -1,4 +1,5 @@
 import { esc, swatch } from './dom.js';
+import { t, num, trade } from '../i18n/i18n.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { layersOf, canTip } from '../model/geometry.js';
 import { groupCases, renderGroupList, caseKind, CASE_TABS, NEUTRAL_COMPANY } from './caseGroups.js';
@@ -42,51 +43,51 @@ export async function openLoadWizard(dlg, opts = {}) {
 
   dlg.innerHTML = `
     <form method="dialog" class="editor wizard">
-      <h2>Load zusammenstellen</h2>
+      <h2>${t('Load zusammenstellen')}</h2>
       <div class="wiz-progress">${steps.map(() => '<span class="wiz-dot"></span>').join('')}</div>
       <section class="wiz-step" data-step="load">
-        <label>Name<input name="loadName" required maxlength="${NAME_MAX}"></label>
-        <label>Fahrzeug<select name="truckId">${trucks.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}</select></label>
+        <label>${t('Name')}<input name="loadName" required maxlength="${NAME_MAX}"></label>
+        <label>${t('Fahrzeug')}<select name="truckId">${trucks.map(tk => `<option value="${esc(tk.id)}">${esc(tk.name)}</option>`).join('')}</select></label>
       </section>
       <section class="wiz-step" data-step="cases" hidden>
-        <div class="seg case-tabs">${CASE_TABS.map((t, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-tab="${t.id}">${esc(t.label)}</button>`).join('')}</div>
+        <div class="seg case-tabs">${CASE_TABS.map((tab, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-tab="${tab.id}">${esc(tab.label)}</button>`).join('')}</div>
         <div class="wiz-cases-head">
-          <input type="search" class="wiz-search" placeholder="Suchen (Name oder Inhalt)">
-          <select class="wiz-filter"><option value="">Alle Gewerke</option>${CATEGORIES.map(c => `<option>${esc(c.name)}</option>`).join('')}</select>
-          <label>Suchen in <select class="wiz-filter-company" title="„Standardkatalog“ zeigt alle Cases ohne Firmenmarke: die Standardvorlagen und eigene Cases in „Meine Sammlung“ ohne Marke. Cases mit Marke (Listen-Cases, Cases in benannten Sammlungen) erscheinen erst nach Wahl von „Kompletter Bestand“ oder der Sammlung.">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
+          <input type="search" class="wiz-search" placeholder="${t('Suchen (Name oder Inhalt)')}">
+          <select class="wiz-filter"><option value="">${t('Alle Gewerke')}</option>${CATEGORIES.map(c => `<option value="${esc(c.name)}">${esc(trade(c.name))}</option>`).join('')}</select>
+          <label>${t('Suchen in')} <select class="wiz-filter-company" title="${t('„Standardkatalog“ zeigt alle Cases ohne Firmenmarke: die Standardvorlagen und eigene Cases in „Meine Sammlung“ ohne Marke. Cases mit Marke (Listen-Cases, Cases in benannten Sammlungen) erscheinen erst nach Wahl von „Kompletter Bestand“ oder der Sammlung.')}">${searchInOptionsHtml(getCollections(), NEUTRAL_COMPANY)}</select></label>
         </div>
         <p class="hint wiz-filter-note" role="status" hidden></p>
-        <p class="hint wiz-totals">0 Stück · 0 kg</p>
+        <p class="hint wiz-totals">${t('{n} Stück · {kg} kg', { n: 0, kg: 0 })}</p>
         <div class="wiz-case-list"></div>
         <div class="row">
-          <button type="button" data-act="new-case">+ Neues Case</button>
-          <button type="button" data-act="sonderbau">⬛ Sonderbau</button>
-          <button type="button" data-act="new-truss">+ Traverse hinzufügen</button>
+          <button type="button" data-act="new-case">${t('+ Neues Case')}</button>
+          <button type="button" data-act="sonderbau">${t('⬛ Sonderbau')}</button>
+          <button type="button" data-act="new-truss">${t('+ Traverse hinzufügen')}</button>
         </div>
         <p class="hint wiz-limit-hint" hidden></p>
       </section>
       <section class="wiz-step" data-step="labels" hidden>
         <div class="row wiz-all">
-          <b>Alle Stücke:</b>
+          <b>${t('Alle Stücke:')}</b>
           <span class="wiz-layers">
-            <span class="wiz-layers-label">Lage</span>
+            <span class="wiz-layers-label">${t('Lage', null, 'layer')}</span>
             ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-all-layer="${n}">${n}</label>`).join('')}
           </span>
-          <label class="check wiz-tipped"><input type="checkbox" data-all-tipped>getippt</label>
+          <label class="check wiz-tipped"><input type="checkbox" data-all-tipped>${t('getippt')}</label>
           <small class="hint wiz-all-hint" hidden></small>
         </div>
         <datalist id="wiz-group-list"></datalist>
         <div class="wiz-groups"></div>
         <p class="hint wiz-nolayer-hint" hidden></p>
-        <label class="check"><input type="checkbox" name="autoPack" checked> danach automatisch packen</label>
+        <label class="check"><input type="checkbox" name="autoPack" checked> ${t('danach automatisch packen')}</label>
       </section>
       <menu>
-        <button value="cancel" formnovalidate>Abbrechen</button>
-        ${opts.onOpenMaterial ? '<button type="button" data-act="material" title="Materialverwaltung – danach geht es hier weiter">Material</button>' : ''}
+        <button value="cancel" formnovalidate>${t('Abbrechen')}</button>
+        ${opts.onOpenMaterial ? `<button type="button" data-act="material" title="${t('Materialverwaltung – danach geht es hier weiter')}">${t('Material')}</button>` : ''}
         <span class="grow"></span>
-        <button type="button" data-act="back" hidden>Zurück</button>
-        <button type="button" data-act="next" class="primary">Weiter</button>
-        <button value="finish" class="primary" formnovalidate hidden>Fertig</button>
+        <button type="button" data-act="back" hidden>${t('Zurück')}</button>
+        <button type="button" data-act="next" class="primary">${t('Weiter')}</button>
+        <button value="finish" class="primary" formnovalidate hidden>${t('Fertig')}</button>
       </menu>
     </form>`;
 
@@ -121,10 +122,10 @@ export async function openLoadWizard(dlg, opts = {}) {
   function updateTotals() {
     const n = total();
     const kg = cases.reduce((sum, c) => sum + (counts.get(c.id) ?? 0) * c.weight, 0);
-    totalsEl.textContent = `${n} Stück · ${Math.round(kg).toLocaleString('de-DE')} kg`;
+    totalsEl.textContent = t('{n} Stück · {kg} kg', { n, kg: num(Math.round(kg)) });
     if (n >= MAX_ITEMS) {
       limitHint.hidden = false;
-      limitHint.textContent = 'Maximal 500 Stück je Wizard-Durchlauf.';
+      limitHint.textContent = t('Maximal 500 Stück je Wizard-Durchlauf.');
     } else {
       limitHint.hidden = true;
     }
@@ -137,9 +138,9 @@ export async function openLoadWizard(dlg, opts = {}) {
         ${swatch(c.color)}
         <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
         <div class="stepper">
-          <button type="button" data-act="dec" aria-label="Eine weniger" ${n <= 0 ? 'disabled' : ''}>−</button>
+          <button type="button" data-act="dec" aria-label="${t('Eine weniger')}" ${n <= 0 ? 'disabled' : ''}>−</button>
           <span class="qty">${n}</span>
-          <button type="button" data-act="inc" aria-label="Eine mehr" ${total() >= MAX_ITEMS ? 'disabled' : ''}>+</button>
+          <button type="button" data-act="inc" aria-label="${t('Eine mehr')}" ${total() >= MAX_ITEMS ? 'disabled' : ''}>+</button>
         </div>
       </div>`;
   }
@@ -155,9 +156,9 @@ export async function openLoadWizard(dlg, opts = {}) {
     renderGroupList(list, groups, caseRow, {
       // Ohne gesetzten Filter kein „Keine Treffer.“: für einen neuen Nutzer klänge das nach
       // Fehlbedienung statt nach einer leeren, aber gültigen Bibliothek (Formulierung wie in library.js).
-      own: '<p class="hint">Noch keine eigenen Cases – „+ Neues Case“ legt eins an.</p>',
-      presets: '<p class="hint">Keine Treffer für diese Filter.</p>',
-      list: '<p class="hint">Keine Treffer für diese Filter.</p>',
+      own: `<p class="hint">${t('Noch keine eigenen Cases – „+ Neues Case“ legt eins an.')}</p>`,
+      presets: `<p class="hint">${t('Keine Treffer für diese Filter.')}</p>`,
+      list: `<p class="hint">${t('Keine Treffer für diese Filter.')}</p>`,
     });
     updateTotals();
   }
@@ -301,21 +302,21 @@ export async function openLoadWizard(dlg, opts = {}) {
       const tippable = canTip(c);
       return `
         <fieldset class="wiz-group" data-case="${esc(id)}">
-          <legend>${esc(c.name)} <button type="button" data-act="color-all">Farbe auf alle übernehmen</button> <button type="button" data-act="group-all">Gruppe auf alle übernehmen</button></legend>
+          <legend>${esc(c.name)} <button type="button" data-act="color-all">${t('Farbe auf alle übernehmen')}</button> <button type="button" data-act="group-all">${t('Gruppe auf alle übernehmen')}</button></legend>
           ${arr.map((it, i) => `
             <div class="row wiz-item" data-i="${i}">
               <input name="label" value="${esc(it.label)}" maxlength="${MAX_LABEL}">
               <input type="color" name="color" value="${esc(it.color)}">
-              <input name="group" list="wiz-group-list" maxlength="${MAX_LABEL}" placeholder="Gruppe" value="${esc(it.group ?? '')}">
+              <input name="group" list="wiz-group-list" maxlength="${MAX_LABEL}" placeholder="${t('Gruppe')}" value="${esc(it.group ?? '')}">
               <span class="wiz-layers">
-                <span class="wiz-layers-label">Lage</span>
+                <span class="wiz-layers-label">${t('Lage', null, 'layer')}</span>
                 ${[1, 2, 3, 4].map(n => `<label class="check"><input type="checkbox" data-layer="${n}" ${it.layers.includes(n) ? 'checked' : ''} ${allowed.includes(n) ? '' : 'disabled'}>${n}</label>`).join('')}
               </span>
-              <label class="check wiz-tipped"><input type="checkbox" name="tipped" ${it.tipped ? 'checked' : ''} ${tippable ? '' : 'disabled'}>getippt</label>
-              <small class="hint wiz-layer-hint" ${it.layers.length ? 'hidden' : ''}>Mindestens eine Lage nötig.</small>
+              <label class="check wiz-tipped"><input type="checkbox" name="tipped" ${it.tipped ? 'checked' : ''} ${tippable ? '' : 'disabled'}>${t('getippt')}</label>
+              <small class="hint wiz-layer-hint" ${it.layers.length ? 'hidden' : ''}>${t('Mindestens eine Lage nötig.')}</small>
             </div>`).join('')}
         </fieldset>`;
-    }).join('') || '<p class="hint">Keine Cases ausgewählt.</p>';
+    }).join('') || `<p class="hint">${t('Keine Cases ausgewählt.')}</p>`;
     const known = [...new Set([...(opts.groups ?? []), ...allEntries().map(e => e.it.group?.trim()).filter(Boolean)])]
       .sort((a, b) => a.localeCompare(b, 'de'));
     dlg.querySelector('#wiz-group-list').innerHTML = known.map(g => `<option value="${esc(g)}">`).join('');
@@ -343,8 +344,8 @@ export async function openLoadWizard(dlg, opts = {}) {
       const kept = setLayerForAll(entries, Number(box.dataset.allLayer), box.checked);
       if (kept) {
         allHint.textContent = kept === 1
-          ? '1 Stück behält diese Lage – mindestens eine Lage nötig.'
-          : `${kept} Stücke behalten diese Lage – mindestens eine Lage nötig.`;
+          ? t('1 Stück behält diese Lage – mindestens eine Lage nötig.')
+          : t('{n} Stücke behalten diese Lage – mindestens eine Lage nötig.', { n: kept });
         allHint.hidden = false;
       }
     }
@@ -416,12 +417,12 @@ export async function openLoadWizard(dlg, opts = {}) {
     if (s === 'cases') {
       if (total() <= 0) {
         limitHint.hidden = false;
-        limitHint.textContent = 'Mindestens ein Case auswählen.';
+        limitHint.textContent = t('Mindestens ein Case auswählen.');
         return false;
       }
       if (total() > MAX_ITEMS) {
         limitHint.hidden = false;
-        limitHint.textContent = 'Maximal 500 Stück je Wizard-Durchlauf.';
+        limitHint.textContent = t('Maximal 500 Stück je Wizard-Durchlauf.');
         return false;
       }
       return true;
@@ -435,7 +436,7 @@ export async function openLoadWizard(dlg, opts = {}) {
     const n = countWithoutLayer(allEntries());
     if (!n) return;
     e.preventDefault();
-    noLayerHint.textContent = n === 1 ? 'Bei 1 Stück ist keine Lage angehakt.' : `Bei ${n} Stücken ist keine Lage angehakt.`;
+    noLayerHint.textContent = n === 1 ? t('Bei 1 Stück ist keine Lage angehakt.') : t('Bei {n} Stücken ist keine Lage angehakt.', { n });
     noLayerHint.hidden = false;
   });
   backBtn.addEventListener('click', () => showStep(stepIdx - 1));

@@ -5,8 +5,8 @@ export const FALLBACK = Object.freeze({ bg: '#0f172a', selection: '#f0a500', dan
 
 const lies = (getVar, name, fallback) => {
   const v = getVar(name);
-  const t = typeof v === 'string' ? v.trim() : '';
-  return t || fallback;
+  const text = typeof v === 'string' ? v.trim() : '';
+  return text || fallback;
 };
 
 export function readThemeColors(getVar) {
