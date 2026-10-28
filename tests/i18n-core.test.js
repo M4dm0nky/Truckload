@@ -53,3 +53,12 @@ test('builtinNote: nur eingebaute Notizen werden übersetzt', () => {
   assert.equal(builtinNote({ note: 'X' }), 'X');
   assert.equal(builtinNote({}), '');
 });
+
+test('Prototyp-Namen aus Importdaten werden nicht als Übersetzung gefunden', () => {
+  setLang('en');
+  try {
+    assert.equal(trade('constructor'), 'constructor');
+    assert.equal(t('toString'), 'toString');
+    assert.equal(t('{constructor} x', {}), '{constructor} x');
+  } finally { setLang('de'); }
+});

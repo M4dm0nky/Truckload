@@ -19,8 +19,9 @@ wird dort geschlossen, ein neuer als Issue angelegt, nicht in einer Datei gesamm
   `docs/superpowers/specs/2026-10-27-mehrsprachigkeit-design.md`).
 - **Neue Texte nur über `t()`** aus `js/i18n/i18n.js`; der englische Eintrag in `js/i18n/en.js`
   gehört dazu. `tests/i18n.test.js` erzwingt das. In `index.html` stehen statische Texte mit
-  `data-t`/`data-t-title`/`data-t-aria-label`. Gespeicherte Daten (Gewerke, erzeugte Namen,
-  `MEINE_NAME`) bleiben sprachfrei bzw. deutsch.
+  `data-t`/`data-t-title`/`data-t-aria-label`. Gespeicherte Daten werden nie übersetzt:
+  Gewerke und `MEINE_NAME` bleiben deutsch, erzeugte Namen (LKW, Dolly) entstehen in der
+  beim Anlegen aktiven Sprache und bleiben danach unverändert.
 - **Der Begriff heißt „tippen“, nie „kippen“.** Ein Case wird nach vorn auf die Seite
   getippt. Das ist die Sprache des Nutzers; „kippen“ bedeutet hier etwas anderes.
 - **Eine einzige Versionsnummer überall.** Quelle ist `js/version.js`; `package.json`,
