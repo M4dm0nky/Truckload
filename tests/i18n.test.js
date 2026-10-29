@@ -238,7 +238,7 @@ test('Englische Werte: keine Sperr-Muster (lopsided, Leerzeichen vor %, at most 
     [/'/, 'gerades Apostroph'],
   ];
   const treffer = [];
-  for (const [schluessel, wert] of Object.entries(EN)) {
+  for (const wert of Object.values(EN)) {
     for (const [re, name] of sperren) if (re.test(wert)) treffer.push(`${name}: ${wert}`);
   }
   assert.deepEqual(treffer, []);

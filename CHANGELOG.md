@@ -12,7 +12,7 @@ Korrekturen sind eingearbeitet und `sprachen.json` schaltet Englisch in NYX frei
 - **Englisch korrigiert:** „Loading metres“, „unbalanced“,
   „Adopt into library“, „max. {max} characters“, Prozentangaben ohne Leerzeichen.
 - **Mengen als Einzahl und Mehrzahl:** Statt „(s)“ oder „Ladeplan/-plänen“ steht jetzt die richtige
-  Form, auf Deutsch zum Beispiel „1 Ladeplan“ und „2 Ladepläne“.
+  Form, auf Deutsch zum Beispiel „in 1 Ladeplan“ und „in 2 Ladeplänen“.
 
 ## V 0.21.0 – 2026-10-28
 
