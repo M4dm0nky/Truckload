@@ -113,3 +113,9 @@ test('Ladefehler: Versionsmix (fehlender Export) und andere Fehler behalten „B
   assert.equal(f(null).neuLaden, true);
   assert.equal(f(new TypeError('x')).neuLaden, true);
 });
+
+// Stufe 2 (#42): sprachen.json listet die angebotenen Sprachen für NYX und liegt offline vor.
+test('sprachen.json ist gültiges JSON mit de und en und steht im Offline-Cache', () => {
+  assert.deepEqual(JSON.parse(read('sprachen.json')), ['de', 'en']);
+  assert.ok(precacheList().includes('sprachen.json'), 'sprachen.json fehlt in der sw.js-Asset-Liste');
+});
