@@ -72,6 +72,7 @@ Die Oberfläche gibt es auf Deutsch und Englisch (#42); Deutsch ist die Ausgangs
 - `js/i18n/en.js`: nur das Wörterbuch, sonst nichts.
 - `js/i18n/dom.js`: `translateDom` ersetzt die Marker (`data-t`, `data-t-title`,
   `data-t-aria-label`, `data-t-placeholder`) in `index.html`.
+- `sprachen.json` im Wurzelverzeichnis listet die angebotenen Sprachen (`["de","en"]`) für NYX; Truckload selbst liest sie nicht.
 - Das Inline-Skript im `<head>` (`tlTexte`) trägt die Ersatztexte für den Ladefehler, bevor
   Module laufen; es kann `i18n.js` nicht importieren.
 - Gespeicherte Daten bleiben sprachfrei: Gewerke und `MEINE_NAME` deutsch, erzeugte Namen in der

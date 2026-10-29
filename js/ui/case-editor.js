@@ -314,7 +314,7 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
     dlg.addEventListener('close', () => {
       const act = dlg.returnValue;
       if (act === 'delete') {
-        const msg = usedIn ? t('„{name}“ wird in {used} Ladeplan/-plänen verwendet. Trotzdem löschen?', { name: v.name, used: usedIn }) : t('„{name}“ löschen?', { name: v.name });
+        const msg = usedIn ? (usedIn === 1 ? t('„{name}“ wird in 1 Ladeplan verwendet. Trotzdem löschen?', { name: v.name }) : t('„{name}“ wird in {used} Ladeplänen verwendet. Trotzdem löschen?', { name: v.name, used: usedIn })) : t('„{name}“ löschen?', { name: v.name });
         showConfirm(msg, { okLabel: t('Löschen'), danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
         return;
       }

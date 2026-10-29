@@ -2,6 +2,18 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.21.1 – 2026-10-29
+
+**Englisch freigeschaltet (Stufe 2, Issue #42).** Aniflu hat die englischen Texte gegengelesen; die
+Korrekturen sind eingearbeitet und `sprachen.json` schaltet Englisch in NYX frei.
+
+- **`sprachen.json`:** Liste der angebotenen Sprachen (`["de","en"]`) im Wurzelverzeichnis. NYX bietet
+  damit Englisch an; Truckload selbst liest die Datei nicht.
+- **Englisch korrigiert:** „Loading metres“, „unbalanced“,
+  „Adopt into library“, „max. {max} characters“, Prozentangaben ohne Leerzeichen.
+- **Mengen als Einzahl und Mehrzahl:** Statt „(s)“ oder „Ladeplan/-plänen“ steht jetzt die richtige
+  Form, auf Deutsch zum Beispiel „in 1 Ladeplan“ und „in 2 Ladeplänen“.
+
 ## V 0.21.0 – 2026-10-28
 
 **Truckload spricht Englisch (Stufe 1, Issue #42).** Die Oberfläche gibt es jetzt auf Deutsch und

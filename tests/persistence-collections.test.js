@@ -215,7 +215,18 @@ test('deleteCollection: Rückfrage nennt die Verwendung in Ladeplänen', async (
   ctx.store.update(s => ({ ...s, plans: [{ id: 'p', placements: [{ caseId: 'a' }], unplaced: [] }] }));
   const { p, confirms } = withConfirm(ctx, false);
   await p.deleteCollection('t');
-  assert.match(confirms[0], /1 Ladeplan\/-plänen verwendet/);
+  assert.match(confirms[0], /1 Ladeplan verwendet/);
+});
+
+test('deleteCollection: Rückfrage nennt bei zwei Ladeplänen die Mehrzahl', async () => {
+  const ctx = setup([own('a', { collectionId: 't' })], TSE);
+  ctx.store.update(s => ({ ...s, plans: [
+    { id: 'p1', placements: [{ caseId: 'a' }], unplaced: [] },
+    { id: 'p2', placements: [], unplaced: [{ id: 'u', caseId: 'a' }] },
+  ] }));
+  const { p, confirms } = withConfirm(ctx, false);
+  await p.deleteCollection('t');
+  assert.match(confirms[0], /Die Einträge werden in 2 Ladeplänen verwendet\./);
 });
 
 const manyCollections = n => withBuiltins(Array.from({ length: n }, (_, i) => ({ id: `c${i}`, name: `S${i}` })));
@@ -291,4 +302,27 @@ test('restoreOriginal (#8): Rückfrage verneint → nichts geschrieben', async (
   const p = createPersistence({ repo: { writeCases: async a => { writes.push(a); } }, store, stamp, showAlert: async () => {}, showConfirm: async () => false });
   assert.equal(await p.restoreOriginal(shipped.id), false);
   assert.equal(writes.length, 0);
+});
+
+test('restoreOriginal (#8): Rückfrage nennt die Verwendung in 1 Ladeplan (Einzahl)', async () => {
+  const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+  const shipped = CASE_LIBRARY.find(c => c.company);
+  const ctx = setup([{ ...shipped, builtin: false, collectionId: 'meine' }]);
+  ctx.store.update(s => ({ ...s, plans: [{ id: 'p1', placements: [{ caseId: shipped.id }], unplaced: [] }] }));
+  const { p, confirms } = withConfirm(ctx, false);
+  await p.restoreOriginal(shipped.id);
+  assert.match(confirms[0], /Es wird in 1 Ladeplan verwendet; die Stücke bleiben/);
+});
+
+test('restoreOriginal (#8): Rückfrage nennt die Verwendung in 2 Ladeplänen (Mehrzahl)', async () => {
+  const { CASE_LIBRARY } = await import('../js/data/case-library.js');
+  const shipped = CASE_LIBRARY.find(c => c.company);
+  const ctx = setup([{ ...shipped, builtin: false, collectionId: 'meine' }]);
+  ctx.store.update(s => ({ ...s, plans: [
+    { id: 'p1', placements: [{ caseId: shipped.id }], unplaced: [] },
+    { id: 'p2', placements: [], unplaced: [{ id: 'u', caseId: shipped.id }] },
+  ] }));
+  const { p, confirms } = withConfirm(ctx, false);
+  await p.restoreOriginal(shipped.id);
+  assert.match(confirms[0], /Es wird in 2 Ladeplänen verwendet; die Stücke bleiben/);
 });

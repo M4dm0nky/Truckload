@@ -71,8 +71,8 @@ Freigabe zeigt Truckload die Ersatzansicht und sperrt das Schreiben bis zum Neul
 Truckload erkennt die Sprache am URL-Parameter `lang`: `index.html?…&lang=de|en`. Vorgabe ist
 `de`, unbekannte Werte ergeben `de`. Ein Sprachwechsel lädt das Fenster neu.
 
-`sprachen.json` (Liste der angebotenen Sprachen, z. B. `["de","en"]`) folgt in Stufe 2, nachdem
-Aniflu das Englisch gegengelesen hat. Bis dahin bietet NYX Englisch nicht an.
+`sprachen.json` im Wurzelverzeichnis listet die angebotenen Sprachen (`["de","en"]`, seit V 0.21.1);
+NYX bietet danach Englisch an.
 
 ## Gestaltung
 

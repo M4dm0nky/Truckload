@@ -168,7 +168,7 @@ Ergänzt (eigene Entscheidung, Aniflu sieht durch):
 | Pack-Regeln | Packing rules | |
 | Ladereihenfolge | Loading order | |
 | Mitgeführt (Kopie im Plan) | Carried in plan | Gesperrte Kopie bis zur Übernahme |
-| Übernehmen | Adopt into library | im Zusammenhang „mitgeführt“ |
+| Übernehmen | Adopt into library | im Zusammenhang „mitgeführt“; auch „In Bestand übernehmen“ |
 | Lade-Assistent | Load wizard | |
 | Traversen-Assistent | Truss wizard | |
 | Pre-Rig-Traverse | Pre-rig truss | |
@@ -189,7 +189,8 @@ Ergänzt (eigene Entscheidung, Aniflu sieht durch):
 | zuletzt (Tür) | last (door) | |
 | Ablage / Noch nicht geladen | Not loaded yet | Schaltfläche „In Ablage“ = „Set aside“ |
 | Pack-Reihenfolge | Packing order | |
-| Lademeter | Load metres | |
+| Lademeter | Loading metres | britisch (LDM), Aniflu |
+| Ladung ist einseitig | The load is unbalanced | |
 | Material / Materialverwaltung | Stock / Stock management | |
 | Standardkatalog | Default catalogue | |
 | Kompletter Bestand | Whole stock | |

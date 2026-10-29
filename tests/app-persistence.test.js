@@ -5,6 +5,7 @@ import { createPersistence } from '../js/app/persistence.js';
 import { guarded } from '../js/app/guarded.js';
 import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
 import { withBuiltins } from '../js/model/collections.js';
+import { setLang } from '../js/i18n/i18n.js';
 
 const stamp = o => ({ ...o, updatedAt: 1 });
 const NOBUILTIN = 'Standardvorlagen lassen sich nicht löschen – „Kopieren“ legt eine eigene Version in einer Sammlung an.';
@@ -176,7 +177,7 @@ test('deleteTruck: Plan-Aktualisierung scheitert -> Truck weg, eine Sondermeldun
   const { p, store, alerts } = setup({ fail: { savePlan: 'g' }, state: { trucks: [{ id: 't1' }], plans: [{ id: 'p1', truckId: 't1' }] } });
   assert.equal(await p.deleteTruck('t1'), true);
   assert.equal(store.get().trucks.length, 0);
-  assert.deepEqual(alerts, ['Fahrzeug gelöscht, aber 1 Plan(e) konnten nicht aktualisiert werden: g. Bitte prüfen und ggf. erneut speichern.']);
+  assert.deepEqual(alerts, ['Fahrzeug gelöscht, aber 1 Plan konnte nicht aktualisiert werden: g. Bitte prüfen und ggf. erneut speichern.']);
 });
 
 // Task 3.2: Rückfrage vor Überschreiben und Löschen eines Regelsets.
@@ -247,4 +248,23 @@ test('removeFromStock: entfernt das Case auch aus der Kopie der Pläne im Store 
   await p.removeFromStock(c, { confirmed: true });
   assert.deepEqual(store.get().plan.mitgefuehrt.cases, []);
   assert.deepEqual(store.get().plans[0].mitgefuehrt.cases, []);
+});
+
+test('Plurale als Paare (en): Löschdialog Case und Fahrzeug-Sondermeldung ohne „(s)“', async () => {
+  setLang('en');
+  try {
+    const c = { id: 'a', name: 'Kiste' };
+    const plan = n => ({ id: 'p' + n, truckId: 'x', placements: [{ caseId: 'a' }], unplaced: [] });
+    const one = setup({ state: { cases: [c], plans: [plan(1)] } });
+    await one.p.removeFromStock(c);
+    assert.equal(one.confirms[0][0], '“Kiste” is used in 1 load plan. Delete anyway?');
+    const two = setup({ state: { cases: [c], plans: [plan(1), plan(2)] } });
+    await two.p.removeFromStock(c);
+    assert.equal(two.confirms[0][0], '“Kiste” is used in 2 load plans. Delete anyway?');
+    const tr = n => setup({ fail: { savePlan: 'g' }, state: { trucks: [{ id: 't1' }], plans: Array.from({ length: n }, (_, i) => ({ id: 'p' + i, truckId: 't1' })) } });
+    const a = tr(1); await a.p.deleteTruck('t1');
+    assert.match(a.alerts[0], /^Truck deleted, but 1 plan could not be updated: g\./);
+    const b = tr(2); await b.p.deleteTruck('t1');
+    assert.match(b.alerts[0], /^Truck deleted, but 2 plans could not be updated: g\./);
+  } finally { setLang('de'); }
 });

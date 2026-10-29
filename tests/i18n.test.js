@@ -228,3 +228,18 @@ test('F2: PENDING ist leer – alle Dateien laufen über t()', () => {
 test('E: PENDING enthält nur existierende Dateien', () => {
   assert.deepEqual(PENDING.filter(f => !fs.existsSync(path.join(ROOT, f))), []);
 });
+
+test('Englische Werte: keine Sperr-Muster (lopsided, Leerzeichen vor %, at most {max} characters, (s), gerades Apostroph)', () => {
+  const sperren = [
+    [/lopsided/, 'lopsided'],
+    [/[\d}] %/, 'Leerzeichen vor %'],
+    [/at most \{max\} characters/, 'at most {max} characters'],
+    [/\(s\)/, '(s)'],
+    [/'/, 'gerades Apostroph'],
+  ];
+  const treffer = [];
+  for (const wert of Object.values(EN)) {
+    for (const [re, name] of sperren) if (re.test(wert)) treffer.push(`${name}: ${wert}`);
+  }
+  assert.deepEqual(treffer, []);
+});
