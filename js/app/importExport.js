@@ -75,7 +75,7 @@ export function importWarnings(unknownRefs, { cases, trucks }) {
     const kopieC = new Set(r.kopieCases ?? []);
     const missing = r.cases.filter(id => !caseIds.has(id) && !kopieC.has(id)).length;
     if (missing > 0)
-      warnings.push(t('Ladeplan „{plan}“: {missing} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.', { plan: r.plan, missing }));
+      warnings.push(missing === 1 ? t('Ladeplan „{plan}“: 1 Stück verweist auf ein Case, das weder in der Datei noch bekannt ist.', { plan: r.plan }) : t('Ladeplan „{plan}“: {missing} Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.', { plan: r.plan, missing }));
     if (r.truck !== null && !truckIds.has(r.truck) && !(r.kopieTrucks ?? []).includes(r.truck))
       warnings.push(t('Ladeplan „{plan}“ verweist auf ein unbekanntes Fahrzeug.', { plan: r.plan }));
   }

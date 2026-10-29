@@ -55,6 +55,12 @@ test('Importmeldungen englisch (Grenzwerte, Kürzung, Verweise)', () => {
   iw.forEach(englisch);
 });
 
+test('Importwarnung: Plurale als Paare, kein „(s)“', () => {
+  const warn = n => importWarnings([{ planId: 'p', plan: 'Tour', cases: Array.from({ length: n }, (_, i) => 'weg' + i), truck: 't' }], { cases: [], trucks: [{ id: 't' }] })[0];
+  assert.equal(warn(1), 'Load plan “Tour”: 1 item refers to a case that is neither in the file nor known.');
+  assert.equal(warn(2), 'Load plan “Tour”: 2 items refer to a case that is neither in the file nor known.');
+});
+
 test('Plan-, Druck-, Fehler- und Zoom-Texte englisch', async () => {
   assert.equal(copyName('Tour'), 'Tour (copy)');
   englisch(multiAddedNotice());

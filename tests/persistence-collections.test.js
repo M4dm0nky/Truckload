@@ -215,7 +215,7 @@ test('deleteCollection: Rückfrage nennt die Verwendung in Ladeplänen', async (
   ctx.store.update(s => ({ ...s, plans: [{ id: 'p', placements: [{ caseId: 'a' }], unplaced: [] }] }));
   const { p, confirms } = withConfirm(ctx, false);
   await p.deleteCollection('t');
-  assert.match(confirms[0], /1 Ladeplan\/-plänen verwendet/);
+  assert.match(confirms[0], /1 Ladeplan verwendet/);
 });
 
 const manyCollections = n => withBuiltins(Array.from({ length: n }, (_, i) => ({ id: `c${i}`, name: `S${i}` })));

@@ -50,7 +50,7 @@ export async function openTruckEditor(dlg, truck, { usedIn = 0 } = {}) {
     dlg.addEventListener('close', () => {
       const act = dlg.returnValue;
       if (act === 'delete') {
-        const msg = usedIn ? t('„{name}“ wird in {used} Ladeplan/-plänen verwendet. Trotzdem löschen?', { name: truck.name, used: usedIn }) : t('„{name}“ löschen?', { name: truck.name });
+        const msg = usedIn ? (usedIn === 1 ? t('„{name}“ wird in 1 Ladeplan verwendet. Trotzdem löschen?', { name: truck.name }) : t('„{name}“ wird in {used} Ladeplänen verwendet. Trotzdem löschen?', { name: truck.name, used: usedIn })) : t('„{name}“ löschen?', { name: truck.name });
         showConfirm(msg, { okLabel: t('Löschen'), danger: true }).then(ok => resolve(ok ? { action: 'delete' } : null));
         return;
       }

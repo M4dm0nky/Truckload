@@ -79,7 +79,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     if (!d) { await showAlert(noBuiltinDelete()); return false; }
     if (!confirmed) {
       const used = usage(store.get(), c.id);
-      const msg = used ? t('„{name}“ wird in {used} Ladeplan/-plänen verwendet. Trotzdem löschen?', { name: c.name, used }) : t('„{name}“ löschen?', { name: c.name });
+      const msg = used ? (used === 1 ? t('„{name}“ wird in 1 Ladeplan verwendet. Trotzdem löschen?', { name: c.name }) : t('„{name}“ wird in {used} Ladeplänen verwendet. Trotzdem löschen?', { name: c.name, used: used })) : t('„{name}“ löschen?', { name: c.name });
       if (!await showConfirm(msg, { okLabel: t('Löschen'), danger: true })) return false;
     }
     return serial(async () => {
@@ -103,7 +103,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     const pre = store.get().cases.find(x => x.id === caseId);
     if (!originalOf(pre, CASE_LIBRARY)) { await showAlert(t('Zu diesem Case gibt es keine mitgelieferte Fassung.')); return false; }
     const used = usage(store.get(), caseId);
-    const usedNote = used ? ` ${t('Es wird in {used} Ladeplan/-plänen verwendet; die Stücke bleiben, ihre Maße ändern sich mit.', { used })}` : '';
+    const usedNote = used ? ` ${(used === 1 ? t('Es wird in 1 Ladeplan verwendet; die Stücke bleiben, ihre Maße ändern sich mit.') : t('Es wird in {used} Ladeplänen verwendet; die Stücke bleiben, ihre Maße ändern sich mit.', { used }))}` : '';
     if (!await showConfirm(t('„{name}“ auf die mitgelieferte Fassung zurücksetzen? Eigene Änderungen, Verschiebung und Ausblenden gehen verloren.', { name: pre.name }) + usedNote, { okLabel: t('Wiederherstellen'), danger: true })) return false;
     return serial(async () => {
       const st = store.get();
@@ -176,7 +176,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     if (!meta0) { await showAlert(noFixedDelete()); return false; }
     const { gone: gone0, inside: inside0 } = insideOf(pre);
     const used = inside0.reduce((n, c) => n + usage(pre, c.id), 0);
-    const usedNote = used ? ` ${t('Die Einträge werden in {used} Ladeplan/-plänen verwendet.', { used })}` : '';
+    const usedNote = used ? ` ${(used === 1 ? t('Die Einträge werden in 1 Ladeplan verwendet.') : t('Die Einträge werden in {used} Ladeplänen verwendet.', { used }))}` : '';
     const question = gone0.size > 1
       ? t('Sammlung „{name}“ mit {n} Einträgen und {sub} Untersammlungen löschen?', { name: meta0.name, n: inside0.length, sub: gone0.size - 1 })
       : t('Sammlung „{name}“ mit {n} Einträgen löschen?', { name: meta0.name, n: inside0.length });
@@ -288,7 +288,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
       } catch (err) {
         // Unbehandelt hätte das eine tote Rejection UND einen toten truckId-Verweis
         // hinterlassen.
-        await showAlert(t('Fahrzeug gelöscht, aber {n} Plan(e) konnten nicht aktualisiert werden: {detail}. Bitte prüfen und ggf. erneut speichern.', { n: changedOthers.length, detail: err?.message ?? t('unbekannter Fehler') }));
+        await showAlert((() => { const detail = err?.message ?? t('unbekannter Fehler'); return changedOthers.length === 1 ? t('Fahrzeug gelöscht, aber 1 Plan konnte nicht aktualisiert werden: {detail}. Bitte prüfen und ggf. erneut speichern.', { detail }) : t('Fahrzeug gelöscht, aber {n} Pläne konnten nicht aktualisiert werden: {detail}. Bitte prüfen und ggf. erneut speichern.', { n: changedOthers.length, detail }); })());
       }
     }
     return true;

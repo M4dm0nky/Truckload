@@ -125,7 +125,7 @@ test('Import: nach Erfolg werden betroffene Nicht-Gewinner nachgeschrieben, nich
 test('importWarnings: Verweise, die die Kopie des Plans auflöst, werden nicht gemeldet', () => {
   const r = [{ planId: 'p1', plan: 'Tour A', cases: ['kopie', 'weg'], truck: 'tk', kopieCases: ['kopie'], kopieTrucks: ['tk'] }];
   assert.deepEqual(importWarnings(r, { cases: [], trucks: [] }), [
-    'Ladeplan „Tour A“: 1 Stück verweisen auf ein Case, das weder in der Datei noch bekannt ist.',
+    'Ladeplan „Tour A“: 1 Stück verweist auf ein Case, das weder in der Datei noch bekannt ist.',
   ]);
 });
 
