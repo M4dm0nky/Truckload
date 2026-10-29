@@ -129,7 +129,7 @@ test('Druck englisch: Ladeplan ohne deutschen Rest, Datum und Zahlen im britisch
   assert.ok(!looksGerman(text), text.replace(/\s+/g, ' '));
   assert.ok(html.includes(heute), `Datum ${heute}`);
   assert.match(html, /Inside \d+×\d+×\d+ cm/);
-  assert.match(html, /load metres/);
+  assert.match(html, /loading metres/);
   assert.match(html, /Top view \(front wall on the left\)/);
   assert.match(html, /<th>Layer<\/th>/);
   assert.match(html, /without a weight/);
@@ -180,13 +180,13 @@ test('Pack-Regeln, Suchen-in, Traversen-Dialog: englische Bausteine', () => {
   assert.ok(so.includes('Whole stock') && so.includes('Default catalogue'));
   assert.equal(companyFilterAfterChange('weg', []).hinweis, 'Collection no longer exists – filter reset.');
   assert.equal(originText('berechnet'), 'calculated from weight per metre');
-  assert.equal(originText('hersteller'), "Manufacturer's figure");
+  assert.equal(originText('hersteller'), 'Manufacturer’s figure');
   assert.equal(punkteLabel(3), '3-point');
   assert.match(profileHitsHtml([]), /No profile found/);
   const [b1, b2] = lengthButtons({ lengths: [{ cm: 350, kg: 23.5, art: 'hersteller' }, { cm: 100, kg: 0, art: 'berechnet' }] });
   assert.equal(b1.label, '3.5 m · 23.5 kg');
   assert.equal(b2.label, '1 m · Weight unknown');
-  assert.equal(profileOriginLine({ lengths: [{ cm: 350, kg: 1, art: 'hersteller' }] }, 350), 'Weight: Manufacturer\'s figure');
+  assert.equal(profileOriginLine({ lengths: [{ cm: 350, kg: 1, art: 'hersteller' }] }, 350), 'Weight: Manufacturer’s figure');
   setLang('de');
   assert.equal(lengthButtons({ lengths: [{ cm: 350, kg: 23.5, art: 'hersteller' }] })[0].label, '3,5 m · 23,5 kg');
 });
