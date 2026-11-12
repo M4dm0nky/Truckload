@@ -25,6 +25,9 @@ export const ALLOW = [
     'Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.',
     'Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', 'Neu laden',
   ].map(text => ({ file: 'index.html', text, why: 'Inline-Notfallmeldung, englisch daneben im selben Objekt (tlTexte); Test H prüft das' })),
+  { file: 'js/model/lkw-import.js', text: 'neu', why: 'interner Wert von VERHALTEN.NEU (Importeinstellung), nie angezeigt' },
+  ...['planeLkws: unbekanntes verhalten ', 'planeLkws: unbekannte art ']
+    .map(text => ({ file: 'js/model/lkw-import.js', text, why: 'Entwicklerfehler (Exception), nicht für Nutzer' })),
   { file: 'js/model/collections.js', text: 'Meine Sammlung', why: 'gespeicherter Wert: Name der festen Sammlung (MEINE_NAME), englisch nur zum Abgleich (MEINE_NAME_EN)' },
   ...[['js/app/chrome.js', 'Unbehandelte Ablehnung'], ['js/app/chrome.js', 'Offline-Modus nicht verfügbar:'],
     ['js/app/planView.js', '3D-Ansicht: Laden fehlgeschlagen'], ['js/app/planView.js', '3D-Ansicht: Aktualisierung fehlgeschlagen']]

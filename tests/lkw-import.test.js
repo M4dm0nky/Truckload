@@ -245,3 +245,34 @@ test('hinzu: Gewerk ohne eigenen LKW geht an Rest-LKW ohne Gewerk-Haken', () => 
   const r = planeLkws(alt, ctx, einst({ verhalten: 'hinzu', neu: ['n1', 'n2'] }));
   assert.deepEqual(r.placements.map(p => p.lkw), ['R', 'R']);
 });
+
+test('unbekanntes verhalten (Tippfehler) wirft und laesst den Plan unberuehrt', () => {
+  const ctx = mkCtx([cat('li', 'Licht')]);
+  const alt = mitLkws(plan([{ ...P('a1', 'li', 0, 0, 0), lkw: 'alt' }], pieces('li', 2, 'n')), [altLkw()]);
+  const kopie = structuredClone(alt);
+  assert.throws(() => planeLkws(alt, ctx, einst({ verhalten: 'zusatzlich', neu: ['n1'] })), /unbekanntes verhalten/);
+  assert.throws(() => planeLkws(alt, ctx, einst({ art: 'wenigst' })), /unbekannte art/);
+  assert.deepStrictEqual(alt, kopie);
+});
+
+test('zusaetzlich: Plan-truckId bleibt die des Mehr-LKW-Plans', () => {
+  const ctx = mkCtx([cat('li', 'Licht')]);
+  const alt = { ...mitLkws(plan([], pieces('li', 1, 'n')), [altLkw()]), truckId: 'plan-fahrzeug' };
+  const r = planeLkws(alt, ctx, einst({ verhalten: 'zusaetzlich', neu: ['n1'] }));
+  assert.equal(r.truckId, 'plan-fahrzeug');
+});
+
+test('zusaetzlich + wenigste + getrennt mit vorhandenem LKW: vorhandener unberuehrt, nur neue LKW', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('to', 'Ton')]);
+  const alt = mitLkws(plan([{ ...P('a1', 'li', 0, 0, 0), lkw: 'alt' }, { ...P('a2', 'li', 0, 60, 0), lkw: 'alt' }],
+    [...pieces('li', 6, 'nl'), ...pieces('to', 6, 'nt')]), [altLkw()]);
+  const vorher = alt.placements.map(p => ({ ...p }));
+  const neu = alt.unplaced.map(u => u.id);
+  const r = planeLkws(alt, ctx, einst({ verhalten: 'zusaetzlich', art: 'wenigste', getrennt: true, neu }));
+  assert.deepStrictEqual(r.lkws[0], alt.lkws[0]);
+  assert.deepStrictEqual(r.placements.filter(p => p.lkw === 'alt'), vorher);
+  assert.equal(r.lkws.length, 4);
+  assert.deepEqual(r.lkws.slice(1).map(l => [...l.categories].sort()), [['Licht'], ['Ton'], ['Licht', 'Ton']]);
+  assert.deepEqual(r.lkws.map(l => l.name), ['alt', 'LKW 2', 'LKW 3', 'LKW 4']);
+  assert.deepEqual(nichtGeladen(r, neu), []);
+});

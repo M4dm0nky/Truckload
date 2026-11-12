@@ -8,6 +8,9 @@ import { lkwsOf, lkwView, mergeLkwView, convertToMulti } from './lkw.js';
 import { MAX_LKW } from './limits.js';
 import { t } from '../i18n/i18n.js';
 
+export const VERHALTEN = Object.freeze({ NEU: 'neu', HINZU: 'hinzu', ZUSAETZLICH: 'zusaetzlich' });
+export const ART = Object.freeze({ JE_GEWERK: 'je-gewerk', WENIGSTE: 'wenigste' });
+
 const withoutLkw = x => { const { lkw: _d, ...rest } = x; return rest; };
 const byRank = (a, b) => catRank(a) - catRank(b) || (a < b ? -1 : a > b ? 1 : 0);
 
@@ -119,7 +122,7 @@ function legeWenigste(state, base, pieces, truck, ctx, getrennt) {
 // von state.unplaced (ohne `lkw`).
 function legeNeue(state, base, known, truck, ctx, einst) {
   const done = res => ({ ...res.state, unplaced: [...res.state.unplaced, ...res.rest] });
-  if (einst.art === 'wenigste') return done(legeWenigste(state, base, known, truck, ctx, !!einst.getrennt));
+  if (einst.art === ART.WENIGSTE) return done(legeWenigste(state, base, known, truck, ctx, !!einst.getrennt));
   const gewerke = [...new Set(known.map(x => catOf(ctx.caseById.get(x.caseId))))];
   for (const g of gruppenAus(gewerke, einst)) {
     const mine = known.filter(x => g.gewerke.includes(catOf(ctx.caseById.get(x.caseId))));
@@ -166,17 +169,20 @@ function fuegeHinzu(p, ctx, neuIds) {
 export function planeLkws(plan, ctx, einst) {
   const truck = ctx.truckById?.get(einst.truckId) ?? ctx.truck;
   const verhalten = einst.verhalten;
-  if (verhalten === 'hinzu' || verhalten === 'zusaetzlich') {
+  // Entwicklerfehler, kein Nutzertext: ein Tippfehler darf nie still den verwerfenden Zweig nehmen.
+  if (!Object.values(VERHALTEN).includes(verhalten)) throw new Error(`planeLkws: unbekanntes verhalten ${JSON.stringify(verhalten)}`);
+  if (einst.art !== undefined && !Object.values(ART).includes(einst.art)) throw new Error(`planeLkws: unbekannte art ${JSON.stringify(einst.art)}`);
+  if (verhalten !== VERHALTEN.NEU) {
     const p = convertToMulti(plan, ctx.newId);
     const neuIds = new Set(einst.neu ?? []);
-    if (verhalten === 'hinzu') return fuegeHinzu(p, ctx, neuIds);
+    if (verhalten === VERHALTEN.HINZU) return fuegeHinzu(p, ctx, neuIds);
     const { lkws: _l, ...base0 } = p;
     const base = { ...base0, placements: [], unplaced: [] };
     const isNew = u => neuIds.has(u.id) && ctx.caseById.has(u.caseId);
     const known = p.unplaced.filter(isNew).map(withoutLkw);
     const state = legeNeue({ lkws: p.lkws, placements: p.placements, unplaced: p.unplaced.filter(u => !isNew(u)) },
       base, known, truck, ctx, einst);
-    return stamp({ ...base, truckId: state.lkws[0].truckId, lkws: state.lkws, placements: state.placements, unplaced: state.unplaced });
+    return stamp({ ...base, truckId: p.truckId, lkws: state.lkws, placements: state.placements, unplaced: state.unplaced });
   }
   const all = [...plan.placements.map(placementToUnplaced), ...plan.unplaced].map(withoutLkw);
   const known = all.filter(x => ctx.caseById.has(x.caseId));
