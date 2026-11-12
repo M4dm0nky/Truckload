@@ -154,7 +154,7 @@ const { switchPlan, runLoadWizard } = wirePlans({
   warnIfUnplaced, saveCase: persistence.saveCase, newCaseForWizard, openMaterialFromWizard,
 });
 
-const tabellenImport = wireTabellenImport({ store, editWhole, switchPlan, uid, showAlert, showPrompt, warnIfUnplaced });
+const tabellenImport = wireTabellenImport({ store, editWhole, switchPlan, uid, showAlert, showPrompt });
 
 const { ACTIONS } = mountPlanView({
   store, edit, editWhole, select, ctx, derive, renderHooks, persistence, stamp, uid, showAlert, showConfirm,

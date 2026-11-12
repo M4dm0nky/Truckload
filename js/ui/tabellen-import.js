@@ -3,13 +3,18 @@
 // Dialog selbst hängt nur an einem <dialog> und kennt weder Store noch js/app/.
 // Alles, was aus der Tabelle stammt (Namen, Gewerke, Befund-Texte), geht durch esc().
 
-import { esc, safeColor, icon } from './dom.js';
+import { esc, safeColor, icon, swatch } from './dom.js';
 import { t, lang, trade } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
 import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
 import { alsImportCase } from '../model/tabellen-uebernahme.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
+import { VERHALTEN, ART } from '../model/lkw-import.js';
+import { catRank } from '../model/lkw-distribute.js';
+import { MAX_LKW } from '../model/limits.js';
+import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
+import { capList } from '../app/importExport.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -156,7 +161,7 @@ export const filterNachHinzufuegen = e => (e.befunde.length ? 'fehler' : 'alle')
 
 // ---- Schritte nach der Übersicht: Traversen, Boxen, Set (und später LKWs) ----
 
-// Reihenfolge der Schritte; ein Schritt kommt nur, wenn sein Reiter Zeilen hat. `lkws` nur beim Laden.
+// Reihenfolge der Schritte; ein Schritt kommt nur, wenn sein Reiter Zeilen hat. `lkws` kommt zuletzt, nur beim Laden.
 export function schritte(eintraege, laden) {
   const hat = r => eintraege.some(e => e.reiter === r);
   return [...['traversen', 'boxen', 'set'].filter(hat), ...(laden ? ['lkws'] : [])];
@@ -233,6 +238,75 @@ export function setSchrittHtml(eintraege, { ohneRot = false, letzter = false, la
     ${fussHtml({ letzter, laden, sperre })}`;
 }
 
+// ---- LKW-Schritt: Verhalten, Fahrzeug, Verteilung, Vorschau ----
+
+const GEWERK_MODI = () => [['offen', t('frei')], ['n', t('verteilen auf')], ['mit', t('zusammen mit')]];
+
+// „Achtung: …“ für Stücke, die beim Laden keinen Platz fanden; '' wenn nichts fehlt. liste: { name, gewerk }[].
+export function nichtGeladenText(liste) {
+  if (!liste.length) return '';
+  const l = capList(liste.map(x => `${x.name} (${trade(x.gewerk)})`)).join(', ');
+  return liste.length === 1
+    ? t('Achtung: 1 Case nicht geladen, kein Platz: {liste}', { liste: l })
+    : t('Achtung: {n} Cases nicht geladen, kein Platz: {liste}', { n: liste.length, liste: l });
+}
+
+// Vorschau der LKW-Wahl. vorschau: null | { lkws: { name, gewerke, stueck }[], nichtGeladen: { name, gewerk }[] }.
+export function vorschauHtml(vorschau, rechnet = false, fehler = false) {
+  const stand = rechnet ? `<span class="hint">${t('rechnet …')}</span>` : '';
+  if (fehler) return `<p class="ti-rot">${t('Die Vorschau konnte nicht berechnet werden.')}</p>`;
+  if (!vorschau) return stand;
+  const zeile = l => `<li class="lkw-vz"><b>${esc(l.name)}</b> ${l.gewerke.map(g => `${swatch(colorFor(g))}${esc(trade(g))}`).join(' ')}`
+    + ` <span class="hint">${esc(t('{n} Stück', { n: l.stueck }))}</span></li>`;
+  const warn = nichtGeladenText(vorschau.nichtGeladen);
+  return `${stand}${vorschau.lkws.length ? `<ul class="lkw-vliste">${vorschau.lkws.map(zeile).join('')}</ul>` : `<p class="hint">${t('Es entsteht kein LKW.')}</p>`}`
+    + (warn ? `<p class="ti-gelb">⚠ ${esc(warn)}</p>` : '');
+}
+
+// LKW-Schritt. gewerke: Gewerke der betroffenen Stücke; einst: { verhalten, truckId, art, getrennt, gewerke:
+// { [name]: { modus: 'offen'|'n'|'mit', n, mit } } } (Lücken = Vorgaben); stueckVon: { [gewerk]: Stückzahl }.
+export function lkwSchrittHtml({ gewerke = [], einst = {}, fahrzeuge = [], zielHatLkw = false, freieLkw = MAX_LKW, vorschau = null, rechnet = false, fehler = false, stueckVon = {} } = {}) {
+  const verhalten = zielHatLkw && Object.values(VERHALTEN).includes(einst.verhalten) ? einst.verhalten : VERHALTEN.NEU;
+  const art = einst.art === ART.WENIGSTE ? ART.WENIGSTE : ART.JE_GEWERK;
+  const radio = (v, text) => `<label class="check"><input type="radio" name="lkwverh" value="${v}"${verhalten === v ? ' checked' : ''}> ${text}</label>`;
+  const oben = zielHatLkw
+    ? `<div class="lkw-verh"><b>${t('Das Projekt hat schon LKW')}</b>`
+      + radio(VERHALTEN.NEU, t('Alles neu laden'))
+      + `<p class="hint">${t('Die vorhandenen LKW werden ersetzt: Namen und Fahrzeuge der alten LKW gehen verloren.')}</p>`
+      + radio(VERHALTEN.ZUSAETZLICH, t('Neue Stücke auf zusätzliche LKW'))
+      + radio(VERHALTEN.HINZU, t('Neue Stücke in vorhandene LKW'))
+      + '</div>'
+    : '';
+  const sortiert = [...new Set(gewerke)].sort((a, b) => catRank(a) - catRank(b) || (a < b ? -1 : a > b ? 1 : 0));
+  const zeile = g => {
+    const c = einst.gewerke?.[g] ?? {};
+    const modus = c.modus === 'n' || c.modus === 'mit' ? c.modus : 'offen';
+    const andere = sortiert.filter(x => x !== g);
+    const n = Number.isInteger(c.n) ? Math.min(Math.max(c.n, 1), Math.max(freieLkw, 1)) : 1;
+    const feld = modus === 'n'
+      ? `<input type="number" min="1" max="${esc(Math.max(freieLkw, 1))}" step="1" value="${esc(n)}" data-role="gn" data-g="${esc(g)}" aria-label="${t('Anzahl LKW')}">`
+      : modus === 'mit'
+        ? `<select data-role="gmit" data-g="${esc(g)}" aria-label="${t('zusammen mit')}">${andere.map(x => `<option value="${esc(x)}"${c.mit === x ? ' selected' : ''}>${esc(trade(x))}</option>`).join('')}</select>`
+        : '';
+    const stueck = stueckVon[g] ? ` <span class="hint">${esc(t('{n} Stück', { n: stueckVon[g] }))}</span>` : '';
+    return `<li class="lkw-g">${swatch(colorFor(g))}<b>${esc(trade(g))}</b>${stueck}`
+      + `<select data-role="gmodus" data-g="${esc(g)}" aria-label="${t('Verteilung')}">${GEWERK_MODI().map(([v, l]) => `<option value="${v}"${modus === v ? ' selected' : ''}>${l}</option>`).join('')}</select>${feld}</li>`;
+  };
+  const einstellungen = verhalten === VERHALTEN.HINZU ? '' : `
+    <div class="lkw-fz"><label>${t('Fahrzeug')} <select data-role="lkwtruck">${fahrzeuge.map(f => `<option value="${esc(f.id)}"${f.id === einst.truckId ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}</select></label></div>
+    <div class="seg"><span class="seg-label">${t('Verteilung')}</span>
+      <label class="check"><input type="radio" name="lkwart" value="${ART.JE_GEWERK}"${art === ART.JE_GEWERK ? ' checked' : ''}> ${t('Je Gewerk')}</label>
+      <label class="check"><input type="radio" name="lkwart" value="${ART.WENIGSTE}"${art === ART.WENIGSTE ? ' checked' : ''}> ${t('So wenige LKWs wie möglich')}</label></div>
+    ${art === ART.WENIGSTE
+    ? `<label class="check"><input type="checkbox" name="lkwgetrennt"${einst.getrennt ? ' checked' : ''}> ${t('nach Gewerk getrennt')}</label>`
+    : `<ul class="lkw-gl">${sortiert.map(zeile).join('')}</ul>`}`;
+  return `
+    <h2>${t('LKW')}</h2>
+    ${oben}${einstellungen}
+    <div class="lkw-vorschau" data-role="vorschau">${vorschauHtml(vorschau, rechnet, fehler)}</div>
+    <menu><button type="button" data-act="prev">${t('Zurück')}</button><span class="grow"></span><button type="button" class="primary" data-act="finish" data-role="go">${t('Übernehmen und laden')}</button></menu>`;
+}
+
 function listeSeiteHtml(st) {
   const n = r => st.eintraege.filter(e => e.reiter === r).length;
   const tab = r => `<button type="button" data-act="tab" data-tab="${r}" class="${st.reiter === r ? 'on' : ''}">${reiterName(r)} (${n(r)})</button>`;
@@ -259,8 +333,10 @@ export const escZiel = view => (view === 'overview' ? null : 'overview');
 
 // opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null,
 //   trussDlg, dollyDlg (eigene <dialog>-Elemente), dollyBasen: Case[] (Grundboxen), bibliothekCases: Case[] }.
+// opts zusätzlich für den LKW-Schritt: zielHatLkw, freieLkw (MAX_LKW minus vorhandene), fahrzeuge: {id, name}[],
+//   vorhandeneGewerke: {name, stueck}[] (Stücke des Zielplans), vorschau: async (ergebnis) => { lkws, nichtGeladen }.
 // opts.bestaetige(ergebnis): optional, async, wird erst im letzten Schritt gerufen; false = Dialog bleibt offen.
-// Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean, gebaut: { cases, stuecke } }
+// Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean, gebaut: { cases, stuecke }, lkw: einst (nur beim Laden; ohne `neu`) }
 // oder null bei Abbruch. Gebaute Cases sind Import-Cases (nie in der Bibliothek), Stücke { caseId, n }.
 export async function openTabellenImport(dlg, opts) {
   if (dlg.open) {
@@ -273,7 +349,11 @@ export async function openTabellenImport(dlg, opts) {
     eintraege: [...opts.eintraege], view: 'overview', reiter: 'cases', filter: 'alle', suche: '', zeilen: null,
     ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false, ohneRotSet: false,
     laden: false, folge: [], gebaut: { cases: [], stuecke: [] }, basisId: '', basisN: 1,
+    lkw: { verhalten: VERHALTEN.NEU, truckId: '', art: ART.JE_GEWERK, getrennt: false, gewerke: {} },
+    vorschau: null, rechnet: false, vorschauFehler: false,
   };
+  const fahrzeuge = opts.fahrzeuge ?? [];
+  st.lkw.truckId = (fahrzeuge.find(f => f.id === DEFAULT_TRUCK_ID) ?? fahrzeuge[0])?.id ?? '';
   const dollyBasen = opts.dollyBasen ?? [];
   const bibliothekCases = opts.bibliothekCases ?? [];
   let result = null;
@@ -293,7 +373,84 @@ export async function openTabellenImport(dlg, opts) {
     const hinweis = dlg.querySelector('[data-role=sperrhinweis]');
     if (hinweis) hinweis.hidden = !sperre;
   };
+  // ---- LKW-Schritt: Gewerke, gültige Einstellungen, Vorschau ----
+  const hatLkw = () => st.ziel === 'current' && !!opts.zielHatLkw;
+  const verhaltenJetzt = () => (hatLkw() && Object.values(VERHALTEN).includes(st.lkw.verhalten) ? st.lkw.verhalten : VERHALTEN.NEU);
+  const freieJetzt = () => (verhaltenJetzt() === VERHALTEN.NEU ? MAX_LKW : Math.max(opts.freieLkw ?? MAX_LKW, 0));
+  const gewerkZaehler = () => {
+    const m = new Map();
+    const plus = (g, n) => m.set(g, (m.get(g) ?? 0) + n);
+    const caseVon = new Map([...bibliothekCases, ...dollyBasen, ...st.gebaut.cases].map(c => [c.id, c]));
+    for (const d of entwuerfeAus(st.eintraege).entwuerfe) plus(d.case.category || 'Sonstiges', d.menge);
+    for (const x of st.gebaut.stuecke) plus(caseVon.get(x.caseId)?.category || 'Sonstiges', x.n);
+    if (verhaltenJetzt() === VERHALTEN.NEU && st.ziel === 'current') for (const v of opts.vorhandeneGewerke ?? []) plus(v.name || 'Sonstiges', v.stueck ?? 0);
+    return m;
+  };
+  // Einstellungen, wie planeLkws sie versteht: immer gültige Werte (Verhalten, Art), N und „mit“ geprüft.
+  const einstFuer = () => {
+    const gewerke = [...gewerkZaehler().keys()];
+    const frei = Math.max(freieJetzt(), 1);
+    const gw = {};
+    for (const g of gewerke) {
+      const c = st.lkw.gewerke[g] ?? {};
+      const andere = gewerke.filter(x => x !== g);
+      if (c.modus === 'n') gw[g] = { modus: 'n', n: Number.isInteger(c.n) ? Math.min(Math.max(c.n, 1), frei) : 1 };
+      else if (c.modus === 'mit' && andere.length) gw[g] = { modus: 'mit', mit: andere.includes(c.mit) ? c.mit : andere[0] };
+    }
+    return {
+      verhalten: verhaltenJetzt(),
+      truckId: fahrzeuge.some(f => f.id === st.lkw.truckId) ? st.lkw.truckId : fahrzeuge[0]?.id ?? st.lkw.truckId,
+      art: st.lkw.art === ART.WENIGSTE ? ART.WENIGSTE : ART.JE_GEWERK,
+      getrennt: !!st.lkw.getrennt,
+      gewerke: gw,
+    };
+  };
+  const lkwHtml = () => {
+    const z = gewerkZaehler();
+    return lkwSchrittHtml({ gewerke: [...z.keys()], stueckVon: Object.fromEntries(z), einst: einstFuer(),
+      fahrzeuge, zielHatLkw: hatLkw(), freieLkw: freieJetzt(), vorschau: st.vorschau, rechnet: st.rechnet, fehler: st.vorschauFehler });
+  };
+  // Entprellt (300 ms), die letzte Anfrage gewinnt; die Vorschau ändert nichts am Store (opts.vorschau rechnet auf einer Kopie).
+  let vzTimer = null;
+  let vzNr = 0;
+  const zeigeVorschau = () => {
+    const el = dlg.querySelector('[data-role=vorschau]');
+    if (el) el.innerHTML = vorschauHtml(st.vorschau, st.rechnet, st.vorschauFehler);
+  };
+  const planeVorschau = () => {
+    if (!opts.vorschau) return;
+    clearTimeout(vzTimer);
+    const nr = ++vzNr;
+    st.rechnet = true; st.vorschauFehler = false;
+    zeigeVorschau();
+    vzTimer = setTimeout(async () => {
+      let daten = null;
+      let fehler = false;
+      try { daten = await opts.vorschau({ eintraege: st.eintraege, ziel: st.ziel, laden: true, ohneRot: st.ohneRot, gebaut: st.gebaut, lkw: einstFuer() }); }
+      catch { fehler = true; }
+      if (nr !== vzNr || !dlg.open) return;
+      st.vorschau = daten; st.rechnet = false; st.vorschauFehler = fehler;
+      zeigeVorschau();
+    }, 300);
+  };
+  const lkwAenderung = el => {
+    const gewerke = [...gewerkZaehler().keys()];
+    const g = el.dataset.g;
+    const cfg = () => (st.lkw.gewerke[g] ??= {});
+    if (el.name === 'lkwverh') st.lkw.verhalten = el.value;
+    else if (el.name === 'lkwart') st.lkw.art = el.value;
+    else if (el.name === 'lkwgetrennt') st.lkw.getrennt = el.checked;
+    else if (el.dataset.role === 'lkwtruck') st.lkw.truckId = el.value;
+    else if (el.dataset.role === 'gmodus') { cfg().modus = el.value; if (el.value === 'mit') cfg().mit = gewerke.find(x => x !== g); }
+    else if (el.dataset.role === 'gn') { const n = Number(el.value); cfg().n = Number.isInteger(n) && n >= 1 ? n : 1; }
+    else if (el.dataset.role === 'gmit') cfg().mit = el.value;
+    else return false;
+    render();
+    planeVorschau();
+    return true;
+  };
   const render = () => {
+    if (st.view === 'lkws') { dlg.innerHTML = `<div class="editor ti">${lkwHtml()}</div>`; return; }
     if (st.view === 'list') { dlg.innerHTML = `<div class="editor ti">${listeSeiteHtml(st)}</div>`; return; }
     if (st.view !== 'overview') {
       const letzter = st.folge.indexOf(st.view) === st.folge.length - 1;
@@ -312,17 +469,17 @@ export async function openTabellenImport(dlg, opts) {
     if (busy) return;
     busy = true;
     try {
-      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot, gebaut: st.gebaut };
+      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot, gebaut: st.gebaut, ...(laden ? { lkw: einstFuer() } : {}) };
       if (opts.bestaetige && !(await opts.bestaetige(r))) return;
       result = r;
       dlg.close('ok');
     } finally { busy = false; }
   };
 
-  // Schrittfolge: leer = direkt übernehmen (wie ohne Schritte). `lkws` kommt erst mit der LKW-Seite.
+  // Schrittfolge: leer = direkt übernehmen (wie ohne Schritte). `lkws` steht beim Laden zuletzt.
   const starteSchritte = laden => {
     st.laden = laden;
-    st.folge = schritte(st.eintraege, laden).filter(x => x !== 'lkws');
+    st.folge = schritte(st.eintraege, laden);
     if (!st.folge.length) { fertig(laden); return; }
     geheZu(0);
   };
@@ -334,6 +491,7 @@ export async function openTabellenImport(dlg, opts) {
       if (st.view === 'set') { st.reiter = 'set'; st.filter = 'alle'; st.suche = ''; st.zeilen = null; }
     }
     render();
+    if (st.view === 'lkws') planeVorschau();
   };
   const addiere = (caseId, n) => {
     const s = st.gebaut.stuecke.find(x => x.caseId === caseId);
@@ -421,6 +579,7 @@ export async function openTabellenImport(dlg, opts) {
   };
   dlg.onchange = ev => {
     const el = ev.target;
+    if (st.view === 'lkws' && lkwAenderung(el)) return;
     if (el.name === 'target') { st.ziel = el.value; return; }
     if (el.name === 'skipredset') { st.ohneRotSet = el.checked; render(); return; }
     if (el.name === 'skipred') { st.ohneRot = el.checked; render(); return; }
@@ -463,6 +622,7 @@ export async function openTabellenImport(dlg, opts) {
   render();
   return new Promise(resolve => {
     dlg.addEventListener('close', () => {
+      clearTimeout(vzTimer); vzNr++;
       dlg.onclick = dlg.onchange = dlg.oninput = dlg.oncancel = null;
       resolve(dlg.returnValue === 'ok' ? result : null);
     }, { once: true });

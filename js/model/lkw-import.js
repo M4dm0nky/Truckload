@@ -158,14 +158,14 @@ function fuegeHinzu(p, ctx, neuIds) {
 }
 
 // Plant die LKW eines Plans (Task 3/4). `einst.verhalten`:
-// - 'neu' (Vorgabe): alle Stücke – platziert oder in der Ablage, alte `lkw` ignoriert – werden nach
+// - 'neu': alle Stücke – platziert oder in der Ablage, alte `lkw` ignoriert – werden nach
 //   `einst.art` (je Gewerk / wenigste) auf neu angelegte LKW verteilt; die alten LKW entfallen. Entsteht kein
 //   LKW, bleibt die Einzel-LKW-Form ohne `lkws` mit leerer Ladung (alles in der Ablage, ohne `lkw`).
 // - 'zusaetzlich': vorhandene LKW und Platzierungen bleiben unverändert (Ein-LKW-Plan wird vorher
 //   Mehr-LKW-Plan); nur die Stücke aus `einst.neu` (IDs, in der Ablage) kommen auf neue LKW (MAX_LKW zählt
 //   die vorhandenen mit). Was nicht passt, bleibt ohne `lkw` in der Ablage; es entfällt nie etwas Vorhandenes.
 // - 'hinzu': keine neuen LKW, die Stücke aus `einst.neu` gehen an vorhandene LKW (fuegeHinzu).
-// Unbekanntes `einst.truckId`: Rückfall auf ctx.truck (wie truckOf in lkw-distribute.js).
+// `einst.verhalten` ist Pflicht (kein stilles Vorgabeverhalten; unbekannte Werte werfen). Unbekanntes `einst.truckId`: Rückfall auf ctx.truck (wie truckOf in lkw-distribute.js).
 export function planeLkws(plan, ctx, einst) {
   const truck = ctx.truckById?.get(einst.truckId) ?? ctx.truck;
   const verhalten = einst.verhalten;

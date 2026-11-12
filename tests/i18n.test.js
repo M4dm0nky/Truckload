@@ -52,6 +52,8 @@ export const ALLOW = [
   { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['Anzahl', 'Breite (cm)', 'Farbe', 'Gewerk', 'Gewicht (kg)', 'Höchste Lage (1/2/3)', 'Höhe (cm)', 'Höhe inkl. Rollen (cm)', 'Länge (cm)', 'Name', 'Profil', 'Rollen (ja/nein)', 'Stückzahl', 'Tiefe (cm)', 'Tippen', 'breite', 'gewicht', 'tiefe', 'Grün', 'Türkis', 'Schwarz', 'Weiß', 'Sonstiges', 'Höhe immer inklusive Rollen, so wie das Case auf den Rollen steht. Kopfzeile nicht ändern.']
     .map(text => ({ file: 'js/model/ladeliste.js', text, why: 'Kopfzeile/Farbwort der Ladeliste: Erkennung in beiden Sprachen (Daten, keine Anzeige)' })),
+  { file: 'js/ui/tabellen-import.js', text: 'mit', why: 'Moduswert der LKW-Einstellungen (Daten, keine Anzeige)' },
+  { file: 'js/ui/tabellen-import.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['alle', 'fehler'].map(text => ({ file: 'js/ui/tabellen-import.js', text, why: 'interne Filterwerte der Liste (listeHtml-Aufrufvertrag), keine Anzeige' })),
   ...['Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', 'Migration nach „Sammlungen“ nicht gespeichert:']
     .map(text => ({ file: 'js/store/repo.js', text, why: 'Konsole' })),

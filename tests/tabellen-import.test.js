@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { SPALTEN, erkenneReiter, werteZeilen, pruefeEintrag } from '../js/model/ladeliste.js';
 import { stockTargetHtml, readStockTarget } from '../js/ui/stock-target.js';
-import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus, filterNachHinzufuegen, schritte, bauSchrittHtml, setSchrittHtml } from '../js/ui/tabellen-import.js';
+import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus, filterNachHinzufuegen, schritte, bauSchrittHtml, setSchrittHtml, lkwSchrittHtml, nichtGeladenText } from '../js/ui/tabellen-import.js';
 
 const XSS = '<img src=x onerror=alert(1)>';
 const kopf = reiter => SPALTEN[reiter].map(s => s.de);
@@ -284,6 +284,7 @@ const LEER = { cases: [], stuecke: [] };
 test('schritte: nur Reiter mit Zeilen, lkws nur beim Laden, feste Reihenfolge', () => {
   assert.deepEqual(schritte(casesZ(), false), []);
   assert.deepEqual(schritte(casesZ(), true), ['lkws']);
+  assert.equal(schritte(casesZ(), true).at(-1), 'lkws');
   assert.deepEqual(schritte([...casesZ(), ...travZ()], false), ['traversen']);
   const alle = [...boxZ(), ...setZ(['Teil', '1', '10', '10', '10', '1', '1', 'Ton', '']), ...travZ()];
   assert.deepEqual(schritte(alle, true), ['traversen', 'boxen', 'set', 'lkws']);
@@ -376,7 +377,10 @@ test('Struktursperre: Wizard-Dialoge laufen mit stock „projekt“ und speicher
   }
   assert.doesNotMatch(ui, /saveCase/);
   const app = readFileSync(new URL('../js/app/tabellenImport.js', import.meta.url), 'utf8');
-  assert.equal((app.match(/uebernimmTabelle\([^;]*gebaut\)/g) ?? []).length, 2);
+  // Trockenlauf, Vorschau (rechneLkwImport) und Übernahme: jeder Aufruf reicht gebaut durch
+  const aufrufe = (app.match(/uebernimmTabelle\(/g) ?? []).length;
+  assert.equal(aufrufe, 3);
+  assert.equal((app.match(/uebernimmTabelle\([^;]*gebaut\)/g) ?? []).length, aufrufe);
 });
 
 test('uebersichtHtml: rote Set-Zeile sperrt die Übersicht nicht (eigenes Band), rote Cases-Zeile weiterhin', () => {
@@ -399,4 +403,55 @@ test('Struktursperre: Set-Schritt und Übersicht haben getrennte Häkchen, Aktio
   const src = readFileSync(new URL('../js/ui/tabellen-import.js', import.meta.url), 'utf8');
   assert.match(src, /name === 'skipredset'\) \{ st\.ohneRotSet/);
   assert.match(src, /if \(schrittBusy\) return;/);
+});
+
+// Task 5: LKW-Schritt
+const FZ = [{ id: 'a', name: 'Sattel 13,6 m' }, { id: 'b', name: 'Koffer 7,5 t' }];
+const lkwHtml = (o = {}) => lkwSchrittHtml({ gewerke: ['Licht', 'Ton'], einst: {}, fahrzeuge: FZ, zielHatLkw: false, freieLkw: 12, vorschau: null, ...o });
+
+test('lkwSchrittHtml: Verhaltens-Radios nur, wenn das Ziel schon LKW hat; Vorgabe „neu“', () => {
+  assert.doesNotMatch(lkwHtml(), /name="lkwverh"/);
+  const h = lkwHtml({ zielHatLkw: true });
+  assert.equal((h.match(/name="lkwverh"/g) ?? []).length, 3);
+  assert.match(h, /value="neu" checked/);
+  assert.match(h, /ersetzt/); // Hinweis zu Entscheidung 2: alte LKW gehen verloren
+});
+
+test('lkwSchrittHtml: „hinzu“ blendet Gewerk-Zeilen aus, sonst je Gewerk eine Zeile', () => {
+  assert.doesNotMatch(lkwHtml({ zielHatLkw: true, einst: { verhalten: 'hinzu' } }), /data-g=/);
+  const h = lkwHtml();
+  assert.match(h, /data-role="gmodus" data-g="Licht"/);
+  assert.match(h, /data-role="gmodus" data-g="Ton"/);
+});
+
+test('lkwSchrittHtml: freies Gewerk aus der Tabelle wird escaped', () => {
+  const h = lkwHtml({ gewerke: ['<b>x</b>'], fahrzeuge: [{ id: 'q', name: '<i>y</i>' }] });
+  assert.doesNotMatch(h, /<b>x<\/b>/);
+  assert.doesNotMatch(h, /<i>y<\/i>/);
+  assert.match(h, /&lt;b&gt;x&lt;\/b&gt;/);
+});
+
+test('lkwSchrittHtml: N-Feld begrenzt auf die freien LKW', () => {
+  const h = lkwHtml({ freieLkw: 3, einst: { gewerke: { Licht: { modus: 'n', n: 2 } } } });
+  assert.match(h, /data-role="gn"[^>]*max="3"|max="3"[^>]*data-role="gn"/);
+});
+
+test('lkwSchrittHtml: Vorschau, „rechnet …“ und Übernehmen-Knopf', () => {
+  const v = { lkws: [{ name: 'LKW 1', gewerke: ['Licht'], stueck: 4 }], nichtGeladen: [{ name: 'Rest', gewerk: 'Ton' }] };
+  const h = lkwHtml({ vorschau: v });
+  assert.match(h, /LKW 1/);
+  assert.match(h, /Rest \(Ton\)/);
+  assert.match(h, /data-act="finish"/);
+  assert.match(h, /data-act="prev"/);
+  assert.match(lkwHtml({ rechnet: true }), /rechnet/);
+});
+
+test('nichtGeladenText: leer, Einzahl, Mehrzahl', () => {
+  assert.equal(nichtGeladenText([]), '');
+  const eins = nichtGeladenText([{ name: 'Sub', gewerk: 'Ton' }]);
+  assert.match(eins, /1 Case nicht geladen/);
+  assert.match(eins, /Sub \(Ton\)/);
+  const zwei = nichtGeladenText([{ name: 'Sub', gewerk: 'Ton' }, { name: 'Par', gewerk: 'Licht' }]);
+  assert.match(zwei, /2 Cases nicht geladen/);
+  assert.match(zwei, /Sub \(Ton\).*Par \(Licht\)/);
 });
