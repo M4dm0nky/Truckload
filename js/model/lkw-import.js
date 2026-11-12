@@ -93,10 +93,11 @@ function legeFesteAnzahl(state, base, pieces, truck, ctx, n, categories) {
 // Plant die LKW eines Plans neu (Task 3: verhalten 'neu', art 'je-gewerk'). Alle Stücke – platziert oder
 // in der Ablage, alte `lkw` ignoriert – werden je Gruppe auf neu angelegte LKW verteilt; die alten LKW
 // entfallen. Stücke mit unbekanntem Case und alles, was nicht passt, bleibt in der Ablage ohne `lkw`.
-// Findet sich kein einziger LKW (nichts passt, keine feste Anzahl), bleibt der Plan unverändert.
+// Mehr-LKW-Plan, sobald mindestens ein LKW entsteht; sonst Einzel-LKW-Form ohne `lkws` mit leerer Ladung
+// (alles in der Ablage, `nichtGeladen` listet es). Unbekanntes `einst.truckId`: Rückfall auf ctx.truck.
 export function planeLkws(plan, ctx, einst) {
-  const truck = ctx.truckById?.get(einst.truckId);
-  if (!truck) return plan;
+  // Unbekanntes Fahrzeug: Rückfall auf ctx.truck (wie truckOf in lkw-distribute.js).
+  const truck = ctx.truckById?.get(einst.truckId) ?? ctx.truck;
   const all = [...plan.placements.map(placementToUnplaced), ...plan.unplaced].map(withoutLkw);
   const known = all.filter(x => ctx.caseById.has(x.caseId));
   const unknown = all.filter(x => !ctx.caseById.has(x.caseId));
@@ -112,6 +113,7 @@ export function planeLkws(plan, ctx, einst) {
         placed => g.gewerke.filter(w => placed.some(p => catOf(ctx.caseById.get(p.caseId)) === w)));
     state = { ...res.state, unplaced: [...res.state.unplaced, ...res.rest] };
   }
-  if (!state.lkws.length) return plan;
+  // Entsteht kein LKW, bleibt die Einzel-LKW-Form: nichts geladen, alle Stücke in der Ablage ohne `lkw`.
+  if (!state.lkws.length) return stamp({ ...base, truckId: truck.id, placements: [], unplaced: state.unplaced });
   return stamp({ ...base, truckId: state.lkws[0].truckId, lkws: state.lkws, placements: state.placements, unplaced: state.unplaced });
 }

@@ -117,3 +117,34 @@ test('nichtGeladen: nur Stuecke aus ids, die in der Ablage liegen', () => {
   const p = plan([{ id: 'a', caseId: 'c', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0 }], [{ id: 'b', caseId: 'c2' }, { id: 'z', caseId: 'c' }]);
   assert.deepEqual(nichtGeladen(p, ['a', 'b']), [{ id: 'b', caseId: 'c2' }]);
 });
+
+test('nichts passt, alter Plan mit LKW und Ladung: Einzel-LKW-Form, alles in der Ablage ohne lkw', () => {
+  const cases = [cat('riese', 'Licht', 500, 500, 500)];
+  const alt = {
+    ...plan([{ id: 'r1', caseId: 'riese', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0, lkw: 'alt' }], [{ id: 'r2', caseId: 'riese', lkw: 'alt' }]),
+    lkws: [{ id: 'alt', name: 'Alt', truckId: 'k', categories: [] }],
+  };
+  const r = planeLkws(alt, mkCtx(cases), einst());
+  assert.equal(r.lkws, undefined);
+  assert.deepEqual(r.placements, []);
+  assert.equal(r.truckId, 'k');
+  assert.deepEqual(r.unplaced.map(u => u.id).sort(), ['r1', 'r2']);
+  assert.ok(r.unplaced.every(u => u.lkw === undefined));
+  assert.deepEqual(nichtGeladen(r, ['r1', 'r2']).map(x => x.id).sort(), ['r1', 'r2']);
+});
+
+test('unbekanntes truckId: Rückfall auf ctx.truck, es wird trotzdem geplant', () => {
+  const ctx = mkCtx([cat('li', 'Licht')]);
+  const r = planeLkws(plan([], pieces('li', 5)), ctx, einst({ truckId: 'gibts-nicht' }));
+  assert.deepEqual(perLkw(r), [4, 1]);
+  assert.ok(r.lkws.every(l => l.truckId === 'k'));
+});
+
+test('feste Anzahl: MAX_LKW-Budget schon verbraucht -> Stücke bleiben in der Ablage', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('to', 'Ton')]);
+  const e = einst({ gewerke: { Licht: { modus: 'n', n: 99 }, Ton: { modus: 'n', n: 2 } } });
+  const r = planeLkws(plan([], [...pieces('li', 8), ...pieces('to', 3)]), ctx, e);
+  assert.equal(r.lkws.length, MAX_LKW);
+  assert.deepEqual(r.lkws.map(l => l.categories[0]).filter(c => c === 'Ton'), []);
+  assert.deepEqual(nichtGeladen(r, ids(r)).map(x => x.id).filter(i => i.startsWith('to')), ['to1', 'to2', 'to3']);
+});
