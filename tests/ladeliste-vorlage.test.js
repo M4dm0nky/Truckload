@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { REITER, SPALTEN, HINWEIS, erkenneReiter } from '../js/model/ladeliste.js';
+import { REITER, SPALTEN, HINWEIS, erkenneReiter, werteZeilen } from '../js/model/ladeliste.js';
 import { readXlsx } from '../js/store/tabelle-lesen.js';
 
 const DATEIEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -38,5 +38,16 @@ test('Vorlagen: Boxen-Reiter trägt die Maß-Spalten und den Hinweis zu losen Bo
     const kopf = blatt.rows[1];
     for (const k of erwartet[sprache].slice(0, 4)) assert.ok(kopf.includes(k), `${sprache}: ${k}`);
     assert.ok(blatt.rows[0].some(z => String(z).startsWith(erwartet[sprache][4])), `${sprache}: Hinweis`);
+  }
+});
+
+test('Vorlagen mit dem echten Leser: jeder Reiter erkannt, Boxen = boxen, keine Einträge (auch nicht aus der Hinweiszelle)', async () => {
+  for (const datei of Object.values(DATEIEN)) {
+    const blaetter = await lies(datei);
+    blaetter.forEach((blatt, i) => {
+      const kopf = erkenneReiter(blatt.rows);
+      assert.equal(kopf.reiter, REITER[i], `${datei} ${blatt.name}`);
+      assert.deepEqual(werteZeilen(kopf.reiter, blatt.rows, kopf), [], `${datei} ${blatt.name}`);
+    });
   }
 });

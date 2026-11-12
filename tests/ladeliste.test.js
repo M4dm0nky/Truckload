@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { REITER, SPALTEN, erkenneReiter } from '../js/model/ladeliste.js';
+import { REITER, SPALTEN, erkenneReiter, istLoseBox } from '../js/model/ladeliste.js';
 
 const kopf = (reiter, sprache = 'de') => SPALTEN[reiter].map(s => s[sprache]);
 
@@ -317,7 +317,6 @@ test('Gewerk: höchstens 40 Zeichen (lkw.categories-Grenze) – 40 ok, 41 rot', 
 });
 
 // Task 1b: Reiter Boxen mit Maßen (lose Boxen)
-import { istLoseBox } from '../js/model/ladeliste.js';
 const BOX = (ueber = {}) => ({ typ: 'Kiste', anzahl: '3', breite: '40', tiefe: '50', hoehe: '60', gewicht: '12', gewerk: 'Ton', notiz: '', ...ueber });
 const box = ueber => {
   const rows = [kopf('boxen'), zeileAus(BOX(ueber), 'boxen')];

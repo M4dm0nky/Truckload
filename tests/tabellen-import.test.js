@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SPALTEN, erkenneReiter, werteZeilen } from '../js/model/ladeliste.js';
+import { SPALTEN, erkenneReiter, werteZeilen, pruefeEintrag } from '../js/model/ladeliste.js';
 import { stockTargetHtml, readStockTarget } from '../js/ui/stock-target.js';
-import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus } from '../js/ui/tabellen-import.js';
+import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus, filterNachHinzufuegen } from '../js/ui/tabellen-import.js';
 
 const XSS = '<img src=x onerror=alert(1)>';
 const kopf = reiter => SPALTEN[reiter].map(s => s.de);
@@ -251,4 +251,14 @@ test('listeHtml: Reiter Boxen zeigt Zeilen mit Eingabefeldern; Merkliste-Zeile h
   assert.equal((h.match(/<tr data-i="0"[^]*?<\/tr>/)[0].match(/<input/g) ?? []).length, SPALTEN.boxen.length);
   assert.match(h, /<tr data-i="1" class="rot"/);
   assert.match(h, /<tr data-i="0" class=""/);
+});
+
+test('Zeile hinzufügen: die neue Zeile ist auf jedem Reiter sichtbar (leere Boxen-Zeile hat keinen Befund)', () => {
+  for (const reiter of ['cases', 'set', 'boxen', 'traversen']) {
+    const neu = pruefeEintrag({ zeile: null, reiter, werte: Object.fromEntries(SPALTEN[reiter].map(sg => [sg.key, ''])), befunde: [] });
+    const filter = filterNachHinzufuegen(neu);
+    const h = listeHtml([neu], { filter: filter === 'fehler' ? 'fehler' : 'alle', reiter, suche: '' });
+    assert.equal((h.match(/<tr data-i/g) ?? []).length, 1, reiter);
+  }
+  assert.equal(filterNachHinzufuegen({ befunde: [] }), 'alle');
 });

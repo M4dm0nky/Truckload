@@ -142,6 +142,10 @@ export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche 
     + (!treffer.length ? `<p class="hint">${t('Keine Zeilen.')}</p>` : '');
 }
 
+// Filter nach „Zeile hinzufügen“: Eine neue Zeile muss sichtbar sein. Hat sie keinen Befund (leere
+// Boxen-Zeile = Merkliste), würde „fehler“ sie verstecken.
+export const filterNachHinzufuegen = e => (e.befunde.length ? 'fehler' : 'alle');
+
 const zaehlerText = eintraege => {
   const z = zusammenfassung(eintraege);
   return `${t('{rot} fehlerhaft', { rot: z.rot })} · ${t('{gelb} mit Hinweis', { gelb: z.gelb })}`;
@@ -230,8 +234,9 @@ export async function openTabellenImport(dlg, opts) {
     else if (act === 'tab') { st.reiter = b.dataset.tab; render(); }
     else if (act === 'nocolor') { st.zeilen = null; render(); }
     else if (act === 'add') {
-      st.eintraege.push(pruefeEintrag({ zeile: null, reiter: st.reiter, werte: Object.fromEntries(SPALTEN[st.reiter].map(sg => [sg.key, ''])), befunde: [] }));
-      st.filter = 'fehler'; st.suche = ''; st.zeilen = null;
+      const neu = pruefeEintrag({ zeile: null, reiter: st.reiter, werte: Object.fromEntries(SPALTEN[st.reiter].map(sg => [sg.key, ''])), befunde: [] });
+      st.eintraege.push(neu);
+      st.filter = filterNachHinzufuegen(neu); st.suche = ''; st.zeilen = null;
       render();
       dlg.querySelector('.ti-list tbody tr:last-child input')?.focus();
     } else if (act === 'del') {

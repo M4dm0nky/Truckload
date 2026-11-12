@@ -218,9 +218,10 @@ function auswerten(e) {
 
   let menge = 1;
   const mengeKey = boxen ? 'anzahl' : 'menge';
-  if (roh(mengeKey) === '' && boxen) { rot('anzahl', t('„{feld}“ fehlt.', { feld: feldName('anzahl') })); menge = null; }
-  else if (roh(mengeKey) === '') gelb('menge', t('Menge fehlt, 1 angenommen.'));
-  else {
+  if (roh(mengeKey) === '') {
+    if (boxen) { rot('anzahl', t('„{feld}“ fehlt.', { feld: feldName('anzahl') })); menge = null; }
+    else gelb('menge', t('Menge fehlt, 1 angenommen.'));
+  } else {
     const z = zahl(roh(mengeKey), '').wert;
     if (z === null || !Number.isInteger(z) || z < 1 || z > CASE_LIMITS.stock) {
       rot(mengeKey, t('Menge muss eine ganze Zahl von 1 bis {max} sein.', { max: CASE_LIMITS.stock }));
@@ -232,12 +233,14 @@ function auswerten(e) {
   if (roh('gewicht') !== '') weight = messen('gewicht', 'kg', { min: 0, max: CASE_LIMITS.weight, minIncl: true });
 
   let layers = [1, 2];
-  if (boxen) { /* keine Spalte „Höchste Lage“: Vorgabe 1 und 2 */ }
-  else if (roh('lage') === '') gelb('lage', t('Höchste Lage fehlt, Lage 1 und 2 angenommen.'));
-  else {
-    const z = zahl(roh('lage'), '').wert;
-    if (z === null || ![1, 2, 3].includes(z)) { rot('lage', t('Höchste Lage muss 1, 2 oder 3 sein.')); layers = null; }
-    else layers = Array.from({ length: z }, (_, i) => i + 1);
+  // Boxen haben keine Spalte „Höchste Lage“: Vorgabe 1 und 2
+  if (!boxen) {
+    if (roh('lage') === '') gelb('lage', t('Höchste Lage fehlt, Lage 1 und 2 angenommen.'));
+    else {
+      const z = zahl(roh('lage'), '').wert;
+      if (z === null || ![1, 2, 3].includes(z)) { rot('lage', t('Höchste Lage muss 1, 2 oder 3 sein.')); layers = null; }
+      else layers = Array.from({ length: z }, (_, i) => i + 1);
+    }
   }
 
   let wheels = false;
