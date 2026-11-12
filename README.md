@@ -310,6 +310,27 @@ Etikettenbogen einen Testdruck auf normalem Papier machen und gegen einen Bogen 
 senkrechte Rand der Avery-Bögen ist nicht aus Herstellerangaben belegt (nur Shopseiten gesichtet, siehe
 [Issue #29](https://github.com/M4dm0nky/Truckload/issues/29)).
 
+## Tabelle importieren
+
+Wer die Ladeliste von den Gewerken als Tabelle bekommt (Stückzahl und Maße je Case), übernimmt sie
+direkt, ohne jedes Case einzeln anzulegen.
+
+1. **Vorlage holen:** „Vorlage herunterladen“ auf dem Startbildschirm oder im Plan. Die Excel-Datei hat
+   vier Reiter: Cases, Traversen, Boxen und Set.
+2. **Ausfüllen:** Je Case eine Zeile mit Name, Menge, Breite, Tiefe und **Höhe inklusive Rollen**, also
+   so, wie das Case auf den Rollen steht. Maße in cm, Gewicht in kg. Gewerk, Farbe und Ja/Nein kommen
+   aus Auswahllisten.
+3. **Aus Google Sheets:** Vorlage öffnen und ausfüllen. Dann je Reiter Datei → Herunterladen → CSV.
+   Google exportiert nur den offenen Reiter, deshalb alle CSV-Dateien zusammen auswählen.
+4. **Import:** „Tabelle importieren“ auf dem Startbildschirm oder im Plan, alle Dateien zusammen wählen.
+   Die Übersicht zeigt, was gefunden wurde. In der Liste lassen sich Zellen korrigieren; rote Zeilen
+   (fehlende Pflichtmaße) werden beim Übernehmen nicht übernommen, und der Dialog nennt sie.
+5. **Übernehmen:** Die Cases kommen in den aktuellen Plan oder in ein neues Projekt.
+
+Importierte Cases gibt es nur im Projekt, nicht in der Materialverwaltung. Im Plan lassen sie sich wie
+andere Cases bearbeiten. Mit „In meine Bibliothek übernehmen“ werden sie zu einem normalen Case der
+Bibliothek.
+
 ## Mitgelieferte Cases
 
 In der Bibliothek und im Wizard gibt es neben „Eigene Cases“ und den Vorlagen einen
