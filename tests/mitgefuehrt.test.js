@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { referenzen, bestandFuer, mitfuehren, MITGEFUEHRT_VERSION, ohneIds, alsEigenesCase } from '../js/model/mitgefuehrt.js';
+import { referenzen, bestandFuer, mitfuehren, MITGEFUEHRT_VERSION, ohneIds, alsEigenesCase, istImportCase, ersetzeProjektCase } from '../js/model/mitgefuehrt.js';
 import { mkCase, mkTruck, P } from './fixtures.js';
 
 const plan = (extra = {}) => ({ id: 'p', name: 'P', truckId: 't', placements: [], unplaced: [], notes: '', ...extra });
@@ -110,4 +110,38 @@ test('alsEigenesCase: macht aus der Kopie ein eigenes, sichtbares Case', () => {
   assert.equal(out.builtin, false);
   assert.equal(out.collectionId, 'meine');
   assert.equal('legacy' in out, false);
+});
+
+// --- Import-Cases (Tabellen-Import): projekteigen, editierbar, nie Bibliothek ---
+const importCase = (id, extra = {}) => mkCase(id, 10, 10, 10, { herkunft: 'import', ...extra });
+
+test('bestandFuer: Import-Case in importCases, Bibliotheks-Kopie weiter in cases', () => {
+  const p = plan({
+    unplaced: [{ id: 'a', caseId: 'imp' }, { id: 'b', caseId: 'kop' }],
+    mitgefuehrt: { version: 1, cases: [importCase('imp'), mkCase('kop', 5, 5, 5)], trucks: [] },
+  });
+  const b = bestandFuer([], [], p);
+  assert.deepEqual([...b.ausProjekt.importCases], ['imp']);
+  assert.deepEqual([...b.ausProjekt.cases], ['kop']);
+  assert.equal(b.cases.length, 2);
+  assert.equal(istImportCase(b.ausProjekt, 'imp'), true);
+  assert.equal(istImportCase(b.ausProjekt, 'kop'), false);
+  assert.equal(bestandFuer([], [], plan()).ausProjekt.importCases.size, 0);
+});
+
+test('ersetzeProjektCase: ändert Import-Case, ignoriert Bibliotheks-Kopie', () => {
+  const p = plan({ mitgefuehrt: { version: 1, cases: [importCase('imp'), mkCase('kop', 5, 5, 5)], trucks: [] } });
+  const q = ersetzeProjektCase(p, { ...importCase('imp'), name: 'neu', l: 99 });
+  assert.equal(q.mitgefuehrt.cases[0].name, 'neu');
+  assert.equal(q.mitgefuehrt.cases[0].l, 99);
+  assert.ok(q.updatedAt);
+  assert.equal(ersetzeProjektCase(p, { ...mkCase('kop', 5, 5, 5), name: 'x' }), p);
+  assert.equal(ersetzeProjektCase(p, importCase('fremd')), p);
+  assert.equal(ersetzeProjektCase(plan(), importCase('imp')).mitgefuehrt, undefined);
+});
+
+test('alsEigenesCase entfernt herkunft', () => {
+  const r = alsEigenesCase(importCase('imp'), 'meine');
+  assert.equal('herkunft' in r, false);
+  assert.equal(r.collectionId, 'meine');
 });

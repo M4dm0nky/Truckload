@@ -58,6 +58,7 @@ const ASSETS = [
   'js/model/pieceFields.js',
   'js/model/slug.js',
   'js/model/stamp.js',
+  'js/model/tabellen-uebernahme.js',
   'js/model/truss.js',
   'js/model/trussCatalog.js',
   'js/model/unplacedReason.js',

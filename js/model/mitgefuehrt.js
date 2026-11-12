@@ -4,6 +4,7 @@
 // Regel: die Bibliothek gewinnt immer, die Kopie füllt nur fehlende IDs. Rein, ohne DOM und Store.
 
 import { t } from '../i18n/i18n.js';
+import { stamp } from './stamp.js';
 
 export const MITGEFUEHRT_VERSION = 1;
 
@@ -27,16 +28,20 @@ const ergaenze = (bibliothek, kopie, gewollt) => {
 
 export function bestandFuer(cases, trucks, plan) {
   const m = plan?.mitgefuehrt;
-  if (!m) return { cases, trucks, ausProjekt: { cases: new Set(), trucks: new Set() } };
+  if (!m) return { cases, trucks, ausProjekt: { cases: new Set(), importCases: new Set(), trucks: new Set() } };
   const r = referenzen(plan);
   const c = ergaenze(cases, m.cases, r.caseIds);
   const tr = ergaenze(trucks, m.trucks, r.truckIds);
-  return { cases: c.liste, trucks: tr.liste, ausProjekt: { cases: c.ids, trucks: tr.ids } };
+  // Import-Cases (Tabellen-Import) gehören dem Plan und sind editierbar: nicht gesperrt wie Kopien.
+  const importIds = new Set(liste(m.cases).filter(x => x?.herkunft === 'import' && c.ids.has(x.id)).map(x => x.id));
+  const kopien = new Set([...c.ids].filter(id => !importIds.has(id)));
+  return { cases: c.liste, trucks: tr.liste, ausProjekt: { cases: kopien, importCases: importIds, trucks: tr.ids } };
 }
 
 // --- Entscheidungen der Oberfläche über Kopien (rein, damit sie ohne DOM testbar sind) ---
-// `ausProjekt` kommt aus bestandFuer: { cases: Set, trucks: Set } der nur mitgeführten IDs.
+// `ausProjekt` kommt aus bestandFuer: { cases: Set (gesperrte Kopien), importCases: Set (editierbar), trucks: Set }.
 export const istKopieCase = (ausProjekt, id) => !!ausProjekt?.cases?.has(id);
+export const istImportCase = (ausProjekt, id) => !!ausProjekt?.importCases?.has(id);
 export const istKopieTruck = (ausProjekt, id) => !!ausProjekt?.trucks?.has(id);
 
 // Kennzeichnung eines Fahrzeugs in der Fahrzeugauswahl: Vorlage ohne Zeichen, eigenes ★, Kopie ◇.
@@ -67,11 +72,19 @@ export function ohneIds(plan, { cases = [], trucks = [] }) {
 // Eine Kopie aus der Projektdatei wird zum eigenen, sichtbaren Case der Bibliothek: ein
 // ausgeblendetes (`legacy`) lib-Case bliebe sonst auch nach dem Übernehmen ausgeblendet.
 export function alsEigenesCase(c, collectionId) {
-  const { legacy, ...rest } = c;
+  const { legacy, herkunft, ...rest } = c;
   return { ...rest, builtin: false, collectionId };
 }
 
 const ohneSammlung = c => { const { collectionId, ...rest } = c; return rest; };
+
+// Ersetzt einen Import-Case des Plans (gleiche ID). Kopien aus der Bibliothek bleiben unberührt.
+export function ersetzeProjektCase(plan, c) {
+  const m = plan?.mitgefuehrt;
+  const alt = liste(m?.cases).find(x => x?.id === c?.id);
+  if (alt?.herkunft !== 'import') return plan;
+  return stamp({ ...plan, mitgefuehrt: { ...m, cases: m.cases.map(x => (x.id === c.id ? c : x)) } });
+}
 
 export function mitfuehren(plan, cases, trucks) {
   const b = bestandFuer(cases, trucks, plan);

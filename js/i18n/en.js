@@ -597,4 +597,5 @@ export default {
   "Gewerk „{wert}“ ist unbekannt und wird als eigener Name übernommen.": "Department “{wert}” is unknown and is kept as a custom name.",
   "Farbe „{wert}“ nicht erkannt, Gewerkfarbe verwendet.": "Colour “{wert}” not recognised, department colour used.",
   "Die Tabelle hat mehr als {max} Zeilen.": "The table has more than {max} rows.",
+  "Der Plan würde mehr als {max} Case-Typen enthalten.": "The plan would contain more than {max} case types.",
 };
