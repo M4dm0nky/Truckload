@@ -123,3 +123,15 @@ test('AF-1 -CAB (44×23×58, wheelH 12): Rollen überlappen nicht und bleiben in
     }
   }
 });
+
+test('Set-Teil (kind: set): schlichter Kasten ohne Rollen, auch mit wheelH', async () => {
+  const { istSchlicht } = await import('../js/model/caseShape.js');
+  const c = mkCase('s1', 100, 50, 60, { kind: 'set', wheelH: 10 });
+  const p = { orientation: 'standing', rot: 0, x: 0, y: 0, z: 0 };
+  const box = boxOf(c, p);
+  const s = caseShape(c, p, box);
+  assert.deepEqual(s, { body: box, wheels: [], face: null });
+  assert.ok(istSchlicht(c));
+  assert.ok(!istSchlicht({ kind: 'case' }));
+  assert.ok(caseShape({ ...c, kind: 'case' }, p, box).wheels.length === 4);
+});

@@ -11,6 +11,7 @@ import { screenOf, showScreen, renderStartScreen } from './app/screens.js';
 import { attachKeyboard } from './app/keyboard.js';
 import { createPersistence } from './app/persistence.js';
 import { wirePlans } from './app/plans.js';
+import { wireTabellenImport } from './app/tabellenImport.js';
 import { mountMaterialScreen } from './app/materialScreen.js';
 import { wireImportExport } from './app/importExport.js';
 import { mountPlanView, renderPlanViews, loadCaseColors } from './app/planView.js';
@@ -107,6 +108,8 @@ function render() {
       // Dieselbe Eingabe wie #import-btn im (hier verborgenen) Header: auf einem frischen
       // Rechner ohne Pläne ist das der einzige Weg zum Wiederherstellen.
       onImport: () => $('#import').click(),
+      onTabelle: () => tabellenImport.start(),
+      onTabelleHilfe: () => tabellenImport.hilfe(),
       onPlan: id => {
         const plan = store.get().plans.find(p => p.id === id);
         if (plan) switchPlan(plan);
@@ -144,12 +147,14 @@ document.addEventListener('visibilitychange', () => {
 const persistence = createPersistence({ repo: { ...repo, savePlan: savePlanMitKopie }, store, showAlert, showConfirm, stamp, uid });
 
 const { material, openMaterial, openMaterialFromWizard, editCase, newCaseForWizard } =
-  mountMaterialScreen({ el: materialEl, store, uid, persistence });
+  mountMaterialScreen({ el: materialEl, store, uid, persistence, editWhole });
 
 const { switchPlan, runLoadWizard } = wirePlans({
   store, edit, editWhole, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,
   warnIfUnplaced, saveCase: persistence.saveCase, newCaseForWizard, openMaterialFromWizard,
 });
+
+const tabellenImport = wireTabellenImport({ store, editWhole, switchPlan, uid, showAlert, showPrompt, warnIfUnplaced });
 
 const { ACTIONS } = mountPlanView({
   store, edit, editWhole, select, ctx, derive, renderHooks, persistence, stamp, uid, showAlert, showConfirm,

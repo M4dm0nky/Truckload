@@ -4,7 +4,7 @@
 // läuft der Abruf im Hintergrund weiter und frischt den Cache auf.
 // Ein Stand pro Seitenaufruf: Lief bei einem Client ein Abruf in den Timeout, kommen alle weiteren
 // Dateien dieses Clients sofort aus dem Cache – sonst mischen sich alte und neue Module.
-const CACHE = 'truckload-v0.21.1';
+const CACHE = 'truckload-v0.30.0';
 const ASSETS = [
   './',
   'index.html',
@@ -29,10 +29,13 @@ const ASSETS = [
   'js/app/planView.js',
   'js/app/plans.js',
   'js/app/screens.js',
+  'js/app/tabellenImport.js',
   'js/version.js',
   'data/standard.json',
   'data/meine.json',
   'data/traversen.json',
+  'data/Truckload-Ladeliste.xlsx',
+  'data/Truckload-Loadlist.xlsx',
   'js/data/case-library.js',
   'js/data/categories.js',
   'js/data/preset-cases.js',
@@ -46,6 +49,7 @@ const ASSETS = [
   'js/model/collections.js',
   'js/model/geometry.js',
   'js/model/items.js',
+  'js/model/ladeliste.js',
   'js/model/limits.js',
   'js/model/lkw-distribute.js',
   'js/model/lkw.js',
@@ -57,6 +61,7 @@ const ASSETS = [
   'js/model/pieceFields.js',
   'js/model/slug.js',
   'js/model/stamp.js',
+  'js/model/tabellen-uebernahme.js',
   'js/model/truss.js',
   'js/model/trussCatalog.js',
   'js/model/unplacedReason.js',
@@ -67,6 +72,7 @@ const ASSETS = [
   'js/store/io.js',
   'js/store/repo.js',
   'js/store/state.js',
+  'js/store/tabelle-lesen.js',
   'js/ui/case-editor.js',
   'js/ui/caseGroups.js',
   'js/ui/caseInfo.js',
@@ -86,6 +92,7 @@ const ASSETS = [
   'js/ui/print.js',
   'js/ui/projection.js',
   'js/ui/stock-target.js',
+  'js/ui/tabellen-import.js',
   'js/ui/textMetrics.js',
   'js/ui/themeTokens.js',
   'js/ui/truck-editor.js',

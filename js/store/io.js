@@ -16,7 +16,7 @@ import { t } from '../i18n/i18n.js';
 // FORMAT/VERSION werden nur hier benutzt (Import- und Export-Prüfung derselben Datei).
 const FORMAT = 'truckload';
 const VERSION = 1;
-const CASE_KINDS = ['case', 'truss', 'speaker'];
+const CASE_KINDS = ['case', 'truss', 'speaker', 'set'];
 
 const num = v => typeof v === 'number' && Number.isFinite(v);
 const arr = v => (Array.isArray(v) ? v : []);
@@ -68,6 +68,8 @@ export function checkCase(c) {
     && (c.company === undefined || (typeof c.company === 'string' && c.company.length <= MAX_FIRM))
     && (c.legacy === undefined || typeof c.legacy === 'boolean')
     && (c.onlyInPlan === undefined || typeof c.onlyInPlan === 'boolean')
+    && (c.herkunft === undefined || c.herkunft === 'import')
+    && (c.kind !== 'set' || (c.wheels !== true && c.tippable !== true))
     && wheelHOk && layersOk && kindOk;
   if (!propsOk) throw new Error(t('Case „{name}“ hat ungültige Eigenschaften.', { name: c.name }));
   if (isTruss(c)) {

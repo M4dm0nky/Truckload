@@ -2,6 +2,18 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.30.0 – 2026-11-12
+
+**Tabellen-Import, Stufe 1.** Cases lassen sich jetzt aus einer Tabelle anlegen, statt jeden einzeln von Hand zu erfassen.
+
+- **Vorlage zum Download:** Excel-Datei auf Deutsch oder Englisch. Die „?“-Hilfe erklärt das Ausfüllen; wer mit Google Sheets arbeitet, exportiert je Reiter eine CSV-Datei.
+- **Import von xlsx und CSV:** auch mehrere Dateien auf einmal. Deutsche Excel-CSV-Dateien mit Umlauten werden richtig gelesen.
+- **Übersicht vor dem Übernehmen:** Zeilen mit Fehlern sind rot, Zeilen mit Hinweisen gelb. Auffällige Farben werden ebenfalls gemeldet.
+- **Bearbeitbare Liste:** Zeilen lassen sich vor dem Übernehmen korrigieren.
+- **Nur im Projekt:** Importierte Cases liegen zunächst im Projekt und sind dort bearbeitbar. Mit „In meine Bibliothek übernehmen“ wandern sie in die eigene Bibliothek.
+- **Set-Teile:** werden als schlichter Kasten in 2D und 3D dargestellt.
+- **Traversen und Boxen:** vorerst nur als Merkliste (Stufe 2). Der LKW-Schritt folgt in Stufe 3.
+
 ## V 0.21.1 – 2026-10-29
 
 **Englisch freigeschaltet (Stufe 2, Issue #42).** Aniflu hat die englischen Texte gegengelesen; die

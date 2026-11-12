@@ -6,6 +6,7 @@ import { CATEGORIES } from '../js/data/categories.js';
 import { APP_VERSION } from '../js/version.js';
 import { DOLLY_H } from '../js/model/truss.js';
 import { mkCase, mkTruck, plan, P } from './fixtures.js';
+import { bestandFuer } from '../js/model/mitgefuehrt.js';
 
 const own = mkCase('own', 120, 60, 60);
 const builtin = { ...mkCase('preset-x', 1, 1, 1), builtin: true };
@@ -1018,4 +1019,25 @@ test('Wagen mit profileId als Zahl oder zu langem String wird abgelehnt', () => 
     const bad = bundleWith({ cases: [{ ...own, kind: 'truss', truss: { length: 300, width: 29, count: 4, profileId } }], trucks: [], plans: [] });
     assert.throws(() => parseBundle(bad), /Traversenwagen/);
   }
+});
+
+// --- Tabellen-Import: Set-Art und herkunft ---
+test('checkCase: kind set ist gültig, herkunft nur import, Set ohne Rollen und Tippen', () => {
+  const set = mkCase('s', 100, 50, 30, { kind: 'set', wheels: false, tippable: false, herkunft: 'import' });
+  assert.doesNotThrow(() => checkCase(set));
+  assert.doesNotThrow(() => checkCase(mkCase('c', 10, 10, 10, { herkunft: 'import' })));
+  assert.throws(() => checkCase(mkCase('c', 10, 10, 10, { herkunft: 'foo' })), /ungültige Eigenschaften/);
+  assert.throws(() => checkCase({ ...set, wheels: true }), /ungültige Eigenschaften/);
+  assert.throws(() => checkCase({ ...set, tippable: true }), /ungültige Eigenschaften/);
+});
+
+test('Altes Schema (V 0.21.1): Plan mit mitgefuehrt ohne herkunft lädt unverändert, Kopien bleiben gesperrt', () => {
+  const kopie = mkCase('k1', 120, 60, 60);
+  const alt = { ...plan([], [{ id: 'u1', caseId: 'k1' }]), mitgefuehrt: { version: 1, cases: [kopie], trucks: [] } };
+  const text = JSON.stringify({ format: 'truckload', version: 1, appVersion: '0.21.1', exportedAt: '2026-11-01T10:00:00.000Z', cases: [], trucks: [], plans: [alt], ruleSets: [], collections: [] });
+  const b = parseBundle(text);
+  assert.deepEqual(b.plans[0].mitgefuehrt, alt.mitgefuehrt);
+  const best = bestandFuer([], [], b.plans[0]);
+  assert.deepEqual([...best.ausProjekt.cases], ['k1']);
+  assert.equal(best.ausProjekt.importCases.size, 0);
 });

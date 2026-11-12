@@ -103,3 +103,19 @@ test('orientationText (#28): „stehend“ ohne Drehung, sonst „um N° gedreht
   assert.equal(orientationText({ orientation: 'standing', rot: 180 }), 'stehend, um 180° gedreht');
   assert.equal(orientationText({ orientation: 'tipLong', rot: 90 }), 'getippt (Längsseite), um 90° gedreht');
 });
+
+test('renderInspector: Import-Case bleibt bearbeitbar, mit Hinweis und Übernehmen-Knopf', () => {
+  const el = fakeEl();
+  renderInspector(el, { ...inspectorArgs('ic'), ausProjekt: { cases: new Set(), importCases: new Set(['ic']), trucks: new Set() } });
+  assert.ok(el.html.includes('Case bearbeiten'));
+  assert.ok(el.html.includes('data-act="uebernehmen-case"'));
+  assert.ok(el.html.includes('Aus dem Tabellen-Import'));
+  assert.ok(el.html.includes('name="weight"'));
+});
+
+test('renderInspector: Bibliotheks-Kopie bleibt gesperrt, ohne Import-Hinweis', () => {
+  const el = fakeEl();
+  renderInspector(el, { ...inspectorArgs('kc'), ausProjekt: { cases: new Set(['kc']), importCases: new Set(), trucks: new Set() } });
+  assert.ok(!el.html.includes('Case bearbeiten'));
+  assert.ok(!el.html.includes('Aus dem Tabellen-Import'));
+});

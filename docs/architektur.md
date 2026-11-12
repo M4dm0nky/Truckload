@@ -758,10 +758,11 @@ NYX-Projektdatei auch auf einem Rechner vollständig ist, dem diese Einträge fe
   entsteht an **einer** Stelle, `bestandOf(s)` in `js/app/core.js`, die `ctxOf`, `deriveOf` und
   `printSectionsOf` benutzen. Ein unbekanntes `truckId` fällt erst danach aufs Standardfahrzeug.
   Materialverwaltung und Wizard lesen weiter nur die Bibliothek.
-- **Merker:** `ausProjekt = { cases: Set, trucks: Set }` im abgeleiteten Zustand, nie gespeichert.
-  Der Inspector zeigt dafür den Hinweis und „In meine Bibliothek übernehmen“ (Case nach „Meine
-  Sammlung“, gleiche ID); Gewicht, „Case bearbeiten“, der Stift in der Ablage und „Bearbeiten“ am
-  Fahrzeug sind für Kopien gesperrt.
+- **Merker:** `ausProjekt = { cases: Set, importCases: Set, trucks: Set }` im abgeleiteten Zustand, nie
+  gespeichert. Der Inspector zeigt dafür den Hinweis und „In meine Bibliothek übernehmen“ (Case nach
+  „Meine Sammlung“, gleiche ID); Gewicht, „Case bearbeiten“, der Stift in der Ablage und „Bearbeiten“ am
+  Fahrzeug sind für Kopien gesperrt. Ausnahme: `importCases` (Herkunft `'import'`, siehe unten) sind
+  editierbar und werden in den Plan gespeichert.
 - **Import:** `checkPlan` prüft jede Kopie mit `checkCase`/`checkTruck` (höchstens
   `MAX_MITGEFUEHRT_CASES` Cases und `MAX_LKW + 1` Fahrzeuge); `parseBundle` repariert sie vorher wie
   die übrigen Daten (Rollenhöhe, zu lange Namen).
@@ -823,6 +824,48 @@ Ist die App in einem zweiten Tab oder Fenster gleichzeitig offen, meldet ein
 `BroadcastChannel('truckload')` das den beteiligten Tabs — es gibt (Stand V 0.7.0) keinen
 Datenabgleich, nur den Hinweis „in einem weiteren Tab offen“, damit der Nutzer nicht
 lautlos den einen oder anderen Stand verliert.
+
+## Tabellen-Import (seit V 0.30.0)
+
+Stufe 1 des Imports: Excel- oder CSV-Tabelle rein, neue projekteigene Cases raus. Die Anwendung
+baut daraus nur Case-Typen, keine Traversen oder Dollys (das folgt in Stufe 2 und 3). Fachliche
+Beschreibung: `docs/superpowers/specs/2026-11-12-tabellen-import-design.md`.
+
+Die Schichten sind getrennt; nur die Mitte kennt den Store:
+
+- **`js/store/tabelle-lesen.js`**: liest die Dateien. `readXlsx` entpackt die xlsx-ZIP-Datei über
+  `DecompressionStream('deflate-raw')` (ohne `DOMParser`, den es in Node nicht gibt).
+  `parseCsv` erkennt `;` oder `,`, Anführungszeichen und Zeilenumbrüche in Feldern.
+  CSV wird als UTF-8 gelesen, ist das ungültig, als Windows-1252 (deutsches Excel).
+  `readTabellenDateien` ordnet die gewählten Dateien den Reitern zu.
+- **`js/model/ladeliste.js`**: reine Logik. `erkenneReiter` sucht die Kopfzeile in den ersten
+  fünf Zeilen (deutsche und englische Überschriften, `SPALTEN`); `werteZeilen` liest bis zu 2000
+  Datenzeilen (leere übersprungen, Zeilennummern bleiben erhalten). `pruefeEintrag` liefert die Befunde
+  (rot = blockiert, gelb = prüfen), `entwurfAus` den Case-Entwurf. `FARBEN` und `HINWEIS` sind feste
+  Listen. Maße nur in cm, Gewicht nur in kg; eine andere Einheit macht den Wert rot, „1.200“ ist
+  unklar und wird nicht geraten.
+- **`js/model/tabellen-uebernahme.js`**: `uebernimmTabelle` hängt die Entwürfe an den Plan. Die
+  Grenze ist `MAX_MITGEFUEHRT_CASES` (1000).
+- **`js/ui/tabellen-import.js`** und **`js/app/tabellenImport.js`**: Dialog (Übersicht „Das habe ich
+  gefunden“, Liste zum Korrigieren, Hilfe) und Verdrahtung. Der Name des neuen Projekts wird vor dem
+  Schließen abgefragt; rote Zeilen werden beim Übernehmen genannt.
+
+Entwürfe werden wie folgt angelegt: `herkunft: 'import'`, `stackable: true`, `maxTopLoad: null`,
+`dimsInclWheels: true`, Gewerk „Sonstiges“, wenn leer. Ein Set (Reiter „Set“) bekommt zusätzlich
+`kind: 'set'`, keine Rollen, nicht tippbar. Ein „Tippen“-Häkchen macht das Case tippbar.
+
+**Speicherort:** Import-Cases liegen nur in `plan.mitgefuehrt.cases` (`js/model/mitgefuehrt.js`) und
+werden über `editWhole` gespeichert, nie in die Bibliothek (`speicherZielFuer`). `ersetzeProjektCase`
+erzwingt die Herkunft beim Speichern; `alsEigenesCase` entfernt sie beim Übernehmen in die Bibliothek.
+Die Laderegel (Bibliothek gewinnt) gilt unverändert, siehe oben.
+
+**Set-Teile** werden in `caseShape.js` (`istSchlicht`) als schlichter Kasten gezeichnet, in 2D und 3D.
+`kind: 'set'` ist in `CASE_KINDS` (`js/store/io.js`) erlaubt. Ältere Stände lehnen es ab; siehe
+`docs/nyx-tabellenimport.md`.
+
+**Vorlagen:** `data/Truckload-Ladeliste.xlsx` und `data/Truckload-Loadlist.xlsx` (deutsch und englisch),
+erzeugt von `tools/make-ladeliste.py` (Entwicklungswerkzeug, openpyxl). Der Befehl `fixtures` schreibt
+die Testdateien nach `tests/fixtures/`.
 
 ## Mitgelieferte Daten
 

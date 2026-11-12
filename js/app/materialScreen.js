@@ -10,7 +10,8 @@ import { isInStock, copyToCompany } from '../model/material.js';
 import { collectionRows, exportableCases, adoptInto, MEINE_ID, STANDARD_ID } from '../model/collections.js';
 import { parseCollectionFile, exportCollectionFile, collectionFileName } from '../store/io.js';
 import { downloadJSON, watchFileDialogClose } from './download.js';
-import { usage } from './core.js';
+import { usage, bestandOf } from './core.js';
+import { speicherZielFuer, ersetzeProjektCase } from '../model/mitgefuehrt.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { t } from '../i18n/i18n.js';
 
@@ -22,9 +23,9 @@ async function pickCase(title, cases) {
   return id == null ? null : cases.find(c => c.id === id);
 }
 
-// deps: el (der Bildschirm), store, uid, persistence.
+// deps: el (der Bildschirm), store, uid, persistence, editWhole (Planbearbeitung für Import-Cases).
 // Liefert { material, openMaterial, openMaterialFromWizard, editCase, newCaseForWizard }.
-export function mountMaterialScreen({ el, store, uid, persistence }) {
+export function mountMaterialScreen({ el, store, uid, persistence, editWhole }) {
   const saveCase = persistence.saveCase;
   // Aus dem Lade-Wizard geöffnet: „Zurück“ gibt die frische Case-Liste an den Wizard zurück.
   let materialReturn = null;
@@ -143,10 +144,14 @@ export function mountMaterialScreen({ el, store, uid, persistence }) {
   // Case aus Bibliothek oder Inspector bearbeiten (caseId null: neues Case).
   async function editCase(caseId) {
     const s = store.get();
-    const c = caseId ? s.cases.find(x => x.id === caseId) : null;
-    const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId ? usage(s, caseId) : 0 });
+    const b = bestandOf(s);
+    const c = caseId ? b.cases.find(x => x.id === caseId) : null;
+    // Import-Cases gehören dem Plan: kein Ablage-Block (ohnehin nur mit `stock`), Speichern in den Plan.
+    const ziel = speicherZielFuer(c, b.ausProjekt);
+    const res = await openCaseEditor($('#dlg-case'), c, { usedIn: caseId && ziel === 'bibliothek' ? usage(s, caseId) : 0 });
     if (!res) return;
-    await saveCase(res.value);
+    if (ziel === 'projekt') editWhole(p => ersetzeProjektCase(p, res.value));
+    else await saveCase(res.value);
   }
 
   // Für den Load-Wizard: legt ein neues Case über den Case-Editor an (optional mit Vorbelegung,

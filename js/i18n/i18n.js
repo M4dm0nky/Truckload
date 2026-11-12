@@ -2,7 +2,7 @@
 // Gespeicherte Daten bleiben deutsch; übersetzt wird nur bei der Anzeige.
 import EN from './en.js';
 
-const GEWERKE_EN = {
+export const GEWERKE_EN = {
   Licht: 'Lighting', Ton: 'Sound', Video: 'Video', Rigging: 'Rigging', Strom: 'Power',
   'Bühne': 'Staging', Backline: 'Backline', Sonderbau: 'Scenic', Sonstiges: 'Other',
 };
