@@ -8,6 +8,12 @@ import { CASE_LIMITS, NAME_MAX } from './limits.js';
 
 export const REITER = ['cases', 'traversen', 'boxen', 'set'];
 
+// Hinweiszeile (Zeile 1) der Vorlage; tools/make-ladeliste.py liest sie von hier (eine Quelle).
+export const HINWEIS = {
+  de: 'Höhe immer inklusive Rollen, so wie das Case auf den Rollen steht. Kopfzeile nicht ändern.',
+  en: 'Always give the height including castors, as the case stands on its castors. Do not change the header row.',
+};
+
 const sp = (key, de, en, pflicht = false) => ({ key, de, en, pflicht });
 
 const GEMEINSAM = [

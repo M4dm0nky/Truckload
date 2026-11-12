@@ -33,6 +33,8 @@ const ASSETS = [
   'data/standard.json',
   'data/meine.json',
   'data/traversen.json',
+  'data/Truckload-Ladeliste.xlsx',
+  'data/Truckload-Loadlist.xlsx',
   'js/data/case-library.js',
   'js/data/categories.js',
   'js/data/preset-cases.js',

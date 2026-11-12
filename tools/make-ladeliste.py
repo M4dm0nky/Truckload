@@ -1,18 +1,32 @@
-"""Erzeugt Testdateien (und später die Vorlage) für den Tabellen-Import.
+"""Erzeugt Testdateien und die Vorlage für den Tabellen-Import.
 
 Aufruf:  python3 -I tools/make-ladeliste.py fixtures
+         python3 -I tools/make-ladeliste.py vorlage
 """
 import argparse
 import io
+import json
 import re
+import subprocess
 import zipfile
 from pathlib import Path
 
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 
 ROOT = Path(__file__).resolve().parent.parent
 FIX = ROOT / 'tests' / 'fixtures'
+DATA = ROOT / 'data'
+
+REITER_NAMEN = {
+    'de': {'cases': 'Cases', 'traversen': 'Traversen', 'boxen': 'Boxen', 'set': 'Set'},
+    'en': {'cases': 'Cases', 'traversen': 'Trusses', 'boxen': 'Boxes', 'set': 'Set'},
+}
+DATEIEN = {'de': 'Truckload-Ladeliste.xlsx', 'en': 'Truckload-Loadlist.xlsx'}
+JA_NEIN = {'de': ['ja', 'nein'], 'en': ['yes', 'no']}
+ZEILEN_MAX = 500  # Zeilen mit Auswahllisten
 
 
 def basis_workbook():
@@ -110,13 +124,75 @@ def fixtures():
     (FIX / 'ladeliste-en.csv').write_text(en, encoding='utf8')
 
 
+JS_DATEN = """
+import { SPALTEN, FARBEN, HINWEIS } from './js/model/ladeliste.js';
+import { CATEGORIES } from './js/data/categories.js';
+import { GEWERKE_EN } from './js/i18n/i18n.js';
+console.log(JSON.stringify({
+  spalten: SPALTEN, farben: FARBEN, hinweis: HINWEIS,
+  gewerke: { de: CATEGORIES.map(c => c.name), en: CATEGORIES.map(c => GEWERKE_EN[c.name] ?? c.name) },
+}));
+"""
+
+
+def lade_daten():
+    """Kopfzeilen, Farben, Gewerke und Hinweis kommen aus den JS-Modulen (eine Quelle)."""
+    out = subprocess.run(['node', '--input-type=module', '-e', JS_DATEN], cwd=ROOT,
+                         capture_output=True, text=True, check=True, timeout=60).stdout
+    return json.loads(out)
+
+
+def liste(ws, spalte, werte, zeilen, frei=False):
+    dv = DataValidation(type='list', formula1='"' + ','.join(werte) + '"', allow_blank=True)
+    dv.showErrorMessage = not frei  # Gewerk: freie Eingabe bleibt erlaubt
+    ws.add_data_validation(dv)
+    dv.add(f'{get_column_letter(spalte)}3:{get_column_letter(spalte)}{zeilen}')
+
+
+def vorlage_datei(d, sprache):
+    wb = Workbook()
+    wb.remove(wb.active)
+    for reiter, spalten in d['spalten'].items():
+        ws = wb.create_sheet(REITER_NAMEN[sprache][reiter])
+        ws.append([d['hinweis'][sprache]])
+        ws.append([sp[sprache] for sp in spalten])
+        ws['A1'].font = Font(italic=True, color='666666')
+        for c, sp in enumerate(spalten, 1):
+            zelle = ws.cell(row=2, column=c)
+            zelle.font = Font(bold=True)
+            zelle.fill = PatternFill('solid', fgColor='DDE6F3' if sp['pflicht'] else 'F0F0F0')
+            zelle.alignment = Alignment(wrap_text=True, vertical='center')
+            ws.column_dimensions[get_column_letter(c)].width = max(14, len(sp[sprache]) + 4)
+            ende = ZEILEN_MAX + 2
+            if sp['key'] == 'gewerk':
+                liste(ws, c, d['gewerke'][sprache], ende, frei=True)
+            elif sp['key'] == 'farbe':
+                liste(ws, c, [f[sprache] for f in d['farben']], ende)
+            elif sp['key'] in ('rollen', 'tippen'):
+                liste(ws, c, JA_NEIN[sprache], ende)
+            elif sp['key'] == 'lage':
+                liste(ws, c, ['1', '2', '3'], ende)
+        ws.column_dimensions['A'].width = max(ws.column_dimensions['A'].width, 28)
+        ws.freeze_panes = 'A3'
+    return wb
+
+
+def vorlage():
+    d = lade_daten()
+    for sprache, name in DATEIEN.items():
+        vorlage_datei(d, sprache).save(DATA / name)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('fixtures', help='Testdateien nach tests/fixtures/ schreiben')
+    sub.add_parser('vorlage', help='Vorlagen nach data/ schreiben')
     args = ap.parse_args()
     if args.cmd == 'fixtures':
         fixtures()
+    elif args.cmd == 'vorlage':
+        vorlage()
 
 
 if __name__ == '__main__':
