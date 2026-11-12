@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { SPALTEN, erkenneReiter, werteZeilen, pruefeEintrag } from '../js/model/ladeliste.js';
 import { stockTargetHtml, readStockTarget } from '../js/ui/stock-target.js';
@@ -261,4 +262,14 @@ test('Zeile hinzufügen: die neue Zeile ist auf jedem Reiter sichtbar (leere Box
     assert.equal((h.match(/<tr data-i/g) ?? []).length, 1, reiter);
   }
   assert.equal(filterNachHinzufuegen({ befunde: [] }), 'alle');
+});
+
+test('Struktursperre: der add-Zweig setzt den Filter über filterNachHinzufuegen, nie fest auf „fehler“', () => {
+  const src = readFileSync(new URL('../js/ui/tabellen-import.js', import.meta.url), 'utf8');
+  const start = src.indexOf("act === 'add'");
+  const ende = src.indexOf("act === 'del'", start);
+  assert.ok(start > 0 && ende > start, 'add-Zweig gefunden');
+  const zweig = src.slice(start, ende);
+  assert.match(zweig, /st\.filter\s*=\s*filterNachHinzufuegen\(/);
+  assert.doesNotMatch(zweig, /st\.filter\s*=\s*'fehler'/);
 });
