@@ -140,6 +140,17 @@ test('ersetzeProjektCase: ändert Import-Case, ignoriert Bibliotheks-Kopie', () 
   assert.equal(ersetzeProjektCase(plan(), importCase('imp')).mitgefuehrt, undefined);
 });
 
+test('ersetzeProjektCase: ein c ohne herkunft bleibt Import-Case (nicht gesperrte Kopie)', () => {
+  const p = plan({ unplaced: [{ id: 'a', caseId: 'imp' }], mitgefuehrt: { version: 1, cases: [importCase('imp')], trucks: [] } });
+  const { herkunft, ...ohne } = importCase('imp', { name: 'geändert' });
+  const q = ersetzeProjektCase(p, ohne);
+  assert.equal(q.mitgefuehrt.cases[0].herkunft, 'import');
+  assert.equal(q.mitgefuehrt.cases[0].name, 'geändert');
+  const b = bestandFuer([], [], q);
+  assert.deepEqual([...b.ausProjekt.importCases], ['imp']);
+  assert.equal(b.ausProjekt.cases.size, 0);
+});
+
 test('alsEigenesCase entfernt herkunft', () => {
   const r = alsEigenesCase(importCase('imp'), 'meine');
   assert.equal('herkunft' in r, false);

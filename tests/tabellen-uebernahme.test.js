@@ -42,6 +42,14 @@ test('uebernimmTabelle: vorhandene Stücke und Kopien bleiben', () => {
   assert.ok(p.mitgefuehrt.cases.some(c => c.id === 'k1' && !c.herkunft));
 });
 
+test('uebernimmTabelle: Mehr-LKW-Plan, Stücke ohne lkw-Feld (Ohne LKW)', () => {
+  const lkws = [{ id: 'l1', name: 'A', truckId: 't', categories: [] }, { id: 'l2', name: 'B', truckId: 't', categories: [] }];
+  const p = uebernimmTabelle(leer({ lkws }), entwuerfe('cases', [{ name: 'A', menge: '2', ...BASIS }]), counter('n'));
+  assert.equal(p.unplaced.length, 2);
+  assert.ok(p.unplaced.every(u => !('lkw' in u)));
+  assert.deepEqual(p.lkws, lkws);
+});
+
 test('uebernimmTabelle: Set-Entwurf bleibt Set-Case, Menge wird zu Stücken', () => {
   const p = uebernimmTabelle(leer(), entwuerfe('set', [{ name: 'S', menge: '2', ...BASIS }]), counter('n'));
   assert.equal(p.mitgefuehrt.cases[0].kind, 'set');

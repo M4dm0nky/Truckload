@@ -83,7 +83,7 @@ export function ersetzeProjektCase(plan, c) {
   const m = plan?.mitgefuehrt;
   const alt = liste(m?.cases).find(x => x?.id === c?.id);
   if (alt?.herkunft !== 'import') return plan;
-  return stamp({ ...plan, mitgefuehrt: { ...m, cases: m.cases.map(x => (x.id === c.id ? c : x)) } });
+  return stamp({ ...plan, mitgefuehrt: { ...m, cases: m.cases.map(x => (x.id === c.id ? { ...c, herkunft: 'import' } : x)) } });
 }
 
 export function mitfuehren(plan, cases, trucks) {
