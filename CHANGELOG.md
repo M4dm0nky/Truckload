@@ -13,7 +13,6 @@ Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, 
 - **Nur im Projekt:** Importierte Cases liegen zunächst im Projekt und sind dort bearbeitbar. Mit „In meine Bibliothek übernehmen“ wandern sie in die eigene Bibliothek.
 - **Set-Teile:** werden als schlichter Kasten in 2D und 3D dargestellt.
 - **Traversen und Boxen:** vorerst nur als Merkliste (Stufe 2). Der LKW-Schritt folgt in Stufe 3.
-- Fehlerbehebungen während der Arbeit gehören zu diesem Feature und stehen nicht als eigene Einträge.
 
 ## V 0.21.1 – 2026-10-29
 
