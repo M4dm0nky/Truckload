@@ -46,6 +46,7 @@ const ASSETS = [
   'js/model/collections.js',
   'js/model/geometry.js',
   'js/model/items.js',
+  'js/model/ladeliste.js',
   'js/model/limits.js',
   'js/model/lkw-distribute.js',
   'js/model/lkw.js',
