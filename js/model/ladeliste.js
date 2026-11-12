@@ -246,6 +246,7 @@ function auswerten(e) {
   const c = {
     name, l, w, h, weight, category: gewerk.name, color: farbe.hex, layers,
     wheels, dimsInclWheels: true, tippable, herkunft: 'import',
+    stackable: true, maxTopLoad: null, // wie die Editor-Vorgabe: ohne Angabe stapelbar, keine Auflastgrenze
   };
   c.wheelH = wheels ? ROLLEN_H : 0;
   if (reiter === 'set') Object.assign(c, { kind: 'set', wheels: false, tippable: false, wheelH: 0 });

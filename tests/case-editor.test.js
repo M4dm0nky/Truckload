@@ -38,3 +38,11 @@ test('caseFields: Set bleibt Set, ohne Rollen und nicht tippbar (Rückweg des Ed
   assert.equal(normal.wheelH, 10);
   assert.equal(normal.tippable, true);
 });
+
+test('Struktursperre: der Speicherzweig für Nicht-Traversen spreizt caseFields(', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../js/ui/case-editor.js', import.meta.url), 'utf8');
+  const zweig = src.slice(src.indexOf('} else {\n        resolve({ action: \'save\''));
+  assert.match(zweig.slice(0, 400), /\.\.\.caseFields\(v,/);
+  assert.ok(!/kind:\s*undefined/.test(zweig.slice(0, 600)), 'kein festes kind: undefined im Speicherzweig');
+});

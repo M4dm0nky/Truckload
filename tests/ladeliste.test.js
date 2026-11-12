@@ -89,7 +89,7 @@ test('Sauberer Case-Eintrag: keine Befunde, Entwurf mit Spezifikationsfeldern, k
   assert.equal(d.tipped, false);
   assert.deepEqual(d.case, {
     name: 'Case A', l: 80, w: 60, h: 100, weight: 40, category: 'Licht', color: '#e8b10c', layers: [1, 2],
-    wheels: true, wheelH: 13, dimsInclWheels: true, tippable: false, herkunft: 'import',
+    wheels: true, wheelH: 13, dimsInclWheels: true, tippable: false, herkunft: 'import', stackable: true, maxTopLoad: null,
   });
   assert.equal('id' in d.case, false);
 });
@@ -296,4 +296,12 @@ test('Menge und Lage mit Einheit: rot', () => {
   rot(eintrag({ menge: '5 kg' }), 'menge');
   rot(eintrag({ lage: '2 cm' }), 'lage');
   assert.equal(entwurfAus(eintrag({ menge: '5 cm' })), null);
+});
+
+test('Entwurf: Cases und Set sind stapelbar ohne Auflastgrenze (wie die Editor-Vorgabe)', () => {
+  for (const reiter of ['cases', 'set']) {
+    const c = entwurfAus(eintrag({}, reiter)).case;
+    assert.equal(c.stackable, true, reiter);
+    assert.equal(c.maxTopLoad, null, reiter);
+  }
 });

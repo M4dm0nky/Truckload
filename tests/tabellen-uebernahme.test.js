@@ -75,3 +75,16 @@ test('uebernimmTabelle: mehr als MAX_MITGEFUEHRT_CASES Typen gesamt wirft, Plan 
   const mit = leer({ mitgefuehrt: { version: 1, cases: [mkCase('k', 1, 1, 1)], trucks: [] } });
   assert.throws(() => uebernimmTabelle(mit, viele, counter('n')));
 });
+
+test('Ende zu Ende: gestapelte Import-Cases (Höchste Lage 2) landen beim Packen auch über dem Boden', async () => {
+  const A = await import('../js/model/actions.js');
+  const { bestandFuer } = await import('../js/model/mitgefuehrt.js');
+  const e = entwuerfe('cases', [{ name: 'S', menge: '3', breite: '60', tiefe: '80', hoehe: '50', gewicht: '10', rollen: 'nein', lage: '2' }]);
+  const p = uebernimmTabelle(leer({ truckId: 't' }), e, counter('n'));
+  const truck = { id: 't', name: 'T', l: 80, w: 60, h: 120, payload: 5000, wheelArches: [] };
+  const b = bestandFuer([], [truck], p);
+  const ctx = { caseById: new Map(b.cases.map(c => [c.id, c])), truck, newId: counter('x') };
+  const out = A.packAll(p, ctx);
+  assert.ok(out.placements.length >= 2);
+  assert.ok(out.placements.some(q => q.z > 0), JSON.stringify(out.placements));
+});

@@ -27,7 +27,6 @@ export function retainedFields(v, { isNew, fromTemplate, overrideBuiltin }) {
   };
 }
 
-// Gewerk-Auswahl: der Wert bleibt der deutsche Name (gespeichert), sichtbar ist die Übersetzung.
 // Felder eines Nicht-Traversen-Cases beim Speichern. Ein Set-Teil (Tabellen-Import) bleibt ein Set:
 // kind bleibt 'set', ohne Rollen und nicht tippbar (checkCase verlangt das).
 export function caseFields(v, { l, w, h, wheels, wheelH, dimsInclWheels, tippable }) {
@@ -39,6 +38,7 @@ export function caseFields(v, { l, w, h, wheels, wheelH, dimsInclWheels, tippabl
   };
 }
 
+// Gewerk-Auswahl: der Wert bleibt der deutsche Name (gespeichert), sichtbar ist die Übersetzung.
 export const categoryOptionsHtml = () =>
   CATEGORIES.map(k => `<option value="${esc(k.name)}">${esc(trade(k.name))}</option>`).join('');
 
