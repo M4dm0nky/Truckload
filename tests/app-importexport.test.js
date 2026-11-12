@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { importWarnings, limitWarnings, capList, warningsForWinners, wireImportExport, parseDimsInput } from '../js/app/importExport.js';
+import { capList } from '../js/i18n/i18n.js';
+import { importWarnings, limitWarnings, warningsForWinners, wireImportExport, parseDimsInput } from '../js/app/importExport.js';
 import { mkCase, mkTruck } from './fixtures.js';
 import { createBestandsSync } from '../js/app/core.js';
 

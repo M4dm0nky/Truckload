@@ -4,7 +4,7 @@ import { allPlansOf, planZumSpeichern } from './core.js';
 import { downloadJSON } from './download.js';
 import { exportBundle, parseBundle, backupFileName, preImportBackupFileName } from '../store/io.js';
 import { CASE_LIMITS } from '../model/limits.js';
-import { t } from '../i18n/i18n.js';
+import { t, capList } from '../i18n/i18n.js';
 
 const $ = sel => document.querySelector(sel);
 
@@ -51,10 +51,6 @@ const LIMIT_TEXT = {
 };
 // Werte über CASE_LIMITS werden übernommen (nicht abgelehnt), aber genannt.
 export const limitWarnings = overLimit => overLimit.map(({ name, field, value, max }) => LIMIT_TEXT[field]({ name, value, max }));
-
-// Mehr als `max` Zeilen sprengen den Hinweisdialog; der Rest wird nur gezählt.
-export const capList = (list, max = 10) =>
-  (list.length <= max ? list : [...list.slice(0, max), t('… und {n} weitere', { n: list.length - max })]);
 
 // Nur für Datensätze, die den Abgleich gewonnen haben (merge.winners): hat der lokale, neuere
 // Stand gewonnen, kommt der Datensatz aus der Datei nicht in den Bestand und braucht keine Warnung.

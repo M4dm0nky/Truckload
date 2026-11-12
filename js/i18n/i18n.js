@@ -32,4 +32,8 @@ export const date = d => d.toLocaleDateString(locale());
 
 export const trade = name => (lang === 'en' ? eigen(GEWERKE_EN, name) ?? name : name);
 
+// Mehr als `max` Zeilen sprengen einen Hinweisdialog; der Rest wird nur gezählt.
+export const capList = (list, max = 10) =>
+  (list.length <= max ? list : [...list.slice(0, max), t('… und {n} weitere', { n: list.length - max })]);
+
 export const builtinNote = c => (c.builtin ? t(c.note) : c.note ?? '');

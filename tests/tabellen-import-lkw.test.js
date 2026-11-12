@@ -59,3 +59,57 @@ test('Struktursperre: Übernahme und Vorschau gehen über dieselben Funktionen, 
   assert.doesNotMatch(ueb, /packRest|warnIfUnplaced/);
   assert.doesNotMatch(src, /saveCase/);
 });
+
+// ---- Befunde der Schlussprüfung ----
+import { gruppenAus, planeLkws, gewerkWoerterbuch, gewerkEintrag, gewerkCfg } from '../js/model/lkw-import.js';
+import { freieLkwFuer } from '../js/app/tabellenImport.js';
+import { lkwSchrittHtml, uebersichtHtml, zusammenfassung, auffaelligkeiten } from '../js/ui/tabellen-import.js';
+import { MAX_LKW } from '../js/model/limits.js';
+
+test('Gewerk „__proto__“ aus der Tabelle verschmutzt Object.prototype nicht und bleibt eine eigene Gruppe', () => {
+  const zeilen = [
+    ['Sub', '2', '120', '60', '100', 'nein', '5', '2', '', '__proto__', ''],
+    ['Par', '1', '120', '60', '100', 'nein', '5', '2', '', 'Licht', ''],
+  ];
+  const cfgs = gewerkWoerterbuch();
+  gewerkEintrag(cfgs, '__proto__').modus = 'n'; // wie lkwAenderung
+  gewerkEintrag(cfgs, '__proto__').n = 2;
+  assert.equal(({}).modus, undefined);
+  assert.equal(({}).n, undefined);
+  const gruppen = gruppenAus(['__proto__', 'Licht'], { gewerke: cfgs });
+  assert.deepEqual(gruppen.map(g => g.gewerke).sort(), [['Licht'], ['__proto__']]);
+  assert.equal(gruppen.find(g => g.gewerke[0] === '__proto__').modus, 'n');
+  // Ohne eigenen Eintrag liefert ein normales Objekt nicht den Prototyp
+  assert.equal(gewerkCfg({}, '__proto__'), undefined);
+  assert.equal(gewerkCfg({}, 'constructor'), undefined);
+  const p = emptyPlan('p', 'P', TRUCK.id);
+  const r = rechneLkwImport(state(p), res(zeilen, einst({ gewerke: cfgs })), counter('x'));
+  assert.equal(({}).modus, undefined);
+  assert.ok(r.bericht.lkws.some(l => l.gewerke.includes('__proto__')));
+  assert.ok(lkwSchrittHtml({ gewerke: ['__proto__', 'Licht'], einst: { gewerke: cfgs }, stueckVon: { constructor: 1 } }).includes('__proto__'));
+});
+
+test('freieLkwFuer: Einzel-LKW-Plan mit Ladung zählt den LKW, den convertToMulti anlegt', () => {
+  assert.equal(freieLkwFuer(emptyPlan('p', 'P', TRUCK.id)), MAX_LKW);
+  assert.equal(freieLkwFuer({ ...emptyPlan('p', 'P', TRUCK.id), placements: [{ id: 'a' }] }), MAX_LKW - 1);
+  assert.equal(freieLkwFuer({ lkws: [{ id: 'a' }, { id: 'b' }], placements: [] }), MAX_LKW - 2);
+  assert.equal(freieLkwFuer(null), MAX_LKW);
+});
+
+test('uebersichtHtml: rote Zeilen nur in Boxen öffnen den Reiter Boxen', () => {
+  const rows = [['Hinweis'], SPALTEN.boxen.map(s => s.de), ['x', '1', '', '', '', '', '', '']];
+  const eintraege = werteZeilen('boxen', rows, erkenneReiter(rows));
+  const z = zusammenfassung(eintraege);
+  const html = uebersichtHtml({ ...z, rot: 1, rotBoxen: 1 }, auffaelligkeiten(eintraege));
+  assert.match(html, /data-filter="bad" data-tab="boxen"/);
+  const html2 = uebersichtHtml({ ...z, rot: 1, rotBoxen: 0 }, []);
+  assert.match(html2, /data-filter="bad" data-tab="cases"/);
+});
+
+test('Struktursperre: keine Datei unter js/ui/ importiert aus ../app/', async () => {
+  const { readdirSync } = await import('node:fs');
+  const dir = new URL('../js/ui/', import.meta.url);
+  for (const f of readdirSync(dir).filter(x => x.endsWith('.js'))) {
+    assert.doesNotMatch(readFileSync(new URL(f, dir), 'utf8'), /from\s+['"]\.\.\/app\//, f);
+  }
+});

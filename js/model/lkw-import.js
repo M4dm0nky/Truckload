@@ -14,13 +14,22 @@ export const ART = Object.freeze({ JE_GEWERK: 'je-gewerk', WENIGSTE: 'wenigste' 
 const withoutLkw = x => { const { lkw: _d, ...rest } = x; return rest; };
 const byRank = (a, b) => catRank(a) - catRank(b) || (a < b ? -1 : a > b ? 1 : 0);
 
+// Gewerknamen stammen aus fremden Tabellen (auch „__proto__“ ist ein gültiger Name): Einstellungen je
+// Gewerk liegen in Wörterbüchern ohne Prototyp und werden nur als eigene Einträge gelesen.
+export const gewerkWoerterbuch = () => Object.create(null);
+export const gewerkCfg = (dict, g) => (dict && Object.hasOwn(dict, g) ? dict[g] : undefined);
+export function gewerkEintrag(dict, g) {
+  if (!Object.hasOwn(dict, g)) dict[g] = {};
+  return dict[g];
+}
+
 // Gewerke -> Gruppen. „mit“ folgt bis zur Wurzel; ein Kreis (samt allem, was in ihn führt) bildet eine
 // Gruppe mit `modus: 'offen'`. Fehlender Eintrag oder Ziel nicht in der Liste -> Wurzel, offen.
 // Gruppen nach CATEGORIES der Wurzel (unbekannte danach alphabetisch), in der Gruppe zuerst die Wurzel.
 export function gruppenAus(gewerke, einst) {
   const list = [...new Set(gewerke)];
   const inList = new Set(list);
-  const cfg = g => einst?.gewerke?.[g];
+  const cfg = g => gewerkCfg(einst?.gewerke, g);
   const next = g => (cfg(g)?.modus === 'mit' && inList.has(cfg(g).mit) ? cfg(g).mit : null);
   const rootOf = new Map(); // gewerk -> { root, cycle }
   for (const g of list) {

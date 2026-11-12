@@ -4,17 +4,16 @@
 // Alles, was aus der Tabelle stammt (Namen, Gewerke, Befund-Texte), geht durch esc().
 
 import { esc, safeColor, icon, swatch } from './dom.js';
-import { t, lang, trade } from '../i18n/i18n.js';
+import { t, lang, trade, capList } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
 import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
 import { alsImportCase } from '../model/tabellen-uebernahme.js';
 import { openTrussDialog } from './truss-wizard.js';
 import { openDollyDialog } from './dolly-wizard.js';
-import { VERHALTEN, ART } from '../model/lkw-import.js';
+import { VERHALTEN, ART, gewerkWoerterbuch, gewerkCfg, gewerkEintrag } from '../model/lkw-import.js';
 import { catRank } from '../model/lkw-distribute.js';
 import { MAX_LKW } from '../model/limits.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
-import { capList } from '../app/importExport.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -27,12 +26,12 @@ const istListe = e => e.reiter === 'cases' || e.reiter === 'set' || istLoseBox(e
 
 // Stückzahlen je Kachel und je Gewerk (nur Zeilen ohne roten Befund), plus Zahl der roten/gelben Zeilen.
 export function zusammenfassung(eintraege) {
-  const z = { cases: 0, traversen: 0, boxen: 0, set: 0, rot: 0, rotSet: 0, gelb: 0, jeGewerk: [] };
+  const z = { cases: 0, traversen: 0, boxen: 0, set: 0, rot: 0, rotSet: 0, rotBoxen: 0, gelb: 0, jeGewerk: [] };
   const gewerke = new Map();
   for (const e of eintraege) {
     if (e.reiter === 'traversen') { z.traversen += ganzzahl(e.werte.stueck); continue; }
     if (e.reiter === 'boxen' && !istLoseBox(e)) { z.boxen += ganzzahl(e.werte.anzahl); continue; }
-    if (e.befunde.some(b => b.stufe === 'rot')) { z.rot++; if (e.reiter === 'set') z.rotSet++; continue; }
+    if (e.befunde.some(b => b.stufe === 'rot')) { z.rot++; if (e.reiter === 'set') z.rotSet++; if (e.reiter === 'boxen') z.rotBoxen++; continue; }
     if (e.befunde.length) z.gelb++;
     const d = entwurfAus(e);
     if (!d) continue;
@@ -71,7 +70,7 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
   const band = (cls, glyph, text, knopf) => `<div class="ti-band ${cls}"><span>${glyph} ${text}</span>${knopf}</div>`;
   const anzeigen = attrs => `<button type="button" data-act="edit" ${attrs}>${t('ansehen / korrigieren')}</button>`;
   const baender = [];
-  if (rotSonst) baender.push(band('rot', '✖', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (rotSonst) baender.push(band('rot', '✖', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen(`data-filter="bad" data-tab="${rotSonst > (z.rotBoxen ?? 0) ? 'cases' : 'boxen'}"`)));
   if (z.rotSet) baender.push(band('rot', '✖', esc(z.rotSet === 1 ? t('1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.') : t('{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.', { n: z.rotSet })), anzeigen('data-filter="bad" data-tab="set"')));
   if (z.gelb) baender.push(band('gelb', '⚠', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
   for (const a of auffaellig) {
@@ -279,7 +278,7 @@ export function lkwSchrittHtml({ gewerke = [], einst = {}, fahrzeuge = [], zielH
     : '';
   const sortiert = [...new Set(gewerke)].sort((a, b) => catRank(a) - catRank(b) || (a < b ? -1 : a > b ? 1 : 0));
   const zeile = g => {
-    const c = einst.gewerke?.[g] ?? {};
+    const c = gewerkCfg(einst.gewerke, g) ?? {};
     const modus = c.modus === 'n' || c.modus === 'mit' ? c.modus : 'offen';
     const andere = sortiert.filter(x => x !== g);
     const n = Number.isInteger(c.n) ? Math.min(Math.max(c.n, 1), Math.max(freieLkw, 1)) : 1;
@@ -288,7 +287,7 @@ export function lkwSchrittHtml({ gewerke = [], einst = {}, fahrzeuge = [], zielH
       : modus === 'mit'
         ? `<select data-role="gmit" data-g="${esc(g)}" aria-label="${t('zusammen mit')}">${andere.map(x => `<option value="${esc(x)}"${c.mit === x ? ' selected' : ''}>${esc(trade(x))}</option>`).join('')}</select>`
         : '';
-    const stueck = stueckVon[g] ? ` <span class="hint">${esc(t('{n} Stück', { n: stueckVon[g] }))}</span>` : '';
+    const stueck = gewerkCfg(stueckVon, g) ? ` <span class="hint">${esc(t('{n} Stück', { n: gewerkCfg(stueckVon, g) }))}</span>` : '';
     return `<li class="lkw-g">${swatch(colorFor(g))}<b>${esc(trade(g))}</b>${stueck}`
       + `<select data-role="gmodus" data-g="${esc(g)}" aria-label="${t('Verteilung')}">${GEWERK_MODI().map(([v, l]) => `<option value="${v}"${modus === v ? ' selected' : ''}>${l}</option>`).join('')}</select>${feld}</li>`;
   };
@@ -349,7 +348,7 @@ export async function openTabellenImport(dlg, opts) {
     eintraege: [...opts.eintraege], view: 'overview', reiter: 'cases', filter: 'alle', suche: '', zeilen: null,
     ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false, ohneRotSet: false,
     laden: false, folge: [], gebaut: { cases: [], stuecke: [] }, basisId: '', basisN: 1,
-    lkw: { verhalten: VERHALTEN.NEU, truckId: '', art: ART.JE_GEWERK, getrennt: false, gewerke: {} },
+    lkw: { verhalten: VERHALTEN.NEU, truckId: '', art: ART.JE_GEWERK, getrennt: false, gewerke: gewerkWoerterbuch() },
     vorschau: null, rechnet: false, vorschauFehler: false,
   };
   const fahrzeuge = opts.fahrzeuge ?? [];
@@ -390,9 +389,9 @@ export async function openTabellenImport(dlg, opts) {
   const einstFuer = () => {
     const gewerke = [...gewerkZaehler().keys()];
     const frei = Math.max(freieJetzt(), 1);
-    const gw = {};
+    const gw = gewerkWoerterbuch();
     for (const g of gewerke) {
-      const c = st.lkw.gewerke[g] ?? {};
+      const c = gewerkCfg(st.lkw.gewerke, g) ?? {};
       const andere = gewerke.filter(x => x !== g);
       if (c.modus === 'n') gw[g] = { modus: 'n', n: Number.isInteger(c.n) ? Math.min(Math.max(c.n, 1), frei) : 1 };
       else if (c.modus === 'mit' && andere.length) gw[g] = { modus: 'mit', mit: andere.includes(c.mit) ? c.mit : andere[0] };
@@ -436,7 +435,7 @@ export async function openTabellenImport(dlg, opts) {
   const lkwAenderung = el => {
     const gewerke = [...gewerkZaehler().keys()];
     const g = el.dataset.g;
-    const cfg = () => (st.lkw.gewerke[g] ??= {});
+    const cfg = () => gewerkEintrag(st.lkw.gewerke, g);
     if (el.name === 'lkwverh') st.lkw.verhalten = el.value;
     else if (el.name === 'lkwart') st.lkw.art = el.value;
     else if (el.name === 'lkwgetrennt') st.lkw.getrennt = el.checked;

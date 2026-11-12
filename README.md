@@ -337,7 +337,7 @@ direkt, ohne jedes Case einzeln anzulegen.
    gepackt wird, die Gewerke auf N LKW verteilt werden oder zusammen mit einem Gewerk laden. Alternativ
    „So wenige LKWs wie möglich“, wahlweise „nach Gewerk getrennt“. Eine Vorschau zeigt die Verteilung.
    Hat das Projekt schon LKW, stehen drei Wege zur Wahl: „Alles neu laden“ (ersetzt die vorhandenen LKW),
-   „Neue Stücke in vorhandene LKW“ oder „Neue Stücke auf zusätzliche LKW“. Es sind höchstens 12 LKW
+   „Neue Stücke auf zusätzliche LKW“ oder „Neue Stücke in vorhandene LKW“. Es sind höchstens 12 LKW
    möglich. Was nicht passt, bleibt mit der Meldung „nicht geladen“ im Plan.
 9. **Ergebnis:** Bei „Nur übernehmen“ liegen die Cases ungeladen im aktuellen Plan oder in einem neuen
    Projekt, bei „Übernehmen und laden“ fertig verteilt auf den LKW.

@@ -13,7 +13,6 @@ import { openTabellenImport, openTabellenHilfe, vorlageDatei, entwuerfeAus, nich
 import { multiAddedNotice } from './plans.js';
 import { bestandOf, wholeCtxOf } from './core.js';
 import { isInStock } from '../model/material.js';
-import { capList } from './importExport.js';
 import { t, date } from '../i18n/i18n.js';
 
 const $ = sel => document.querySelector(sel);
@@ -42,6 +41,13 @@ export function ordneBlaetter(blaetter) {
 }
 
 // ---- LKW-Wahl beim Laden: Vorschau und Übernahme rechnen mit denselben Funktionen ----
+
+// Wie viele LKW noch dazukommen dürfen. Ein Einzel-LKW-Plan mit Ladung zählt als der eine LKW,
+// den convertToMulti beim Umstellen anlegt.
+export function freieLkwFuer(plan) {
+  const vorhanden = isMultiLkw(plan) ? lkwsOf(plan).length : (plan?.placements?.length ? 1 : 0);
+  return Math.max(MAX_LKW - vorhanden, 0);
+}
 
 const truckByIdOf = s => new Map(bestandOf(s).trucks.map(tk => [tk.id, tk]));
 const ctxMitFahrzeugen = (s, newId) => ({ ...wholeCtxOf(s, newId), truckById: truckByIdOf(s) });
@@ -142,7 +148,7 @@ export function wireTabellenImport({ store, editWhole, switchPlan, uid, showAler
     }
     return {
       zielHatLkw: !!plan && (isMultiLkw(plan) || plan.placements.length > 0),
-      freieLkw: Math.max(MAX_LKW - lkwsOf(plan).length, 0),
+      freieLkw: freieLkwFuer(plan),
       fahrzeuge: b.trucks.map(({ id, name }) => ({ id, name })),
       vorhandeneGewerke: [...zaehler].map(([name, stueck]) => ({ name, stueck })),
       // Rechnet auf einer Kopie; Ziel „neu“ auf einem leeren Plan. Ändert den Store nicht.
