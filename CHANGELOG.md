@@ -2,6 +2,18 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.31.0 – 2026-11-12
+
+**Tabellen-Import fertig (Stufe 2 und 3).** Nach der Übersicht führt der Import jetzt durch Traversen, Boxen, Set und LKW. Am Ende steht ein fertig verteilter Plan.
+
+- **Traversen:** Links die Traversen aus der Tabelle, rechts baut man die Wagen über den gewohnten Traversen-Dialog. Die Wagen gelten nur für dieses Projekt.
+- **Boxen:** Lose Boxen mit Maßen kommen direkt aus der Tabelle (der Reiter Boxen hat dafür neue Spalten Breite, Tiefe, Höhe, Gewicht). Für Zeilen ohne Maße wählt man eine Box aus den Vorlagen und lädt sie lose oder auf Dolly.
+- **Set:** Eigener Schritt zum Prüfen und Nachbessern der Set-Teile. Ein fehlerhaftes Set-Teil sperrt erst hier, nicht schon in der Übersicht.
+- **LKW:** Bei „Übernehmen und laden“ wählt man das Fahrzeug und je Gewerk: frei, auf eine feste Zahl LKW verteilen oder zusammen mit einem anderen Gewerk. Alternativ „So wenige LKWs wie möglich“, auf Wunsch nach Gewerk getrennt: volle LKW je Gewerk, die Reste gemeinsam. Eine Vorschau zeigt vorher, welcher LKW was bekommt.
+- **Projekt mit LKW:** Hat das Projekt schon LKW, wählt man: alles neu laden (ersetzt die LKW), neue Stücke auf zusätzliche LKW oder neue Stücke in die vorhandenen LKW.
+- **Meldung „nicht geladen“:** Was keinen Platz findet, bleibt im Plan und wird mit Name und Gewerk genannt. Höchstens 12 LKW.
+- Der Import schreibt weiterhin nichts in die eigene Bibliothek.
+
 ## V 0.30.0 – 2026-11-12
 
 **Tabellen-Import, Stufe 1.** Cases lassen sich jetzt aus einer Tabelle anlegen, statt jeden einzeln von Hand zu erfassen.

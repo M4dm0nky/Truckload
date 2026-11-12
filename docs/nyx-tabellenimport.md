@@ -56,7 +56,7 @@ Ergänzt [nyx-projektdatei.md](nyx-projektdatei.md) und [nyx-host.md](nyx-host.m
   (`DecompressionStream('deflate-raw')`, kein `DOMParser`).
 - Keine nativen Dialoge: Der Dialog „Tabelle importieren“ ist HTML.
 
-## Stufe 2 und 3: Traversen, Boxen, LKW
+## Stufe 2 und 3: Traversen, Boxen, LKW (seit V 0.31.0)
 
 - **Weitere Case-Arten im Import:** Import-Cases können jetzt auch Traversenwagen (`kind: 'truss'`) und
   Dolly-Stacks (`kind: 'speaker'`) sein. Die Felder sind dieselben wie bisher (`herkunft: 'import'`).
