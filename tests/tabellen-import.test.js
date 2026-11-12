@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SPALTEN, erkenneReiter, werteZeilen } from '../js/model/ladeliste.js';
+import { stockTargetHtml, readStockTarget } from '../js/ui/stock-target.js';
 import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus } from '../js/ui/tabellen-import.js';
 
 const XSS = '<img src=x onerror=alert(1)>';
@@ -206,4 +207,9 @@ test('uebersichtHtml: Zähltexte im Plural nur bei 2+, Einzahl bei 1 (Englisch)'
     assert.ok(zwei.includes('2 rows are faulty (red).'), zwei);
     assert.ok(zwei.includes('2 rows with a note (yellow)'), zwei);
   } finally { setLang('de'); }
+});
+
+test('stock-target: Betriebsart projekt', () => {
+  assert.equal(stockTargetHtml({ mode: 'projekt' }), '');
+  assert.deepEqual(readStockTarget(null, { mode: 'projekt' }), { inStock: false, company: '' });
 });
