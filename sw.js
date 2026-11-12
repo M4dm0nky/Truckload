@@ -67,6 +67,7 @@ const ASSETS = [
   'js/store/io.js',
   'js/store/repo.js',
   'js/store/state.js',
+  'js/store/tabelle-lesen.js',
   'js/ui/case-editor.js',
   'js/ui/caseGroups.js',
   'js/ui/caseInfo.js',

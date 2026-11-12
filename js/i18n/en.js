@@ -577,4 +577,6 @@ export default {
   "Kompletter Bestand": "Whole stock",
   "nur {name}": "only {name}",
   "Sammlung nicht mehr vorhanden – Filter zurückgesetzt.": "Collection no longer exists – filter reset.",
+  "Die Datei ist keine lesbare xlsx-Datei.": "The file is not a readable xlsx file.",
+  "Die Datei „{name}“ ist keine .xlsx- oder .csv-Datei.": "The file “{name}” is not an .xlsx or .csv file.",
 };
