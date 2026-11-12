@@ -325,7 +325,22 @@ direkt, ohne jedes Case einzeln anzulegen.
 4. **Import:** „Tabelle importieren“ auf dem Startbildschirm oder im Plan, alle Dateien zusammen wählen.
    Die Übersicht zeigt, was gefunden wurde. In der Liste lassen sich Zellen korrigieren; rote Zeilen
    (fehlende Pflichtmaße) werden beim Übernehmen nicht übernommen, und der Dialog nennt sie.
-5. **Übernehmen:** Die Cases kommen in den aktuellen Plan oder in ein neues Projekt.
+5. **Traversen:** Traversenwagen werden über den Traversen-Dialog gebaut. Das geht nur im Projekt;
+   gebaute Wagen landen als Import-Cases im Plan.
+6. **Boxen:** Lose Boxen mit Maßen (Reiter Boxen: Breite, Tiefe, Höhe, Gewicht, alle optional) kommen
+   direkt aus der Tabelle. Für Zeilen ohne Maße wählt man eine Grundbox aus der Bibliothek und fügt sie
+   lose oder auf Dolly hinzu.
+7. **Set:** Set-Teile lassen sich prüfen und nachbessern. Rote Set-Teile sperren das Weiter erst hier.
+8. **LKWs:** Nur bei „Übernehmen und laden“. Man wählt das Fahrzeug und legt fest, ob je Gewerk frei
+   gepackt wird, die Gewerke auf N LKW verteilt werden oder zusammen mit einem Gewerk laden. Alternativ
+   „So wenige LKWs wie möglich“, wahlweise „nach Gewerk getrennt“. Eine Vorschau zeigt die Verteilung.
+   Hat das Projekt schon LKW, stehen drei Wege zur Wahl: „Alles neu laden“ (ersetzt die vorhandenen LKW),
+   „Neue Stücke in vorhandene LKW“ oder „Neue Stücke auf zusätzliche LKW“. Es sind höchstens 12 LKW
+   möglich. Was nicht passt, bleibt mit der Meldung „nicht geladen“ im Plan.
+9. **Übernehmen:** „Nur übernehmen“ legt die Cases in den aktuellen Plan oder in ein neues Projekt.
+   „Übernehmen und laden“ legt sie außerdem auf die gewählten LKW.
+
+Der Import schreibt nichts in die Bibliothek.
 
 Importierte Cases gibt es nur im Projekt, nicht in der Materialverwaltung. Im Plan lassen sie sich wie
 andere Cases bearbeiten. Mit „In meine Bibliothek übernehmen“ werden sie zu einem normalen Case der

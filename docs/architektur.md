@@ -846,6 +846,9 @@ Die Schichten sind getrennt; nur die Mitte kennt den Store:
   unklar und wird nicht geraten.
 - **`js/model/tabellen-uebernahme.js`**: `uebernimmTabelle` hängt die Entwürfe an den Plan. Die
   Grenze ist `MAX_MITGEFUEHRT_CASES` (1000).
+- **`js/model/lkw-import.js`**: plant die LKW aus dem Import. `planeLkws` gruppiert nach Gewerk und
+  füllt nacheinander; `nichtGeladen` liefert die Stücke ohne Platz. `VERHALTEN` (neu, hinzu,
+  zusätzlich) und `ART` (je Gewerk, wenigste LKW) sind die Auswahlwerte des LKW-Schritts.
 - **`js/ui/tabellen-import.js`** und **`js/app/tabellenImport.js`**: Dialog (Übersicht „Das habe ich
   gefunden“, Liste zum Korrigieren, Hilfe) und Verdrahtung. Der Name des neuen Projekts wird vor dem
   Schließen abgefragt; rote Zeilen werden beim Übernehmen genannt.
