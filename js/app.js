@@ -147,7 +147,7 @@ document.addEventListener('visibilitychange', () => {
 const persistence = createPersistence({ repo: { ...repo, savePlan: savePlanMitKopie }, store, showAlert, showConfirm, stamp, uid });
 
 const { material, openMaterial, openMaterialFromWizard, editCase, newCaseForWizard } =
-  mountMaterialScreen({ el: materialEl, store, uid, persistence });
+  mountMaterialScreen({ el: materialEl, store, uid, persistence, editWhole });
 
 const { switchPlan, runLoadWizard } = wirePlans({
   store, edit, editWhole, ctx, autosave, repo, stamp, uid, showAlert, showConfirm, showPrompt,

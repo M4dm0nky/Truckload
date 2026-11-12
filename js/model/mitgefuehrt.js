@@ -42,6 +42,8 @@ export function bestandFuer(cases, trucks, plan) {
 // `ausProjekt` kommt aus bestandFuer: { cases: Set (gesperrte Kopien), importCases: Set (editierbar), trucks: Set }.
 export const istKopieCase = (ausProjekt, id) => !!ausProjekt?.cases?.has(id);
 export const istImportCase = (ausProjekt, id) => !!ausProjekt?.importCases?.has(id);
+// Wohin ein bearbeitetes Case gespeichert wird: Import-Cases gehören dem Plan, alles andere der Bibliothek.
+export const speicherZielFuer = (c, ausProjekt) => (c && istImportCase(ausProjekt, c.id) ? 'projekt' : 'bibliothek');
 export const istKopieTruck = (ausProjekt, id) => !!ausProjekt?.trucks?.has(id);
 
 // Kennzeichnung eines Fahrzeugs in der Fahrzeugauswahl: Vorlage ohne Zeichen, eigenes ★, Kopie ◇.

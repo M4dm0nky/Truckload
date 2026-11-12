@@ -366,6 +366,7 @@ export default {
   "rechts": "right",
   "gilt für alle Stücke dieses Typs": "applies to all items of this type",
   "{label}, um {rot}° gedreht": "{label}, rotated by {rot}°",
+  "Aus dem Tabellen-Import – nur in diesem Projekt": "From the table import – this project only",
   "In meine Bibliothek übernehmen": "Adopt into my library",
   "Standardvorlage – über „Kopieren“ in der Materialverwaltung ändern": "Default template – to change it, use “Copy” in stock management",
   "layer|Lage": "Layer",

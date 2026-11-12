@@ -156,3 +156,18 @@ test('alsEigenesCase entfernt herkunft', () => {
   assert.equal('herkunft' in r, false);
   assert.equal(r.collectionId, 'meine');
 });
+
+test('speicherZielFuer: Import-Case → projekt, sonst bibliothek; Aufrufer nutzen es', async () => {
+  const { speicherZielFuer } = await import('../js/model/mitgefuehrt.js');
+  const ap = { cases: new Set(['k']), importCases: new Set(['i']), trucks: new Set() };
+  assert.equal(speicherZielFuer({ id: 'i' }, ap), 'projekt');
+  assert.equal(speicherZielFuer({ id: 'k' }, ap), 'bibliothek');
+  assert.equal(speicherZielFuer({ id: 'x' }, ap), 'bibliothek');
+  assert.equal(speicherZielFuer(null, ap), 'bibliothek');
+  const { readFileSync } = await import('node:fs');
+  for (const f of ['materialScreen', 'planView']) {
+    const src = readFileSync(new URL(`../js/app/${f}.js`, import.meta.url), 'utf8');
+    assert.match(src, /speicherZielFuer\(/, `${f}.js ruft speicherZielFuer auf`);
+    assert.match(src, /ersetzeProjektCase\(/, `${f}.js ruft ersetzeProjektCase auf`);
+  }
+});

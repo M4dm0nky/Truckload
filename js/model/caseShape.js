@@ -3,8 +3,12 @@ import { wheelFace, wheelHOf, cornerBoxes, boxOf } from './geometry.js';
 // Die zwei Achsen in der Rollenfläche (a1,a2) + die Normalenachse (n), aus der Case-Seite (face).
 export const wheelAxes = face => (face === 'bottom' ? ['x', 'y', 'z'] : face.endsWith('x') ? ['y', 'z', 'x'] : ['x', 'z', 'y']);
 
+// Set-Teile (Tabellen-Import) sind ein schlichter Kasten: keine Rollen, keine Profile/Ecken/Griffe.
+export const istSchlicht = c => c?.kind === 'set';
+
 // Zerlegt die Box eines platzierten Cases in Korpus und 4 Rollen (Truck-Koordinaten, cm).
 export function caseShape(c, p, box = boxOf(c, p)) {
+  if (istSchlicht(c)) return { body: box, wheels: [], face: null };
   const wh = wheelHOf(c);
   const face = wheelFace(p);
   if (wh <= 0) return { body: box, wheels: [], face: null };

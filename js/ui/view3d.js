@@ -2,7 +2,7 @@ import { safeColor } from './dom.js';
 import { readThemeColors } from './themeColors.js';
 import { archBoxes, isTruss } from '../model/geometry.js';
 import { aboveLayer } from '../model/items.js';
-import { caseShape, wheelAxes } from '../model/caseShape.js';
+import { caseShape, wheelAxes, istSchlicht } from '../model/caseShape.js';
 import { caseColors, weightRange, weightColor, CASE_BLACK, DETAIL_MIN, CORNER_R, CORNER_R_SIMPLE, cornerCenters3d, textColorFor } from './caseStyle.js';
 import { trussShape, TUBE_R_RATIO, DIAG_R_RATIO } from '../model/truss.js';
 import { composeMatrix, IDENTITY_QUAT } from './instanceMatrix.js';
@@ -641,9 +641,11 @@ export async function createView3d(container) {
       content.add(boxMesh(body, bodyMaterial(colors.body, bad)));
 
       const bw = body.x1 - body.x0, bd = body.y1 - body.y0, bh = body.z1 - body.z0;
-      const detailed = Math.min(bw, bd, bh) >= DETAIL_MIN;
+      const detailed = Math.min(bw, bd, bh) >= DETAIL_MIN && !istSchlicht(it.c);
 
-      if (!detailed) {
+      if (istSchlicht(it.c)) {
+        content.add(edges(body, edgeMaterial(it.id === selectedId, bad)));
+      } else if (!detailed) {
         content.add(edges(body, edgeMaterial(it.id === selectedId, bad)), ...cornerSpheres(body));
       } else {
         edgeBars(body, profileBoxes);

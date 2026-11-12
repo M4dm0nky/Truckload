@@ -11,7 +11,7 @@ import { openPackRules } from '../ui/pack-rules.js';
 import { renderInspector, weightEditable } from '../ui/inspector.js';
 import { CASE_LIMITS } from '../model/limits.js';
 import { MEINE_ID } from '../model/collections.js';
-import { alsEigenesCase, istKopieCase, istKopieTruck, truckMarke, truckStiftSperre } from '../model/mitgefuehrt.js';
+import { alsEigenesCase, istKopieCase, istImportCase, speicherZielFuer, ersetzeProjektCase, istKopieTruck, truckMarke, truckStiftSperre } from '../model/mitgefuehrt.js';
 import { openTruckEditor } from '../ui/truck-editor.js';
 import { esc } from '../ui/dom.js';
 import { COLOR_MODES } from '../ui/caseStyle.js';
@@ -210,7 +210,7 @@ export function mountPlanView(deps) {
     // bestandOf die Bibliotheksfassung, Hinweis und Knopf verschwinden von selbst.
     'uebernehmen-case': async id => {
       const c = ctx().caseById.get(findCaseIdForPiece(id));
-      if (!c || !ctx().ausProjekt.cases.has(c.id)) return;
+      if (!c || !(ctx().ausProjekt.cases.has(c.id) || istImportCase(ctx().ausProjekt, c.id))) return;
       await persistence.saveCase(alsEigenesCase(c, MEINE_ID));
     },
     'uebernehmen-truck': async () => {
@@ -250,6 +250,11 @@ export function mountPlanView(deps) {
     const value = input.value.trim() === '' ? NaN : Number(input.value);
     if (!(value >= 0 && value <= CASE_LIMITS.weight)) { input.value = c.weight; return; }
     if (value === c.weight) return;
+    if (speicherZielFuer(c, ctx().ausProjekt) === 'projekt') {
+      editWhole(p => ersetzeProjektCase(p, { ...c, weight: value }));
+      invalidateInspector();
+      return;
+    }
     const saved = await persistence.saveCase({ ...c, builtin: false, weight: value });
     invalidateInspector();
     if (!saved) input.value = c.weight;

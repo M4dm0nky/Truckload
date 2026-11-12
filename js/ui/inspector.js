@@ -37,6 +37,7 @@ export const orientationText = p => (p.rot
 export const ausProjektHinweis = () => t('Aus der Projektdatei – nicht in deiner Bibliothek');
 const uebernehmenKnopf = act => `<button data-act="${act}">${t('In meine Bibliothek übernehmen')}</button>`;
 const kopieBlock = act => `<p class="hint insp-aus-projekt">${ausProjektHinweis()}</p>${uebernehmenKnopf(act)}`;
+const importBlock = act => `<p class="hint insp-aus-projekt">${t('Aus dem Tabellen-Import – nur in diesem Projekt')}</p>${uebernehmenKnopf(act)}`;
 const weightHint = c => (isPreset(c) ? `<p class="hint insp-weight-hint">${t('Standardvorlage – über „Kopieren“ in der Materialverwaltung ändern')}</p>` : '');
 
 // Block „Laden“ – für ein platziertes Stück (piece = das Placement, tippedOn aus der
@@ -72,7 +73,7 @@ export function lkwField(lkw) {
 
 // `lkw` (optional): Mehr-LKW-Plan, siehe lkwField; zusätzlich `name` (gewählter LKW, für die Überschrift
 // der Summen) und `none` (Reiter „Ohne LKW“: keine Fahrzeugsummen).
-export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [], lkw = null, ausProjekt = { cases: new Set(), trucks: new Set() } }) {
+export function renderInspector(el, { selected, selectedUnplaced, result, truck, groups = [], lkw = null, ausProjekt = { cases: new Set(), importCases: new Set(), trucks: new Set() } }) {
   const tot = result.totals;
   const pct = tot.payload > 0 ? Math.min(100, Math.round(tot.weight / tot.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
@@ -88,6 +89,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       </div>` : '';
   const dims = selected ? outerDims(selected.c) : null;
   const kopie = ausProjekt.cases.has((selected ?? selectedUnplaced)?.c.id);
+  const importCase = !!ausProjekt.importCases?.has((selected ?? selectedUnplaced)?.c.id);
   const truckKopie = ausProjekt.trucks.has(truck.id);
   const sel = selected ? `
     <section class="insp-sel" data-id="${esc(selected.id)}">
@@ -108,7 +110,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
           : t('Last obendrauf {kg} kg', { kg: Math.round(result.load.get(selected.id) ?? 0) })}</dd>
       </dl>
       ${weightHint(selected.c)}
-      ${kopie ? kopieBlock('uebernehmen-case') : ''}
+      ${kopie ? kopieBlock('uebernehmen-case') : importCase ? importBlock('uebernehmen-case') : ''}
       ${wheelRow}
       ${loadBlock(selected.p, selected.c, tipped)}
       <div class="btns">
@@ -132,7 +134,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       ${lkwField(lkw)}
       <p class="insp-weight-row">${t('Gewicht: {field}', { field: weightField(selectedUnplaced.c, { gesperrt: kopie }) })}</p>
       ${weightHint(selectedUnplaced.c)}
-      ${kopie ? kopieBlock('uebernehmen-case') : ''}
+      ${kopie ? kopieBlock('uebernehmen-case') : importCase ? importBlock('uebernehmen-case') : ''}
       ${loadBlock(selectedUnplaced.item, selectedUnplaced.c, selectedUnplaced.item.tipped === true)}
       <div class="btns">
         ${kopie ? '' : `<button data-act="edit-case">${t('Case bearbeiten')}</button>`}
