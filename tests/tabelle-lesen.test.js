@@ -80,6 +80,14 @@ test('readTabellenDateien: xlsx je Blatt, csv ein Eintrag, unbekannte Endung wir
   await assert.rejects(readTabellenDateien([{ name: 'c.pdf', buf: new ArrayBuffer(1) }]), /c\.pdf/);
 });
 
+test('readTabellenDateien: CSV in Windows-1252 (Excel Deutsch) behält Umlaute, UTF-8 mit BOM auch', async () => {
+  const cp = Buffer.from([0x4B, 0x61, 0x62, 0x65, 0x6C, 0x6B, 0x69, 0x73, 0x74, 0x65, 0x20, 0x47, 0x72, 0xF6, 0xDF, 0x65, 0x3B, 0x31, 0x0A]);
+  const bom = Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from('Kabelkiste Größe;1\n', 'utf8')]);
+  const [a, b] = await readTabellenDateien([{ name: 'a.csv', buf: ab(cp) }, { name: 'b.csv', buf: ab(bom) }]);
+  assert.deepEqual(a.rows, [['Kabelkiste Größe', '1']]);
+  assert.deepEqual(b.rows, [['Kabelkiste Größe', '1']]);
+});
+
 // --- Hilfen: Zip mit Methode 0 aus den Einträgen eines vorhandenen xlsx bauen ---
 function entries(n) {
   const b = fix(n);

@@ -198,6 +198,12 @@ export async function readXlsx(buf) {
 
 // ---------- Dateien ----------
 
+/** CSV-Bytes als UTF-8 lesen; ist das ungültig (Excel Deutsch speichert Windows-1252), als Windows-1252. */
+function decodeCsv(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch { return new TextDecoder('windows-1252').decode(buf); }
+}
+
 /** Dateien lesen: xlsx -> je Blatt ein Eintrag, csv -> ein Eintrag (blatt ''). Andere Endung wirft. */
 export async function readTabellenDateien(files) {
   const out = [];
@@ -206,7 +212,7 @@ export async function readTabellenDateien(files) {
     if (ext === 'xlsx') {
       for (const s of await readXlsx(buf)) out.push({ datei: name, blatt: s.name, rows: s.rows });
     } else if (ext === 'csv') {
-      out.push({ datei: name, blatt: '', rows: parseCsv(new TextDecoder().decode(buf)) });
+      out.push({ datei: name, blatt: '', rows: parseCsv(decodeCsv(buf)) });
     } else throw new Error(t('Die Datei „{name}“ ist keine .xlsx- oder .csv-Datei.', { name }));
   }
   return out;
