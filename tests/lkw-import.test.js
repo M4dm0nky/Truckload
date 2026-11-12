@@ -148,3 +148,100 @@ test('feste Anzahl: MAX_LKW-Budget schon verbraucht -> Stücke bleiben in der Ab
   assert.deepEqual(r.lkws.map(l => l.categories[0]).filter(c => c === 'Ton'), []);
   assert.deepEqual(nichtGeladen(r, ids(r)).map(x => x.id).filter(i => i.startsWith('to')), ['to1', 'to2', 'to3']);
 });
+
+// ---- Task 4: so wenige LKW wie moeglich, vorhandene LKW ----
+import { P } from './fixtures.js';
+const altLkw = (id = 'alt', categories = []) => ({ id, name: id, truckId: 'k', categories });
+const mitLkws = (p, lkws) => ({ ...p, lkws });
+const cats = r => r.lkws.map(l => [...l.categories].sort());
+
+test('wenigste getrennt: 6 Licht + 6 Ton -> 3 LKW, Rest gemeinsam (2+2)', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('to', 'Ton')]);
+  const r = planeLkws(plan([], [...pieces('li', 6), ...pieces('to', 6)]), ctx, einst({ art: 'wenigste', getrennt: true }));
+  assert.deepEqual(perLkw(r), [4, 4, 4]);
+  assert.deepEqual(cats(r), [['Licht'], ['Ton'], ['Licht', 'Ton']]);
+  const mix = r.placements.filter(p => p.lkw === r.lkws[2].id).map(p => p.caseId).sort();
+  assert.deepEqual(mix, ['li', 'li', 'to', 'to']);
+  assert.deepEqual(nichtGeladen(r, ids(r)), []);
+});
+
+test('wenigste getrennt: 5 Licht + 5 Ton -> 3 LKW (4 / 4 / je 1 gemischt)', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('to', 'Ton')]);
+  const r = planeLkws(plan([], [...pieces('li', 5), ...pieces('to', 5)]), ctx, einst({ art: 'wenigste', getrennt: true }));
+  assert.deepEqual(perLkw(r), [4, 4, 2]);
+  assert.deepEqual(cats(r), [['Licht'], ['Ton'], ['Licht', 'Ton']]);
+});
+
+test('wenigste nicht getrennt: 5 Licht + 5 Ton -> 3 LKW, gemischt', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('to', 'Ton')]);
+  const r = planeLkws(plan([], [...pieces('to', 5), ...pieces('li', 5)]), ctx, einst({ art: 'wenigste', getrennt: false }));
+  assert.equal(r.lkws.length, 3);
+  assert.deepEqual(perLkw(r), [4, 4, 2]);
+  assert.deepEqual(nichtGeladen(r, ids(r)), []);
+});
+
+test('zusaetzlich: vorhandener LKW unveraendert, 4 neue auf einem neuen LKW', () => {
+  const ctx = mkCtx([cat('li', 'Licht')]);
+  const alt = mitLkws(plan([{ ...P('a1', 'li', 0, 0, 0), lkw: 'alt' }, { ...P('a2', 'li', 0, 60, 0), lkw: 'alt' }], pieces('li', 4, 'n')), [altLkw()]);
+  const vorher = alt.placements.map(p => ({ ...p }));
+  const r = planeLkws(alt, ctx, einst({ verhalten: 'zusaetzlich', neu: ['n1', 'n2', 'n3', 'n4'] }));
+  assert.equal(r.lkws.length, 2);
+  assert.equal(r.lkws[0].id, 'alt');
+  assert.deepStrictEqual(r.placements.filter(p => p.lkw === 'alt'), vorher);
+  assert.equal(r.placements.filter(p => p.lkw === r.lkws[1].id).length, 4);
+  assert.deepEqual(nichtGeladen(r, ids(r)), []);
+});
+
+test('zusaetzlich bei 11 vorhandenen LKW: nur ein neuer, 6 nicht geladen', () => {
+  const ctx = mkCtx([cat('li', 'Licht')]);
+  const lkws = Array.from({ length: 11 }, (_, i) => altLkw(`alt${i}`));
+  const neu = pieces('li', 10, 'n');
+  const r = planeLkws(mitLkws(plan([], neu), lkws), ctx, einst({ verhalten: 'zusaetzlich', neu: neu.map(x => x.id) }));
+  assert.equal(r.lkws.length, MAX_LKW);
+  assert.equal(nichtGeladen(r, neu.map(x => x.id)).length, 6);
+  assert.ok(r.unplaced.every(u => u.lkw === undefined));
+});
+
+test('zusaetzlich: nichts passt -> vorhandene LKW und Ladung bleiben, Rest ohne lkw in der Ablage', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('riese', 'Licht', 500, 500, 500)]);
+  const alt = mitLkws(plan([{ ...P('a1', 'li', 0, 0, 0), lkw: 'alt' }], pieces('riese', 2, 'n')), [altLkw()]);
+  const r = planeLkws(alt, ctx, einst({ verhalten: 'zusaetzlich', neu: ['n1', 'n2'] }));
+  assert.equal(r.lkws.length, 1);
+  assert.equal(r.placements.length, 1);
+  assert.equal(r.placements[0].lkw, 'alt');
+  assert.deepEqual(nichtGeladen(r, ['n1', 'n2']).map(x => x.id), ['n1', 'n2']);
+});
+
+test('zusaetzlich auf Ein-LKW-Plan: Mehr-LKW-Plan, alte Stuecke in LKW 1 an ihren Plaetzen', () => {
+  const ctx = mkCtx([cat('li', 'Licht')]);
+  const alt = { ...plan([P('a1', 'li', 0, 0, 0), P('a2', 'li', 0, 60, 0)], pieces('li', 4, 'n')), truckId: 'k' };
+  const r = planeLkws(alt, ctx, einst({ verhalten: 'zusaetzlich', neu: ['n1', 'n2', 'n3', 'n4'] }));
+  assert.equal(r.lkws.length, 2);
+  assert.equal(r.lkws[0].name, 'LKW 1');
+  const erster = r.placements.filter(p => p.lkw === r.lkws[0].id);
+  assert.deepEqual(erster.map(({ lkw, ...p }) => p), alt.placements);
+});
+
+test('hinzu: 3 neue Licht -> 2 in LKW Licht, 1 ohne lkw; LKW-Zahl gleich', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('to', 'Ton')]);
+  const alt = mitLkws(plan([
+    { ...P('l1', 'li', 0, 0, 0), lkw: 'L' }, { ...P('l2', 'li', 0, 60, 0), lkw: 'L' },
+    { ...P('t1', 'to', 0, 0, 0), lkw: 'T' }, { ...P('t2', 'to', 0, 60, 0), lkw: 'T' },
+    { ...P('t3', 'to', 120, 0, 0), lkw: 'T' }, { ...P('t4', 'to', 120, 60, 0), lkw: 'T' },
+  ], pieces('li', 3, 'n')), [altLkw('L', ['Licht']), altLkw('T', ['Ton'])]);
+  const vorher = alt.placements.map(p => ({ ...p }));
+  const r = planeLkws(alt, ctx, einst({ verhalten: 'hinzu', neu: ['n1', 'n2', 'n3'], art: 'wenigste' }));
+  assert.equal(r.lkws.length, 2);
+  assert.deepStrictEqual(r.placements.filter(p => vorher.some(v => v.id === p.id)), vorher);
+  assert.equal(r.placements.filter(p => p.lkw === 'L' && p.id.startsWith('n')).length, 2);
+  assert.equal(r.placements.filter(p => p.lkw === 'T').length, 4);
+  assert.deepEqual(nichtGeladen(r, ['n1', 'n2', 'n3']).length, 1);
+  assert.ok(r.unplaced.every(u => u.lkw === undefined));
+});
+
+test('hinzu: Gewerk ohne eigenen LKW geht an Rest-LKW ohne Gewerk-Haken', () => {
+  const ctx = mkCtx([cat('li', 'Licht'), cat('to', 'Ton')]);
+  const alt = mitLkws(plan([], pieces('to', 2, 'n')), [altLkw('L', ['Licht']), altLkw('R', [])]);
+  const r = planeLkws(alt, ctx, einst({ verhalten: 'hinzu', neu: ['n1', 'n2'] }));
+  assert.deepEqual(r.placements.map(p => p.lkw), ['R', 'R']);
+});

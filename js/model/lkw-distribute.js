@@ -21,7 +21,7 @@ export const catRank = name => { const i = CATEGORIES.findIndex(c => c.name === 
 // Rest-LKW (ohne Haken). Ein LKW zählt nur, wenn sein Fahrzeug das Stück in irgendeiner
 // Orientierung aufnehmen kann; ist keiner der Gewerk-LKW tauglich, bleiben die tauglichen Rest-LKW.
 // `orient` = Orientierung je LKW-ID (für die Fläche), nur für taugliche LKW.
-function eligibleFor(piece, c, lkws, ctx) {
+export function eligibleFor(piece, c, lkws, ctx) {
   const fits = new Map();
   for (const l of lkws) {
     const truck = truckOf(l, ctx);

@@ -2,8 +2,9 @@
 // Funktionen; packen tut actions.packAll / lkw-distribute.packAllLkws, hier wird nur gruppiert,
 // angelegt und nacheinander gefüllt. Stufe 3 (Task 4) setzt auf `fuelleNacheinander` und `gruppenAus` auf.
 import { stamp } from './stamp.js';
-import { packAll, placementToUnplaced } from './actions.js';
-import { packAllLkws, catOf, catRank } from './lkw-distribute.js';
+import { packAll, packRest, placementToUnplaced } from './actions.js';
+import { packAllLkws, eligibleFor, catOf, catRank } from './lkw-distribute.js';
+import { lkwsOf, lkwView, mergeLkwView, convertToMulti } from './lkw.js';
 import { MAX_LKW } from './limits.js';
 import { t } from '../i18n/i18n.js';
 
@@ -90,29 +91,99 @@ function legeFesteAnzahl(state, base, pieces, truck, ctx, n, categories) {
   };
 }
 
-// Plant die LKW eines Plans neu (Task 3: verhalten 'neu', art 'je-gewerk'). Alle Stücke – platziert oder
-// in der Ablage, alte `lkw` ignoriert – werden je Gruppe auf neu angelegte LKW verteilt; die alten LKW
-// entfallen. Stücke mit unbekanntem Case und alles, was nicht passt, bleibt in der Ablage ohne `lkw`.
-// Mehr-LKW-Plan, sobald mindestens ein LKW entsteht; sonst Einzel-LKW-Form ohne `lkws` mit leerer Ladung
-// (alles in der Ablage, `nichtGeladen` listet es). Unbekanntes `einst.truckId`: Rückfall auf ctx.truck.
+// „So wenige LKW wie möglich“ (Entscheidung 6): nacheinander füllen, Gewerke in CATEGORIES-Reihenfolge.
+// getrennt: je Gewerk füllen, der jeweils letzte LKW gilt als nicht voll, sein Inhalt geht in den
+// gemeinsamen Rest, der danach (nach Gewerk sortiert) wieder nacheinander gefüllt wird.
+function legeWenigste(state, base, pieces, truck, ctx, getrennt) {
+  const catOfPiece = x => catOf(ctx.caseById.get(x.caseId));
+  const sorted = list => [...list].sort((a, b) => byRank(catOfPiece(a), catOfPiece(b)));
+  const catsOf = placed => [...new Set(placed.map(catOfPiece))].sort(byRank);
+  let rest = [];
+  if (getrennt) {
+    for (const g of [...new Set(pieces.map(catOfPiece))].sort(byRank)) {
+      const before = state.lkws.length;
+      const r = fuelleNacheinander(state, base, pieces.filter(x => catOfPiece(x) === g), truck, ctx, catsOf);
+      state = r.state;
+      rest.push(...r.rest);
+      if (state.lkws.length > before) {
+        const last = state.lkws[state.lkws.length - 1];
+        rest.push(...state.placements.filter(p => p.lkw === last.id).map(placementToUnplaced).map(withoutLkw));
+        state = { ...state, lkws: state.lkws.slice(0, -1), placements: state.placements.filter(p => p.lkw !== last.id) };
+      }
+    }
+  } else rest = pieces;
+  return fuelleNacheinander(state, base, sorted(rest), truck, ctx, catsOf);
+}
+
+// Neue LKW für `known` anlegen (je Gewerk-Gruppen oder „wenigste“); was nicht passt, kommt ans Ende
+// von state.unplaced (ohne `lkw`).
+function legeNeue(state, base, known, truck, ctx, einst) {
+  const done = res => ({ ...res.state, unplaced: [...res.state.unplaced, ...res.rest] });
+  if (einst.art === 'wenigste') return done(legeWenigste(state, base, known, truck, ctx, !!einst.getrennt));
+  const gewerke = [...new Set(known.map(x => catOf(ctx.caseById.get(x.caseId))))];
+  for (const g of gruppenAus(gewerke, einst)) {
+    const mine = known.filter(x => g.gewerke.includes(catOf(ctx.caseById.get(x.caseId))));
+    state = done(g.modus === 'n'
+      ? legeFesteAnzahl(state, base, mine, truck, ctx, g.n, g.gewerke)
+      : fuelleNacheinander(state, base, mine, truck, ctx,
+        placed => g.gewerke.filter(w => placed.some(p => catOf(ctx.caseById.get(p.caseId)) === w))));
+  }
+  return state;
+}
+
+// „Nur hinzufügen“ (Entscheidung 7): keine neuen LKW. Je LKW in Listenreihenfolge werden ihm die neuen
+// Stücke angeboten, für die er nach eligibleFor (Regel von distributeLkws) zulässig ist (packRest).
+// Was nirgends passt, bleibt ohne `lkw` in der Ablage. `p` ist ein Mehr-LKW-Plan.
+function fuegeHinzu(p, ctx, neuIds) {
+  const lkws = lkwsOf(p);
+  const isNew = u => neuIds.has(u.id) && ctx.caseById.has(u.caseId);
+  p = { ...p, unplaced: p.unplaced.map(u => (isNew(u) ? withoutLkw(u) : u)) };
+  for (const l of lkws) {
+    const truck = ctx.truckById?.get(l.truckId) ?? ctx.truck;
+    if (!truck) continue;
+    const offered = p.unplaced.filter(u => isNew(u) && !u.lkw
+      && eligibleFor(u, ctx.caseById.get(u.caseId), lkws, ctx).list.some(x => x.id === l.id));
+    if (!offered.length) continue;
+    const view = lkwView(p, l.id);
+    const res = packRest({ ...view, unplaced: offered }, { ...ctx, truck });
+    const before = new Set(view.placements.map(q => q.id));
+    const taken = new Set(res.placements.filter(q => !before.has(q.id)).map(q => q.id));
+    if (!taken.size) continue;
+    p = mergeLkwView({ ...p, unplaced: p.unplaced.filter(u => !taken.has(u.id)) }, l.id, { ...view, placements: res.placements });
+  }
+  return stamp(p);
+}
+
+// Plant die LKW eines Plans (Task 3/4). `einst.verhalten`:
+// - 'neu' (Vorgabe): alle Stücke – platziert oder in der Ablage, alte `lkw` ignoriert – werden nach
+//   `einst.art` (je Gewerk / wenigste) auf neu angelegte LKW verteilt; die alten LKW entfallen. Entsteht kein
+//   LKW, bleibt die Einzel-LKW-Form ohne `lkws` mit leerer Ladung (alles in der Ablage, ohne `lkw`).
+// - 'zusaetzlich': vorhandene LKW und Platzierungen bleiben unverändert (Ein-LKW-Plan wird vorher
+//   Mehr-LKW-Plan); nur die Stücke aus `einst.neu` (IDs, in der Ablage) kommen auf neue LKW (MAX_LKW zählt
+//   die vorhandenen mit). Was nicht passt, bleibt ohne `lkw` in der Ablage; es entfällt nie etwas Vorhandenes.
+// - 'hinzu': keine neuen LKW, die Stücke aus `einst.neu` gehen an vorhandene LKW (fuegeHinzu).
+// Unbekanntes `einst.truckId`: Rückfall auf ctx.truck (wie truckOf in lkw-distribute.js).
 export function planeLkws(plan, ctx, einst) {
-  // Unbekanntes Fahrzeug: Rückfall auf ctx.truck (wie truckOf in lkw-distribute.js).
   const truck = ctx.truckById?.get(einst.truckId) ?? ctx.truck;
+  const verhalten = einst.verhalten;
+  if (verhalten === 'hinzu' || verhalten === 'zusaetzlich') {
+    const p = convertToMulti(plan, ctx.newId);
+    const neuIds = new Set(einst.neu ?? []);
+    if (verhalten === 'hinzu') return fuegeHinzu(p, ctx, neuIds);
+    const { lkws: _l, ...base0 } = p;
+    const base = { ...base0, placements: [], unplaced: [] };
+    const isNew = u => neuIds.has(u.id) && ctx.caseById.has(u.caseId);
+    const known = p.unplaced.filter(isNew).map(withoutLkw);
+    const state = legeNeue({ lkws: p.lkws, placements: p.placements, unplaced: p.unplaced.filter(u => !isNew(u)) },
+      base, known, truck, ctx, einst);
+    return stamp({ ...base, truckId: state.lkws[0].truckId, lkws: state.lkws, placements: state.placements, unplaced: state.unplaced });
+  }
   const all = [...plan.placements.map(placementToUnplaced), ...plan.unplaced].map(withoutLkw);
   const known = all.filter(x => ctx.caseById.has(x.caseId));
   const unknown = all.filter(x => !ctx.caseById.has(x.caseId));
   const { lkws: _l, ...base0 } = plan;
   const base = { ...base0, placements: [], unplaced: [] };
-  const gewerke = [...new Set(known.map(x => catOf(ctx.caseById.get(x.caseId))))];
-  let state = { lkws: [], placements: [], unplaced: [...unknown] };
-  for (const g of gruppenAus(gewerke, einst)) {
-    const mine = known.filter(x => g.gewerke.includes(catOf(ctx.caseById.get(x.caseId))));
-    const res = g.modus === 'n'
-      ? legeFesteAnzahl(state, base, mine, truck, ctx, g.n, g.gewerke)
-      : fuelleNacheinander(state, base, mine, truck, ctx,
-        placed => g.gewerke.filter(w => placed.some(p => catOf(ctx.caseById.get(p.caseId)) === w)));
-    state = { ...res.state, unplaced: [...res.state.unplaced, ...res.rest] };
-  }
+  const state = legeNeue({ lkws: [], placements: [], unplaced: [...unknown] }, base, known, truck, ctx, einst);
   // Entsteht kein LKW, bleibt die Einzel-LKW-Form: nichts geladen, alle Stücke in der Ablage ohne `lkw`.
   if (!state.lkws.length) return stamp({ ...base, truckId: truck.id, placements: [], unplaced: state.unplaced });
   return stamp({ ...base, truckId: state.lkws[0].truckId, lkws: state.lkws, placements: state.placements, unplaced: state.unplaced });
