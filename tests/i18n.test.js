@@ -45,6 +45,7 @@ export const ALLOW = [
   ...['Traversenwagen ', ' Stück)']
     .map(text => ({ file: 'js/ui/truss-wizard.js', text, why: 'gespeicherter Case-Name eines Traversenwagens (Daten bleiben deutsch; groupPrerigCases liest das Schema)' })),
   { file: 'js/ui/load-wizard.js', text: 'Sonderbau', why: 'gespeicherter Wert: Gewerk (Daten bleiben deutsch, Anzeige über trade())' },
+  { file: 'js/model/lkw-import.js', text: 'mit', why: 'Moduswert der Import-Einstellungen (Daten, keine Anzeige)' },
   { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['Anzahl', 'Breite (cm)', 'Farbe', 'Gewerk', 'Gewicht (kg)', 'Höchste Lage (1/2/3)', 'Höhe (cm)', 'Höhe inkl. Rollen (cm)', 'Länge (cm)', 'Name', 'Profil', 'Rollen (ja/nein)', 'Stückzahl', 'Tiefe (cm)', 'Tippen', 'breite', 'gewicht', 'tiefe', 'Grün', 'Türkis', 'Schwarz', 'Weiß', 'Sonstiges', 'Höhe immer inklusive Rollen, so wie das Case auf den Rollen steht. Kopfzeile nicht ändern.']
     .map(text => ({ file: 'js/model/ladeliste.js', text, why: 'Kopfzeile/Farbwort der Ladeliste: Erkennung in beiden Sprachen (Daten, keine Anzeige)' })),

@@ -14,8 +14,8 @@ const withLkw = (x, id) => ({ ...x, lkw: id });
 const withoutLkw = x => { const { lkw: _d, ...rest } = x; return rest; };
 const weightOf = c => (typeof c.weight === 'number' && Number.isFinite(c.weight) && c.weight > 0 ? c.weight : 0);
 // Case ohne Gewerk gilt als „Sonstiges“ (Vorgabe im Case-Editor).
-const catOf = c => c.category || 'Sonstiges';
-const catRank = name => { const i = CATEGORIES.findIndex(c => c.name === name); return i < 0 ? CATEGORIES.length : i; };
+export const catOf = c => c.category || 'Sonstiges';
+export const catRank = name => { const i = CATEGORIES.findIndex(c => c.name === name); return i < 0 ? CATEGORIES.length : i; };
 
 // Zulässige LKW eines Stücks in Listenreihenfolge: die LKW mit angehaktem Gewerk, sonst die
 // Rest-LKW (ohne Haken). Ein LKW zählt nur, wenn sein Fahrzeug das Stück in irgendeiner
