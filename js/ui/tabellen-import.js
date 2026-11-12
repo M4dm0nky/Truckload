@@ -6,7 +6,7 @@
 import { esc, safeColor, icon } from './dom.js';
 import { t, lang, trade } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
-import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten } from '../model/ladeliste.js';
+import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -15,7 +15,7 @@ export const vorlageDatei = (l = lang) => VORLAGEN[l === 'en' ? 'en' : 'de'];
 const reiterName = r => ({ cases: t('Cases'), traversen: t('Traversen'), boxen: t('Boxen'), set: t('Set') })[r];
 const spaltenLabel = sg => (lang === 'en' ? sg.en : sg.de);
 const ganzzahl = s => { const z = zahl(s, '').wert; return Number.isInteger(z) && z > 0 ? z : 0; };
-const istListe = e => e.reiter === 'cases' || e.reiter === 'set';
+const istListe = e => e.reiter === 'cases' || e.reiter === 'set' || istLoseBox(e);
 
 // Stückzahlen je Kachel und je Gewerk (nur Zeilen ohne roten Befund), plus Zahl der roten/gelben Zeilen.
 export function zusammenfassung(eintraege) {
@@ -23,7 +23,7 @@ export function zusammenfassung(eintraege) {
   const gewerke = new Map();
   for (const e of eintraege) {
     if (e.reiter === 'traversen') { z.traversen += ganzzahl(e.werte.stueck); continue; }
-    if (e.reiter === 'boxen') { z.boxen += ganzzahl(e.werte.anzahl); continue; }
+    if (e.reiter === 'boxen' && !istLoseBox(e)) { z.boxen += ganzzahl(e.werte.anzahl); continue; }
     if (e.befunde.some(b => b.stufe === 'rot')) { z.rot++; continue; }
     if (e.befunde.length) z.gelb++;
     const d = entwurfAus(e);
@@ -44,7 +44,7 @@ const farbName = hex => { const f = FARBEN.find(x => x.hex === hex); return f ? 
 
 // Merkliste: Traversen und Boxen werden in Stufe 1 nur angezeigt, nie gebaut.
 function merklisteHtml(eintraege) {
-  const zeilen = eintraege.filter(e => e.reiter === 'traversen' || e.reiter === 'boxen').map(e => (e.reiter === 'traversen'
+  const zeilen = eintraege.filter(e => e.reiter === 'traversen' || (e.reiter === 'boxen' && !istLoseBox(e))).map(e => (e.reiter === 'traversen'
     ? `<li>${esc(e.werte.stueck)} × ${esc(e.werte.profil)} · ${esc(e.werte.laenge)} cm</li>`
     : `<li>${esc(e.werte.anzahl)} × ${esc(e.werte.typ)}</li>`));
   if (!zeilen.length) return '';
@@ -96,7 +96,7 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
     </menu>`;
 }
 
-// Entwürfe für die Übernahme; ausgelassen = Cases/Set-Zeilen mit rotem Befund (kein Entwurf).
+// Entwürfe für die Übernahme; ausgelassen = Cases/Set/lose-Boxen-Zeilen mit rotem Befund (kein Entwurf).
 export function entwuerfeAus(eintraege) {
   const entwuerfe = [];
   const ausgelassen = [];
@@ -119,10 +119,10 @@ export function zeilenStatus(e) {
 
 const passt = (e, suche) => !suche || Object.values(e.werte).some(v => String(v).toLowerCase().includes(suche));
 
-// Tabelle des gewählten Reiters (Cases oder Set). Zeilen tragen ihren Index im ganzen Array
+// Tabelle des gewählten Reiters (Cases, Set oder Boxen). Zeilen tragen ihren Index im ganzen Array
 // (data-i), Zellen ihren Schlüssel (data-k); gezeichnet werden alle Zeilen des Filters (der Leser
 // liefert höchstens 2000).
-// opts: { filter: 'alle'|'fehler', reiter: 'cases'|'set', suche, zeilen?: Set<Zeilennummer> }.
+// opts: { filter: 'alle'|'fehler', reiter: 'cases'|'set'|'boxen', suche, zeilen?: Set<Zeilennummer> }.
 export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche = '', zeilen = null } = {}) {
   const spalten = SPALTEN[reiter];
   const s = String(suche).trim().toLowerCase();
@@ -154,7 +154,7 @@ function listeSeiteHtml(st) {
   return `
     <h2>${t('Liste bearbeiten')}</h2>
     <div class="ti-leiste">
-      <div class="seg">${tab('cases')}${tab('set')}</div>
+      <div class="seg">${tab('cases')}${tab('set')}${tab('boxen')}</div>
       <select data-role="filter">
         <option value="all">${t('Alle')}</option>
         <option value="bad"${st.filter === 'fehler' ? ' selected' : ''}>${t('Nur fehlerhafte')}</option>
@@ -220,9 +220,11 @@ export async function openTabellenImport(dlg, opts) {
     else if (act === 'edit') {
       st.view = 'list'; st.filter = b.dataset.filter === 'bad' ? 'fehler' : 'alle'; st.reiter = b.dataset.tab ?? 'cases'; st.suche = '';
       st.zeilen = b.dataset.rows ? { reiter: st.reiter, set: new Set(b.dataset.rows.split(',').map(Number)) } : null;
-      // „fehlerhaft“ kann im Set-Reiter liegen, wenn Cases sauber sind
-      if (st.filter === 'fehler' && !st.eintraege.some(e => e.reiter === st.reiter && e.befunde.length)
-        && st.eintraege.some(e => e.reiter === 'set' && e.befunde.length)) st.reiter = 'set';
+      // „fehlerhaft“ kann im Set- oder Boxen-Reiter liegen, wenn Cases sauber sind
+      if (st.filter === 'fehler' && !st.eintraege.some(e => e.reiter === st.reiter && e.befunde.length)) {
+        const anderer = ['set', 'boxen'].find(r => st.eintraege.some(e => e.reiter === r && e.befunde.length));
+        if (anderer) st.reiter = anderer;
+      }
       render();
     } else if (act === 'back') { st.view = 'overview'; render(); }
     else if (act === 'tab') { st.reiter = b.dataset.tab; render(); }

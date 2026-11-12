@@ -49,6 +49,11 @@ export const SPALTEN = {
   boxen: [
     sp('typ', 'Typ', 'Type', true),
     sp('anzahl', 'Anzahl', 'Count', true),
+    // Maße nur für lose Boxen; ohne Maße bleibt die Zeile eine Merkliste (Boxen auf Dolly baut der Schritt Boxen)
+    sp('breite', 'Breite (cm)', 'Width (cm)'),
+    sp('tiefe', 'Tiefe (cm)', 'Depth (cm)'),
+    sp('hoehe', 'Höhe (cm)', 'Height (cm)'),
+    sp('gewicht', 'Gewicht (kg)', 'Weight (kg)'),
     GEWERK, NOTIZ,
   ],
   set: [
@@ -162,6 +167,12 @@ function ja_nein(roh, leer) {
   return null;
 }
 
+const MASSE = ['breite', 'tiefe', 'hoehe'];
+
+// Lose Box: Boxen-Zeile, in der mindestens ein Maß steht (alle drei = Entwurf, sonst roter Befund).
+// Ohne jedes Maß bleibt die Zeile eine Merkliste.
+export const istLoseBox = e => e.reiter === 'boxen' && MASSE.some(k => String(e.werte[k] ?? '').trim() !== '');
+
 // Berechnet Befunde und (ohne rote Befunde) den Entwurf aus den Werten.
 function auswerten(e) {
   const { reiter } = e;
@@ -171,11 +182,13 @@ function auswerten(e) {
   const rot = (feld, text) => befunde.push({ feld, stufe: 'rot', text });
   const gelb = (feld, text) => befunde.push({ feld, stufe: 'gelb', text });
   const feldName = k => label(reiter, k);
-  if (reiter !== 'cases' && reiter !== 'set') return { befunde, entwurf: null };
+  const boxen = reiter === 'boxen';
+  if (reiter !== 'cases' && reiter !== 'set' && !(boxen && istLoseBox(e))) return { befunde, entwurf: null };
 
-  const name = roh('name');
-  if (name === '') rot('name', t('Name fehlt.'));
-  else if (name.length > NAME_MAX) rot('name', t('Name ist länger als {max} Zeichen.', { max: NAME_MAX }));
+  const nameKey = boxen ? 'typ' : 'name';
+  const name = roh(nameKey);
+  if (name === '') rot(nameKey, boxen ? t('„{feld}“ fehlt.', { feld: feldName('typ') }) : t('Name fehlt.'));
+  else if (name.length > NAME_MAX) rot(nameKey, t('Name ist länger als {max} Zeichen.', { max: NAME_MAX }));
 
   // Zahl mit Grenzen; leer → null (Aufrufer entscheidet), Fehler als roter Befund
   const messen = (key, einheit, { min, max, minIncl }) => {
@@ -204,11 +217,13 @@ function auswerten(e) {
   const h = mass('hoehe', CASE_LIMITS.h);
 
   let menge = 1;
-  if (roh('menge') === '') gelb('menge', t('Menge fehlt, 1 angenommen.'));
+  const mengeKey = boxen ? 'anzahl' : 'menge';
+  if (roh(mengeKey) === '' && boxen) { rot('anzahl', t('„{feld}“ fehlt.', { feld: feldName('anzahl') })); menge = null; }
+  else if (roh(mengeKey) === '') gelb('menge', t('Menge fehlt, 1 angenommen.'));
   else {
-    const z = zahl(roh('menge'), '').wert;
+    const z = zahl(roh(mengeKey), '').wert;
     if (z === null || !Number.isInteger(z) || z < 1 || z > CASE_LIMITS.stock) {
-      rot('menge', t('Menge muss eine ganze Zahl von 1 bis {max} sein.', { max: CASE_LIMITS.stock }));
+      rot(mengeKey, t('Menge muss eine ganze Zahl von 1 bis {max} sein.', { max: CASE_LIMITS.stock }));
       menge = null;
     } else menge = z;
   }
@@ -217,7 +232,8 @@ function auswerten(e) {
   if (roh('gewicht') !== '') weight = messen('gewicht', 'kg', { min: 0, max: CASE_LIMITS.weight, minIncl: true });
 
   let layers = [1, 2];
-  if (roh('lage') === '') gelb('lage', t('Höchste Lage fehlt, Lage 1 und 2 angenommen.'));
+  if (boxen) { /* keine Spalte „Höchste Lage“: Vorgabe 1 und 2 */ }
+  else if (roh('lage') === '') gelb('lage', t('Höchste Lage fehlt, Lage 1 und 2 angenommen.'));
   else {
     const z = zahl(roh('lage'), '').wert;
     if (z === null || ![1, 2, 3].includes(z)) { rot('lage', t('Höchste Lage muss 1, 2 oder 3 sein.')); layers = null; }
@@ -240,13 +256,13 @@ function auswerten(e) {
   const gewerk = gewerkVon(roh('gewerk'));
   if (gewerk.name.length > MAX_LABEL) rot('gewerk', t('Gewerk ist länger als {max} Zeichen.', { max: MAX_LABEL }));
   else if (!gewerk.bekannt) gelb('gewerk', t('Gewerk „{wert}“ ist unbekannt und wird als eigener Name übernommen.', { wert: gewerk.name }));
-  const farbe = farbeVon(roh('farbe'), gewerk.name);
+  const farbe = farbeVon(boxen ? '' : roh('farbe'), gewerk.name);
   if (!farbe.bekannt) gelb('farbe', t('Farbe „{wert}“ nicht erkannt, Gewerkfarbe verwendet.', { wert: roh('farbe') }));
 
   if (befunde.some(b => b.stufe === 'rot')) return { befunde, entwurf: null };
   const c = {
     name, l, w, h, weight, category: gewerk.name, color: farbe.hex, layers,
-    wheels, dimsInclWheels: true, tippable, herkunft: 'import',
+    wheels, dimsInclWheels: !boxen, tippable, herkunft: 'import',
     stackable: true, maxTopLoad: null, // wie die Editor-Vorgabe: ohne Angabe stapelbar, keine Auflastgrenze
   };
   c.wheelH = wheels ? ROLLEN_H : 0;

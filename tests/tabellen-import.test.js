@@ -44,7 +44,7 @@ test('zusammenfassung: rot und gelb zählen Zeilen, rote Zeilen zählen keine St
     ['C', '3', '60', '40', '50', 'nein', '5', '2', '', 'Ton', ''],       // ok
   ]);
   const trav = lies('traversen', [['Box 40', '300', '4', 'Rigging', '']]);
-  const boxen = lies('boxen', [['Sub', '34', 'Ton', '']]);
+  const boxen = lies('boxen', [['Sub', '34', '', '', '', '', 'Ton', '']]);
   const set = lies('set', [['Podest', '2', '200', '100', '30', '', '1', 'Bühne', '']]);
   const z = zusammenfassung([...cases, ...trav, ...boxen, ...set]);
   assert.deepEqual([z.cases, z.rot, z.gelb, z.traversen, z.boxen, z.set], [5, 1, 1, 4, 34, 2]);
@@ -55,7 +55,7 @@ test('uebersichtHtml: Name mit HTML wird maskiert (Gewerk, Merkliste, Projektnam
   const eintraege = [
     ...lies('cases', [[XSS, '1', '60', '40', '50', 'nein', '', '2', '', XSS, ''], ['kaputt', '1', '60', '40', '', '', '', '', '', '', '']]),
     ...lies('traversen', [[XSS, '300', '2', '', XSS]]),
-    ...lies('boxen', [[XSS, '3', '', '']]),
+    ...lies('boxen', [[XSS, '3', '', '', '', '', '', '']]),
   ];
   const html = uebersichtHtml(zusammenfassung(eintraege), auffaelligkeiten(eintraege), { zielAktuell: XSS, merkliste: eintraege, dateiname: XSS });
   assert.ok(!html.includes('<img'), html);
@@ -212,4 +212,43 @@ test('uebersichtHtml: Zähltexte im Plural nur bei 2+, Einzahl bei 1 (Englisch)'
 test('stock-target: Betriebsart projekt', () => {
   assert.equal(stockTargetHtml({ mode: 'projekt' }), '');
   assert.deepEqual(readStockTarget(null, { mode: 'projekt' }), { inStock: false, company: '' });
+});
+
+// Task 1b: lose Boxen aus dem Reiter Boxen
+// Spalten: Typ, Anzahl, Breite, Tiefe, Höhe, Gewicht, Gewerk, Notiz
+test('Boxen: Zeilen mit Maßen zählen als Boxen und Gewerk, ohne Maße bleiben sie Merkliste', () => {
+  const b = lies('boxen', [
+    ['Kiste', '3', '40', '50', '60', '12', 'Ton', ''],   // lose Box
+    ['Sub', '34', '', '', '', '', 'Ton', ''],             // Merkliste
+    ['Halb', '2', '40', '', '', '', 'Ton', ''],           // rot
+  ]);
+  const z = zusammenfassung(b);
+  assert.deepEqual([z.boxen, z.rot, z.gelb], [37, 1, 0]);
+  assert.deepEqual(z.jeGewerk.map(g => [g.gewerk, g.anzahl]), [['Ton', 3]]);
+  const html = uebersichtHtml(z, [], { merkliste: b });
+  assert.match(html, /34 × Sub/);
+  assert.doesNotMatch(html, /3 × Kiste/);
+  assert.doesNotMatch(html, /2 × Halb/);
+});
+
+test('entwuerfeAus: lose Boxen sind Entwürfe, rote Boxen-Zeilen landen in ausgelassen, Merkliste nicht', () => {
+  const b = lies('boxen', [
+    ['Kiste', '3', '40', '50', '60', '', 'Ton', ''],
+    ['Sub', '34', '', '', '', '', 'Ton', ''],
+    ['Halb', '2', '40', '', '', '', 'Ton', ''],
+  ]);
+  const { entwuerfe, ausgelassen } = entwuerfeAus(b);
+  assert.equal(entwuerfe.length, 1);
+  assert.equal(entwuerfe[0].menge, 3);
+  assert.equal(entwuerfe[0].case.name, 'Kiste');
+  assert.deepEqual(ausgelassen.map(x => x.werte.typ), ['Halb']);
+});
+
+test('listeHtml: Reiter Boxen zeigt Zeilen mit Eingabefeldern; Merkliste-Zeile hat keinen roten Befund', () => {
+  const b = lies('boxen', [['Sub', '34', '', '', '', '', 'Ton', ''], ['Halb', '2', '40', '', '', '', 'Ton', '']]);
+  const h = listeHtml(b, { filter: 'alle', reiter: 'boxen', suche: '' });
+  assert.equal((h.match(/<tr data-i/g) ?? []).length, 2);
+  assert.equal((h.match(/<tr data-i="0"[^]*?<\/tr>/)[0].match(/<input/g) ?? []).length, SPALTEN.boxen.length);
+  assert.match(h, /<tr data-i="1" class="rot"/);
+  assert.match(h, /<tr data-i="0" class=""/);
 });

@@ -85,7 +85,7 @@ export function wireTabellenImport({ store, editWhole, switchPlan, uid, showAler
 
   // Zeilen, die wegen roter Befunde fehlen, werden genannt (Zahl und die ersten Namen).
   const ausgelassenText = ausgelassen => {
-    const liste = capList(ausgelassen.map(e => `${e.zeile ?? '+'}: ${e.werte.name || '?'}`)).join(', ');
+    const liste = capList(ausgelassen.map(e => `${e.zeile ?? '+'}: ${e.werte.name || e.werte.typ || '?'}`)).join(', ');
     return ausgelassen.length === 1
       ? t('1 Zeile mit Fehlern wurde nicht übernommen: {liste}', { liste })
       : t('{n} Zeilen mit Fehlern wurden nicht übernommen: {liste}', { n: ausgelassen.length, liste });

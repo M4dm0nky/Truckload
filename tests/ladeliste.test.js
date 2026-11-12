@@ -315,3 +315,78 @@ test('Gewerk: höchstens 40 Zeichen (lkw.categories-Grenze) – 40 ok, 41 rot', 
   rot(zuLang, 'gewerk');
   assert.equal(entwurfAus(zuLang), null);
 });
+
+// Task 1b: Reiter Boxen mit Maßen (lose Boxen)
+import { istLoseBox } from '../js/model/ladeliste.js';
+const BOX = (ueber = {}) => ({ typ: 'Kiste', anzahl: '3', breite: '40', tiefe: '50', hoehe: '60', gewicht: '12', gewerk: 'Ton', notiz: '', ...ueber });
+const box = ueber => {
+  const rows = [kopf('boxen'), zeileAus(BOX(ueber), 'boxen')];
+  return werteZeilen('boxen', rows, erkenneReiter(rows))[0];
+};
+
+test('SPALTEN.boxen: Typ/Anzahl Pflicht, Maße und Gewicht optional, deutsch und englisch', () => {
+  assert.deepEqual(SPALTEN.boxen.map(s => s.key), ['typ', 'anzahl', 'breite', 'tiefe', 'hoehe', 'gewicht', 'gewerk', 'notiz']);
+  assert.deepEqual(SPALTEN.boxen.filter(s => s.pflicht).map(s => s.key), ['typ', 'anzahl']);
+  const k = key => SPALTEN.boxen.find(s => s.key === key);
+  assert.deepEqual([k('breite').de, k('tiefe').de, k('hoehe').de, k('gewicht').de], ['Breite (cm)', 'Tiefe (cm)', 'Höhe (cm)', 'Gewicht (kg)']);
+  assert.deepEqual([k('breite').en, k('tiefe').en, k('hoehe').en, k('gewicht').en], ['Width (cm)', 'Depth (cm)', 'Height (cm)', 'Weight (kg)']);
+});
+
+test('Boxen mit drei Maßen: Entwurf als lose Box (keine Rollen, nie getippt, Lage 1/2)', () => {
+  const e = box({});
+  assert.deepEqual(e.befunde, []);
+  assert.equal(istLoseBox(e), true);
+  const d = entwurfAus(e);
+  assert.equal(d.menge, 3);
+  assert.equal(d.tipped, false);
+  const c = d.case;
+  assert.deepEqual([c.name, c.l, c.w, c.h, c.weight, c.category], ['Kiste', 50, 40, 60, 12, 'Ton']);
+  assert.deepEqual([c.wheels, c.dimsInclWheels, c.tippable, c.layers, c.herkunft], [false, false, false, [1, 2], 'import']);
+  assert.equal('id' in c, false);
+});
+
+test('Boxen: Gewicht leer ergibt 0, Gewerk leer ergibt Sonstiges', () => {
+  const c = entwurfAus(box({ gewicht: '', gewerk: '' })).case;
+  assert.equal(c.weight, 0);
+  assert.equal(c.category, 'Sonstiges');
+});
+
+test('Boxen: ein oder zwei Maße: roter Befund am fehlenden Feld, kein Entwurf', () => {
+  const e1 = box({ tiefe: '', hoehe: '' });
+  rot(e1, 'tiefe'); rot(e1, 'hoehe'); assert.equal(befund(e1, 'breite').length, 0);
+  assert.equal(entwurfAus(e1), null);
+  assert.equal(istLoseBox(e1), true);
+  const e2 = box({ breite: '' });
+  rot(e2, 'breite'); assert.equal(entwurfAus(e2), null);
+});
+
+test('Boxen ohne Maße: Merkliste, kein Befund, kein Entwurf (auch bei Gewicht)', () => {
+  for (const ueber of [{ breite: '', tiefe: '', hoehe: '' }, { breite: '', tiefe: '', hoehe: '', gewicht: '5', anzahl: 'x' }]) {
+    const e = box(ueber);
+    assert.deepEqual(e.befunde, []);
+    assert.equal(entwurfAus(e), null);
+    assert.equal(istLoseBox(e), false);
+  }
+});
+
+test('Boxen: Typ, Anzahl, Maß-Grenzen und Einheit wie bei Cases', () => {
+  rot(box({ typ: ' ' }), 'typ');
+  rot(box({ typ: 'x'.repeat(81) }), 'typ');
+  for (const a of ['', '0', '1.5', 'abc', '9999999']) rot(box({ anzahl: a }), 'anzahl');
+  rot(box({ breite: '2001' }), 'breite');
+  rot(box({ gewicht: 'abc' }), 'gewicht');
+  const e = box({ breite: '40 cm' });
+  gelb(e, 'breite');
+  assert.equal(entwurfAus(e).case.w, 40);
+});
+
+test('alte Kopfzeile ohne Maß-Spalten (Typ, Anzahl, Gewerk, Notiz): Reiter boxen, alle Zeilen Merkliste', () => {
+  const rows = [['Typ', 'Anzahl', 'Gewerk', 'Notiz'], ['Sub', '34', 'Ton', 'x']];
+  const k = erkenneReiter(rows);
+  assert.equal(k.reiter, 'boxen');
+  const [e] = werteZeilen('boxen', rows, k);
+  assert.deepEqual(e.befunde, []);
+  assert.equal(istLoseBox(e), false);
+  assert.equal(entwurfAus(e), null);
+  assert.equal(e.werte.anzahl, '34');
+});
