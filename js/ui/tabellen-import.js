@@ -7,6 +7,9 @@ import { esc, safeColor, icon } from './dom.js';
 import { t, lang, trade } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
 import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
+import { alsImportCase } from '../model/tabellen-uebernahme.js';
+import { openTrussDialog } from './truss-wizard.js';
+import { openDollyDialog } from './dolly-wizard.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -42,13 +45,15 @@ export const auffaelligkeiten = eintraege => ['cases', 'set']
 
 const farbName = hex => { const f = FARBEN.find(x => x.hex === hex); return f ? (lang === 'en' ? f.en : f.de) : hex; };
 
-// Merkliste: Traversen und Boxen werden in Stufe 1 nur angezeigt, nie gebaut.
+// Merkliste: Traversen und Boxen ohne Maße; sie werden in den Schritten danach von Hand gebaut.
+const merklisteZeilen = eintraege => eintraege.filter(e => e.reiter === 'traversen' || (e.reiter === 'boxen' && !istLoseBox(e))).map(e => (e.reiter === 'traversen'
+  ? `<li>${esc(e.werte.stueck)} × ${esc(e.werte.profil)} · ${esc(e.werte.laenge)} cm</li>`
+  : `<li>${esc(e.werte.anzahl)} × ${esc(e.werte.typ)}</li>`));
+
 function merklisteHtml(eintraege) {
-  const zeilen = eintraege.filter(e => e.reiter === 'traversen' || (e.reiter === 'boxen' && !istLoseBox(e))).map(e => (e.reiter === 'traversen'
-    ? `<li>${esc(e.werte.stueck)} × ${esc(e.werte.profil)} · ${esc(e.werte.laenge)} cm</li>`
-    : `<li>${esc(e.werte.anzahl)} × ${esc(e.werte.typ)}</li>`));
+  const zeilen = merklisteZeilen(eintraege);
   if (!zeilen.length) return '';
-  return `<div class="ti-memo"><b>${t('Merkliste')}</b> <span class="hint">${t('Traversen und Boxen werden in einer späteren Version gebaut. Aus diesen Zeilen entsteht jetzt nichts.')}</span><ul>${zeilen.join('')}</ul></div>`;
+  return `<div class="ti-memo"><b>${t('Merkliste')}</b> <span class="hint">${t('Diese Zeilen baust du in den nächsten Schritten selbst (Traversen, Boxen).')}</span><ul>${zeilen.join('')}</ul></div>`;
 }
 
 // z = zusammenfassung(...), auffaellig = auffaelligkeiten(...). opts: { zielAktuell: string|null,
@@ -146,10 +151,84 @@ export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche 
 // Boxen-Zeile = Merkliste), würde „fehler“ sie verstecken.
 export const filterNachHinzufuegen = e => (e.befunde.length ? 'fehler' : 'alle');
 
+// ---- Schritte nach der Übersicht: Traversen, Boxen, Set (und später LKWs) ----
+
+// Reihenfolge der Schritte; ein Schritt kommt nur, wenn sein Reiter Zeilen hat. `lkws` nur beim Laden.
+export function schritte(eintraege, laden) {
+  const hat = r => eintraege.some(e => e.reiter === r);
+  return [...['traversen', 'boxen', 'set'].filter(hat), ...(laden ? ['lkws'] : [])];
+}
+
+const MAX_STUECK = 500;
+const istTraverse = c => c?.kind === 'truss';
+const istDollyStack = c => c?.kind === 'speaker' && c.unitH > 0;
+const setRot = eintraege => eintraege.some(e => e.reiter === 'set' && e.befunde.some(b => b.stufe === 'rot'));
+export const setGesperrt = (eintraege, ohneRot) => setRot(eintraege) && !ohneRot;
+
+// Fußzeile der Schritte: Zurück links, rechts Weiter bzw. im letzten Schritt Übernehmen.
+function fussHtml({ letzter = false, laden = false, sperre = false } = {}) {
+  const dis = sperre ? ' disabled' : '';
+  const vor = letzter
+    ? `<button type="button" class="primary" data-act="finish" data-role="go"${dis}>${laden ? t('Übernehmen und laden') : t('Nur übernehmen')}</button>`
+    : `<button type="button" class="primary" data-act="next" data-role="go"${dis}>${t('Weiter')}</button>`;
+  return `<menu><button type="button" data-act="prev">${t('Zurück')}</button><span class="grow"></span>${vor}</menu>`;
+}
+
+// Bauseite für Traversen oder Boxen. merkliste: Tabellenzeilen (es zählen die des Reiters `art`);
+// gebaut: { cases, stuecke }; opts: { dollyBasen, bibliothekCases, basisId, basisN, letzter, laden }.
+export function bauSchrittHtml(art, merkliste, gebaut, { dollyBasen = [], bibliothekCases = [], basisId = '', basisN = 1, letzter = false, laden = false } = {}) {
+  const zeilen = merkliste.filter(e => e.reiter === art);
+  const caseVon = new Map([...bibliothekCases, ...dollyBasen, ...gebaut.cases].map(c => [c.id, c]));
+  const eigene = gebaut.stuecke.map((s, i) => ({ s, i, c: caseVon.get(s.caseId) })).filter(x => istTraverse(x.c) === (art === 'traversen'));
+  const gebautZeile = ({ s, i, c }) => {
+    const tag = art === 'boxen'
+      ? (istDollyStack(c) ? `<span class="ti-tag dolly">${t('Dolly')}</span>` : `<span class="ti-tag loose">${t('lose')}</span>`)
+      : '';
+    return `<li class="ti-bauzeile"><span class="ti-name">${esc(c?.name ?? s.caseId)}</span>${tag}`
+      + `<input type="number" min="1" max="${MAX_STUECK}" step="1" value="${esc(s.n)}" data-k="n" data-s="${i}" aria-label="${t('Anzahl')}">`
+      + `<button type="button" class="ti-del" data-act="rm" data-s="${i}" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">${icon('trash')}</button></li>`;
+  };
+  const memo = merklisteZeilen(zeilen);
+  const ausTabelle = art === 'boxen' ? zeilen.filter(istLoseBox) : [];
+  const links = `<div class="ti-memo"><b>${t('Merkliste')}</b>${memo.length ? `<ul>${memo.join('')}</ul>` : ` <span class="hint">${t('Keine Zeilen.')}</span>`}</div>`
+    + (ausTabelle.length
+      ? `<div class="ti-ausTabelle"><b>${t('Kommt aus der Tabelle')}</b><ul>${ausTabelle.map(e => `<li>${esc(e.werte.typ)} · ${esc(e.werte.anzahl)}</li>`).join('')}</ul></div>`
+      : '');
+  const rechts = `<div class="ti-gebaut"><b>${t('Gebaut')}</b>${eigene.length ? `<ul>${eigene.map(gebautZeile).join('')}</ul>` : ` <span class="hint">${t('Noch nichts gebaut.')}</span>`}</div>`;
+  const steuerung = art === 'traversen'
+    ? `<div class="ti-bauknoepfe"><button type="button" data-act="truss">${t('Traverse hinzufügen')}</button></div>`
+    : dollyBasen.length
+      ? `<div class="ti-bauknoepfe"><select data-role="basis" aria-label="${t('Grundbox')}">${dollyBasen.map(b => `<option value="${esc(b.id)}"${b.id === basisId ? ' selected' : ''}>${esc(b.name)}</option>`).join('')}</select>`
+        + `<input type="number" min="1" max="${MAX_STUECK}" step="1" value="${esc(basisN)}" data-role="basisn" aria-label="${t('Anzahl')}">`
+        + `<button type="button" data-act="loose">${t('Lose hinzufügen')}</button><button type="button" data-act="dolly">${t('Auf Dolly laden')}</button></div>`
+      : `<p class="hint">${t('Keine Grundboxen in der Bibliothek.')}</p>`;
+  return `
+    <h2>${art === 'traversen' ? t('Traversen bauen') : t('Boxen bauen')}</h2>
+    <div class="ti-bau"><div>${links}</div>${rechts}</div>
+    ${steuerung}
+    ${fussHtml({ letzter, laden })}`;
+}
+
 const zaehlerText = eintraege => {
   const z = zusammenfassung(eintraege);
   return `${t('{rot} fehlerhaft', { rot: z.rot })} · ${t('{gelb} mit Hinweis', { gelb: z.gelb })}`;
 };
+
+// Set-Schritt: bearbeitbare Tabelle nur der Set-Teile (gleiche data-i/data-k wie die Liste).
+export function setSchrittHtml(eintraege, { ohneRot = false, letzter = false, laden = false } = {}) {
+  const sperre = setGesperrt(eintraege, ohneRot);
+  return `
+    <h2>${t('Set')}</h2>
+    <p class="hint">${t('Set-Teile prüfen und bei Bedarf korrigieren.')}</p>
+    <div class="ti-leiste">
+      <button type="button" data-act="add">${t('Zeile hinzufügen')}</button>
+      <span class="hint" data-role="count">${esc(zaehlerText(eintraege.filter(e => e.reiter === 'set')))}</span>
+    </div>
+    <div class="ti-scroll" data-role="table">${listeHtml(eintraege, { filter: 'alle', reiter: 'set' })}</div>
+    <label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>
+    <p class="hint" data-role="sperrhinweis"${sperre ? '' : ' hidden'}>${t('Weiter ist gesperrt, solange rote Zeilen bleiben. Korrigieren oder „rote Zeilen nicht übernehmen“ ankreuzen.')}</p>
+    ${fussHtml({ letzter, laden, sperre })}`;
+}
 
 function listeSeiteHtml(st) {
   const n = r => st.eintraege.filter(e => e.reiter === r).length;
@@ -172,12 +251,14 @@ function listeSeiteHtml(st) {
     <menu><span class="grow"></span><button type="button" class="primary" data-act="back">${t('Zurück zur Übersicht')}</button></menu>`;
 }
 
-// Esc (cancel-Ereignis des Dialogs): in der Liste zurück zur Übersicht (Korrekturen bleiben), sonst Abbruch (null).
-export const escZiel = view => (view === 'list' ? 'overview' : null);
+// Esc (cancel-Ereignis des Dialogs): in Liste und Schritten zurück zur Übersicht (Korrekturen bleiben), sonst Abbruch (null).
+export const escZiel = view => (view === 'overview' ? null : 'overview');
 
-// opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null }.
-// opts.bestaetige(ergebnis): optional, async; false = Dialog bleibt offen (Eingaben bleiben erhalten).
-// Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean } oder null bei Abbruch.
+// opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null,
+//   trussDlg, dollyDlg (eigene <dialog>-Elemente), dollyBasen: Case[] (Grundboxen), bibliothekCases: Case[] }.
+// opts.bestaetige(ergebnis): optional, async, wird erst im letzten Schritt gerufen; false = Dialog bleibt offen.
+// Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean, gebaut: { cases, stuecke } }
+// oder null bei Abbruch. Gebaute Cases sind Import-Cases (nie in der Bibliothek), Stücke { caseId, n }.
 export async function openTabellenImport(dlg, opts) {
   if (dlg.open) {
     const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
@@ -188,15 +269,37 @@ export async function openTabellenImport(dlg, opts) {
   const st = {
     eintraege: [...opts.eintraege], view: 'overview', reiter: 'cases', filter: 'alle', suche: '', zeilen: null,
     ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false,
+    laden: false, folge: [], gebaut: { cases: [], stuecke: [] }, basisId: '', basisN: 1,
   };
+  const dollyBasen = opts.dollyBasen ?? [];
+  const bibliothekCases = opts.bibliothekCases ?? [];
   let result = null;
 
   const tabelleNeu = () => {
     const zeilen = st.zeilen?.reiter === st.reiter ? st.zeilen.set : null;
-    dlg.querySelector('[data-role=table]').innerHTML = listeHtml(st.eintraege, { filter: st.filter, reiter: st.reiter, suche: st.suche, zeilen });
+    const filter = st.view === 'set' ? 'alle' : st.filter;
+    dlg.querySelector('[data-role=table]').innerHTML = listeHtml(st.eintraege, { filter, reiter: st.reiter, suche: st.suche, zeilen });
+  };
+  const zaehler = () => zaehlerText(st.view === 'set' ? st.eintraege.filter(e => e.reiter === 'set') : st.eintraege);
+  // Im Set-Schritt hängt Weiter an den roten Set-Zeilen; nach einer Änderung nur Knopf und Hinweis nachziehen.
+  const setSperreNeu = () => {
+    if (st.view !== 'set') return;
+    const sperre = setGesperrt(st.eintraege, st.ohneRot);
+    const knopf = dlg.querySelector('[data-role=go]');
+    if (knopf) knopf.disabled = sperre;
+    const hinweis = dlg.querySelector('[data-role=sperrhinweis]');
+    if (hinweis) hinweis.hidden = !sperre;
   };
   const render = () => {
     if (st.view === 'list') { dlg.innerHTML = `<div class="editor ti">${listeSeiteHtml(st)}</div>`; return; }
+    if (st.view !== 'overview') {
+      const letzter = st.folge.indexOf(st.view) === st.folge.length - 1;
+      const inhalt = st.view === 'set'
+        ? setSchrittHtml(st.eintraege, { ohneRot: st.ohneRot, letzter, laden: st.laden })
+        : bauSchrittHtml(st.view, st.eintraege, st.gebaut, { dollyBasen, bibliothekCases, basisId: st.basisId, basisN: st.basisN, letzter, laden: st.laden });
+      dlg.innerHTML = `<div class="editor ti">${inhalt}</div>`;
+      return;
+    }
     const z = zusammenfassung(st.eintraege);
     dlg.innerHTML = `<div class="editor ti">${uebersichtHtml(z, auffaelligkeiten(st.eintraege), {
       zielAktuell, merkliste: st.eintraege, ziel: st.ziel, ohneRot: st.ohneRot, dateiname: opts.dateiname ?? '' })}</div>`;
@@ -206,12 +309,72 @@ export async function openTabellenImport(dlg, opts) {
     if (busy) return;
     busy = true;
     try {
-      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot };
+      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot, gebaut: st.gebaut };
       if (opts.bestaetige && !(await opts.bestaetige(r))) return;
       result = r;
       dlg.close('ok');
     } finally { busy = false; }
   };
+
+  // Schrittfolge: leer = direkt übernehmen (wie ohne Schritte). `lkws` kommt erst mit der LKW-Seite.
+  const starteSchritte = laden => {
+    st.laden = laden;
+    st.folge = schritte(st.eintraege, laden).filter(x => x !== 'lkws');
+    if (!st.folge.length) { fertig(laden); return; }
+    geheZu(0);
+  };
+  const geheZu = i => {
+    if (i < 0) st.view = 'overview';
+    else if (i >= st.folge.length) { fertig(st.laden); return; }
+    else {
+      st.view = st.folge[i];
+      if (st.view === 'set') { st.reiter = 'set'; st.filter = 'alle'; st.suche = ''; st.zeilen = null; }
+    }
+    render();
+  };
+  const addiere = (caseId, n) => {
+    const s = st.gebaut.stuecke.find(x => x.caseId === caseId);
+    if (s) s.n += n; else st.gebaut.stuecke.push({ caseId, n });
+  };
+  const nimmAuf = res => {
+    for (const c of res.newCases ?? (res.newCase ? [res.newCase] : [])) if (!st.gebaut.cases.some(x => x.id === c.id)) st.gebaut.cases.push(c);
+    for (const a of res.additions ?? [res.addition]) addiere(a.caseId, a.n);
+  };
+  const bereinige = () => { st.gebaut.cases = st.gebaut.cases.filter(c => st.gebaut.stuecke.some(s => s.caseId === c.id)); };
+  const stueckzahl = el => { const n = Number(el.value); return Number.isInteger(n) && n >= 1 && n <= MAX_STUECK ? n : null; };
+  // Aktionen der Schritte; die Wizard-Dialoge öffnen sich über diesem Dialog, danach wird neu gezeichnet.
+  const schrittAktion = async (act, b) => {
+    if (act === 'prev') return geheZu(st.folge.indexOf(st.view) - 1);
+    if (act === 'next') return geheZu(st.folge.indexOf(st.view) + 1);
+    if (act === 'finish') return fertig(st.laden);
+    if (act === 'rm') {
+      st.gebaut.stuecke.splice(Number(b.dataset.s), 1);
+      bereinige();
+    } else if (act === 'truss') {
+      const res = await openTrussDialog(opts.trussDlg, {
+        cases: [...bibliothekCases, ...st.gebaut.cases],
+        onNewTruss: async c => alsImportCase(c),
+        stock: { mode: 'projekt' },
+      });
+      if (res) nimmAuf(res);
+    } else {
+      const basis = dollyBasen.find(x => x.id === dlg.querySelector('[data-role=basis]')?.value);
+      const n = stueckzahl(dlg.querySelector('[data-role=basisn]') ?? { value: 1 });
+      if (!basis || n === null) return;
+      if (act === 'loose') addiere(basis.id, n);
+      else {
+        const res = await openDollyDialog(opts.dollyDlg, {
+          baseCase: basis,
+          existingCases: [...bibliothekCases, ...st.gebaut.cases],
+          onNewDollyStack: async c => alsImportCase(c),
+          stock: { mode: 'projekt' },
+        });
+        if (res) nimmAuf(res);
+      }
+    }
+    if (dlg.open) render();
+  };
+  const SCHRITT_ACTS = new Set(['prev', 'next', 'finish', 'rm', 'truss', 'loose', 'dolly']);
 
   // Ein Listener je Ereignisart am Dialog (Ereignis-Delegation), keine je Zelle.
   dlg.onclick = ev => {
@@ -219,8 +382,9 @@ export async function openTabellenImport(dlg, opts) {
     if (!b) return;
     const act = b.dataset.act;
     if (act === 'cancel') dlg.close('cancel');
-    else if (act === 'only') fertig(false);
-    else if (act === 'load') fertig(true);
+    else if (act === 'only') starteSchritte(false);
+    else if (act === 'load') starteSchritte(true);
+    else if (SCHRITT_ACTS.has(act)) schrittAktion(act, b);
     else if (act === 'edit') {
       st.view = 'list'; st.filter = b.dataset.filter === 'bad' ? 'fehler' : 'alle'; st.reiter = b.dataset.tab ?? 'cases'; st.suche = '';
       st.zeilen = b.dataset.rows ? { reiter: st.reiter, set: new Set(b.dataset.rows.split(',').map(Number)) } : null;
@@ -242,13 +406,21 @@ export async function openTabellenImport(dlg, opts) {
     } else if (act === 'del') {
       st.eintraege.splice(Number(b.closest('tr').dataset.i), 1);
       tabelleNeu();
-      dlg.querySelector('[data-role=count]').textContent = zaehlerText(st.eintraege);
+      dlg.querySelector('[data-role=count]').textContent = zaehler();
+      setSperreNeu();
     }
   };
   dlg.onchange = ev => {
     const el = ev.target;
     if (el.name === 'target') { st.ziel = el.value; return; }
     if (el.name === 'skipred') { st.ohneRot = el.checked; render(); return; }
+    if (el.dataset.role === 'basis') { st.basisId = el.value; return; }
+    if (el.dataset.role === 'basisn') { st.basisN = stueckzahl(el) ?? 1; return; }
+    if (el.dataset.k === 'n' && el.dataset.s !== undefined) {
+      const n = stueckzahl(el);
+      if (n !== null) st.gebaut.stuecke[Number(el.dataset.s)].n = n; else el.value = st.gebaut.stuecke[Number(el.dataset.s)].n;
+      return;
+    }
     if (el.dataset.role === 'filter') { st.filter = el.value === 'bad' ? 'fehler' : 'alle'; tabelleNeu(); return; }
     const tr = el.closest('tr[data-i]');
     if (!tr || !el.dataset.k) return;
@@ -264,7 +436,8 @@ export async function openTabellenImport(dlg, opts) {
       if (text) input.title = text; else input.removeAttribute('title');
     }
     tr.querySelector('.ti-hint').innerHTML = s.hinweis;
-    dlg.querySelector('[data-role=count]').textContent = zaehlerText(st.eintraege);
+    dlg.querySelector('[data-role=count]').textContent = zaehler();
+    setSperreNeu();
   };
   dlg.oncancel = ev => {
     if (escZiel(st.view) !== 'overview') return;

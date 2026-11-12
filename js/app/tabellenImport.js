@@ -9,6 +9,8 @@ import { NAME_MAX } from '../model/limits.js';
 import { readTabellenDateien } from '../store/tabelle-lesen.js';
 import { openTabellenImport, openTabellenHilfe, vorlageDatei, entwuerfeAus } from '../ui/tabellen-import.js';
 import { multiAddedNotice } from './plans.js';
+import { bestandOf } from './core.js';
+import { isInStock } from '../model/material.js';
 import { capList } from './importExport.js';
 import { t, date } from '../i18n/i18n.js';
 
@@ -70,11 +72,17 @@ export function wireTabellenImport({ store, editWhole, switchPlan, uid, showAler
         name = eingabe.trim();
       }
       // Vorab auf einem Entwurf des Zielplans prüfen (zu viele Case-Typen): so entsteht kein leerer Plan.
-      try { uebernimmTabelle(res.ziel === 'new' ? A.emptyPlan(uid(), name, DEFAULT_TRUCK_ID) : store.get().plan, entwuerfeAus(res.eintraege).entwuerfe, uid); }
+      try { uebernimmTabelle(res.ziel === 'new' ? A.emptyPlan(uid(), name, DEFAULT_TRUCK_ID) : store.get().plan, entwuerfeAus(res.eintraege).entwuerfe, uid, res.gebaut); }
       catch (err) { await showAlert(err.message); return false; }
       return true;
     };
+    // Grundboxen (Dolly-Abfrage) und Bibliothek für Pre-Rig-Vorlagen: nur lesen, der Import schreibt nie hinein.
+    const bestand = bestandOf(store.get()).cases;
     const res = await openTabellenImport($('#dlg-tabelle'), {
+      trussDlg: $('#dlg-truss'),
+      dollyDlg: $('#dlg-dolly'),
+      dollyBasen: bestand.filter(c => c.dollyPrompt && isInStock(c)),
+      bibliothekCases: bestand,
       dateiname: files.map(f => f.name).join(', '),
       eintraege,
       zielAktuell: store.get().plan?.name ?? null,
@@ -91,12 +99,12 @@ export function wireTabellenImport({ store, editWhole, switchPlan, uid, showAler
       : t('{n} Zeilen mit Fehlern wurden nicht übernommen: {liste}', { n: ausgelassen.length, liste });
   };
 
-  async function uebernehmen({ eintraege, ziel, laden }, name) {
+  async function uebernehmen({ eintraege, ziel, laden, gebaut }, name) {
     const { entwuerfe, ausgelassen } = entwuerfeAus(eintraege);
     if (ziel === 'new') switchPlan(A.emptyPlan(uid(), name, DEFAULT_TRUCK_ID));
-    editWhole(p => uebernimmTabelle(p, entwuerfe, uid));
+    editWhole(p => uebernimmTabelle(p, entwuerfe, uid, gebaut));
     if (ausgelassen.length) await showAlert(ausgelassenText(ausgelassen));
-    if (!entwuerfe.length) return;
+    if (!entwuerfe.length && !gebaut.stuecke.length) return;
     // Mehr-LKW: neues Material ist keinem LKW zugeordnet (wie im Lade-Assistenten).
     if (isMultiLkw(store.get().plan)) { await showAlert(multiAddedNotice()); return; }
     if (laden) {

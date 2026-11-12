@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { SPALTEN, erkenneReiter, werteZeilen, pruefeEintrag } from '../js/model/ladeliste.js';
 import { stockTargetHtml, readStockTarget } from '../js/ui/stock-target.js';
-import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus, filterNachHinzufuegen } from '../js/ui/tabellen-import.js';
+import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus, filterNachHinzufuegen, schritte, bauSchrittHtml, setSchrittHtml } from '../js/ui/tabellen-import.js';
 
 const XSS = '<img src=x onerror=alert(1)>';
 const kopf = reiter => SPALTEN[reiter].map(s => s.de);
@@ -272,4 +272,109 @@ test('Struktursperre: der add-Zweig setzt den Filter über filterNachHinzufuegen
   const zweig = src.slice(start, ende);
   assert.match(zweig, /st\.filter\s*=\s*filterNachHinzufuegen\(/);
   assert.doesNotMatch(zweig, /st\.filter\s*=\s*'fehler'/);
+});
+
+// Task 2: Schritte Traversen, Boxen und Set
+const casesZ = () => lies('cases', [['ok', '1', '60', '40', '50', 'nein', '5', '2', '', 'Ton', '']]);
+const travZ = () => lies('traversen', [['Box 40', '300', '4', '', '']]);
+const boxZ = () => lies('boxen', [['Sub', '34', '', '', '', '', 'Ton', ''], ['Kiste', '3', '40', '50', '60', '', 'Ton', '']]);
+const setZ = (...z) => lies('set', z);
+const LEER = { cases: [], stuecke: [] };
+
+test('schritte: nur Reiter mit Zeilen, lkws nur beim Laden, feste Reihenfolge', () => {
+  assert.deepEqual(schritte(casesZ(), false), []);
+  assert.deepEqual(schritte(casesZ(), true), ['lkws']);
+  assert.deepEqual(schritte([...casesZ(), ...travZ()], false), ['traversen']);
+  const alle = [...boxZ(), ...setZ(['Teil', '1', '10', '10', '10', '1', '1', 'Ton', '']), ...travZ()];
+  assert.deepEqual(schritte(alle, true), ['traversen', 'boxen', 'set', 'lkws']);
+  assert.deepEqual(schritte(alle, false), ['traversen', 'boxen', 'set']);
+});
+
+test('setSchrittHtml: rote Set-Zeile sperrt Weiter, „rote nicht übernehmen“ gibt frei, Cases erscheinen nicht', () => {
+  const e = [...casesZ(), ...setZ(['kaputt', '1', '60', '40', '', '', '', '', ''])];
+  const gesperrt = setSchrittHtml(e, { ohneRot: false });
+  assert.match(gesperrt, /data-act="next"[^>]*disabled/);
+  assert.match(gesperrt, /name="skipred"/);
+  assert.doesNotMatch(gesperrt, />ok</);
+  assert.doesNotMatch(gesperrt, /value="ok"/);
+  assert.match(gesperrt, /value="kaputt"/);
+  assert.match(gesperrt, /data-act="add"/);
+  assert.doesNotMatch(setSchrittHtml(e, { ohneRot: true }), /data-act="next"[^>]*disabled/);
+  const sauber = [...setZ(['gut', '1', '10', '10', '10', '1', '1', 'Ton', ''])];
+  assert.doesNotMatch(setSchrittHtml(sauber, { ohneRot: false }), /disabled/);
+});
+
+test('setSchrittHtml: Zähler rot/gelb nur über Set-Zeilen; letzter Schritt zeigt Übernehmen statt Weiter', () => {
+  const e = [...lies('cases', [['kaputt', '1', '60', '40', '', '', '', '', '', '', '']]), ...setZ(['gut', '1', '10', '10', '10', '1', '1', 'Ton', ''])];
+  assert.match(setSchrittHtml(e, { ohneRot: false }), /data-role="count"[^>]*>0 [^<]*0 /);
+  assert.match(setSchrittHtml(e, { ohneRot: false, letzter: true, laden: true }), /data-act="finish"/);
+  assert.doesNotMatch(setSchrittHtml(e, { ohneRot: false, letzter: true }), /data-act="next"/);
+});
+
+test('bauSchrittHtml boxen: Grundbox-Auswahl mit Lose/Dolly, lose Box mit Maßen nicht in der Merkliste', () => {
+  const basis = { id: 'preset-k2', name: 'K2', dollyPrompt: true };
+  const html = bauSchrittHtml('boxen', boxZ(), LEER, { dollyBasen: [basis] });
+  assert.match(html, /data-act="loose"/);
+  assert.match(html, /data-act="dolly"/);
+  assert.match(html, /<select[^>]*data-role="basis"/);
+  const memo = html.match(/<div class="ti-memo">[^]*?<\/div>/)[0];
+  assert.match(memo, /34 × Sub/);
+  assert.doesNotMatch(memo, /Kiste/);
+  assert.match(html, /Kiste/); // aber als Zeile „kommt aus der Tabelle“ sichtbar
+  assert.match(html, /data-act="next"/);
+});
+
+test('bauSchrittHtml boxen ohne Grundboxen: Hinweis statt Auswahl, Weiter bleibt frei', () => {
+  const html = bauSchrittHtml('boxen', [], LEER, { dollyBasen: [] });
+  assert.match(html, /Keine Grundboxen/);
+  assert.doesNotMatch(html, /<select/);
+  assert.match(html, /data-act="next"/);
+  assert.doesNotMatch(html, /data-act="next"[^>]*disabled/);
+});
+
+test('bauSchrittHtml traversen: Fremdtext maskiert, Knopf Traverse hinzufügen, Gebautes mit Anzahl', () => {
+  const e = lies('traversen', [[XSS, '300', '2', '', XSS]]);
+  const gebaut = { cases: [{ id: 'w1', name: XSS, kind: 'truss', herkunft: 'import' }], stuecke: [{ caseId: 'w1', n: 3 }] };
+  const html = bauSchrittHtml('traversen', e, gebaut, { dollyBasen: [] });
+  assert.ok(!html.includes('<img'), html);
+  assert.ok(html.includes('&lt;img'));
+  assert.match(html, /data-act="truss"/);
+  assert.match(html, /data-k="n"[^>]*value="3"|value="3"[^>]*data-k="n"/);
+  assert.match(html, /min="1" max="500"|max="500"[^>]*min="1"/);
+  assert.match(html, /data-act="rm"/);
+});
+
+test('bauSchrittHtml: jeder Schritt zeigt nur seine Stücke; Dolly und lose sind benannt', () => {
+  const gebaut = {
+    cases: [{ id: 'w1', name: 'Wagen', kind: 'truss' }, { id: 'd1', name: 'K2 2er', kind: 'speaker', unitH: 40 }],
+    stuecke: [{ caseId: 'w1', n: 2 }, { caseId: 'd1', n: 1 }, { caseId: 'preset-k2', n: 4 }],
+  };
+  const opts = { dollyBasen: [{ id: 'preset-k2', name: 'K2', dollyPrompt: true }], bibliothekCases: [{ id: 'preset-k2', name: 'K2' }] };
+  const t1 = bauSchrittHtml('traversen', [], gebaut, opts);
+  assert.match(t1, /Wagen/);
+  assert.doesNotMatch(t1, /K2/);
+  const b1 = bauSchrittHtml('boxen', [], gebaut, opts);
+  assert.doesNotMatch(b1, /Wagen/);
+  assert.match(b1, /K2 2er/);
+  assert.match(b1, /ti-tag dolly/);
+  assert.match(b1, /ti-tag loose/);
+});
+
+test('Merkliste in der Übersicht verweist nicht mehr auf eine spätere Version', () => {
+  const e = [...travZ(), ...boxZ()];
+  const html = uebersichtHtml(zusammenfassung(e), [], { merkliste: e });
+  assert.doesNotMatch(html, /späteren Version|later version/);
+  assert.match(html, /34 × Sub/);
+});
+
+test('Struktursperre: Wizard-Dialoge laufen mit stock „projekt“ und speichern nichts; gebaut geht in beide uebernimmTabelle-Aufrufe', () => {
+  const ui = readFileSync(new URL('../js/ui/tabellen-import.js', import.meta.url), 'utf8');
+  for (const fn of ['openTrussDialog', 'openDollyDialog']) {
+    const i = ui.indexOf(`await ${fn}(`);
+    assert.ok(i > 0, fn);
+    assert.match(ui.slice(i, ui.indexOf('});', i)), /stock:\s*\{\s*mode:\s*'projekt'\s*\}/, fn);
+  }
+  assert.doesNotMatch(ui, /saveCase/);
+  const app = readFileSync(new URL('../js/app/tabellenImport.js', import.meta.url), 'utf8');
+  assert.equal((app.match(/uebernimmTabelle\([^;]*gebaut\)/g) ?? []).length, 2);
 });
