@@ -1,0 +1,11 @@
+"Höhe immer inklusive Rollen, so wie das Case auf den Rollen steht. Kopfzeile nicht ändern.",,,,,,,,,,
+Name,Menge,Breite (cm),Tiefe (cm),Höhe inkl. Rollen (cm),Rollen (ja/nein),Gewicht (kg),Höchste Lage (1/2/3),Tippen,Gewerk,Farbe
+Case 1,4,90,40,60,ja,100,3,ja,Licht,Orange
+Case 2,2,90,40,50,ja,100,2,ja,Licht,Orange
+Case 3,3,90,40,50,ja,80,2,ja,Licht,Orange
+Case 4,4,90,40,50,ja,80,1,ja,Licht,Orange
+Case 5,1,90,40,50,ja,80,1,ja,Licht,Orange
+Case 6,3,90,40,50,ja,80,1,nein,Licht,Orange
+Case 7,4,120,60,50,ja,100,3,nein,Ton,Blau
+Case 8,23,120,60,50,nein,100,3,nein,Ton,Blau
+Case 9,2,120,60,50,nein,100,3,nein,Ton,Blau

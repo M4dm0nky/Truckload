@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { inflateRawSync } from 'node:zlib';
 import { parseCsv, readXlsx, readTabellenDateien } from '../js/store/tabelle-lesen.js';
+import { erkenneReiter, werteZeilen, entwurfAus } from '../js/model/ladeliste.js';
 
 const fix = n => fs.readFileSync(new URL(`./fixtures/${n}`, import.meta.url));
 const ab = b => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
@@ -128,3 +129,30 @@ function zipStored(list) {
   eo.writeUInt32LE(cdb.length, 12); eo.writeUInt32LE(off, 16);
   return ab(Buffer.concat([...parts, cdb, eo]));
 }
+
+test('echter Google-Sheets-Export (Reiter Cases)', async () => {
+  const [datei] = await readTabellenDateien([{ name: 'ladeliste-google-sheets.csv', buf: buf('ladeliste-google-sheets.csv') }]);
+  const kopf = erkenneReiter(datei.rows);
+  assert.equal(kopf.reiter, 'cases');
+  assert.equal(kopf.kopfzeile, 1); // Hinweiszeile 0 wird übersprungen
+  const eintraege = werteZeilen('cases', datei.rows, kopf);
+  assert.equal(eintraege.length, 9);
+  for (const e of eintraege) assert.deepEqual(e.befunde, []);
+  const entwuerfe = eintraege.map(entwurfAus);
+  assert.equal(entwuerfe.reduce((summe, d) => summe + d.menge, 0), 46);
+  const c1 = entwuerfe[0];
+  assert.equal(c1.case.name, 'Case 1');
+  assert.equal(c1.case.l, 40);
+  assert.equal(c1.case.w, 90);
+  assert.equal(c1.case.h, 60);
+  assert.equal(c1.case.weight, 100);
+  assert.deepEqual(c1.case.layers, [1, 2, 3]);
+  assert.equal(c1.case.wheels, true);
+  assert.equal(c1.tipped, true);
+  assert.equal(c1.case.category, 'Licht');
+  assert.equal(c1.case.color, '#f28c28');
+  const c8 = entwuerfe.find(d => d.case.name === 'Case 8');
+  assert.equal(c8.case.wheels, false);
+  assert.equal(c8.menge, 23);
+  assert.equal(c8.case.category, 'Ton');
+});
