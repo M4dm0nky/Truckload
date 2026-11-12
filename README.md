@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.30.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.31.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -325,7 +325,24 @@ direkt, ohne jedes Case einzeln anzulegen.
 4. **Import:** „Tabelle importieren“ auf dem Startbildschirm oder im Plan, alle Dateien zusammen wählen.
    Die Übersicht zeigt, was gefunden wurde. In der Liste lassen sich Zellen korrigieren; rote Zeilen
    (fehlende Pflichtmaße) werden beim Übernehmen nicht übernommen, und der Dialog nennt sie.
-5. **Übernehmen:** Die Cases kommen in den aktuellen Plan oder in ein neues Projekt.
+   Unten wählt man „Nur übernehmen“ oder „Übernehmen und laden“; danach folgen die Schritte 5 bis 8,
+   soweit die Tabelle dafür Zeilen hat.
+5. **Traversen:** Links stehen die Traversen aus der Tabelle, rechts baut man die Wagen über den
+   gewohnten Traversen-Dialog. Die Wagen gelten nur für dieses Projekt.
+6. **Boxen:** Lose Boxen mit Maßen (Reiter Boxen: Breite, Tiefe, Höhe, Gewicht, alle optional) kommen
+   direkt aus der Tabelle. Für Zeilen ohne Maße wählt man eine Grundbox aus der Bibliothek und fügt sie
+   lose oder auf Dolly hinzu.
+7. **Set:** Set-Teile lassen sich prüfen und nachbessern. Rote Set-Teile sperren das Weiter erst hier.
+8. **LKWs:** Nur bei „Übernehmen und laden“. Man wählt das Fahrzeug und legt fest, ob je Gewerk frei
+   gepackt wird, die Gewerke auf N LKW verteilt werden oder zusammen mit einem Gewerk laden. Alternativ
+   „So wenige LKWs wie möglich“, wahlweise „nach Gewerk getrennt“. Eine Vorschau zeigt die Verteilung.
+   Hat das Projekt schon LKW, stehen drei Wege zur Wahl: „Alles neu laden“ (ersetzt die vorhandenen LKW),
+   „Neue Stücke auf zusätzliche LKW“ oder „Neue Stücke in vorhandene LKW“. Es sind höchstens 12 LKW
+   möglich. Was nicht passt, bleibt mit der Meldung „nicht geladen“ im Plan.
+9. **Ergebnis:** Bei „Nur übernehmen“ liegen die Cases ungeladen im aktuellen Plan oder in einem neuen
+   Projekt, bei „Übernehmen und laden“ fertig verteilt auf den LKW.
+
+Der Import schreibt nichts in die Bibliothek.
 
 Importierte Cases gibt es nur im Projekt, nicht in der Materialverwaltung. Im Plan lassen sie sich wie
 andere Cases bearbeiten. Mit „In meine Bibliothek übernehmen“ werden sie zu einem normalen Case der

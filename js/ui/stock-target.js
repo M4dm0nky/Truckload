@@ -16,7 +16,9 @@ export const newCompanyError = (selectValue, newName, inStock = true, collection
 
 // Block „Im Materialbestand ablegen“ – gemeinsam für Case-Editor,
 // Traversen- und Dolly-Dialog. 'choose' = Wizard (Häkchen + Ziel), 'fixed' = Materialseite.
+// 'projekt' = Import-Ablauf: das Case gehört nur dem Plan, kein Block, nichts im Bestand.
 export function stockTargetHtml(stock) {
+  if (stock.mode === 'projekt') return '';
   if (stock.mode === 'fixed') {
     return `<p class="hint stock-target">${stock.company ? t('Sammlung: {name}', { name: esc(stock.company) }) : t(MEINE_NAME)}</p>`;
   }
@@ -31,6 +33,7 @@ export function stockTargetHtml(stock) {
 }
 
 export function readStockTarget(form, stock) {
+  if (stock.mode === 'projekt') return { inStock: false, company: '' };
   if (stock.mode === 'fixed') return { inStock: true, company: stock.company ?? '' };
   const f = form.elements;
   return { inStock: f.inStock.checked, company: resolveStockCompany(f.stockCompany.value, f.stockNewCompany?.value) };

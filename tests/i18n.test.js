@@ -25,6 +25,9 @@ export const ALLOW = [
     'Dieser Browser ist zu alt für Truckload. Gebraucht werden Chrome oder Edge ab 123, Safari ab 17.2 oder Firefox ab 138.',
     'Die App konnte nicht vollständig geladen werden. Bitte neu laden. ', 'Neu laden',
   ].map(text => ({ file: 'index.html', text, why: 'Inline-Notfallmeldung, englisch daneben im selben Objekt (tlTexte); Test H prüft das' })),
+  { file: 'js/model/lkw-import.js', text: 'neu', why: 'interner Wert von VERHALTEN.NEU (Importeinstellung), nie angezeigt' },
+  ...['planeLkws: unbekanntes verhalten ', 'planeLkws: unbekannte art ']
+    .map(text => ({ file: 'js/model/lkw-import.js', text, why: 'Entwicklerfehler (Exception), nicht für Nutzer' })),
   { file: 'js/model/collections.js', text: 'Meine Sammlung', why: 'gespeicherter Wert: Name der festen Sammlung (MEINE_NAME), englisch nur zum Abgleich (MEINE_NAME_EN)' },
   ...[['js/app/chrome.js', 'Unbehandelte Ablehnung'], ['js/app/chrome.js', 'Offline-Modus nicht verfügbar:'],
     ['js/app/planView.js', '3D-Ansicht: Laden fehlgeschlagen'], ['js/app/planView.js', '3D-Ansicht: Aktualisierung fehlgeschlagen']]
@@ -45,9 +48,12 @@ export const ALLOW = [
   ...['Traversenwagen ', ' Stück)']
     .map(text => ({ file: 'js/ui/truss-wizard.js', text, why: 'gespeicherter Case-Name eines Traversenwagens (Daten bleiben deutsch; groupPrerigCases liest das Schema)' })),
   { file: 'js/ui/load-wizard.js', text: 'Sonderbau', why: 'gespeicherter Wert: Gewerk (Daten bleiben deutsch, Anzeige über trade())' },
+  { file: 'js/model/lkw-import.js', text: 'mit', why: 'Moduswert der Import-Einstellungen (Daten, keine Anzeige)' },
   { file: 'js/model/lkw-distribute.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['Anzahl', 'Breite (cm)', 'Farbe', 'Gewerk', 'Gewicht (kg)', 'Höchste Lage (1/2/3)', 'Höhe (cm)', 'Höhe inkl. Rollen (cm)', 'Länge (cm)', 'Name', 'Profil', 'Rollen (ja/nein)', 'Stückzahl', 'Tiefe (cm)', 'Tippen', 'breite', 'gewicht', 'tiefe', 'Grün', 'Türkis', 'Schwarz', 'Weiß', 'Sonstiges', 'Höhe immer inklusive Rollen, so wie das Case auf den Rollen steht. Kopfzeile nicht ändern.']
     .map(text => ({ file: 'js/model/ladeliste.js', text, why: 'Kopfzeile/Farbwort der Ladeliste: Erkennung in beiden Sprachen (Daten, keine Anzeige)' })),
+  { file: 'js/ui/tabellen-import.js', text: 'mit', why: 'Moduswert der LKW-Einstellungen (Daten, keine Anzeige)' },
+  { file: 'js/ui/tabellen-import.js', text: 'Sonstiges', why: 'gespeicherter Wert: Gewerk ohne Angabe (Daten bleiben deutsch)' },
   ...['alle', 'fehler'].map(text => ({ file: 'js/ui/tabellen-import.js', text, why: 'interne Filterwerte der Liste (listeHtml-Aufrufvertrag), keine Anzeige' })),
   ...['Bereinigte Datensätze konnten nicht zurückgeschrieben werden:', 'Migration nach „Sammlungen“ nicht gespeichert:']
     .map(text => ({ file: 'js/store/repo.js', text, why: 'Konsole' })),

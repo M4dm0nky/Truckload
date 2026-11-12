@@ -12,6 +12,7 @@ import zipfile
 from pathlib import Path
 
 from openpyxl import Workbook
+from openpyxl.comments import Comment
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -19,6 +20,11 @@ from openpyxl.worksheet.datavalidation import DataValidation
 ROOT = Path(__file__).resolve().parent.parent
 FIX = ROOT / 'tests' / 'fixtures'
 DATA = ROOT / 'data'
+
+BOXEN_HINWEIS = {
+    'de': 'Maße nur für lose Boxen; Boxen auf Dolly ohne Maße, die baut man im Schritt Boxen.',
+    'en': 'Dimensions only for loose boxes; boxes on a dolly without dimensions, those are built in the Boxes step.',
+}
 
 REITER_NAMEN = {
     'de': {'cases': 'Cases', 'traversen': 'Traversen', 'boxen': 'Boxen', 'set': 'Set'},
@@ -172,6 +178,11 @@ def vorlage_datei(d, sprache):
                 liste(ws, c, JA_NEIN[sprache], ende)
             elif sp['key'] == 'lage':
                 liste(ws, c, ['1', '2', '3'], ende)
+        if reiter == 'boxen':
+            hinweis = BOXEN_HINWEIS[sprache]
+            spalte_breite = [sp['key'] for sp in spalten].index('breite') + 1
+            ws.cell(row=2, column=spalte_breite).comment = Comment(hinweis, 'Truckload')
+            ws.cell(row=1, column=len(spalten) + 2, value=hinweis).font = Font(italic=True, color='666666')
         ws.column_dimensions['A'].width = max(ws.column_dimensions['A'].width, 28)
         ws.freeze_panes = 'A3'
     return wb

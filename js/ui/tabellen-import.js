@@ -3,10 +3,17 @@
 // Dialog selbst hängt nur an einem <dialog> und kennt weder Store noch js/app/.
 // Alles, was aus der Tabelle stammt (Namen, Gewerke, Befund-Texte), geht durch esc().
 
-import { esc, safeColor, icon } from './dom.js';
-import { t, lang, trade } from '../i18n/i18n.js';
+import { esc, safeColor, icon, swatch } from './dom.js';
+import { t, lang, trade, capList } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
-import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten } from '../model/ladeliste.js';
+import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
+import { alsImportCase } from '../model/tabellen-uebernahme.js';
+import { openTrussDialog } from './truss-wizard.js';
+import { openDollyDialog } from './dolly-wizard.js';
+import { VERHALTEN, ART, gewerkWoerterbuch, gewerkCfg, gewerkEintrag } from '../model/lkw-import.js';
+import { catRank } from '../model/lkw-distribute.js';
+import { MAX_LKW } from '../model/limits.js';
+import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -15,16 +22,16 @@ export const vorlageDatei = (l = lang) => VORLAGEN[l === 'en' ? 'en' : 'de'];
 const reiterName = r => ({ cases: t('Cases'), traversen: t('Traversen'), boxen: t('Boxen'), set: t('Set') })[r];
 const spaltenLabel = sg => (lang === 'en' ? sg.en : sg.de);
 const ganzzahl = s => { const z = zahl(s, '').wert; return Number.isInteger(z) && z > 0 ? z : 0; };
-const istListe = e => e.reiter === 'cases' || e.reiter === 'set';
+const istListe = e => e.reiter === 'cases' || e.reiter === 'set' || istLoseBox(e);
 
 // Stückzahlen je Kachel und je Gewerk (nur Zeilen ohne roten Befund), plus Zahl der roten/gelben Zeilen.
 export function zusammenfassung(eintraege) {
-  const z = { cases: 0, traversen: 0, boxen: 0, set: 0, rot: 0, gelb: 0, jeGewerk: [] };
+  const z = { cases: 0, traversen: 0, boxen: 0, set: 0, rot: 0, rotSet: 0, rotBoxen: 0, gelb: 0, jeGewerk: [] };
   const gewerke = new Map();
   for (const e of eintraege) {
     if (e.reiter === 'traversen') { z.traversen += ganzzahl(e.werte.stueck); continue; }
-    if (e.reiter === 'boxen') { z.boxen += ganzzahl(e.werte.anzahl); continue; }
-    if (e.befunde.some(b => b.stufe === 'rot')) { z.rot++; continue; }
+    if (e.reiter === 'boxen' && !istLoseBox(e)) { z.boxen += ganzzahl(e.werte.anzahl); continue; }
+    if (e.befunde.some(b => b.stufe === 'rot')) { z.rot++; if (e.reiter === 'set') z.rotSet++; if (e.reiter === 'boxen') z.rotBoxen++; continue; }
     if (e.befunde.length) z.gelb++;
     const d = entwurfAus(e);
     if (!d) continue;
@@ -42,24 +49,29 @@ export const auffaelligkeiten = eintraege => ['cases', 'set']
 
 const farbName = hex => { const f = FARBEN.find(x => x.hex === hex); return f ? (lang === 'en' ? f.en : f.de) : hex; };
 
-// Merkliste: Traversen und Boxen werden in Stufe 1 nur angezeigt, nie gebaut.
+// Merkliste: Traversen und Boxen ohne Maße; sie werden in den Schritten danach von Hand gebaut.
+const merklisteZeilen = eintraege => eintraege.filter(e => e.reiter === 'traversen' || (e.reiter === 'boxen' && !istLoseBox(e))).map(e => (e.reiter === 'traversen'
+  ? `<li>${esc(e.werte.stueck)} × ${esc(e.werte.profil)} · ${esc(e.werte.laenge)} cm</li>`
+  : `<li>${esc(e.werte.anzahl)} × ${esc(e.werte.typ)}</li>`));
+
 function merklisteHtml(eintraege) {
-  const zeilen = eintraege.filter(e => e.reiter === 'traversen' || e.reiter === 'boxen').map(e => (e.reiter === 'traversen'
-    ? `<li>${esc(e.werte.stueck)} × ${esc(e.werte.profil)} · ${esc(e.werte.laenge)} cm</li>`
-    : `<li>${esc(e.werte.anzahl)} × ${esc(e.werte.typ)}</li>`));
+  const zeilen = merklisteZeilen(eintraege);
   if (!zeilen.length) return '';
-  return `<div class="ti-memo"><b>${t('Merkliste')}</b> <span class="hint">${t('Traversen und Boxen werden in einer späteren Version gebaut. Aus diesen Zeilen entsteht jetzt nichts.')}</span><ul>${zeilen.join('')}</ul></div>`;
+  return `<div class="ti-memo"><b>${t('Merkliste')}</b> <span class="hint">${t('Diese Zeilen baust du in den nächsten Schritten selbst (Traversen, Boxen).')}</span><ul>${zeilen.join('')}</ul></div>`;
 }
 
 // z = zusammenfassung(...), auffaellig = auffaelligkeiten(...). opts: { zielAktuell: string|null,
 // merkliste: Eintrag[] (nur Traversen/Boxen werden gezeigt), ziel, ohneRot, dateiname }.
 export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = [], ziel = zielAktuell !== null ? 'current' : 'new', ohneRot = false, dateiname = '' } = {}) {
-  const gesperrt = z.rot > 0 && !ohneRot;
+  // Rote Set-Zeilen sperren die Übersicht nicht: der Set-Schritt ist dafür da (eigene Sperre, eigenes Häkchen).
+  const rotSonst = z.rot - (z.rotSet ?? 0);
+  const gesperrt = rotSonst > 0 && !ohneRot;
   const kachel = (cls, n, text) => `<span class="ti-chip ${cls}"><b>${n}</b> ${text}</span>`;
   const band = (cls, glyph, text, knopf) => `<div class="ti-band ${cls}"><span>${glyph} ${text}</span>${knopf}</div>`;
   const anzeigen = attrs => `<button type="button" data-act="edit" ${attrs}>${t('ansehen / korrigieren')}</button>`;
   const baender = [];
-  if (z.rot) baender.push(band('rot', '✖', esc(z.rot === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: z.rot })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (rotSonst) baender.push(band('rot', '✖', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen(`data-filter="bad" data-tab="${rotSonst > (z.rotBoxen ?? 0) ? 'cases' : 'boxen'}"`)));
+  if (z.rotSet) baender.push(band('rot', '✖', esc(z.rotSet === 1 ? t('1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.') : t('{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.', { n: z.rotSet })), anzeigen('data-filter="bad" data-tab="set"')));
   if (z.gelb) baender.push(band('gelb', '⚠', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
   for (const a of auffaellig) {
     const text = t('{n} Zeilen sind {farbe}, aber dem Gewerk {gewerk} zugeordnet ({farbe} ist sonst {mehrheit}).',
@@ -74,7 +86,7 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
     ? `<label class="check"><input type="radio" name="target" value="current"${ziel === 'current' ? ' checked' : ''}> ${esc(t('ins aktuelle Projekt „{name}“', { name: zielAktuell }))}</label>`
       + `<label class="check"><input type="radio" name="target" value="new"${ziel === 'new' ? ' checked' : ''}> ${t('neues Projekt anlegen')}</label>`
     : `<label class="check"><input type="radio" name="target" value="new" checked> ${t('neues Projekt anlegen')}</label>`;
-  const rotWahl = z.rot ? `<label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>` : '';
+  const rotWahl = rotSonst ? `<label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>` : '';
   const sperre = gesperrt ? ' disabled' : '';
   return `
     <h2>${t('Tabelle importieren')}</h2>
@@ -96,7 +108,7 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
     </menu>`;
 }
 
-// Entwürfe für die Übernahme; ausgelassen = Cases/Set-Zeilen mit rotem Befund (kein Entwurf).
+// Entwürfe für die Übernahme; ausgelassen = Cases/Set/lose-Boxen-Zeilen mit rotem Befund (kein Entwurf).
 export function entwuerfeAus(eintraege) {
   const entwuerfe = [];
   const ausgelassen = [];
@@ -119,10 +131,10 @@ export function zeilenStatus(e) {
 
 const passt = (e, suche) => !suche || Object.values(e.werte).some(v => String(v).toLowerCase().includes(suche));
 
-// Tabelle des gewählten Reiters (Cases oder Set). Zeilen tragen ihren Index im ganzen Array
+// Tabelle des gewählten Reiters (Cases, Set oder Boxen). Zeilen tragen ihren Index im ganzen Array
 // (data-i), Zellen ihren Schlüssel (data-k); gezeichnet werden alle Zeilen des Filters (der Leser
 // liefert höchstens 2000).
-// opts: { filter: 'alle'|'fehler', reiter: 'cases'|'set', suche, zeilen?: Set<Zeilennummer> }.
+// opts: { filter: 'alle'|'fehler', reiter: 'cases'|'set'|'boxen', suche, zeilen?: Set<Zeilennummer> }.
 export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche = '', zeilen = null } = {}) {
   const spalten = SPALTEN[reiter];
   const s = String(suche).trim().toLowerCase();
@@ -142,10 +154,157 @@ export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche 
     + (!treffer.length ? `<p class="hint">${t('Keine Zeilen.')}</p>` : '');
 }
 
+// Filter nach „Zeile hinzufügen“: Eine neue Zeile muss sichtbar sein. Hat sie keinen Befund (leere
+// Boxen-Zeile = Merkliste), würde „fehler“ sie verstecken.
+export const filterNachHinzufuegen = e => (e.befunde.length ? 'fehler' : 'alle');
+
+// ---- Schritte nach der Übersicht: Traversen, Boxen, Set (und später LKWs) ----
+
+// Reihenfolge der Schritte; ein Schritt kommt nur, wenn sein Reiter Zeilen hat. `lkws` kommt zuletzt, nur beim Laden.
+export function schritte(eintraege, laden) {
+  const hat = r => eintraege.some(e => e.reiter === r);
+  return [...['traversen', 'boxen', 'set'].filter(hat), ...(laden ? ['lkws'] : [])];
+}
+
+const MAX_STUECK = 500;
+const istTraverse = c => c?.kind === 'truss';
+const istDollyStack = c => c?.kind === 'speaker' && c.unitH > 0;
+const setRot = eintraege => eintraege.some(e => e.reiter === 'set' && e.befunde.some(b => b.stufe === 'rot'));
+export const setGesperrt = (eintraege, ohneRot) => setRot(eintraege) && !ohneRot;
+
+// Fußzeile der Schritte: Zurück links, rechts Weiter bzw. im letzten Schritt Übernehmen.
+function fussHtml({ letzter = false, laden = false, sperre = false } = {}) {
+  const dis = sperre ? ' disabled' : '';
+  const vor = letzter
+    ? `<button type="button" class="primary" data-act="finish" data-role="go"${dis}>${laden ? t('Übernehmen und laden') : t('Nur übernehmen')}</button>`
+    : `<button type="button" class="primary" data-act="next" data-role="go"${dis}>${t('Weiter')}</button>`;
+  return `<menu><button type="button" data-act="prev">${t('Zurück')}</button><span class="grow"></span>${vor}</menu>`;
+}
+
+// Bauseite für Traversen oder Boxen. merkliste: Tabellenzeilen (es zählen die des Reiters `art`);
+// gebaut: { cases, stuecke }; opts: { dollyBasen, bibliothekCases, basisId, basisN, letzter, laden }.
+export function bauSchrittHtml(art, merkliste, gebaut, { dollyBasen = [], bibliothekCases = [], basisId = '', basisN = 1, letzter = false, laden = false } = {}) {
+  const zeilen = merkliste.filter(e => e.reiter === art);
+  const caseVon = new Map([...bibliothekCases, ...dollyBasen, ...gebaut.cases].map(c => [c.id, c]));
+  const eigene = gebaut.stuecke.map((s, i) => ({ s, i, c: caseVon.get(s.caseId) })).filter(x => istTraverse(x.c) === (art === 'traversen'));
+  const gebautZeile = ({ s, i, c }) => {
+    const tag = art === 'boxen'
+      ? (istDollyStack(c) ? `<span class="ti-tag dolly">${t('Dolly')}</span>` : `<span class="ti-tag loose">${t('lose')}</span>`)
+      : '';
+    return `<li class="ti-bauzeile"><span class="ti-name">${esc(c?.name ?? s.caseId)}</span>${tag}`
+      + `<input type="number" min="1" max="${MAX_STUECK}" step="1" value="${esc(s.n)}" data-k="n" data-s="${i}" aria-label="${t('Anzahl')}">`
+      + `<button type="button" class="ti-del" data-act="rm" data-s="${i}" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">${icon('trash')}</button></li>`;
+  };
+  const memo = merklisteZeilen(zeilen);
+  const ausTabelle = art === 'boxen' ? zeilen.filter(istLoseBox) : [];
+  const links = `<div class="ti-memo"><b>${t('Merkliste')}</b>${memo.length ? `<ul>${memo.join('')}</ul>` : ` <span class="hint">${t('Keine Zeilen.')}</span>`}</div>`
+    + (ausTabelle.length
+      ? `<div class="ti-ausTabelle"><b>${t('Kommt aus der Tabelle')}</b><ul>${ausTabelle.map(e => `<li>${esc(e.werte.typ)} · ${esc(e.werte.anzahl)}</li>`).join('')}</ul></div>`
+      : '');
+  const rechts = `<div class="ti-gebaut"><b>${t('Gebaut')}</b>${eigene.length ? `<ul>${eigene.map(gebautZeile).join('')}</ul>` : ` <span class="hint">${t('Noch nichts gebaut.')}</span>`}</div>`;
+  const steuerung = art === 'traversen'
+    ? `<div class="ti-bauknoepfe"><button type="button" data-act="truss">${t('Traverse hinzufügen')}</button></div>`
+    : dollyBasen.length
+      ? `<div class="ti-bauknoepfe"><select data-role="basis" aria-label="${t('Grundbox')}">${dollyBasen.map(b => `<option value="${esc(b.id)}"${b.id === basisId ? ' selected' : ''}>${esc(b.name)}</option>`).join('')}</select>`
+        + `<input type="number" min="1" max="${MAX_STUECK}" step="1" value="${esc(basisN)}" data-role="basisn" aria-label="${t('Anzahl')}">`
+        + `<button type="button" data-act="loose">${t('Lose hinzufügen')}</button><button type="button" data-act="dolly">${t('Auf Dolly laden')}</button></div>`
+      : `<p class="hint">${t('Keine Grundboxen in der Bibliothek.')}</p>`;
+  return `
+    <h2>${art === 'traversen' ? t('Traversen bauen') : t('Boxen bauen')}</h2>
+    <div class="ti-bau"><div>${links}</div>${rechts}</div>
+    ${steuerung}
+    ${fussHtml({ letzter, laden })}`;
+}
+
 const zaehlerText = eintraege => {
   const z = zusammenfassung(eintraege);
   return `${t('{rot} fehlerhaft', { rot: z.rot })} · ${t('{gelb} mit Hinweis', { gelb: z.gelb })}`;
 };
+
+// Set-Schritt: bearbeitbare Tabelle nur der Set-Teile (gleiche data-i/data-k wie die Liste).
+export function setSchrittHtml(eintraege, { ohneRot = false, letzter = false, laden = false } = {}) {
+  const sperre = setGesperrt(eintraege, ohneRot);
+  return `
+    <h2>${t('Set')}</h2>
+    <p class="hint">${t('Set-Teile prüfen und bei Bedarf korrigieren.')}</p>
+    <div class="ti-leiste">
+      <button type="button" data-act="add">${t('Zeile hinzufügen')}</button>
+      <span class="hint" data-role="count">${esc(zaehlerText(eintraege.filter(e => e.reiter === 'set')))}</span>
+    </div>
+    <div class="ti-scroll" data-role="table">${listeHtml(eintraege, { filter: 'alle', reiter: 'set' })}</div>
+    <label class="check"><input type="checkbox" name="skipredset"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>
+    <p class="hint" data-role="sperrhinweis"${sperre ? '' : ' hidden'}>${t('Weiter ist gesperrt, solange rote Zeilen bleiben. Korrigieren oder „rote Zeilen nicht übernehmen“ ankreuzen.')}</p>
+    ${fussHtml({ letzter, laden, sperre })}`;
+}
+
+// ---- LKW-Schritt: Verhalten, Fahrzeug, Verteilung, Vorschau ----
+
+const GEWERK_MODI = () => [['offen', t('frei')], ['n', t('verteilen auf')], ['mit', t('zusammen mit')]];
+
+// „Achtung: …“ für Stücke, die beim Laden keinen Platz fanden; '' wenn nichts fehlt. liste: { name, gewerk }[].
+export function nichtGeladenText(liste) {
+  if (!liste.length) return '';
+  const l = capList(liste.map(x => `${x.name} (${trade(x.gewerk)})`)).join(', ');
+  return liste.length === 1
+    ? t('Achtung: 1 Case nicht geladen, kein Platz: {liste}', { liste: l })
+    : t('Achtung: {n} Cases nicht geladen, kein Platz: {liste}', { n: liste.length, liste: l });
+}
+
+// Vorschau der LKW-Wahl. vorschau: null | { lkws: { name, gewerke, stueck }[], nichtGeladen: { name, gewerk }[] }.
+export function vorschauHtml(vorschau, rechnet = false, fehler = false) {
+  const stand = rechnet ? `<span class="hint">${t('rechnet …')}</span>` : '';
+  if (fehler) return `<p class="ti-rot">${t('Die Vorschau konnte nicht berechnet werden.')}</p>`;
+  if (!vorschau) return stand;
+  const zeile = l => `<li class="lkw-vz"><b>${esc(l.name)}</b> ${l.gewerke.map(g => `${swatch(colorFor(g))}${esc(trade(g))}`).join(' ')}`
+    + ` <span class="hint">${esc(t('{n} Stück', { n: l.stueck }))}</span></li>`;
+  const warn = nichtGeladenText(vorschau.nichtGeladen);
+  return `${stand}${vorschau.lkws.length ? `<ul class="lkw-vliste">${vorschau.lkws.map(zeile).join('')}</ul>` : `<p class="hint">${t('Es entsteht kein LKW.')}</p>`}`
+    + (warn ? `<p class="ti-gelb">⚠ ${esc(warn)}</p>` : '');
+}
+
+// LKW-Schritt. gewerke: Gewerke der betroffenen Stücke; einst: { verhalten, truckId, art, getrennt, gewerke:
+// { [name]: { modus: 'offen'|'n'|'mit', n, mit } } } (Lücken = Vorgaben); stueckVon: { [gewerk]: Stückzahl }.
+export function lkwSchrittHtml({ gewerke = [], einst = {}, fahrzeuge = [], zielHatLkw = false, freieLkw = MAX_LKW, vorschau = null, rechnet = false, fehler = false, stueckVon = {} } = {}) {
+  const verhalten = zielHatLkw && Object.values(VERHALTEN).includes(einst.verhalten) ? einst.verhalten : VERHALTEN.NEU;
+  const art = einst.art === ART.WENIGSTE ? ART.WENIGSTE : ART.JE_GEWERK;
+  const radio = (v, text) => `<label class="check"><input type="radio" name="lkwverh" value="${v}"${verhalten === v ? ' checked' : ''}> ${text}</label>`;
+  const oben = zielHatLkw
+    ? `<div class="lkw-verh"><b>${t('Das Projekt hat schon LKW')}</b>`
+      + radio(VERHALTEN.NEU, t('Alles neu laden'))
+      + `<p class="hint">${t('Die vorhandenen LKW werden ersetzt: Namen und Fahrzeuge der alten LKW gehen verloren.')}</p>`
+      + radio(VERHALTEN.ZUSAETZLICH, t('Neue Stücke auf zusätzliche LKW'))
+      + radio(VERHALTEN.HINZU, t('Neue Stücke in vorhandene LKW'))
+      + '</div>'
+    : '';
+  const sortiert = [...new Set(gewerke)].sort((a, b) => catRank(a) - catRank(b) || (a < b ? -1 : a > b ? 1 : 0));
+  const zeile = g => {
+    const c = gewerkCfg(einst.gewerke, g) ?? {};
+    const modus = c.modus === 'n' || c.modus === 'mit' ? c.modus : 'offen';
+    const andere = sortiert.filter(x => x !== g);
+    const n = Number.isInteger(c.n) ? Math.min(Math.max(c.n, 1), Math.max(freieLkw, 1)) : 1;
+    const feld = modus === 'n'
+      ? `<input type="number" min="1" max="${esc(Math.max(freieLkw, 1))}" step="1" value="${esc(n)}" data-role="gn" data-g="${esc(g)}" aria-label="${t('Anzahl LKW')}">`
+      : modus === 'mit'
+        ? `<select data-role="gmit" data-g="${esc(g)}" aria-label="${t('zusammen mit')}">${andere.map(x => `<option value="${esc(x)}"${c.mit === x ? ' selected' : ''}>${esc(trade(x))}</option>`).join('')}</select>`
+        : '';
+    const stueck = gewerkCfg(stueckVon, g) ? ` <span class="hint">${esc(t('{n} Stück', { n: gewerkCfg(stueckVon, g) }))}</span>` : '';
+    return `<li class="lkw-g">${swatch(colorFor(g))}<b>${esc(trade(g))}</b>${stueck}`
+      + `<select data-role="gmodus" data-g="${esc(g)}" aria-label="${t('Verteilung')}">${GEWERK_MODI().map(([v, l]) => `<option value="${v}"${modus === v ? ' selected' : ''}>${l}</option>`).join('')}</select>${feld}</li>`;
+  };
+  const einstellungen = verhalten === VERHALTEN.HINZU ? '' : `
+    <div class="lkw-fz"><label>${t('Fahrzeug')} <select data-role="lkwtruck">${fahrzeuge.map(f => `<option value="${esc(f.id)}"${f.id === einst.truckId ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}</select></label></div>
+    <div class="seg"><span class="seg-label">${t('Verteilung')}</span>
+      <label class="check"><input type="radio" name="lkwart" value="${ART.JE_GEWERK}"${art === ART.JE_GEWERK ? ' checked' : ''}> ${t('Je Gewerk')}</label>
+      <label class="check"><input type="radio" name="lkwart" value="${ART.WENIGSTE}"${art === ART.WENIGSTE ? ' checked' : ''}> ${t('So wenige LKWs wie möglich')}</label></div>
+    ${art === ART.WENIGSTE
+    ? `<label class="check"><input type="checkbox" name="lkwgetrennt"${einst.getrennt ? ' checked' : ''}> ${t('nach Gewerk getrennt')}</label>`
+    : `<ul class="lkw-gl">${sortiert.map(zeile).join('')}</ul>`}`;
+  return `
+    <h2>${t('LKW')}</h2>
+    ${oben}${einstellungen}
+    <div class="lkw-vorschau" data-role="vorschau">${vorschauHtml(vorschau, rechnet, fehler)}</div>
+    <menu><button type="button" data-act="prev">${t('Zurück')}</button><span class="grow"></span><button type="button" class="primary" data-act="finish" data-role="go">${t('Übernehmen und laden')}</button></menu>`;
+}
 
 function listeSeiteHtml(st) {
   const n = r => st.eintraege.filter(e => e.reiter === r).length;
@@ -154,7 +313,7 @@ function listeSeiteHtml(st) {
   return `
     <h2>${t('Liste bearbeiten')}</h2>
     <div class="ti-leiste">
-      <div class="seg">${tab('cases')}${tab('set')}</div>
+      <div class="seg">${tab('cases')}${tab('set')}${tab('boxen')}</div>
       <select data-role="filter">
         <option value="all">${t('Alle')}</option>
         <option value="bad"${st.filter === 'fehler' ? ' selected' : ''}>${t('Nur fehlerhafte')}</option>
@@ -168,12 +327,16 @@ function listeSeiteHtml(st) {
     <menu><span class="grow"></span><button type="button" class="primary" data-act="back">${t('Zurück zur Übersicht')}</button></menu>`;
 }
 
-// Esc (cancel-Ereignis des Dialogs): in der Liste zurück zur Übersicht (Korrekturen bleiben), sonst Abbruch (null).
-export const escZiel = view => (view === 'list' ? 'overview' : null);
+// Esc (cancel-Ereignis des Dialogs): in Liste und Schritten zurück zur Übersicht (Korrekturen bleiben), sonst Abbruch (null).
+export const escZiel = view => (view === 'overview' ? null : 'overview');
 
-// opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null }.
-// opts.bestaetige(ergebnis): optional, async; false = Dialog bleibt offen (Eingaben bleiben erhalten).
-// Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean } oder null bei Abbruch.
+// opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null,
+//   trussDlg, dollyDlg (eigene <dialog>-Elemente), dollyBasen: Case[] (Grundboxen), bibliothekCases: Case[] }.
+// opts zusätzlich für den LKW-Schritt: zielHatLkw, freieLkw (MAX_LKW minus vorhandene), fahrzeuge: {id, name}[],
+//   vorhandeneGewerke: {name, stueck}[] (Stücke des Zielplans), vorschau: async (ergebnis) => { lkws, nichtGeladen }.
+// opts.bestaetige(ergebnis): optional, async, wird erst im letzten Schritt gerufen; false = Dialog bleibt offen.
+// Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean, gebaut: { cases, stuecke }, lkw: einst (nur beim Laden; ohne `neu`) }
+// oder null bei Abbruch. Gebaute Cases sind Import-Cases (nie in der Bibliothek), Stücke { caseId, n }.
 export async function openTabellenImport(dlg, opts) {
   if (dlg.open) {
     const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
@@ -183,16 +346,119 @@ export async function openTabellenImport(dlg, opts) {
   const zielAktuell = opts.zielAktuell ?? null;
   const st = {
     eintraege: [...opts.eintraege], view: 'overview', reiter: 'cases', filter: 'alle', suche: '', zeilen: null,
-    ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false,
+    ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false, ohneRotSet: false,
+    laden: false, folge: [], gebaut: { cases: [], stuecke: [] }, basisId: '', basisN: 1,
+    lkw: { verhalten: VERHALTEN.NEU, truckId: '', art: ART.JE_GEWERK, getrennt: false, gewerke: gewerkWoerterbuch() },
+    vorschau: null, rechnet: false, vorschauFehler: false,
   };
+  const fahrzeuge = opts.fahrzeuge ?? [];
+  st.lkw.truckId = (fahrzeuge.find(f => f.id === DEFAULT_TRUCK_ID) ?? fahrzeuge[0])?.id ?? '';
+  const dollyBasen = opts.dollyBasen ?? [];
+  const bibliothekCases = opts.bibliothekCases ?? [];
   let result = null;
 
   const tabelleNeu = () => {
     const zeilen = st.zeilen?.reiter === st.reiter ? st.zeilen.set : null;
-    dlg.querySelector('[data-role=table]').innerHTML = listeHtml(st.eintraege, { filter: st.filter, reiter: st.reiter, suche: st.suche, zeilen });
+    const filter = st.view === 'set' ? 'alle' : st.filter;
+    dlg.querySelector('[data-role=table]').innerHTML = listeHtml(st.eintraege, { filter, reiter: st.reiter, suche: st.suche, zeilen });
+  };
+  const zaehler = () => zaehlerText(st.view === 'set' ? st.eintraege.filter(e => e.reiter === 'set') : st.eintraege);
+  // Im Set-Schritt hängt Weiter an den roten Set-Zeilen; nach einer Änderung nur Knopf und Hinweis nachziehen.
+  const setSperreNeu = () => {
+    if (st.view !== 'set') return;
+    const sperre = setGesperrt(st.eintraege, st.ohneRotSet);
+    const knopf = dlg.querySelector('[data-role=go]');
+    if (knopf) knopf.disabled = sperre;
+    const hinweis = dlg.querySelector('[data-role=sperrhinweis]');
+    if (hinweis) hinweis.hidden = !sperre;
+  };
+  // ---- LKW-Schritt: Gewerke, gültige Einstellungen, Vorschau ----
+  const hatLkw = () => st.ziel === 'current' && !!opts.zielHatLkw;
+  const verhaltenJetzt = () => (hatLkw() && Object.values(VERHALTEN).includes(st.lkw.verhalten) ? st.lkw.verhalten : VERHALTEN.NEU);
+  const freieJetzt = () => (verhaltenJetzt() === VERHALTEN.NEU ? MAX_LKW : Math.max(opts.freieLkw ?? MAX_LKW, 0));
+  const gewerkZaehler = () => {
+    const m = new Map();
+    const plus = (g, n) => m.set(g, (m.get(g) ?? 0) + n);
+    const caseVon = new Map([...bibliothekCases, ...dollyBasen, ...st.gebaut.cases].map(c => [c.id, c]));
+    for (const d of entwuerfeAus(st.eintraege).entwuerfe) plus(d.case.category || 'Sonstiges', d.menge);
+    for (const x of st.gebaut.stuecke) plus(caseVon.get(x.caseId)?.category || 'Sonstiges', x.n);
+    if (verhaltenJetzt() === VERHALTEN.NEU && st.ziel === 'current') for (const v of opts.vorhandeneGewerke ?? []) plus(v.name || 'Sonstiges', v.stueck ?? 0);
+    return m;
+  };
+  // Einstellungen, wie planeLkws sie versteht: immer gültige Werte (Verhalten, Art), N und „mit“ geprüft.
+  const einstFuer = () => {
+    const gewerke = [...gewerkZaehler().keys()];
+    const frei = Math.max(freieJetzt(), 1);
+    const gw = gewerkWoerterbuch();
+    for (const g of gewerke) {
+      const c = gewerkCfg(st.lkw.gewerke, g) ?? {};
+      const andere = gewerke.filter(x => x !== g);
+      if (c.modus === 'n') gw[g] = { modus: 'n', n: Number.isInteger(c.n) ? Math.min(Math.max(c.n, 1), frei) : 1 };
+      else if (c.modus === 'mit' && andere.length) gw[g] = { modus: 'mit', mit: andere.includes(c.mit) ? c.mit : andere[0] };
+    }
+    return {
+      verhalten: verhaltenJetzt(),
+      truckId: fahrzeuge.some(f => f.id === st.lkw.truckId) ? st.lkw.truckId : fahrzeuge[0]?.id ?? st.lkw.truckId,
+      art: st.lkw.art === ART.WENIGSTE ? ART.WENIGSTE : ART.JE_GEWERK,
+      getrennt: !!st.lkw.getrennt,
+      gewerke: gw,
+    };
+  };
+  const lkwHtml = () => {
+    const z = gewerkZaehler();
+    return lkwSchrittHtml({ gewerke: [...z.keys()], stueckVon: Object.fromEntries(z), einst: einstFuer(),
+      fahrzeuge, zielHatLkw: hatLkw(), freieLkw: freieJetzt(), vorschau: st.vorschau, rechnet: st.rechnet, fehler: st.vorschauFehler });
+  };
+  // Entprellt (300 ms), die letzte Anfrage gewinnt; die Vorschau ändert nichts am Store (opts.vorschau rechnet auf einer Kopie).
+  let vzTimer = null;
+  let vzNr = 0;
+  const zeigeVorschau = () => {
+    const el = dlg.querySelector('[data-role=vorschau]');
+    if (el) el.innerHTML = vorschauHtml(st.vorschau, st.rechnet, st.vorschauFehler);
+  };
+  const planeVorschau = () => {
+    if (!opts.vorschau) return;
+    clearTimeout(vzTimer);
+    const nr = ++vzNr;
+    st.rechnet = true; st.vorschauFehler = false;
+    zeigeVorschau();
+    vzTimer = setTimeout(async () => {
+      let daten = null;
+      let fehler = false;
+      try { daten = await opts.vorschau({ eintraege: st.eintraege, ziel: st.ziel, laden: true, ohneRot: st.ohneRot, gebaut: st.gebaut, lkw: einstFuer() }); }
+      catch (err) { console.error(err); fehler = true; }
+      if (nr !== vzNr || !dlg.open) return;
+      st.vorschau = daten; st.rechnet = false; st.vorschauFehler = fehler;
+      zeigeVorschau();
+    }, 300);
+  };
+  const lkwAenderung = el => {
+    const gewerke = [...gewerkZaehler().keys()];
+    const g = el.dataset.g;
+    const cfg = () => gewerkEintrag(st.lkw.gewerke, g);
+    if (el.name === 'lkwverh') st.lkw.verhalten = el.value;
+    else if (el.name === 'lkwart') st.lkw.art = el.value;
+    else if (el.name === 'lkwgetrennt') st.lkw.getrennt = el.checked;
+    else if (el.dataset.role === 'lkwtruck') st.lkw.truckId = el.value;
+    else if (el.dataset.role === 'gmodus') { cfg().modus = el.value; if (el.value === 'mit') cfg().mit = gewerke.find(x => x !== g); }
+    else if (el.dataset.role === 'gn') { const n = Number(el.value); cfg().n = Number.isInteger(n) && n >= 1 ? n : 1; }
+    else if (el.dataset.role === 'gmit') cfg().mit = el.value;
+    else return false;
+    render();
+    planeVorschau();
+    return true;
   };
   const render = () => {
+    if (st.view === 'lkws') { dlg.innerHTML = `<div class="editor ti">${lkwHtml()}</div>`; return; }
     if (st.view === 'list') { dlg.innerHTML = `<div class="editor ti">${listeSeiteHtml(st)}</div>`; return; }
+    if (st.view !== 'overview') {
+      const letzter = st.folge.indexOf(st.view) === st.folge.length - 1;
+      const inhalt = st.view === 'set'
+        ? setSchrittHtml(st.eintraege, { ohneRot: st.ohneRotSet, letzter, laden: st.laden })
+        : bauSchrittHtml(st.view, st.eintraege, st.gebaut, { dollyBasen, bibliothekCases, basisId: st.basisId, basisN: st.basisN, letzter, laden: st.laden });
+      dlg.innerHTML = `<div class="editor ti">${inhalt}</div>`;
+      return;
+    }
     const z = zusammenfassung(st.eintraege);
     dlg.innerHTML = `<div class="editor ti">${uebersichtHtml(z, auffaelligkeiten(st.eintraege), {
       zielAktuell, merkliste: st.eintraege, ziel: st.ziel, ohneRot: st.ohneRot, dateiname: opts.dateiname ?? '' })}</div>`;
@@ -202,12 +468,79 @@ export async function openTabellenImport(dlg, opts) {
     if (busy) return;
     busy = true;
     try {
-      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot };
+      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot, gebaut: st.gebaut, ...(laden ? { lkw: einstFuer() } : {}) };
       if (opts.bestaetige && !(await opts.bestaetige(r))) return;
       result = r;
       dlg.close('ok');
     } finally { busy = false; }
   };
+
+  // Schrittfolge: leer = direkt übernehmen (wie ohne Schritte). `lkws` steht beim Laden zuletzt.
+  const starteSchritte = laden => {
+    st.laden = laden;
+    st.folge = schritte(st.eintraege, laden);
+    if (!st.folge.length) { fertig(laden); return; }
+    geheZu(0);
+  };
+  const geheZu = i => {
+    if (i < 0) st.view = 'overview';
+    else if (i >= st.folge.length) { fertig(st.laden); return; }
+    else {
+      st.view = st.folge[i];
+      if (st.view === 'set') { st.reiter = 'set'; st.filter = 'alle'; st.suche = ''; st.zeilen = null; }
+    }
+    render();
+    if (st.view === 'lkws') planeVorschau();
+  };
+  const addiere = (caseId, n) => {
+    const s = st.gebaut.stuecke.find(x => x.caseId === caseId);
+    if (s) s.n += n; else st.gebaut.stuecke.push({ caseId, n });
+  };
+  const nimmAuf = res => {
+    for (const c of res.newCases ?? (res.newCase ? [res.newCase] : [])) if (!st.gebaut.cases.some(x => x.id === c.id)) st.gebaut.cases.push(c);
+    for (const a of res.additions ?? [res.addition]) addiere(a.caseId, a.n);
+  };
+  const bereinige = () => { st.gebaut.cases = st.gebaut.cases.filter(c => st.gebaut.stuecke.some(s => s.caseId === c.id)); };
+  const stueckzahl = el => { const n = Number(el.value); return Number.isInteger(n) && n >= 1 && n <= MAX_STUECK ? n : null; };
+  // Aktionen der Schritte; die Wizard-Dialoge öffnen sich über diesem Dialog, danach wird neu gezeichnet.
+  let schrittBusy = false;
+  const schrittAktion = async (act, b) => {
+    if (schrittBusy) return;
+    schrittBusy = true;
+    try { await schrittAktion1(act, b); } finally { schrittBusy = false; }
+  };
+  const schrittAktion1 = async (act, b) => {
+    if (act === 'prev') return geheZu(st.folge.indexOf(st.view) - 1);
+    if (act === 'next') return geheZu(st.folge.indexOf(st.view) + 1);
+    if (act === 'finish') return fertig(st.laden);
+    if (act === 'rm') {
+      st.gebaut.stuecke.splice(Number(b.dataset.s), 1);
+      bereinige();
+    } else if (act === 'truss') {
+      const res = await openTrussDialog(opts.trussDlg, {
+        cases: [...bibliothekCases, ...st.gebaut.cases],
+        onNewTruss: async c => alsImportCase(c),
+        stock: { mode: 'projekt' },
+      });
+      if (res) nimmAuf(res);
+    } else {
+      const basis = dollyBasen.find(x => x.id === dlg.querySelector('[data-role=basis]')?.value);
+      const n = stueckzahl(dlg.querySelector('[data-role=basisn]') ?? { value: 1 });
+      if (!basis || n === null) return;
+      if (act === 'loose') addiere(basis.id, n);
+      else {
+        const res = await openDollyDialog(opts.dollyDlg, {
+          baseCase: basis,
+          existingCases: [...bibliothekCases, ...st.gebaut.cases],
+          onNewDollyStack: async c => alsImportCase(c),
+          stock: { mode: 'projekt' },
+        });
+        if (res) nimmAuf(res);
+      }
+    }
+    if (dlg.open) render();
+  };
+  const SCHRITT_ACTS = new Set(['prev', 'next', 'finish', 'rm', 'truss', 'loose', 'dolly']);
 
   // Ein Listener je Ereignisart am Dialog (Ereignis-Delegation), keine je Zelle.
   dlg.onclick = ev => {
@@ -215,33 +548,47 @@ export async function openTabellenImport(dlg, opts) {
     if (!b) return;
     const act = b.dataset.act;
     if (act === 'cancel') dlg.close('cancel');
-    else if (act === 'only') fertig(false);
-    else if (act === 'load') fertig(true);
+    else if (act === 'only') starteSchritte(false);
+    else if (act === 'load') starteSchritte(true);
+    else if (SCHRITT_ACTS.has(act)) schrittAktion(act, b);
     else if (act === 'edit') {
       st.view = 'list'; st.filter = b.dataset.filter === 'bad' ? 'fehler' : 'alle'; st.reiter = b.dataset.tab ?? 'cases'; st.suche = '';
       st.zeilen = b.dataset.rows ? { reiter: st.reiter, set: new Set(b.dataset.rows.split(',').map(Number)) } : null;
-      // „fehlerhaft“ kann im Set-Reiter liegen, wenn Cases sauber sind
-      if (st.filter === 'fehler' && !st.eintraege.some(e => e.reiter === st.reiter && e.befunde.length)
-        && st.eintraege.some(e => e.reiter === 'set' && e.befunde.length)) st.reiter = 'set';
+      // „fehlerhaft“ kann im Set- oder Boxen-Reiter liegen, wenn Cases sauber sind
+      if (st.filter === 'fehler' && !st.eintraege.some(e => e.reiter === st.reiter && e.befunde.length)) {
+        const anderer = ['set', 'boxen'].find(r => st.eintraege.some(e => e.reiter === r && e.befunde.length));
+        if (anderer) st.reiter = anderer;
+      }
       render();
     } else if (act === 'back') { st.view = 'overview'; render(); }
     else if (act === 'tab') { st.reiter = b.dataset.tab; render(); }
     else if (act === 'nocolor') { st.zeilen = null; render(); }
     else if (act === 'add') {
-      st.eintraege.push(pruefeEintrag({ zeile: null, reiter: st.reiter, werte: Object.fromEntries(SPALTEN[st.reiter].map(sg => [sg.key, ''])), befunde: [] }));
-      st.filter = 'fehler'; st.suche = ''; st.zeilen = null;
+      const neu = pruefeEintrag({ zeile: null, reiter: st.reiter, werte: Object.fromEntries(SPALTEN[st.reiter].map(sg => [sg.key, ''])), befunde: [] });
+      st.eintraege.push(neu);
+      st.filter = filterNachHinzufuegen(neu); st.suche = ''; st.zeilen = null;
       render();
       dlg.querySelector('.ti-list tbody tr:last-child input')?.focus();
     } else if (act === 'del') {
       st.eintraege.splice(Number(b.closest('tr').dataset.i), 1);
       tabelleNeu();
-      dlg.querySelector('[data-role=count]').textContent = zaehlerText(st.eintraege);
+      dlg.querySelector('[data-role=count]').textContent = zaehler();
+      setSperreNeu();
     }
   };
   dlg.onchange = ev => {
     const el = ev.target;
+    if (st.view === 'lkws' && lkwAenderung(el)) return;
     if (el.name === 'target') { st.ziel = el.value; return; }
+    if (el.name === 'skipredset') { st.ohneRotSet = el.checked; render(); return; }
     if (el.name === 'skipred') { st.ohneRot = el.checked; render(); return; }
+    if (el.dataset.role === 'basis') { st.basisId = el.value; return; }
+    if (el.dataset.role === 'basisn') { st.basisN = stueckzahl(el) ?? 1; return; }
+    if (el.dataset.k === 'n' && el.dataset.s !== undefined) {
+      const n = stueckzahl(el);
+      if (n !== null) st.gebaut.stuecke[Number(el.dataset.s)].n = n; else el.value = st.gebaut.stuecke[Number(el.dataset.s)].n;
+      return;
+    }
     if (el.dataset.role === 'filter') { st.filter = el.value === 'bad' ? 'fehler' : 'alle'; tabelleNeu(); return; }
     const tr = el.closest('tr[data-i]');
     if (!tr || !el.dataset.k) return;
@@ -257,7 +604,8 @@ export async function openTabellenImport(dlg, opts) {
       if (text) input.title = text; else input.removeAttribute('title');
     }
     tr.querySelector('.ti-hint').innerHTML = s.hinweis;
-    dlg.querySelector('[data-role=count]').textContent = zaehlerText(st.eintraege);
+    dlg.querySelector('[data-role=count]').textContent = zaehler();
+    setSperreNeu();
   };
   dlg.oncancel = ev => {
     if (escZiel(st.view) !== 'overview') return;
@@ -273,6 +621,7 @@ export async function openTabellenImport(dlg, opts) {
   render();
   return new Promise(resolve => {
     dlg.addEventListener('close', () => {
+      clearTimeout(vzTimer); vzNr++;
       dlg.onclick = dlg.onchange = dlg.oninput = dlg.oncancel = null;
       resolve(dlg.returnValue === 'ok' ? result : null);
     }, { once: true });

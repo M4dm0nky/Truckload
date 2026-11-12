@@ -56,7 +56,19 @@ Ergänzt [nyx-projektdatei.md](nyx-projektdatei.md) und [nyx-host.md](nyx-host.m
   (`DecompressionStream('deflate-raw')`, kein `DOMParser`).
 - Keine nativen Dialoge: Der Dialog „Tabelle importieren“ ist HTML.
 
+## Stufe 2 und 3: Traversen, Boxen, LKW (seit V 0.31.0)
+
+- **Weitere Case-Arten im Import:** Import-Cases können jetzt auch Traversenwagen (`kind: 'truss'`) und
+  Dolly-Stacks (`kind: 'speaker'`) sein. Die Felder sind dieselben wie bisher (`herkunft: 'import'`).
+  Es kommt kein neues Feld und kein neuer Store hinzu.
+- **Grundboxen und Pre-Rig nur per ID:** Grundboxen aus der Bibliothek werden im Plan nur über ihre
+  Bibliotheks-ID referenziert. „Mitführen“ nimmt sie als Kopie mit, wie sonst auch.
+- **Mehr-LKW-Pläne:** „Übernehmen und laden“ erzeugt `plan.lkws` im bestehenden Format
+  (siehe [architektur.md](architektur.md)).
+- **Vorlagen:** Die Vorlagen unter `data/` haben im Reiter Boxen neue optionale Spalten (Breite, Tiefe,
+  Höhe, Gewicht). Alte Tabellen ohne sie werden weiter gelesen.
+
 ## Ausblick
 
-Stufe 2 (Traversen- und Boxen-Schritt) und Stufe 3 (LKW-Schritt) folgen. Ändert sich dabei das
-Datenmodell oder die Projektdatei, kommt hier ein neuer Abschnitt, bevor es veröffentlicht wird.
+Ändert sich das Datenmodell oder die Projektdatei künftig, kommt hier ein neuer Abschnitt, bevor es
+veröffentlicht wird.
