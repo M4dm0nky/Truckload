@@ -825,7 +825,7 @@ Ist die App in einem zweiten Tab oder Fenster gleichzeitig offen, meldet ein
 Datenabgleich, nur den Hinweis „in einem weiteren Tab offen“, damit der Nutzer nicht
 lautlos den einen oder anderen Stand verliert.
 
-## Tabellen-Import (seit V 0.21.2)
+## Tabellen-Import (seit V 0.30.0)
 
 Stufe 1 des Imports: Excel- oder CSV-Tabelle rein, neue projekteigene Cases raus. Die Anwendung
 baut daraus nur Case-Typen, keine Traversen oder Dollys (das folgt in Stufe 2 und 3). Fachliche

@@ -1,6 +1,13 @@
 # Tabellen-Import: was NYX wissen muss
 
-Gilt seit V 0.21.2 (Stufe 1). Richtet sich an den NYX-Admin, der Truckload als Submodul einbindet.
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.30.0
+
+- Dateiauswahl `<input type="file" multiple>` zulassen.
+- Download-Link `<a href="data/…" download>` zulassen.
+- Kein neuer Store, keine Freigabe nötig.
+- Nach Einsatz von Set-Teilen das Submodul nicht auf einen Stand vor 0.30.0 zurückdrehen.
+
+Gilt seit V 0.30.0 (Stufe 1). Richtet sich an den NYX-Admin, der Truckload als Submodul einbindet.
 Ergänzt [nyx-projektdatei.md](nyx-projektdatei.md) und [nyx-host.md](nyx-host.md).
 
 ## Zuerst: was NYX prüfen muss
