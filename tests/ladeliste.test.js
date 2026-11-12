@@ -278,3 +278,22 @@ test('farbAuffaelligkeiten: Grenzen genau bei 5 Zeilen und 60 %', () => {
   assert.equal(farbAuffaelligkeiten([...mk(5, 'Licht'), ...mk(3, 'Ton')]).length, 1, '5 von 8 = 62,5 %');
   assert.deepEqual(farbAuffaelligkeiten([...mk(5, 'Licht'), ...mk(4, 'Ton')]), [], '5 von 9 = 55 %');
 });
+
+test('Einheit je Feld: Maße nur cm, Gewicht nur kg; falsche Einheit rot', () => {
+  gelb(eintrag({ breite: '60 cm' }), 'breite');
+  rot(eintrag({ breite: '60 kg' }), 'breite');
+  rot(eintrag({ tiefe: '80 kg' }), 'tiefe');
+  rot(eintrag({ hoehe: '100 kg' }), 'hoehe');
+  gelb(eintrag({ gewicht: '40 kg' }), 'gewicht');
+  rot(eintrag({ gewicht: '40 cm' }), 'gewicht');
+  assert.equal(entwurfAus(eintrag({ breite: '60 kg' })), null);
+  assert.equal(zahl('60 kg', 'cm').wert, null);
+  assert.deepEqual(zahl('60 cm', 'cm'), { wert: 60, einheitEntfernt: true });
+});
+
+test('Menge und Lage mit Einheit: rot', () => {
+  rot(eintrag({ menge: '5 cm' }), 'menge');
+  rot(eintrag({ menge: '5 kg' }), 'menge');
+  rot(eintrag({ lage: '2 cm' }), 'lage');
+  assert.equal(entwurfAus(eintrag({ menge: '5 cm' })), null);
+});

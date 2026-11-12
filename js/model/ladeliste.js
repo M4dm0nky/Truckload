@@ -116,12 +116,14 @@ const NEIN = ['nein', 'no', '0', 'falsch', 'false'];
 // (eigene Entscheidung: lieber rot als stillschweigend 1,2 statt 1200).
 const TAUSENDER = /^[+-]?[1-9]\d{0,2}(\.\d{3})+(,\d+)?$/;
 const ZAHL = /^[+-]?\d+([.,]\d+)?$/;
-const EINHEIT = /\s*(cm|kg)$/i;
 
-export function zahl(s) {
+// einheit = die für das Feld erwartete Einheit ('cm', 'kg'); '' = keine erlaubt. Ohne Angabe gelten
+// cm und kg. Eine andere Einheit macht den Wert zur Nicht-Zahl (nicht raten).
+export function zahl(s, einheit) {
   let x = String(s ?? '').trim();
-  const einheitEntfernt = EINHEIT.test(x);
-  if (einheitEntfernt) x = x.replace(EINHEIT, '');
+  const re = new RegExp(`\\s*(${einheit === undefined ? 'cm|kg' : einheit})$`, 'i');
+  const einheitEntfernt = (einheit !== '') && re.test(x);
+  if (einheitEntfernt) x = x.replace(re, '');
   if (TAUSENDER.test(x) || !ZAHL.test(x)) return { wert: null, einheitEntfernt };
   return { wert: Number(x.replace(',', '.')), einheitEntfernt };
 }
@@ -170,10 +172,10 @@ function auswerten(e) {
   else if (name.length > NAME_MAX) rot('name', t('Name ist länger als {max} Zeichen.', { max: NAME_MAX }));
 
   // Zahl mit Grenzen; leer → null (Aufrufer entscheidet), Fehler als roter Befund
-  const messen = (key, { min, max, minIncl }) => {
+  const messen = (key, einheit, { min, max, minIncl }) => {
     const s = roh(key);
     const feld = feldName(key);
-    const z = zahl(s);
+    const z = zahl(s, einheit);
     if (z.wert === null) {
       rot(key, TAUSENDER.test(s) ? t('„{feld}“ ist unklar: „{wert}“ (Tausenderpunkt oder Dezimalpunkt?). Bitte ohne Punkt schreiben.', { feld, wert: s })
         : t('„{feld}“ ist keine Zahl: „{wert}“.', { feld, wert: s }));
@@ -189,7 +191,7 @@ function auswerten(e) {
   };
   const mass = (key, max) => {
     if (roh(key) === '') { rot(key, t('„{feld}“ fehlt.', { feld: feldName(key) })); return null; }
-    return messen(key, { min: 0, max });
+    return messen(key, 'cm', { min: 0, max });
   };
   const w = mass('breite', CASE_LIMITS.w);
   const l = mass('tiefe', CASE_LIMITS.l);
@@ -198,7 +200,7 @@ function auswerten(e) {
   let menge = 1;
   if (roh('menge') === '') gelb('menge', t('Menge fehlt, 1 angenommen.'));
   else {
-    const z = zahl(roh('menge')).wert;
+    const z = zahl(roh('menge'), '').wert;
     if (z === null || !Number.isInteger(z) || z < 1 || z > CASE_LIMITS.stock) {
       rot('menge', t('Menge muss eine ganze Zahl von 1 bis {max} sein.', { max: CASE_LIMITS.stock }));
       menge = null;
@@ -206,12 +208,12 @@ function auswerten(e) {
   }
 
   let weight = 0;
-  if (roh('gewicht') !== '') weight = messen('gewicht', { min: 0, max: CASE_LIMITS.weight, minIncl: true });
+  if (roh('gewicht') !== '') weight = messen('gewicht', 'kg', { min: 0, max: CASE_LIMITS.weight, minIncl: true });
 
   let layers = [1, 2];
   if (roh('lage') === '') gelb('lage', t('Höchste Lage fehlt, Lage 1 und 2 angenommen.'));
   else {
-    const z = zahl(roh('lage')).wert;
+    const z = zahl(roh('lage'), '').wert;
     if (z === null || ![1, 2, 3].includes(z)) { rot('lage', t('Höchste Lage muss 1, 2 oder 3 sein.')); layers = null; }
     else layers = Array.from({ length: z }, (_, i) => i + 1);
   }
