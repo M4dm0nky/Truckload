@@ -1,10 +1,21 @@
 # Tabellen-Import: was NYX wissen muss
 
-## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.30.0
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.31.0
 
+Wer von einem Stand vor 0.30.0 kommt, erledigt beide Listen.
+
+**Neu mit 0.31.0:**
+- Führt NYX eine eigene Dateiliste des Submoduls, `js/model/lkw-import.js` aufnehmen. Wer `sw.js`
+  übernimmt, hat sie schon.
+- Gestapelte Dialoge zulassen: Der Traversen- und der Dolly-Dialog öffnen sich als zweites `<dialog>`
+  über dem Import-Dialog (beide `showModal()`, keine nativen Dialoge).
+- Die Vorlagen unter `data/` sind neu erzeugt (Reiter Boxen mit Maß-Spalten). Hält NYX eine eigene
+  Kopie, die Dateien ersetzen.
+- Kein neuer Store, keine Freigabe nötig, keine Änderung an der Projektdatei.
+
+**Aus 0.30.0:**
 - Dateiauswahl `<input type="file" multiple>` zulassen.
 - Download-Link `<a href="data/…" download>` zulassen.
-- Kein neuer Store, keine Freigabe nötig.
 - Nach Einsatz von Set-Teilen das Submodul nicht auf einen Stand vor 0.30.0 zurückdrehen.
 
 Gilt seit V 0.30.0 (Stufe 1). Richtet sich an den NYX-Admin, der Truckload als Submodul einbindet.
