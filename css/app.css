@@ -264,3 +264,39 @@ kbd { font-size: 11px; color: var(--muted); border: 1px solid var(--line); borde
 .lkw-none-hint { margin: 24px; color: var(--muted); }
 .editor .lkw-cat-list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .insp-lkw { display: grid; gap: 4px; margin: 8px 0; color: var(--muted); }
+
+/* Tabelle importieren (js/ui/tabellen-import.js) */
+.start-tabelle { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+a.btn { text-decoration: none; color: var(--text); display: inline-block; }
+#dlg-tabelle { width: min(1100px, 96vw); }
+#dlg-tabelle-hilfe { width: min(560px, 92vw); }
+.ti { max-height: 88vh; overflow: auto; }
+.ti-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.ti-chip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+.ti-chip b { font-size: 18px; margin-right: 4px; }
+.ti-band { display: flex; gap: 10px; align-items: center; justify-content: space-between; border-left: 4px solid; border-radius: 6px; padding: 8px 10px; }
+.ti-band.gelb { border-color: #f2b705; background: color-mix(in srgb, #f2b705 16%, transparent); }
+.ti-band.rot { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, transparent); }
+.ti-trades { border-collapse: collapse; width: 100%; }
+.ti-trades th, .ti-trades td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+.ti-trades th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.ti-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; }
+.ti-memo { background: var(--bg); border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; }
+.ti-memo ul { margin: 6px 0 0; padding-left: 20px; }
+.ti-target { border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 6px; }
+.ti-leiste { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ti-leiste .seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.ti-scroll { max-height: 55vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.ti-list { border-collapse: collapse; width: 100%; }
+.ti-list th { position: sticky; top: 0; background: var(--panel); text-align: left; font-size: 12px; color: var(--muted); padding: 5px 4px; z-index: 1; }
+.ti-list td { padding: 2px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ti-list input { width: 100%; min-width: 64px; box-sizing: border-box; padding: 3px 5px; }
+.ti-list input[data-k="name"] { min-width: 150px; }
+.ti-list input.rot { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+.ti-list input.gelb { border-color: #f2b705; }
+.ti-list tr.gelb { background: color-mix(in srgb, #f2b705 12%, transparent); }
+.ti-list .ti-nr { color: var(--muted); text-align: right; padding-right: 6px; }
+.ti-list .ti-hint { font-size: 12px; min-width: 180px; }
+.ti-rot { color: var(--danger); }
+.ti-gelb { color: #f2b705; }
+.ti-hilfe { padding-left: 20px; display: grid; gap: 6px; margin: 0; }

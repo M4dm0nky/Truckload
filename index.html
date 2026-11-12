@@ -74,6 +74,7 @@
   <link rel="modulepreload" href="js/app/planView.js">
   <link rel="modulepreload" href="js/app/plans.js">
   <link rel="modulepreload" href="js/app/screens.js">
+  <link rel="modulepreload" href="js/app/tabellenImport.js">
   <link rel="modulepreload" href="js/version.js">
   <link rel="modulepreload" href="js/data/case-library.js">
   <link rel="modulepreload" href="js/data/categories.js">
@@ -131,6 +132,7 @@
   <link rel="modulepreload" href="js/ui/print.js">
   <link rel="modulepreload" href="js/ui/projection.js">
   <link rel="modulepreload" href="js/ui/stock-target.js">
+  <link rel="modulepreload" href="js/ui/tabellen-import.js">
   <link rel="modulepreload" href="js/ui/textMetrics.js">
   <link rel="modulepreload" href="js/ui/truck-editor.js">
   <link rel="modulepreload" href="js/ui/truss-wizard.js">
@@ -156,6 +158,7 @@
        (Startbildschirm, kein Plan gewählt) `hidden` ist – siehe #import-btn dort und
        #start-import im Startbildschirm, die beide dieselbe Eingabe auslösen. -->
   <input id="import" type="file" accept=".json,application/json" hidden>
+  <input id="tabelle-datei" type="file" accept=".xlsx,.csv" multiple hidden>
   <section id="start-screen" class="start-screen">
     <div class="start-card">
       <h1>Truckload</h1>
@@ -214,6 +217,9 @@
       <button id="redo" title="Wiederholen (⇧⌘Z)" data-t-title>↷</button>
       <button id="export" title="Alles als JSON-Datei sichern" data-t-title data-t>Sichern</button>
       <button id="import-btn" type="button" title="JSON-Sicherung einlesen" data-t-title data-t>Importieren</button>
+      <button id="tabelle-btn" type="button" title="Ladeliste aus Excel oder CSV einlesen" data-t-title data-t>Tabelle importieren</button>
+      <button id="tabelle-hilfe" type="button" title="Hilfe zum Tabellen-Import" aria-label="Hilfe zum Tabellen-Import" data-t-title data-t-aria-label>?</button>
+      <a id="tabelle-vorlage" class="btn" href="data/Truckload-Ladeliste.xlsx" download data-t>Vorlage herunterladen</a>
       <select id="print-doc" title="Was gedruckt wird" data-t-title>
         <option value="plan" data-t>Ladeplan</option>
         <option value="checklist" data-t>Abhakliste</option>
@@ -250,6 +256,8 @@
   <dialog id="dlg-truck"></dialog>
   <dialog id="dlg-lkw"></dialog>
   <dialog id="dlg-wizard"></dialog>
+  <dialog id="dlg-tabelle"></dialog>
+  <dialog id="dlg-tabelle-hilfe"></dialog>
   <dialog id="dlg-truss"></dialog>
   <dialog id="dlg-dolly"></dialog>
   <dialog id="dlg-rules"></dialog>
