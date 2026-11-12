@@ -294,7 +294,7 @@ test('setSchrittHtml: rote Set-Zeile sperrt Weiter, „rote nicht übernehmen“
   const e = [...casesZ(), ...setZ(['kaputt', '1', '60', '40', '', '', '', '', ''])];
   const gesperrt = setSchrittHtml(e, { ohneRot: false });
   assert.match(gesperrt, /data-act="next"[^>]*disabled/);
-  assert.match(gesperrt, /name="skipred"/);
+  assert.match(gesperrt, /name="skipredset"/);
   assert.doesNotMatch(gesperrt, />ok</);
   assert.doesNotMatch(gesperrt, /value="ok"/);
   assert.match(gesperrt, /value="kaputt"/);
@@ -377,4 +377,26 @@ test('Struktursperre: Wizard-Dialoge laufen mit stock „projekt“ und speicher
   assert.doesNotMatch(ui, /saveCase/);
   const app = readFileSync(new URL('../js/app/tabellenImport.js', import.meta.url), 'utf8');
   assert.equal((app.match(/uebernimmTabelle\([^;]*gebaut\)/g) ?? []).length, 2);
+});
+
+test('uebersichtHtml: rote Set-Zeile sperrt die Übersicht nicht (eigenes Band), rote Cases-Zeile weiterhin', () => {
+  const rotSet = setZ(['kaputt', '1', '60', '40', '', '', '', '', '']);
+  const z = zusammenfassung(rotSet);
+  assert.equal(z.rotSet, 1);
+  const html = uebersichtHtml(z, [], {});
+  assert.doesNotMatch(html, /data-act="(only|load)" disabled/);
+  assert.match(html, /1 Set-Teil ist fehlerhaft/);
+  assert.doesNotMatch(html, /name="skipredset"/);
+  const mehr = uebersichtHtml(zusammenfassung([...rotSet, ...setZ(['k2', '1', '60', '40', '', '', '', '', ''])]), [], {});
+  assert.match(mehr, /2 Set-Teile sind fehlerhaft/);
+  const rotCases = lies('cases', [['kaputt', '1', '60', '40', '', '', '', '', '', '', '']]);
+  const h2 = uebersichtHtml(zusammenfassung([...rotCases, ...rotSet]), [], {});
+  assert.match(h2, /data-act="only" disabled/);
+  assert.match(h2, /1 Zeile ist fehlerhaft/);
+});
+
+test('Struktursperre: Set-Schritt und Übersicht haben getrennte Häkchen, Aktionen sind gegen Doppelklick gesperrt', () => {
+  const src = readFileSync(new URL('../js/ui/tabellen-import.js', import.meta.url), 'utf8');
+  assert.match(src, /name === 'skipredset'\) \{ st\.ohneRotSet/);
+  assert.match(src, /if \(schrittBusy\) return;/);
 });

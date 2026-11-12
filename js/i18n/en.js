@@ -608,6 +608,8 @@ export default {
   "Set": "Set",
   "Merkliste": "Reminder list",
   "Diese Zeilen baust du in den nächsten Schritten selbst (Traversen, Boxen).": "You build these rows yourself in the next steps (trusses, boxes).",
+  "1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.": "1 set item is faulty and will be corrected in the Set step.",
+  "{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.": "{n} set items are faulty and will be corrected in the Set step.",
   "Dolly": "Dolly",
   "lose": "loose",
   "Anzahl": "Quantity",

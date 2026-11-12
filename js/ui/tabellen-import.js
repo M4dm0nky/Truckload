@@ -22,12 +22,12 @@ const istListe = e => e.reiter === 'cases' || e.reiter === 'set' || istLoseBox(e
 
 // Stückzahlen je Kachel und je Gewerk (nur Zeilen ohne roten Befund), plus Zahl der roten/gelben Zeilen.
 export function zusammenfassung(eintraege) {
-  const z = { cases: 0, traversen: 0, boxen: 0, set: 0, rot: 0, gelb: 0, jeGewerk: [] };
+  const z = { cases: 0, traversen: 0, boxen: 0, set: 0, rot: 0, rotSet: 0, gelb: 0, jeGewerk: [] };
   const gewerke = new Map();
   for (const e of eintraege) {
     if (e.reiter === 'traversen') { z.traversen += ganzzahl(e.werte.stueck); continue; }
     if (e.reiter === 'boxen' && !istLoseBox(e)) { z.boxen += ganzzahl(e.werte.anzahl); continue; }
-    if (e.befunde.some(b => b.stufe === 'rot')) { z.rot++; continue; }
+    if (e.befunde.some(b => b.stufe === 'rot')) { z.rot++; if (e.reiter === 'set') z.rotSet++; continue; }
     if (e.befunde.length) z.gelb++;
     const d = entwurfAus(e);
     if (!d) continue;
@@ -59,12 +59,15 @@ function merklisteHtml(eintraege) {
 // z = zusammenfassung(...), auffaellig = auffaelligkeiten(...). opts: { zielAktuell: string|null,
 // merkliste: Eintrag[] (nur Traversen/Boxen werden gezeigt), ziel, ohneRot, dateiname }.
 export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = [], ziel = zielAktuell !== null ? 'current' : 'new', ohneRot = false, dateiname = '' } = {}) {
-  const gesperrt = z.rot > 0 && !ohneRot;
+  // Rote Set-Zeilen sperren die Übersicht nicht: der Set-Schritt ist dafür da (eigene Sperre, eigenes Häkchen).
+  const rotSonst = z.rot - (z.rotSet ?? 0);
+  const gesperrt = rotSonst > 0 && !ohneRot;
   const kachel = (cls, n, text) => `<span class="ti-chip ${cls}"><b>${n}</b> ${text}</span>`;
   const band = (cls, glyph, text, knopf) => `<div class="ti-band ${cls}"><span>${glyph} ${text}</span>${knopf}</div>`;
   const anzeigen = attrs => `<button type="button" data-act="edit" ${attrs}>${t('ansehen / korrigieren')}</button>`;
   const baender = [];
-  if (z.rot) baender.push(band('rot', '✖', esc(z.rot === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: z.rot })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (rotSonst) baender.push(band('rot', '✖', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (z.rotSet) baender.push(band('rot', '✖', esc(z.rotSet === 1 ? t('1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.') : t('{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.', { n: z.rotSet })), anzeigen('data-filter="bad" data-tab="set"')));
   if (z.gelb) baender.push(band('gelb', '⚠', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
   for (const a of auffaellig) {
     const text = t('{n} Zeilen sind {farbe}, aber dem Gewerk {gewerk} zugeordnet ({farbe} ist sonst {mehrheit}).',
@@ -79,7 +82,7 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
     ? `<label class="check"><input type="radio" name="target" value="current"${ziel === 'current' ? ' checked' : ''}> ${esc(t('ins aktuelle Projekt „{name}“', { name: zielAktuell }))}</label>`
       + `<label class="check"><input type="radio" name="target" value="new"${ziel === 'new' ? ' checked' : ''}> ${t('neues Projekt anlegen')}</label>`
     : `<label class="check"><input type="radio" name="target" value="new" checked> ${t('neues Projekt anlegen')}</label>`;
-  const rotWahl = z.rot ? `<label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>` : '';
+  const rotWahl = rotSonst ? `<label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>` : '';
   const sperre = gesperrt ? ' disabled' : '';
   return `
     <h2>${t('Tabelle importieren')}</h2>
@@ -225,7 +228,7 @@ export function setSchrittHtml(eintraege, { ohneRot = false, letzter = false, la
       <span class="hint" data-role="count">${esc(zaehlerText(eintraege.filter(e => e.reiter === 'set')))}</span>
     </div>
     <div class="ti-scroll" data-role="table">${listeHtml(eintraege, { filter: 'alle', reiter: 'set' })}</div>
-    <label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>
+    <label class="check"><input type="checkbox" name="skipredset"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>
     <p class="hint" data-role="sperrhinweis"${sperre ? '' : ' hidden'}>${t('Weiter ist gesperrt, solange rote Zeilen bleiben. Korrigieren oder „rote Zeilen nicht übernehmen“ ankreuzen.')}</p>
     ${fussHtml({ letzter, laden, sperre })}`;
 }
@@ -268,7 +271,7 @@ export async function openTabellenImport(dlg, opts) {
   const zielAktuell = opts.zielAktuell ?? null;
   const st = {
     eintraege: [...opts.eintraege], view: 'overview', reiter: 'cases', filter: 'alle', suche: '', zeilen: null,
-    ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false,
+    ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false, ohneRotSet: false,
     laden: false, folge: [], gebaut: { cases: [], stuecke: [] }, basisId: '', basisN: 1,
   };
   const dollyBasen = opts.dollyBasen ?? [];
@@ -284,7 +287,7 @@ export async function openTabellenImport(dlg, opts) {
   // Im Set-Schritt hängt Weiter an den roten Set-Zeilen; nach einer Änderung nur Knopf und Hinweis nachziehen.
   const setSperreNeu = () => {
     if (st.view !== 'set') return;
-    const sperre = setGesperrt(st.eintraege, st.ohneRot);
+    const sperre = setGesperrt(st.eintraege, st.ohneRotSet);
     const knopf = dlg.querySelector('[data-role=go]');
     if (knopf) knopf.disabled = sperre;
     const hinweis = dlg.querySelector('[data-role=sperrhinweis]');
@@ -295,7 +298,7 @@ export async function openTabellenImport(dlg, opts) {
     if (st.view !== 'overview') {
       const letzter = st.folge.indexOf(st.view) === st.folge.length - 1;
       const inhalt = st.view === 'set'
-        ? setSchrittHtml(st.eintraege, { ohneRot: st.ohneRot, letzter, laden: st.laden })
+        ? setSchrittHtml(st.eintraege, { ohneRot: st.ohneRotSet, letzter, laden: st.laden })
         : bauSchrittHtml(st.view, st.eintraege, st.gebaut, { dollyBasen, bibliothekCases, basisId: st.basisId, basisN: st.basisN, letzter, laden: st.laden });
       dlg.innerHTML = `<div class="editor ti">${inhalt}</div>`;
       return;
@@ -343,7 +346,13 @@ export async function openTabellenImport(dlg, opts) {
   const bereinige = () => { st.gebaut.cases = st.gebaut.cases.filter(c => st.gebaut.stuecke.some(s => s.caseId === c.id)); };
   const stueckzahl = el => { const n = Number(el.value); return Number.isInteger(n) && n >= 1 && n <= MAX_STUECK ? n : null; };
   // Aktionen der Schritte; die Wizard-Dialoge öffnen sich über diesem Dialog, danach wird neu gezeichnet.
+  let schrittBusy = false;
   const schrittAktion = async (act, b) => {
+    if (schrittBusy) return;
+    schrittBusy = true;
+    try { await schrittAktion1(act, b); } finally { schrittBusy = false; }
+  };
+  const schrittAktion1 = async (act, b) => {
     if (act === 'prev') return geheZu(st.folge.indexOf(st.view) - 1);
     if (act === 'next') return geheZu(st.folge.indexOf(st.view) + 1);
     if (act === 'finish') return fertig(st.laden);
@@ -413,6 +422,7 @@ export async function openTabellenImport(dlg, opts) {
   dlg.onchange = ev => {
     const el = ev.target;
     if (el.name === 'target') { st.ziel = el.value; return; }
+    if (el.name === 'skipredset') { st.ohneRotSet = el.checked; render(); return; }
     if (el.name === 'skipred') { st.ohneRot = el.checked; render(); return; }
     if (el.dataset.role === 'basis') { st.basisId = el.value; return; }
     if (el.dataset.role === 'basisn') { st.basisN = stueckzahl(el) ?? 1; return; }
