@@ -28,6 +28,17 @@ export function retainedFields(v, { isNew, fromTemplate, overrideBuiltin }) {
 }
 
 // Gewerk-Auswahl: der Wert bleibt der deutsche Name (gespeichert), sichtbar ist die Übersetzung.
+// Felder eines Nicht-Traversen-Cases beim Speichern. Ein Set-Teil (Tabellen-Import) bleibt ein Set:
+// kind bleibt 'set', ohne Rollen und nicht tippbar (checkCase verlangt das).
+export function caseFields(v, { l, w, h, wheels, wheelH, dimsInclWheels, tippable }) {
+  const set = v?.kind === 'set';
+  return {
+    kind: set ? 'set' : undefined, truss: undefined, l, w, h,
+    wheels: set ? false : wheels, wheelH: set ? 0 : wheelH,
+    dimsInclWheels, tippable: set ? false : tippable,
+  };
+}
+
 export const categoryOptionsHtml = () =>
   CATEGORIES.map(k => `<option value="${esc(k.name)}">${esc(trade(k.name))}</option>`).join('');
 
@@ -241,6 +252,12 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
   }
   let prevKind = isTruss(v) ? 'truss' : 'case';
   let caseWheelsSnapshot = null; // vom Nutzer gesetzter Rollen-Zustand, gemerkt beim Verlassen von "Case"
+  // Set-Teil: bleibt Set, ohne Rollen und nicht tippbar – Schalter gesperrt.
+  if (v.kind === 'set') {
+    f.wheels.checked = false; f.wheels.disabled = true;
+    f.tippable.checked = false; f.tippable.disabled = true;
+    for (const r of kindInputs) r.disabled = true;
+  }
   for (const r of kindInputs) {
     r.checked = r.value === prevKind;
     r.addEventListener('change', () => {
@@ -341,11 +358,12 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
         }) });
       } else {
         resolve({ action: 'save', value: withStock({
-          ...base, kind: undefined, truss: undefined,
-          l: Number(f.l.value), w: Number(f.w.value), h: Number(f.h.value),
-          wheels: f.wheels.checked, wheelH: f.wheels.checked ? currentWheelH() : 0,
-          dimsInclWheels: (dimsInclRadios.find(r => r.checked)?.value ?? 'incl') !== 'excl',
-          tippable: f.tippable.checked,
+          ...base, ...caseFields(v, {
+            l: Number(f.l.value), w: Number(f.w.value), h: Number(f.h.value),
+            wheels: f.wheels.checked, wheelH: f.wheels.checked ? currentWheelH() : 0,
+            dimsInclWheels: (dimsInclRadios.find(r => r.checked)?.value ?? 'incl') !== 'excl',
+            tippable: f.tippable.checked,
+          }),
         }) });
       }
     }, { once: true });

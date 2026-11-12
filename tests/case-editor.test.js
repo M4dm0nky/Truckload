@@ -23,3 +23,19 @@ test('eigenes onlyInPlan-Case bearbeiten: onlyInPlan bleibt', () => {
   assert.equal(r.onlyInPlan, true);
   assert.equal(r.source, 's');
 });
+
+test('caseFields: Set bleibt Set, ohne Rollen und nicht tippbar (Rückweg des Editors)', async () => {
+  const { caseFields } = await import('../js/ui/case-editor.js');
+  const { checkCase } = await import('../js/model/validate.js').catch(() => ({}));
+  const dim = { l: 100, w: 50, h: 60, dimsInclWheels: true };
+  const set = caseFields({ kind: 'set' }, { ...dim, wheels: true, wheelH: 10, tippable: true });
+  assert.equal(set.kind, 'set');
+  assert.equal(set.wheels, false);
+  assert.equal(set.wheelH, 0);
+  assert.equal(set.tippable, false);
+  const normal = caseFields({}, { ...dim, wheels: true, wheelH: 10, tippable: true });
+  assert.equal(normal.kind, undefined);
+  assert.equal(normal.wheels, true);
+  assert.equal(normal.wheelH, 10);
+  assert.equal(normal.tippable, true);
+});
