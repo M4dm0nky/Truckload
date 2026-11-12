@@ -4,7 +4,7 @@
 
 import { t, lang, GEWERKE_EN } from '../i18n/i18n.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
-import { CASE_LIMITS, NAME_MAX } from './limits.js';
+import { CASE_LIMITS, NAME_MAX, MAX_LABEL } from './limits.js';
 
 export const REITER = ['cases', 'traversen', 'boxen', 'set'];
 
@@ -238,7 +238,8 @@ function auswerten(e) {
   }
 
   const gewerk = gewerkVon(roh('gewerk'));
-  if (!gewerk.bekannt) gelb('gewerk', t('Gewerk „{wert}“ ist unbekannt und wird als eigener Name übernommen.', { wert: gewerk.name }));
+  if (gewerk.name.length > MAX_LABEL) rot('gewerk', t('Gewerk ist länger als {max} Zeichen.', { max: MAX_LABEL }));
+  else if (!gewerk.bekannt) gelb('gewerk', t('Gewerk „{wert}“ ist unbekannt und wird als eigener Name übernommen.', { wert: gewerk.name }));
   const farbe = farbeVon(roh('farbe'), gewerk.name);
   if (!farbe.bekannt) gelb('farbe', t('Farbe „{wert}“ nicht erkannt, Gewerkfarbe verwendet.', { wert: roh('farbe') }));
 

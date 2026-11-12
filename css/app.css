@@ -17,19 +17,20 @@
   --tl-font-display: system-ui, -apple-system, "Segoe UI", sans-serif;
   --bg: var(--tl-bg); --panel: var(--tl-surface); --line: var(--tl-line); --text: var(--tl-text); --muted: var(--tl-text-muted);
   --accent: var(--tl-accent); --on-accent: var(--tl-on-accent); --danger: var(--tl-danger); --ok: var(--tl-ok); --truck: var(--tl-truck); --grid: var(--tl-grid);
+  --warn: #f2b705; --warn-text: #f2b705; /* Warnfarbe: Rand/Grund gelb, Text im Hellmodus dunkler (Kontrast auf Weiß) */
   --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   --case-body: #1c1d20; --alu: #b8bec6; --corner: #d6dbe1; --wheel: #2b2d31;
 }
 @media (prefers-color-scheme: light) {
   /* Hellmodus komplett selbst abgeleitet (eigene Entscheidung, 2026-10-02) – der Skill-Treffer
      deckt nur den Dunkelmodus ab. In derselben Indigo-Blauton-Familie wie oben. */
-  :root { --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
+  :root { --warn-text: #7a5a00; --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
   /* Cases sind immer schwarz mit Alu-Kanten, unabhängig vom Theme */
 }
 /* Ein Host (NYX) setzt hell/dunkel ausdrücklich. :root[data-theme] hat die Spezifität (0,2,0) und
    schlägt damit die Systemeinstellung oben (0,1,0), unabhängig von der Reihenfolge. */
-:root[data-theme="dark"] { --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a; --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-truck: #121a2c; --tl-grid: #223049; }
-:root[data-theme="light"] { --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
+:root[data-theme="dark"] { --warn-text: #f2b705; --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a; --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-truck: #121a2c; --tl-grid: #223049; }
+:root[data-theme="light"] { --warn-text: #7a5a00; --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; font-family: var(--tl-font); }
@@ -275,7 +276,7 @@ a.btn { text-decoration: none; color: var(--text); display: inline-block; }
 .ti-chip { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
 .ti-chip b { font-size: 18px; margin-right: 4px; }
 .ti-band { display: flex; gap: 10px; align-items: center; justify-content: space-between; border-left: 4px solid; border-radius: 6px; padding: 8px 10px; }
-.ti-band.gelb { border-color: #f2b705; background: color-mix(in srgb, #f2b705 16%, transparent); }
+.ti-band.gelb { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
 .ti-band.rot { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, transparent); }
 .ti-trades { border-collapse: collapse; width: 100%; }
 .ti-trades th, .ti-trades td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
@@ -293,10 +294,10 @@ a.btn { text-decoration: none; color: var(--text); display: inline-block; }
 .ti-list input { width: 100%; min-width: 64px; box-sizing: border-box; padding: 3px 5px; }
 .ti-list input[data-k="name"] { min-width: 150px; }
 .ti-list input.rot { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
-.ti-list input.gelb { border-color: #f2b705; }
-.ti-list tr.gelb { background: color-mix(in srgb, #f2b705 12%, transparent); }
+.ti-list input.gelb { border-color: var(--warn); }
+.ti-list tr.gelb { background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .ti-list .ti-nr { color: var(--muted); text-align: right; padding-right: 6px; }
 .ti-list .ti-hint { font-size: 12px; min-width: 180px; }
 .ti-rot { color: var(--danger); }
-.ti-gelb { color: #f2b705; }
+.ti-gelb { color: var(--warn-text); }
 .ti-hilfe { padding-left: 20px; display: grid; gap: 6px; margin: 0; }

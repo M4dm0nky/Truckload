@@ -305,3 +305,13 @@ test('Entwurf: Cases und Set sind stapelbar ohne Auflastgrenze (wie die Editor-V
     assert.equal(c.maxTopLoad, null, reiter);
   }
 });
+
+test('Gewerk: höchstens 40 Zeichen (lkw.categories-Grenze) – 40 ok, 41 rot', () => {
+  const g40 = 'G'.repeat(40);
+  const ok = eintrag({ gewerk: g40 });
+  assert.equal(befund(ok, 'gewerk', 'rot').length, 0);
+  assert.equal(entwurfAus(ok).case.category, g40);
+  const zuLang = eintrag({ gewerk: 'G'.repeat(41) });
+  rot(zuLang, 'gewerk');
+  assert.equal(entwurfAus(zuLang), null);
+});

@@ -142,7 +142,7 @@ test('ersetzeProjektCase: ändert Import-Case, ignoriert Bibliotheks-Kopie', () 
 
 test('ersetzeProjektCase: ein c ohne herkunft bleibt Import-Case (nicht gesperrte Kopie)', () => {
   const p = plan({ unplaced: [{ id: 'a', caseId: 'imp' }], mitgefuehrt: { version: 1, cases: [importCase('imp')], trucks: [] } });
-  const { herkunft, ...ohne } = importCase('imp', { name: 'geändert' });
+  const ohne = importCase('imp', { name: 'geändert' }); delete ohne.herkunft;
   const q = ersetzeProjektCase(p, ohne);
   assert.equal(q.mitgefuehrt.cases[0].herkunft, 'import');
   assert.equal(q.mitgefuehrt.cases[0].name, 'geändert');

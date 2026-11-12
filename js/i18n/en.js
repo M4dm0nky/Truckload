@@ -595,6 +595,7 @@ export default {
   "Höchste Lage muss 1, 2 oder 3 sein.": "Highest layer must be 1, 2 or 3.",
   "„{feld}“ muss ja oder nein sein: „{wert}“.": "“{feld}” must be yes or no: “{wert}”.",
   "Rollen ignoriert: Die Höhe ({h} cm) ist nicht größer als die Rollenhöhe ({rollen} cm).": "Wheels ignored: the height ({h} cm) is not greater than the wheel height ({rollen} cm).",
+  "Gewerk ist länger als {max} Zeichen.": "Department is longer than {max} characters.",
   "Gewerk „{wert}“ ist unbekannt und wird als eigener Name übernommen.": "Department “{wert}” is unknown and is kept as a custom name.",
   "Farbe „{wert}“ nicht erkannt, Gewerkfarbe verwendet.": "Colour “{wert}” not recognised, department colour used.",
   "Die Tabelle hat mehr als {max} Zeilen.": "The table has more than {max} rows.",

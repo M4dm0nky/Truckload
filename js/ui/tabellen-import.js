@@ -168,6 +168,9 @@ function listeSeiteHtml(st) {
     <menu><span class="grow"></span><button type="button" class="primary" data-act="back">${t('Zurück zur Übersicht')}</button></menu>`;
 }
 
+// Esc (cancel-Ereignis des Dialogs): in der Liste zurück zur Übersicht (Korrekturen bleiben), sonst Abbruch (null).
+export const escZiel = view => (view === 'list' ? 'overview' : null);
+
 // opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null }.
 // opts.bestaetige(ergebnis): optional, async; false = Dialog bleibt offen (Eingaben bleiben erhalten).
 // Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean } oder null bei Abbruch.
@@ -256,6 +259,11 @@ export async function openTabellenImport(dlg, opts) {
     tr.querySelector('.ti-hint').innerHTML = s.hinweis;
     dlg.querySelector('[data-role=count]').textContent = zaehlerText(st.eintraege);
   };
+  dlg.oncancel = ev => {
+    if (escZiel(st.view) !== 'overview') return;
+    ev.preventDefault();
+    st.view = 'overview'; render();
+  };
   dlg.oninput = ev => {
     if (ev.target.dataset.role !== 'search') return;
     st.suche = ev.target.value;
@@ -265,7 +273,7 @@ export async function openTabellenImport(dlg, opts) {
   render();
   return new Promise(resolve => {
     dlg.addEventListener('close', () => {
-      dlg.onclick = dlg.onchange = dlg.oninput = null;
+      dlg.onclick = dlg.onchange = dlg.oninput = dlg.oncancel = null;
       resolve(dlg.returnValue === 'ok' ? result : null);
     }, { once: true });
     dlg.returnValue = '';

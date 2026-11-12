@@ -39,8 +39,10 @@ export function caseFields(v, { l, w, h, wheels, wheelH, dimsInclWheels, tippabl
 }
 
 // Gewerk-Auswahl: der Wert bleibt der deutsche Name (gespeichert), sichtbar ist die Übersetzung.
-export const categoryOptionsHtml = () =>
-  CATEGORIES.map(k => `<option value="${esc(k.name)}">${esc(trade(k.name))}</option>`).join('');
+// Ein freies Gewerk (aus dem Tabellen-Import) wird als eigene Option angeboten, damit Speichern es nicht verliert.
+export const categoryOptionsHtml = current =>
+  CATEGORIES.map(k => `<option value="${esc(k.name)}">${esc(trade(k.name))}</option>`).join('')
+  + (current && !CATEGORIES.some(k => k.name === current) ? `<option value="${esc(current)}">${esc(current)}</option>` : '');
 
 export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = false, stock, overrideBuiltin = false } = {}) {
   // Ein noch offener Dialog: sein `close`-Listener hängt an `dlg` selbst, überlebt also das
@@ -54,7 +56,6 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
   }
   const src = c ?? draft ?? null;
   const v = { ...DEFAULTS, color: colorFor('Sonstiges'), ...(src ?? {}) };
-  if (!CATEGORIES.some(k => k.name === v.category)) v.category = 'Sonstiges';
   if (src && src.color == null) v.color = colorFor(v.category);
   const isNew = !c || (c.builtin && !overrideBuiltin);
   const fromTemplate = !!c?.builtin && !overrideBuiltin;
@@ -66,7 +67,7 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
       <label>${t('Name')}<input name="name" required maxlength="${NAME_MAX}" placeholder="${t('z. B. Kabelcase Strom 1')}"></label>
       <label>${t('Inhalt')}<textarea name="content" rows="3" placeholder="${t('z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m')}"></textarea></label>
       <div class="row">
-        <label>${t('Gewerk')}<select name="category">${categoryOptionsHtml()}</select></label>
+        <label>${t('Gewerk')}<select name="category">${categoryOptionsHtml(v.category)}</select></label>
         <label>${t('Farbe')}<input type="color" name="color"></label>
       </div>
       <div class="row kind-switch">

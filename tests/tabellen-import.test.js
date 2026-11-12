@@ -168,3 +168,9 @@ test('entwuerfeAus: rote Zeilen landen in ausgelassen, Traversen/Boxen nie in de
   assert.equal(entwuerfe[0].menge, 2);
   assert.deepEqual(ausgelassen.map(x => x.werte.name), ['rot']);
 });
+
+test('Esc in der Listenansicht führt zurück zur Übersicht, in der Übersicht bricht es ab', async () => {
+  const { escZiel } = await import('../js/ui/tabellen-import.js');
+  assert.equal(escZiel('list'), 'overview');
+  assert.equal(escZiel('overview'), null);
+});
