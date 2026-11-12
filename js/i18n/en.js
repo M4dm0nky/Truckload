@@ -679,7 +679,7 @@ export default {
   "Neue Stücke in vorhandene LKW": "New pieces into existing trucks",
   "Anzahl LKW": "Number of trucks",
   "Verteilung": "Distribution",
-  "Je Gewerk": "By trade",
+  "Je Gewerk": "By department",
   "So wenige LKWs wie möglich": "As few trucks as possible",
-  "nach Gewerk getrennt": "separated by trade",
+  "nach Gewerk getrennt": "separated by department",
 };

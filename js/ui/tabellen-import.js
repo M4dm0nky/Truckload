@@ -427,7 +427,7 @@ export async function openTabellenImport(dlg, opts) {
       let daten = null;
       let fehler = false;
       try { daten = await opts.vorschau({ eintraege: st.eintraege, ziel: st.ziel, laden: true, ohneRot: st.ohneRot, gebaut: st.gebaut, lkw: einstFuer() }); }
-      catch { fehler = true; }
+      catch (err) { console.error(err); fehler = true; }
       if (nr !== vzNr || !dlg.open) return;
       st.vorschau = daten; st.rechnet = false; st.vorschauFehler = fehler;
       zeigeVorschau();
