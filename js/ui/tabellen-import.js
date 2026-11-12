@@ -59,8 +59,8 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
   const band = (cls, glyph, text, knopf) => `<div class="ti-band ${cls}"><span>${glyph} ${text}</span>${knopf}</div>`;
   const anzeigen = attrs => `<button type="button" data-act="edit" ${attrs}>${t('ansehen / korrigieren')}</button>`;
   const baender = [];
-  if (z.rot) baender.push(band('rot', '✖', esc(t('{n} Zeilen sind fehlerhaft (rot).', { n: z.rot })), anzeigen('data-filter="bad" data-tab="cases"')));
-  if (z.gelb) baender.push(band('gelb', '⚠', esc(t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (z.rot) baender.push(band('rot', '✖', esc(z.rot === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: z.rot })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (z.gelb) baender.push(band('gelb', '⚠', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
   for (const a of auffaellig) {
     const text = t('{n} Zeilen sind {farbe}, aber dem Gewerk {gewerk} zugeordnet ({farbe} ist sonst {mehrheit}).',
       { n: a.zeilen.length, farbe: farbName(a.farbe), gewerk: trade(a.gewerk), mehrheit: trade(a.mehrheit) });

@@ -174,3 +174,36 @@ test('Esc in der Listenansicht führt zurück zur Übersicht, in der Übersicht 
   assert.equal(escZiel('list'), 'overview');
   assert.equal(escZiel('overview'), null);
 });
+
+// Zähltexte: Einzahl und Mehrzahl sind getrennte Paare (1 Zeile, nicht „1 Zeilen“).
+function zaehlt(rot, gelb) {
+  const zeilen = [];
+  for (let i = 0; i < rot; i++) zeilen.push(['B' + i, '1', '60', '40', '', 'nein', '', '2', '', 'Ton', '']); // rot (Höhe fehlt)
+  for (let i = 0; i < gelb; i++) zeilen.push(['A' + i, '2', '60', '40', '50', 'nein', '', '', '', 'Ton', '']); // gelb (Lage fehlt)
+  const e = lies('cases', zeilen);
+  return uebersichtHtml(zusammenfassung(e), auffaelligkeiten(e));
+}
+
+test('uebersichtHtml: Zähltexte im Plural nur bei 2+, Einzahl bei 1 (Deutsch)', () => {
+  const eins = zaehlt(1, 1);
+  assert.ok(eins.includes('1 Zeile ist fehlerhaft (rot).'), eins);
+  assert.ok(eins.includes('1 Zeile mit Hinweis (gelb)'), eins);
+  assert.doesNotMatch(eins, /1 Zeilen/);
+  const zwei = zaehlt(2, 2);
+  assert.ok(zwei.includes('2 Zeilen sind fehlerhaft (rot).'), zwei);
+  assert.ok(zwei.includes('2 Zeilen mit Hinweis (gelb)'), zwei);
+});
+
+test('uebersichtHtml: Zähltexte im Plural nur bei 2+, Einzahl bei 1 (Englisch)', async () => {
+  const { setLang } = await import('../js/i18n/i18n.js');
+  setLang('en');
+  try {
+    const eins = zaehlt(1, 1);
+    assert.ok(eins.includes('1 row is faulty (red).'), eins);
+    assert.ok(eins.includes('1 row with a note (yellow)'), eins);
+    assert.doesNotMatch(eins, /1 rows/);
+    const zwei = zaehlt(2, 2);
+    assert.ok(zwei.includes('2 rows are faulty (red).'), zwei);
+    assert.ok(zwei.includes('2 rows with a note (yellow)'), zwei);
+  } finally { setLang('de'); }
+});
