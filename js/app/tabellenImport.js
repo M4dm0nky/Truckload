@@ -2,13 +2,14 @@
 // Kein Import von js/app.js; alles Übrige kommt als Parameter (wie bei wirePlans).
 import * as A from '../model/actions.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
-import { erkenneReiter, werteZeilen, entwurfAus } from '../model/ladeliste.js';
+import { erkenneReiter, werteZeilen } from '../model/ladeliste.js';
 import { uebernimmTabelle } from '../model/tabellen-uebernahme.js';
 import { isMultiLkw } from '../model/lkw.js';
 import { NAME_MAX } from '../model/limits.js';
 import { readTabellenDateien } from '../store/tabelle-lesen.js';
-import { openTabellenImport, openTabellenHilfe, vorlageDatei } from '../ui/tabellen-import.js';
+import { openTabellenImport, openTabellenHilfe, vorlageDatei, entwuerfeAus } from '../ui/tabellen-import.js';
 import { multiAddedNotice } from './plans.js';
+import { capList } from './importExport.js';
 import { t, date } from '../i18n/i18n.js';
 
 const $ = sel => document.querySelector(sel);
@@ -59,28 +60,40 @@ export function wireTabellenImport({ store, editWhole, switchPlan, uid, showAler
       if (!ignoriert.length) await showAlert(t('In der Tabelle wurden keine Zeilen gefunden.'));
       return;
     }
+    // Name und Trockenlauf VOR dem Schließen: Abbrechen/leerer Name/zu viele Case-Typen lassen den
+    // Dialog mit allen Korrekturen offen.
+    let name = null;
+    const bestaetige = async res => {
+      if (res.ziel === 'new') {
+        const eingabe = await showPrompt(t('Name des neuen Projekts:'), t('Load {date}', { date: date(new Date()) }), { maxlength: NAME_MAX });
+        if (!eingabe?.trim()) return false;
+        name = eingabe.trim();
+      }
+      // Vorab auf einem Entwurf des Zielplans prüfen (zu viele Case-Typen): so entsteht kein leerer Plan.
+      try { uebernimmTabelle(res.ziel === 'new' ? A.emptyPlan(uid(), name, DEFAULT_TRUCK_ID) : store.get().plan, entwuerfeAus(res.eintraege).entwuerfe, uid); }
+      catch (err) { await showAlert(err.message); return false; }
+      return true;
+    };
     const res = await openTabellenImport($('#dlg-tabelle'), {
       dateiname: files.map(f => f.name).join(', '),
       eintraege,
       zielAktuell: store.get().plan?.name ?? null,
+      bestaetige,
     });
-    if (res) await uebernehmen(res);
+    if (res) await uebernehmen(res, name);
   }
 
-  async function uebernehmen({ eintraege, ziel, laden }) {
-    // Rote Zeilen haben keinen Entwurf und fallen hier heraus (der Dialog sperrt sonst schon).
-    const entwuerfe = eintraege.map(entwurfAus).filter(Boolean);
-    let name = null;
-    if (ziel === 'new') {
-      name = await showPrompt(t('Name des neuen Projekts:'), t('Load {date}', { date: date(new Date()) }), { maxlength: NAME_MAX });
-      if (!name?.trim()) return;
-      name = name.trim();
-    }
-    // Vorab auf einem Entwurf des Zielplans prüfen (zu viele Case-Typen): so entsteht kein leerer Plan.
-    try { uebernimmTabelle(ziel === 'new' ? A.emptyPlan(uid(), name, DEFAULT_TRUCK_ID) : store.get().plan, entwuerfe, uid); }
-    catch (err) { await showAlert(err.message); return; }
+  // Zeilen, die wegen roter Befunde fehlen, werden genannt (Zahl und die ersten Namen).
+  const ausgelassenText = ausgelassen => t('{n} Zeilen mit Fehlern wurden nicht übernommen: {liste}', {
+    n: ausgelassen.length,
+    liste: capList(ausgelassen.map(e => `${e.zeile ?? '+'}: ${e.werte.name || '?'}`)).join(', '),
+  });
+
+  async function uebernehmen({ eintraege, ziel, laden }, name) {
+    const { entwuerfe, ausgelassen } = entwuerfeAus(eintraege);
     if (ziel === 'new') switchPlan(A.emptyPlan(uid(), name, DEFAULT_TRUCK_ID));
     editWhole(p => uebernimmTabelle(p, entwuerfe, uid));
+    if (ausgelassen.length) await showAlert(ausgelassenText(ausgelassen));
     if (!entwuerfe.length) return;
     // Mehr-LKW: neues Material ist keinem LKW zugeordnet (wie im Lade-Assistenten).
     if (isMultiLkw(store.get().plan)) { await showAlert(multiAddedNotice()); return; }

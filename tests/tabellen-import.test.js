@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SPALTEN, erkenneReiter, werteZeilen } from '../js/model/ladeliste.js';
-import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, LISTE_MAX } from '../js/ui/tabellen-import.js';
+import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus } from '../js/ui/tabellen-import.js';
 
 const XSS = '<img src=x onerror=alert(1)>';
 const kopf = reiter => SPALTEN[reiter].map(s => s.de);
@@ -109,15 +109,11 @@ test('listeHtml: Filter „fehler“ zeigt nur rote und gelbe Einträge, keine L
   assert.equal((listeHtml(e, { filter: 'alle', reiter: 'cases', suche: 'GELB' }).match(/<tr data-i/g) ?? []).length, 1);
 });
 
-test('listeHtml: HTML im Namen und im Befund wird maskiert; mehr als LISTE_MAX Zeilen werden abgeschnitten', () => {
+test('listeHtml: HTML im Namen und im Befund wird maskiert', () => {
   const e = lies('cases', [[XSS, '1', '60', '40', 'abc"><b>', 'nein', '5', '2', '', XSS, '']]);
   const html = listeHtml(e, { filter: 'alle', reiter: 'cases', suche: '' });
   assert.ok(!html.includes('<img'), html);
   assert.ok(!html.includes('<b>'), html);
-  const viele = lies('cases', Array.from({ length: LISTE_MAX + 25 }, (_, i) => [`C${i}`, '1', '60', '40', '50', 'nein', '5', '2', '', 'Ton', '']));
-  const h = listeHtml(viele, { filter: 'alle', reiter: 'cases', suche: '' });
-  assert.equal((h.match(/<tr data-i/g) ?? []).length, LISTE_MAX);
-  assert.match(h, /25/);
 });
 
 test('zeilenStatus: Feld- und Zeilenstufe, rot schlägt gelb', () => {
@@ -148,4 +144,27 @@ test('ordneBlaetter: zwei Quellen für einen Reiter → Fehler; unbekanntes Blat
   assert.match(doppelt.fehler, /a\.csv/);
   assert.match(doppelt.fehler, /b\.csv/);
   assert.equal(doppelt.eintraege.length, 0);
+});
+
+test('listeHtml: alle 350 Zeilen werden gezeichnet, auch die letzten, jede mit Eingabefeldern', () => {
+  const { zeilen } = fixture();
+  const e = lies('cases', zeilen);
+  const h = listeHtml(e, { filter: 'alle', reiter: 'cases', suche: '' });
+  assert.equal((h.match(/<tr data-i/g) ?? []).length, 350);
+  assert.ok(h.includes('value="Case 349"'));
+  assert.equal((h.match(/<tr data-i="349"[^]*?<\/tr>/)[0].match(/<input/g) ?? []).length, SPALTEN.cases.length);
+});
+
+test('entwuerfeAus: rote Zeilen landen in ausgelassen, Traversen/Boxen nie in den Entwürfen', () => {
+  const e = [
+    ...lies('cases', [
+      ['ok', '2', '60', '40', '50', 'nein', '5', '2', '', 'Ton', ''],
+      ['rot', '1', '60', '40', '', 'nein', '5', '2', '', 'Ton', ''],
+    ]),
+    ...lies('traversen', [['Box 40', '300', '4', '', '']]),
+  ];
+  const { entwuerfe, ausgelassen } = entwuerfeAus(e);
+  assert.equal(entwuerfe.length, 1);
+  assert.equal(entwuerfe[0].menge, 2);
+  assert.deepEqual(ausgelassen.map(x => x.werte.name), ['rot']);
 });

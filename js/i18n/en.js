@@ -621,7 +621,7 @@ export default {
   "Übernehmen und laden": "Import and load",
   "Hinweis": "Note",
   "Zeile löschen": "Delete row",
-  "… und {n} weitere Zeilen. Mit Suche oder Filter eingrenzen.": "… and {n} more rows. Narrow down with search or filter.",
+  "{n} Zeilen mit Fehlern wurden nicht übernommen: {liste}": "{n} rows with errors were not imported: {liste}",
   "Keine Zeilen.": "No rows.",
   "{rot} fehlerhaft": "{rot} faulty",
   "{gelb} mit Hinweis": "{gelb} with a note",

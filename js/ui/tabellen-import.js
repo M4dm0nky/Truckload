@@ -12,9 +12,6 @@ import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten 
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
 export const vorlageDatei = (l = lang) => VORLAGEN[l === 'en' ? 'en' : 'de'];
 
-// Höchstzahl gleichzeitig gezeichneter Listenzeilen (2000 Zeilen × ~10 Felder lähmen den Browser).
-export const LISTE_MAX = 300;
-
 const reiterName = r => ({ cases: t('Cases'), traversen: t('Traversen'), boxen: t('Boxen'), set: t('Set') })[r];
 const spaltenLabel = sg => (lang === 'en' ? sg.en : sg.de);
 const ganzzahl = s => { const z = zahl(s, '').wert; return Number.isInteger(z) && z > 0 ? z : 0; };
@@ -99,6 +96,18 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
     </menu>`;
 }
 
+// Entwürfe für die Übernahme; ausgelassen = Cases/Set-Zeilen mit rotem Befund (kein Entwurf).
+export function entwuerfeAus(eintraege) {
+  const entwuerfe = [];
+  const ausgelassen = [];
+  for (const e of eintraege) {
+    if (!istListe(e)) continue;
+    const d = entwurfAus(e);
+    if (d) entwuerfe.push(d); else ausgelassen.push(e);
+  }
+  return { entwuerfe, ausgelassen };
+}
+
 // Befund-Zustand einer Zeile: { zeile: 'rot'|'gelb'|'', felder: { key: 'rot'|'gelb' }, hinweis: HTML }.
 export function zeilenStatus(e) {
   const felder = {};
@@ -111,14 +120,14 @@ export function zeilenStatus(e) {
 const passt = (e, suche) => !suche || Object.values(e.werte).some(v => String(v).toLowerCase().includes(suche));
 
 // Tabelle des gewählten Reiters (Cases oder Set). Zeilen tragen ihren Index im ganzen Array
-// (data-i), Zellen ihren Schlüssel (data-k); gezeichnet werden höchstens LISTE_MAX gefilterte Zeilen.
+// (data-i), Zellen ihren Schlüssel (data-k); gezeichnet werden alle Zeilen des Filters (der Leser
+// liefert höchstens 2000).
 // opts: { filter: 'alle'|'fehler', reiter: 'cases'|'set', suche, zeilen?: Set<Zeilennummer> }.
 export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche = '', zeilen = null } = {}) {
   const spalten = SPALTEN[reiter];
   const s = String(suche).trim().toLowerCase();
   const treffer = eintraege.map((e, i) => ({ e, i }))
     .filter(({ e }) => e.reiter === reiter && (filter !== 'fehler' || e.befunde.length) && (!zeilen || zeilen.has(e.zeile)) && passt(e, s));
-  const zeigen = treffer.slice(0, LISTE_MAX);
   const kopf = `<tr><th>#</th>${spalten.map(sg => `<th>${esc(spaltenLabel(sg))}</th>`).join('')}<th>${t('Hinweis')}</th><th></th></tr>`;
   const zeileHtml = ({ e, i }) => {
     const st = zeilenStatus(e);
@@ -129,9 +138,7 @@ export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche 
     return `<tr data-i="${i}" class="${st.zeile}"><td class="ti-nr">${e.zeile ?? '+'}</td>${zellen}<td class="ti-hint">${st.hinweis}</td>`
       + `<td><button type="button" class="ti-del" data-act="del" title="${t('Zeile löschen')}" aria-label="${t('Zeile löschen')}">${icon('trash')}</button></td></tr>`;
   };
-  const rest = treffer.length - zeigen.length;
-  return `<table class="ti-list"><thead>${kopf}</thead><tbody>${zeigen.map(zeileHtml).join('')}</tbody></table>`
-    + (rest > 0 ? `<p class="hint">${esc(t('… und {n} weitere Zeilen. Mit Suche oder Filter eingrenzen.', { n: rest }))}</p>` : '')
+  return `<table class="ti-list"><thead>${kopf}</thead><tbody>${treffer.map(zeileHtml).join('')}</tbody></table>`
     + (!treffer.length ? `<p class="hint">${t('Keine Zeilen.')}</p>` : '');
 }
 
@@ -162,6 +169,7 @@ function listeSeiteHtml(st) {
 }
 
 // opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null }.
+// opts.bestaetige(ergebnis): optional, async; false = Dialog bleibt offen (Eingaben bleiben erhalten).
 // Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean } oder null bei Abbruch.
 export async function openTabellenImport(dlg, opts) {
   if (dlg.open) {
@@ -186,7 +194,17 @@ export async function openTabellenImport(dlg, opts) {
     dlg.innerHTML = `<div class="editor ti">${uebersichtHtml(z, auffaelligkeiten(st.eintraege), {
       zielAktuell, merkliste: st.eintraege, ziel: st.ziel, ohneRot: st.ohneRot, dateiname: opts.dateiname ?? '' })}</div>`;
   };
-  const fertig = laden => { result = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot }; dlg.close('ok'); };
+  let busy = false;
+  const fertig = async laden => {
+    if (busy) return;
+    busy = true;
+    try {
+      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot };
+      if (opts.bestaetige && !(await opts.bestaetige(r))) return;
+      result = r;
+      dlg.close('ok');
+    } finally { busy = false; }
+  };
 
   // Ein Listener je Ereignisart am Dialog (Ereignis-Delegation), keine je Zelle.
   dlg.onclick = ev => {
