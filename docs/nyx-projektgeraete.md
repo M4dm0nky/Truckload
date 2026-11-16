@@ -125,6 +125,39 @@ Geplant ist das über die vorhandenen Stores, ohne neuen Store:
 16. Wo würdest du die Zuordnung Gerätetyp → Case lieber haben: am Case in `collections` wie
     oben, oder in einer eigenen NYX-Tabelle neben dem Gerätetyp?
 
+### F. Was wir in den Datenbanken gesehen haben: stimmt das so?
+
+Wir haben `~/.lpm/lpm_types.db` und eine Kopie einer aktuellen Projektdatei nur lesend
+angesehen. Bitte bestätigen oder korrigieren. Damit lassen sich vermutlich mehrere Fragen
+oben kurz beantworten.
+
+17. **Truckload-Daten:** In beiden Dateien gibt es die Tabelle
+    `tl_records(store, id, json, updated_at)`. Landen dort alle Truckload-Stores, je Datensatz
+    als JSON (`cases`/`collections`/`trucks`/`ruleSets` in `lpm_types.db`, `plans`/`projectRuleSets`
+    in der Projektdatei)? Beide Tabellen sind bei uns leer. Wird Truckload in NYX noch nicht
+    benutzt, oder liegen die Daten woanders?
+18. **Geräte:** Die Tabelle `fixtures` hat eine Zeile je Einzelgerät (`handle`) mit dem
+    Vectorworks-Typ `inst_type`. Ist „Anzahl je Gerätetyp“ =
+    `count(*) … group by inst_type`?
+19. **Schlüssel:** `gdtf_type_links` verknüpft `inst_type` mit `gdtf_uuid` (z. B.
+    „MAC Ultra Perf“ → Martin MAC Ultra Performance). Ist `gdtf_uuid` der stabile Schlüssel über
+    Projekte hinweg, und `inst_type` nur der Name aus der jeweiligen Vectorworks-Datei? Was soll
+    Truckload nehmen, wenn ein Typ noch nicht mit GDTF verknüpft ist?
+20. **Zeilen ohne Typ:** Viele `fixtures`-Zeilen haben ein leeres `inst_type` (in unserer Kopie
+    531 von 792). Was sind das (Zubehör, Platzhalter, nicht zugeordnete Symbole)? Soll Truckload
+    sie auslassen?
+21. **Ausgeschlossen:** Was bedeuten `excluded` und `system` (z. B. „A“)? Sollen ausgeschlossene
+    Geräte oder bestimmte Systeme nicht in die Ladeliste?
+22. **Gewicht:** `fixtures.gewicht` steht als Text („44,00 kg“). Darf Truckload es als Vorschlag
+    für das Case-Gewicht nutzen? (Gewicht bleibt in Truckload optional.)
+23. **Weitere Gerätearten:** Gehören diese auch in die Liste, und welcher Wert ist dort der Typ?
+    - Stromverteiler: `fs_config` (`fs_typ`), Dimmer: `dim_config` (`dim_typ`)
+    - Netzwerk/DMX: `dc_devices` (`device_type_id`, z. B. Node 12-fach, Splitter)
+    - Traversen: `rigging_truss` (`name`, `count`)
+    - Kabel: `laka_items` (`kabel_typ`)
+24. **Anzeigenamen:** Soll Truckload `fixture_type_overrides.display` statt `inst_type` zeigen,
+    wenn vorhanden?
+
 ## Was Truckload zusagt
 
 - Kein neuer Store ohne Absprache, keine Netzabrufe, keine nativen Dialoge (wie in nyx-host.md).
