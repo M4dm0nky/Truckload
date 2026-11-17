@@ -135,3 +135,22 @@ test('Packer-Eigenschaft mit Deckschicht mischen: 500 Mischungen, Auflage, Valid
   }
   assert.ok(sideBySide >= 20, `zu wenige Deckschichten nebeneinander: ${sideBySide}`);
 });
+
+// Reihen planen (rowPlan): dieselben Eigenschaften wie oben, direkt über autoPack (der Plan-Schalter
+// folgt in einem späteren Schritt).
+import { autoPack } from '../js/model/packer.js';
+import { rulesFor, mixTopFor } from '../js/model/packRules.js';
+
+for (const seed of SEEDS) {
+  test(`Packer-Eigenschaft mit rowPlan (Seed ${seed}): keine Kollision, kein Überstand, nichts geht verloren`, () => {
+    const { truck, caseById, plan: input, count } = scenario(seed);
+    const list = input.unplaced.map(u => ({ ...u, c: caseById.get(u.caseId) }));
+    const { placements, unplaced } = autoPack(list, truck, { rules: rulesFor(input), mixTop: mixTopFor(input), rowPlan: true });
+    const packed = { ...input, placements: placements.map(p => ({ ...p })), unplaced };
+    const bad = validatePlan(packed, caseById, truck).issues
+      .filter(i => [...VIOLATIONS, 'overload', 'notStackable', 'tooManyLayers', 'layer'].includes(i.code)).map(i => `${i.code}: ${i.message}`);
+    assert.deepEqual(bad, [], `Seed ${seed}`);
+    assert.equal(placements.length + unplaced.length, count, `Seed ${seed}`);
+    assert.equal(new Set([...placements, ...unplaced].map(x => x.id)).size, count, `Seed ${seed}: IDs doppelt`);
+  });
+}
