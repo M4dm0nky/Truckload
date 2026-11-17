@@ -154,6 +154,17 @@ test('merken: kein Doppel-Eintrag, stueck nur wenn nicht gesetzt', () => {
   assert.equal(c.fasst, undefined);
 });
 
+test('merken: höchstens 50 Geräte, bei Überlauf fliegen die ältesten raus', () => {
+  const voll = caseMit('a', 'x', 2, Array.from({ length: 50 }, (_, i) => `gdtf:k${i}`));
+  const m = merken(voll, GDTF, 'Neu');
+  assert.equal(m.fasst.geraete.length, 50);
+  assert.equal(m.fasst.geraete[49].key, GDTF);
+  assert.equal(m.fasst.geraete[0].key, 'gdtf:k1');
+  const bekannt = merken(voll, 'gdtf:k7', 'k7');
+  assert.equal(bekannt.fasst.geraete.length, 50);
+  assert.equal(bekannt.fasst.geraete[0].key, 'gdtf:k0');
+});
+
 // ---- uebernimmGeraete (Task 6) ----
 import { uebernimmGeraete, casesZumMerken } from '../js/model/nyxAbgleich.js';
 import { byId } from './fixtures.js';
@@ -195,6 +206,15 @@ test('uebernimmGeraete: vw:-Stücke werden über alias auf gdtf: umgehängt (Tre
   assert.equal(out.placements[0].nyxGeraet, GDTF);
   assert.deepEqual(out.unplaced.map(u => u.nyxGeraet), [GDTF, 'vw:Anderes', GDTF, undefined]);
   assert.equal(out.unplaced[0].nyxStueck, 2);
+});
+
+test('uebernimmGeraete: nichtLaden wird über alias auf gdtf: umgehängt und dedupliziert (Treffer und Nicht-Treffer)', () => {
+  const alias = new Map([['vw:Viper', GDTF]]);
+  const res = { zuordnungen: [], nichtLaden: ['vw:Viper', GDTF, 'gdtf:haus'], reduktion: [] };
+  const out = uebernimmGeraete(plan([]), res, counter('n'), byId(tippCase), alias);
+  assert.deepEqual(out.nyxAbgleich.nichtLaden, [GDTF, 'gdtf:haus']);
+  const ohne = uebernimmGeraete(plan([]), { ...res, nichtLaden: ['vw:Anderes'] }, counter('n'), byId(tippCase), alias);
+  assert.deepEqual(ohne.nyxAbgleich.nichtLaden, ['vw:Anderes']);
 });
 
 test('uebernimmGeraete: unbekanntes Case wirft, Plan bleibt unverändert', () => {

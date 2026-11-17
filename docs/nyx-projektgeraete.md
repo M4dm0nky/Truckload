@@ -20,8 +20,9 @@ An: NYX-Admin (Aniflu) · Von: Truckload · Stand: 17.11.2026 · Status: **umges
 - Zurückdrehen auf 0.32.0: `checkCase`, `checkPlan` und die Stück-Prüfungen von 0.32.0 lehnen
   unbekannte Felder nicht ab (keine Positivliste, geprüft in `js/store/io.js`); Cases, Pläne und
   Sicherungen mit den neuen Feldern bleiben ladbar. 0.32.0 kennt die Felder aber nicht: Packt oder
-  dupliziert man damit Stücke neu, gehen die Stückmarken `nyxGeraet`/`nyxStueck` verloren (sie laufen
-  über `pickPieceFields`), und der Abgleich zählt diese Stücke dann nicht mehr als verladen. Das ist
+  dupliziert man damit Stücke neu oder legt sie über „in die Ablage legen“ bzw. „Alles ausladen“
+  (`placementToUnplaced`) in die Ablage, gehen die Stückmarken `nyxGeraet`/`nyxStueck` verloren (sie
+  laufen über `pickPieceFields`), und der Abgleich zählt diese Stücke dann nicht mehr als verladen. Das ist
   nur eine Lücke im Abgleich, kein Datenverlust an Cases oder Plänen.
 
 ## Worum es geht

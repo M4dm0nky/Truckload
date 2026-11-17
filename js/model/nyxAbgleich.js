@@ -92,13 +92,16 @@ export function reduktion(plan, key, minus, alias = KEINE) {
   return { entfernen: entfernen.map(s => s.id), aufLkw: entfernen.filter(s => s.aufLkw).map(s => s.id) };
 }
 
+const MAX_GERAETE = 50;
+
 export function merken(c, key, name) {
   const geraete = c.fasst?.geraete ?? [];
   return {
     ...c,
     fasst: {
       stueck: c.fasst?.stueck ?? stueckProCase(c),
-      geraete: geraete.some(g => g.key === key) ? geraete : [...geraete, { key, name }],
+      // io.js (fasstOk) lehnt über 50 ab: bei Überlauf die ältesten verwerfen
+      geraete: geraete.some(g => g.key === key) ? geraete : [...geraete, { key, name }].slice(-MAX_GERAETE),
     },
   };
 }
@@ -118,7 +121,7 @@ export function uebernimmGeraete(plan, res, newId, caseById, alias = KEINE) {
   for (const z of zuordnungen) {
     next = stueckeAnlegen(next, { key: z.key, caseId: z.caseId, c: caseById.get(z.caseId), n: z.n, stueck: z.nyxStueck }, newId);
   }
-  return stamp({ ...next, nyxAbgleich: { ...plan.nyxAbgleich, geoeffnet: true, nichtLaden: [...(res.nichtLaden ?? [])] } });
+  return stamp({ ...next, nyxAbgleich: { ...plan.nyxAbgleich, geoeffnet: true, nichtLaden: [...new Set((res.nichtLaden ?? []).map(k => alias.get(k) ?? k))] } });
 }
 
 // Cases, die nach der Übernahme in die Bibliothek geschrieben werden: die umgehängten (vw:→gdtf:)

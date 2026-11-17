@@ -19,6 +19,12 @@ const FAELLE = [
   ['Dolly Rack 28 HEx2 -CAB', 2],
   ['Atomic 3000 LEDx8 -CAB', 8],
   ['X4-Bar', null],
+  // Wörter auf kleines x sind keine Stückzahl
+  ['Flex 4 Case', null],
+  ['Matrix 8 Panel Case', null],
+  ['Mix 3 Rack', null],
+  ['Pro Max 12', null],
+  ['Case x 2', 2],
   // Traversenprofile sind keine Stückzahl
   ['Truss lose 40er -BBM', null],
   ['Trussdolly 40er -BBM', null],

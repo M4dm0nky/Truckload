@@ -30,6 +30,7 @@ export function geraeteState({ liste = [], stand = [], cases = [], alias = KEINE
     zeilen: stand, jeKey, cases: [...cases], wahl: null,
     diffModus: stand.some(z => z.verladen > 0),
     zuordnung: {}, stueckVor: {}, nichtLaden: new Set(stand.filter(z => z.nichtLaden).map(z => z.key)),
+    nichtLadenVor: new Set(stand.filter(z => z.nichtLaden).map(z => z.key)),
     reduktionInfo: red, reduktionWahl: {},
   };
 }
@@ -104,7 +105,20 @@ export function geraeteErgebnis(st) {
   return { zuordnungen, nichtLaden: [...st.nichtLaden], reduktion };
 }
 
+// Würde „Übernehmen“ etwas ändern? Zuordnung, bestätigte Reduktion oder geänderte nichtLaden-Menge.
+export function geraeteAenderung(st) {
+  const e = geraeteErgebnis(st);
+  const gleich = e.nichtLaden.length === st.nichtLadenVor.size && e.nichtLaden.every(k => st.nichtLadenVor.has(k));
+  return e.zuordnungen.length > 0 || e.reduktion.length > 0 || !gleich;
+}
+
 // ---- Render ----
+
+export function geraeteMenuHtml(st) {
+  const dis = geraeteAenderung(st) ? '' : ' disabled';
+  return `<menu><button type="button" data-act="cancel">${t('Abbrechen')}</button><span class="grow"></span>`
+    + `<button type="button" data-act="only"${dis}>${t('Nur übernehmen')}</button><button type="button" class="primary" data-act="load"${dis}>${t('Übernehmen und laden')}</button></menu>`;
+}
 
 const diffText = z => (z.diff > 0 ? `+${z.diff}` : z.diff < 0 ? `−${-z.diff}` : '');
 
@@ -145,13 +159,9 @@ function reduktionHtml(st, z) {
     + `<button type="button" data-act="g-red" data-key="${esc(z.key)}" data-ja="0"${w === false ? ' class="primary"' : ''}>${t('Stehen lassen')}</button></div>`;
 }
 
-function vorschlaegeHtml(st, z, offen, rest) {
-  const bek = bekannteCases(z.key, st.cases);
-  if (!bek.length) return '';
-  // Beim Rest zuerst die Cases, die höchstens so viele Geräte fassen wie noch offen sind.
-  const sortiert = rest
-    ? [...bek.filter(c => stueckProCase(c) <= offen), ...bek.filter(c => stueckProCase(c) > offen)]
-    : bek;
+function vorschlaegeHtml(st, z) {
+  const sortiert = bekannteCases(z.key, st.cases); // aufsteigend nach Geräten pro Case
+  if (!sortiert.length) return '';
   const zeile = c => `<li class="ge-sug"><button type="button" data-act="g-case" data-case="${esc(c.id)}">${esc(c.name)}</button>`
     + `<span class="hint">${t('Geräte pro Case')}</span>${stueckFeld(st.stueckVor[c.id] ?? stueckProCase(c), `data-role="g-stueck" data-case="${esc(c.id)}"`)}</li>`;
   return `<p><b>${t('Bekannte Cases für diesen Typ:')}</b></p><ul class="ge-sugs">${sortiert.map(zeile).join('')}</ul>`;
@@ -180,7 +190,7 @@ function rechtsHtml(st) {
     + `<button type="button" data-act="g-new">${t('Neues Case')}</button>`
     + `<button type="button" data-act="g-skip" data-key="${key}">${t('Nicht laden')}</button>`;
   return `${kopf}${liste}${zuo.length ? `<p><b>${esc(t('Für den Rest ({n} Stück) ein weiteres Case wählen:', { n: offen }))}</b></p>` : ''}`
-    + vorschlaegeHtml(st, z, offen, zuo.length > 0)
+    + vorschlaegeHtml(st, z)
     + `<div class="ti-bauknoepfe">${sucheUndNeu}</div>`;
 }
 

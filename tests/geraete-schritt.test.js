@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkCase, P, plan } from './fixtures.js';
 import { stand } from '../js/model/nyxAbgleich.js';
 import { schritte } from '../js/ui/tabellen-import.js';
-import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, zuordnungenVon, offenVon } from '../js/ui/geraete-schritt.js';
+import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, geraeteMenuHtml, geraeteAenderung, zuordnungenVon, offenVon } from '../js/ui/geraete-schritt.js';
 
 const VIPER = 'gdtf:viper';
 const BMFL = 'gdtf:bmfl';
@@ -151,13 +151,14 @@ test('schritte: mit Geräten beginnt die Folge mit geraete', () => {
   assert.deepEqual(schritte([], true), ['lkws']);
 });
 
-test('Rest: Cases, die in den Rest passen, stehen vor größeren', () => {
+test('Vorschläge stehen in der Reihenfolge von bekannteCases (aufsteigend nach Geräten pro Case), auch mit Rest', () => {
   const x3 = caseMit('x3', 'Viper x3', 3, [VIPER]);
-  let st = geraeteState({ liste: [{ key: VIPER, name: 'MAC Viper', anzahl: 5, vwNamen: [] }], stand: stand(plan([]), [{ key: VIPER, name: 'MAC Viper', anzahl: 5, vwNamen: [] }]), cases: [x3, x2, x1], alias: new Map(), plan: plan([]) });
+  const l5 = [{ key: VIPER, name: 'MAC Viper', anzahl: 5, vwNamen: [] }];
+  let st = geraeteState({ liste: l5, stand: stand(plan([]), l5), cases: [x3, x2, x1], alias: new Map(), plan: plan([]) });
+  assert.deepEqual(knoepfe(geraeteSchrittHtml(geraeteAktion(st, 'waehle', { key: VIPER }))), ['x1', 'x2', 'x3']);
   st = geraeteAktion(geraeteAktion(st, 'waehle', { key: VIPER }), 'case', { case: x3 });   // 1× x3, Rest 2
-  const ids = knoepfe(geraeteSchrittHtml(st));
-  assert.deepEqual(ids, ['x1', 'x2', 'x3']);
-  assert.ok(ids.indexOf('x2') < ids.indexOf('x3'));
+  assert.equal(offenVon(st, VIPER), 2);
+  assert.deepEqual(knoepfe(geraeteSchrittHtml(st)), ['x1', 'x2', 'x3']);
 });
 
 test('Nicht laden und wieder laden: die alte Zuordnung kommt nicht zurück', () => {
@@ -229,4 +230,38 @@ test('Typ, der schon im Plan als nicht laden steht und −2 hat: Wieder laden ze
   geraeteAktion(st, 'nichtladen', { key: BMFL });
   geraeteAktion(st, 'waehle', { key: BMFL });
   assert.match(geraeteSchrittHtml(st), /Diese Stücke würden entfernt/);
+});
+
+const knopf = (h, act) => new RegExp(`<button[^>]*data-act="${act}"([^>]*)>`).exec(h)[1];
+const gesperrt = (h, act) => /\bdisabled\b/.test(knopf(h, act));
+
+test('Übernehmen-Knöpfe: ohne Änderung beide gesperrt', () => {
+  const h = geraeteMenuHtml(neu());
+  assert.equal(geraeteAenderung(neu()), false);
+  assert.ok(gesperrt(h, 'only') && gesperrt(h, 'load'));
+  assert.ok(!gesperrt(h, 'cancel'));
+});
+
+test('Übernehmen-Knöpfe: Zuordnung, bestätigte Reduktion oder nichtLaden-Änderung entsperren', () => {
+  const zu = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: VIPER }), 'case', { case: x2 });
+  assert.ok(geraeteAenderung(zu) && !gesperrt(geraeteMenuHtml(zu), 'only') && !gesperrt(geraeteMenuHtml(zu), 'load'));
+  const nl = geraeteAktion(neu(), 'nichtladen', { key: BMFL });
+  assert.ok(geraeteAenderung(nl) && !gesperrt(geraeteMenuHtml(nl), 'only'));
+  assert.ok(gesperrt(geraeteMenuHtml(geraeteAktion(nl, 'nichtladen', { key: BMFL })), 'only'));   // zurückgenommen
+  const p = plan([], [nyx('u1', 'x2', VIPER, 2), nyx('u2', 'x2', VIPER, 2)]);
+  const li = [{ key: VIPER, name: 'MAC Viper', anzahl: 2, vwNamen: [] }];
+  const rd = geraeteState({ liste: li, stand: stand(p, li), cases: [x1, x2], alias: new Map(), plan: p });
+  assert.ok(gesperrt(geraeteMenuHtml(rd), 'load'));                                                 // −2 unbestätigt
+  geraeteAktion(rd, 'red', { key: VIPER, ja: false });
+  assert.ok(gesperrt(geraeteMenuHtml(rd), 'load'));                                                 // stehen lassen
+  geraeteAktion(rd, 'red', { key: VIPER, ja: true });
+  assert.ok(!gesperrt(geraeteMenuHtml(rd), 'load'));
+});
+
+test('Übernehmen-Knöpfe: schon gesetztes nichtLaden im Plan ist keine Änderung', () => {
+  const p = { ...plan([]), nyxAbgleich: { nichtLaden: [BMFL] } };
+  const st = neu(p);
+  assert.ok(st.nichtLaden.has(BMFL));
+  assert.equal(geraeteAenderung(st), false);
+  assert.equal(geraeteAenderung(geraeteAktion(st, 'nichtladen', { key: BMFL })), true);        // wieder laden
 });

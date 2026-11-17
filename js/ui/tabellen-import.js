@@ -14,7 +14,7 @@ import { VERHALTEN, ART, gewerkWoerterbuch, gewerkCfg, gewerkEintrag } from '../
 import { catRank } from '../model/lkw-distribute.js';
 import { MAX_LKW } from '../model/limits.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
-import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, caseVon as geCaseVon } from './geraete-schritt.js';
+import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, geraeteMenuHtml, caseVon as geCaseVon } from './geraete-schritt.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -461,8 +461,7 @@ export async function openTabellenImport(dlg, opts) {
   };
   const render = () => {
     if (st.view === 'geraete') {
-      dlg.innerHTML = `<div class="editor ti">${geraeteSchrittHtml(ge)}<menu><button type="button" data-act="cancel">${t('Abbrechen')}</button><span class="grow"></span>`
-        + `<button type="button" data-act="only">${t('Nur übernehmen')}</button><button type="button" class="primary" data-act="load">${t('Übernehmen und laden')}</button></menu></div>`;
+      dlg.innerHTML = `<div class="editor ti">${geraeteSchrittHtml(ge)}${geraeteMenuHtml(ge)}</div>`;
       return;
     }
     if (st.view === 'lkws') { dlg.innerHTML = `<div class="editor ti">${lkwHtml()}</div>`; return; }

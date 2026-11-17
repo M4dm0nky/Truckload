@@ -13,9 +13,11 @@ const REGELN = [
   [/(?<![\w,.])(\d+)\s*(?:er|fach)\b/i, m => (Number(m[1]) <= 20 ? m[1] : null)],
   // "(2)", "(2 Stück)", "(8 Panels)"
   [/\((\d+)(?:\s*(?:stück|stk\.?|panels?))?\)/i, m => m[1]],
-  // "x4", "HEx2", "LEDx8": kleines x, nicht direkt nach einer Ziffer (120x60),
+  // "x4", "HEx2", "LEDx8": kleines x direkt vor der Zahl, nicht nach einer Ziffer (120x60),
   // gefolgt von Leerraum, Ende oder "-". Großes X ("X4-Bar") zählt nie.
-  [/(?<!\d)x\s?(\d+)(?=\s|$|-)/, m => m[1]],
+  [/(?<!\d)x(\d+)(?=\s|$|-)/, m => m[1]],
+  // "Case x 2": freistehendes x mit Leerraum; nicht am Wortende ("Flex 4", "Matrix 8", "Max 12")
+  [/(?<![A-Za-z\d])x\s(\d+)(?=\s|$|-)/, m => m[1]],
   // "2x Proteus"
   [/(?<![\w,.])(\d+)x\s+\S/, m => m[1]],
 ];
