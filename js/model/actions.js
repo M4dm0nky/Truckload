@@ -4,7 +4,7 @@ import { buildItems } from './items.js';
 import { pickPieceFields, cleanGroup } from './pieceFields.js';
 import { autoPack } from './packer.js';
 import { stamp } from './stamp.js';
-import { rulesFor, normalizeRules, mixTopFor } from './packRules.js';
+import { rulesFor, normalizeRules, mixTopFor, rowPlanFor } from './packRules.js';
 
 export const emptyPlan = (id, name, truckId) =>
   stamp({ id, name, truckId, placements: [], unplaced: [], notes: '' });
@@ -263,6 +263,14 @@ export function setMixTop(plan, on) {
   return stamp(rest);
 }
 
+// Schalter „Reihen planen“ je Load, gleiches Muster wie setMixTop.
+export function setRowPlan(plan, on) {
+  if (rowPlanFor(plan) === (on === true)) return plan;
+  if (on === true) return stamp({ ...plan, rowPlan: true });
+  const { rowPlan: _drop, ...rest } = plan;
+  return stamp(rest);
+}
+
 export const removePlacement = (plan, id) =>
   stamp({ ...plan, placements: plan.placements.filter(p => p.id !== id) });
 
@@ -305,7 +313,7 @@ const missingCasePlacements = (plan, ctx) => plan.placements.filter(p => !ctx.ca
 
 export function packAll(plan, ctx) {
   const list = [...plan.placements, ...plan.unplaced].map(x => toPiece(x, ctx)).filter(Boolean);
-  const { placements, unplaced } = autoPack(list, ctx.truck, { rules: rulesFor(plan), mixTop: mixTopFor(plan) });
+  const { placements, unplaced } = autoPack(list, ctx.truck, { rules: rulesFor(plan), mixTop: mixTopFor(plan), rowPlan: rowPlanFor(plan) });
   return stamp({
     ...plan,
     placements,
@@ -327,7 +335,7 @@ export function packRest(plan, ctx) {
   const floorItems = items.filter(it => Math.abs(it.box.z0) < 1e-6);
   const startX = floorItems.length ? Math.max(...floorItems.map(it => it.box.x0)) : 0;
   const { placements, unplaced } = list.length
-    ? autoPack(list, ctx.truck, { obstacles: items.map(it => it.box), rules: rulesFor(plan), mixTop: mixTopFor(plan), startX })
+    ? autoPack(list, ctx.truck, { obstacles: items.map(it => it.box), rules: rulesFor(plan), mixTop: mixTopFor(plan), rowPlan: rowPlanFor(plan), startX })
     : { placements: [], unplaced: [] };
   return stamp({
     ...plan,

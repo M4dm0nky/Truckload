@@ -5,6 +5,7 @@ import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE, boxOf } from '../js/model/geometry.js';
 import { MAX_LABEL } from '../js/model/limits.js';
 import { rulesFor } from '../js/model/packRules.js';
+import { autoPack } from '../js/model/packer.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);
@@ -801,3 +802,45 @@ test('toggleTipPiece: stehend -> getippt -> stehend', () => {
   assert.equal(find(t1, 'a').orientation, 'tipShort');
   assert.equal(find(A.toggleTipPiece(t1, 'a', ctx()), 'a').orientation, 'standing');
 });
+
+test('setRowPlan: an setzt true, aus entfernt das Feld, unverändert = gleiche Referenz', () => {
+  const p0 = plan([]);
+  const p1 = A.setRowPlan(p0, true);
+  assert.equal(p1.rowPlan, true);
+  assert.equal(A.setRowPlan(p1, true), p1);
+  assert.ok(!('rowPlan' in A.setRowPlan(p1, false)));
+  assert.equal(A.setRowPlan(p0, false), p0);
+});
+
+// Ladung, bei der „Reihen planen“ den Plan sichtbar ändert (wie tests/rowPlanner.test.js „füllt
+// 100er-Reihe“): 4 × 100 breit, 2 × 40 breit, gleiches Gewerk, 245 cm breiter Laderaum.
+function rowPlanFixture() {
+  const a = mkCase('ra', 100, 100, 80, { wheels: false, category: 'Licht', stackable: false });
+  const b = mkCase('rb', 100, 40, 80, { wheels: false, category: 'Licht', stackable: false });
+  const truck = mkTruck({ l: 1360, w: 245 });
+  const cx = { caseById: byId(a, b), truck, newId: counter('n') };
+  let p = A.addUnplaced(plan([]), 'ra', 4, counter('a'));
+  p = A.addUnplaced(p, 'rb', 2, counter('b'));
+  const list = p.unplaced.map(u => ({ id: u.id, caseId: u.caseId, c: cx.caseById.get(u.caseId) }));
+  const strip = pl => pl.placements.map(q => [q.id, q.x, q.y, q.z, q.rot ?? 0]);
+  return { p, cx, list, truck, strip };
+}
+
+test('packAll: nutzt rowPlan des Plans (Ladung unterscheidet an und aus)', () => {
+  const { p, cx, list, truck, strip } = rowPlanFixture();
+  const on = autoPack(list, truck, { rules: rulesFor(p), rowPlan: true });
+  const off = autoPack(list, truck, { rules: rulesFor(p) });
+  assert.notDeepEqual(strip(on), strip(off), 'Fixture muss an/aus unterscheiden');
+  assert.deepEqual(strip(A.packAll(A.setRowPlan(p, true), cx)), strip(on));
+  assert.deepEqual(strip(A.packAll(p, cx)), strip(off));
+});
+
+test('packRest: nutzt rowPlan des Plans (Ladung unterscheidet an und aus)', () => {
+  const { p, cx, list, truck, strip } = rowPlanFixture();
+  const on = autoPack(list, truck, { obstacles: [], rules: rulesFor(p), rowPlan: true, startX: 0 });
+  const off = autoPack(list, truck, { obstacles: [], rules: rulesFor(p), startX: 0 });
+  assert.notDeepEqual(strip(on), strip(off), 'Fixture muss an/aus unterscheiden');
+  assert.deepEqual(strip(A.packRest(A.setRowPlan(p, true), cx)), strip(on));
+  assert.deepEqual(strip(A.packRest(p, cx)), strip(off));
+});
+

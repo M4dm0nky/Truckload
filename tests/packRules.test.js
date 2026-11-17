@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   legacyRules, rulesFor, ruleOk, normalizeRules, addRule, moveRule, removeRule,
   blockComparator, ruleTargets, ruleActive, describeRule, MAX_RULES,
-  sameSelectorRank, mixTopFor,
+  sameSelectorRank, mixTopFor, rowPlanFor,
 } from '../js/model/packRules.js';
 import { mkCase, byId } from './fixtures.js';
 
@@ -150,4 +150,11 @@ test('describeRule: deutsche Texte mit typografischen Anführungszeichen', () =>
   assert.equal(describeRule({ by: 'category', value: 'Ton', pos: 'first' }, cases), 'Gewerk „Ton“: zuerst (Stirnwand)');
   assert.equal(describeRule({ by: 'volume' }, cases), 'Große zuerst');
   assert.equal(describeRule({ by: 'count' }, cases), 'Stückzahl zuerst');
+});
+
+test('rowPlanFor: nur true schaltet ein (Altdaten ohne Feld = aus)', () => {
+  assert.equal(rowPlanFor({ rowPlan: true }), true);
+  assert.equal(rowPlanFor({ rowPlan: false }), false);
+  assert.equal(rowPlanFor({}), false);
+  assert.equal(rowPlanFor(undefined), false);
 });

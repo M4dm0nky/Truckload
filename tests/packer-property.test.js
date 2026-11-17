@@ -135,3 +135,57 @@ test('Packer-Eigenschaft mit Deckschicht mischen: 500 Mischungen, Auflage, Valid
   }
   assert.ok(sideBySide >= 20, `zu wenige Deckschichten nebeneinander: ${sideBySide}`);
 });
+
+// Reihen planen (rowPlan): dieselben Eigenschaften wie oben, direkt über autoPack (der Plan-Schalter
+// folgt in einem späteren Schritt).
+import { autoPack } from '../js/model/packer.js';
+import { freeFloorArea } from '../js/model/rows.js';
+import { archBoxes } from '../js/model/geometry.js';
+import { rulesFor, mixTopFor } from '../js/model/packRules.js';
+
+for (const seed of SEEDS) {
+  test(`Packer-Eigenschaft mit rowPlan (Seed ${seed}): keine Kollision, kein Überstand, nichts geht verloren`, () => {
+    const { truck, caseById, plan: input, count } = scenario(seed);
+    const list = input.unplaced.map(u => ({ ...u, c: caseById.get(u.caseId) }));
+    const { placements, unplaced } = autoPack(list, truck, { rules: rulesFor(input), mixTop: mixTopFor(input), rowPlan: true });
+    const packed = { ...input, placements: placements.map(p => ({ ...p })), unplaced };
+    const bad = validatePlan(packed, caseById, truck).issues
+      .filter(i => [...VIOLATIONS, 'overload', 'notStackable', 'tooManyLayers', 'layer'].includes(i.code)).map(i => `${i.code}: ${i.message}`);
+    assert.deepEqual(bad, [], `Seed ${seed}`);
+    const off = autoPack(list, truck, { rules: rulesFor(input), mixTop: mixTopFor(input) });
+    const floor = pl => freeFloorArea(pl.map(p => boxOf(caseById.get(p.caseId), p)), truck, { obstacles: archBoxes(truck) });
+    assert.ok(unplaced.length <= off.unplaced.length, `Seed ${seed}: rowPlan lädt weniger als aus`);
+    if (unplaced.length === off.unplaced.length) assert.ok(floor(placements) <= floor(off.placements) + 1e-6, `Seed ${seed}: rowPlan hinterlässt mehr freie Fläche als aus`);
+    assert.equal(placements.length + unplaced.length, count, `Seed ${seed}`);
+    assert.equal(new Set([...placements, ...unplaced].map(x => x.id)).size, count, `Seed ${seed}: IDs doppelt`);
+  });
+}
+
+// rowPlan lädt nie weniger als aus (Final-Review): 600 Mischungen mit 5–50 Stücken, die Hälfte der
+// LKW mit Radkästen. Zuerst zählen die verladenen Stücke, bei Gleichstand die freie Bodenfläche.
+function loadScenario(seed) {
+  const r = mulberry32(seed);
+  const int = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+  const truck = mkTruck({
+    l: int(250, 700), w: int(160, 248), h: int(150, 270),
+    wheelArches: r() < 0.5 ? [{ x: int(40, 150), l: int(60, 120), w: int(15, 30), h: int(20, 35), side: ['left', 'right', 'both'][int(0, 2)] }] : [],
+  });
+  const cases = Array.from({ length: int(2, 6) }, (_, i) => mkCase(`l${i}`, int(30, 150), int(25, 110), int(15, 110), {
+    weight: int(5, 150), stackable: r() < 0.6, tippable: r() < 0.4, category: CATEGORIES[int(0, 1)],
+  }));
+  const list = Array.from({ length: int(5, 50) }, (_, i) => {
+    const c = cases[int(0, cases.length - 1)];
+    return { id: `u${i}`, caseId: c.id, c };
+  });
+  return { truck, caseById: byId(...cases), list };
+}
+
+test('rowPlan lädt nie weniger als aus und hinterlässt bei gleicher Zahl nie mehr freie Fläche', () => {
+  for (let seed = 9000; seed < 9600; seed++) {
+    const { truck, caseById, list } = loadScenario(seed);
+    const off = autoPack(list, truck), on = autoPack(list, truck, { rowPlan: true });
+    const floor = pl => freeFloorArea(pl.map(p => boxOf(caseById.get(p.caseId), p)), truck, { obstacles: archBoxes(truck) });
+    assert.ok(on.unplaced.length <= off.unplaced.length, `Seed ${seed}: an ${on.unplaced.length} unverladen > aus ${off.unplaced.length}`);
+    if (on.unplaced.length === off.unplaced.length) assert.ok(floor(on.placements) <= floor(off.placements) + 1e-6, `Seed ${seed}: mehr freie Fläche`);
+  }
+});

@@ -102,6 +102,8 @@ export const sameSelectorRank = (rules, a, b) =>
   normalizeRules(rules).every(r => MEASURE_BY.includes(r.by) || rankOf(r, a) === rankOf(r, b));
 
 export const mixTopFor = plan => plan?.mixTop === true;
+// „Reihen planen“ (dicht laden): Aus = Feld fehlt, wie bei Altdaten.
+export const rowPlanFor = plan => plan?.rowPlan === true;
 
 // Ein Block = Array von Stücken { caseId, c, group? } desselben Case-Typs und derselben Gruppe.
 // Schlusskriterien: Name, dann Gruppe (ohne Gruppe zuerst). Bei völligem Gleichstand bleibt die

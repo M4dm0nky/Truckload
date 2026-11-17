@@ -87,6 +87,16 @@ test('neue Hersteller-Vorlagen: Eigenschaften', () => {
   assert.ok(neue().every(c => c.tippable === true && c.wheelH === 13 && c.dimsInclWheels === true));
 });
 
+test('standard.json: Tippbarkeit nach Praxis', () => {
+  const byId = Object.fromEntries(file('standard').cases.map(c => [c.id, c]));
+  for (const id of ['preset-mh-2er', 'preset-led-8er', 'preset-distro-63a']) {
+    assert.equal(byId[id].tippable, true, id);
+  }
+  for (const id of ['preset-rack-12he', 'preset-rack-20he', 'preset-foh-pult']) {
+    assert.notEqual(byId[id].tippable, true, id);
+  }
+});
+
 test('neue Hersteller-Vorlagen: deutsche Namen', () => {
   const n = neue();
   const verboten = [/Top Loader/, /Road Case/, /flightcase/, /\bSingle\b/, /\bDual\b/, /\bPack\b/, /\bloaded\b/, /™/, /®/];

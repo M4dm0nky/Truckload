@@ -241,11 +241,11 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
     bibliothek: { key: 'ruleSets', save: rs => repo.saveRuleSet(rs), del: id => repo.deleteRuleSet(id) },
   };
 
-  async function saveRuleSet(name, rules, mixTop, ort = 'bibliothek') {
+  async function saveRuleSet(name, rules, mixTop, ort = 'bibliothek', rowPlan = false) {
     const o = ORT[ort] ?? ORT.bibliothek;
     const existing = (store.get()[o.key] ?? []).find(r => r.name.toLowerCase() === name.toLowerCase());
     if (existing && !await showConfirm(t('Regelset „{name}“ überschreiben?', { name: existing.name }), { okLabel: t('Überschreiben'), danger: true })) return undefined;
-    const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}) });
+    const value = stamp({ id: existing?.id ?? uid(), name, rules, ...(mixTop ? { mixTop: true } : {}), ...(rowPlan ? { rowPlan: true } : {}) });
     const r = await run(t('Regelset konnte nicht gespeichert werden'), () => o.save(value));
     if (!r.ok) return undefined;
     store.update(s => ({ ...s, [o.key]: [...(s[o.key] ?? []).filter(x => x.id !== value.id), value] }));

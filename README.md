@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.31.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.32.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -163,6 +163,24 @@ Das **Gewicht** eines Case-Typs lässt sich im Inspector direkt ändern (Zahlenf
 alle Stücke dieses Typs). Das gilt für eigene Cases und Listen-Vorlagen; bei Standardvorlagen
 legt „Kopieren“ in der Materialverwaltung eine änderbare Version an, und das Gewicht von
 Traversenwagen ergibt sich aus der Konstruktion.
+
+### Reihen planen
+
+Der Schalter „Reihen planen“ steht im Dialog „Pack-Regeln …“ unter „Deckschicht mischen“, ist
+standardmäßig aus, gilt je Ladung und reist mit den Regelsets. Mit ihm plant der Packer jede Reihe
+so, dass sie die Laderaumbreite füllt: Dazu nimmt er Stapel späterer Sorten desselben Gewerks bzw.
+derselben Gruppe in die Reihe. Traversenwagen werden dabei nie als Füllung verwendet. Die
+Stapelregeln (Lagen, Auflast, Gewicht) ändern sich nicht. Der Packer rechnet beide Varianten, mit
+und ohne den Schalter: Es lädt nie weniger Stücke als ohne, und bei gleicher Stückzahl behält es die
+Variante mit weniger freier Bodenfläche. „Rest einpacken“ beachtet den Schalter ab der letzten vorhandenen Reihe.
+
+### Lücken-Warnung
+
+Unter den Warnungen eines Plans (alle Pläne, beide Modi, auch von Hand gepackt) steht
+„Lücke {b} × {t} cm in Reihe {n}“, wenn freie Bodenfläche quer in einer Reihe oder längs zwischen
+zwei Reihen (auch leere Streifen zwischen Reihen) mindestens 25 × 25 cm groß ist. Die letzte Reihe
+an der Tür zählt nicht; Mehr-LKW-Pläne werden je LKW geprüft. Höhenunterschiede sind keine Lücke,
+Radkästen und Hindernisse ebenso wenig. Die Warnungen erscheinen auch im Druck.
 
 ## Materialverwaltung
 
@@ -349,6 +367,9 @@ andere Cases bearbeiten. Mit „In meine Bibliothek übernehmen“ werden sie zu
 Bibliothek.
 
 ## Mitgelieferte Cases
+
+In den Standarddaten sind die Vorlagen MH 2er, LED 8er und Distro 63A jetzt tippbar (Racks und
+FOH-Pult weiterhin nicht); der Lade-Assistent hakt „getippt“ dafür vor.
 
 In der Bibliothek und im Wizard gibt es neben „Eigene Cases“ und den Vorlagen einen
 eigenen Abschnitt „Cases aus deiner Liste“ mit 116 Cases – übernommen aus der privaten

@@ -171,6 +171,8 @@ export function checkPlan(p) {
     throw new Error(t('Ladeplan „{name}“ hat ungültige Pack-Regeln.', { name: p.name }));
   if (p.mixTop !== undefined && typeof p.mixTop !== 'boolean')
     throw new Error(t('Ladeplan „{name}“ hat einen ungültigen Deckschicht-Schalter.', { name: p.name }));
+  if (p.rowPlan !== undefined && typeof p.rowPlan !== 'boolean')
+    throw new Error(t('Ladeplan „{name}“ hat einen ungültigen Reihen-planen-Schalter.', { name: p.name }));
   if (p.mitgefuehrt !== undefined) {
     const m = p.mitgefuehrt;
     const bad = () => new Error(t('Ladeplan „{name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.', { name: p.name }));
@@ -197,7 +199,8 @@ export function checkPlan(p) {
 export function checkRuleSet(rs) {
   const name = typeof rs?.name === 'string' ? rs.name : '';
   if (!rs || typeof rs.id !== 'string' || !name.trim() || name.length > MAX_RULESET_NAME || !rulesOk(rs.rules) || !updatedAtOk(rs)
-    || (rs.mixTop !== undefined && typeof rs.mixTop !== 'boolean'))
+    || (rs.mixTop !== undefined && typeof rs.mixTop !== 'boolean')
+    || (rs.rowPlan !== undefined && typeof rs.rowPlan !== 'boolean'))
     throw new Error(t('Regelset „{name}“ ist ungültig.', { name: name || '?' }));
 }
 
