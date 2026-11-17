@@ -49,25 +49,36 @@ function freeRects(row, w, obstacles) {
   return out;
 }
 
-// Reihen vor der letzten mit ihrer 1-basierten Nummer (von der Stirnwand gezählt).
-const inner = boxes => groupRows(boxes).slice(0, -1).map((row, i) => ({ row, n: i + 1 }));
+// Bänder vor der letzten Reihe mit ihrer 1-basierten Reihennummer (von der Stirnwand gezählt):
+// je Reihe ihr Band und der leere Streifen bis zur nächsten Reihe (der Reihe davor zugeordnet).
+// Der Streifen vor der letzten Reihe zählt, hinter der letzten gibt es nichts.
+function bands(boxes) {
+  const rows = groupRows(boxes);
+  const out = [];
+  rows.slice(0, -1).forEach((row, i) => {
+    out.push({ band: row, n: i + 1 });
+    const next = rows[i + 1];
+    if (next.x0 > row.x1 + EPS) out.push({ band: { x0: row.x1, x1: next.x0, boxes: [] }, n: i + 1 });
+  });
+  return out;
+}
 
 // Lücken vor der letzten Reihe; w = Ausdehnung quer (y), d = längs (x).
 export function floorGaps(boxes, truck, { obstacles = [], minSize = MIN_GAP } = {}) {
   const gaps = [];
-  for (const { row, n } of inner(boxes))
-    for (const r of freeRects(row, truck.w, obstacles)) {
+  for (const { band, n } of bands(boxes))
+    for (const r of freeRects(band, truck.w, obstacles)) {
       const w = r.y1 - r.y0, d = r.x1 - r.x0;
       if (w >= minSize && d >= minSize) gaps.push({ row: n, ...r, w, d });
     }
   return gaps;
 }
 
-// Summe der freien Bodenfläche (ohne Mindestgröße) über alle Reihen vor der letzten.
+// Summe der freien Bodenfläche (ohne Mindestgröße) vor der letzten Reihe, inkl. Streifen dazwischen.
 export function freeFloorArea(boxes, truck, { obstacles = [] } = {}) {
   let sum = 0;
-  for (const { row } of inner(boxes))
-    for (const r of freeRects(row, truck.w, obstacles)) sum += (r.y1 - r.y0) * (r.x1 - r.x0);
+  for (const { band } of bands(boxes))
+    for (const r of freeRects(band, truck.w, obstacles)) sum += (r.y1 - r.y0) * (r.x1 - r.x0);
   return sum;
 }
 

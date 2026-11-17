@@ -58,7 +58,7 @@ test('floorGaps: Längslücke', () => {
 test('floorGaps: Radkasten zählt nicht', () => {
   const arch = B(0, 120, 200, 245);
   assert.deepEqual(floorGaps(quer(), TRUCK, { obstacles: [arch] }), []);
-  // Hindernis füllt nur einen Teil: Rest unter minSize bleibt unbemerkt
+  // Hindernis deckt 35 von 45 cm ab: Rest 10 < 25, keine Lücke; deckt es nur 15 ab: Rest 30, Lücke
   assert.equal(floorGaps(quer(), TRUCK, { obstacles: [B(0, 120, 200, 235)] }).length, 0);
   assert.equal(floorGaps(quer(), TRUCK, { obstacles: [B(0, 120, 200, 215)] }).length, 1);
 });
@@ -92,7 +92,31 @@ test('minFootprint: 60×60×60-Packcase und 120×80-Case → 60', () => {
 
 test('minFootprint: tippbar nutzt die kleinste Grundfläche, Untergrenze 25, leer = 25', () => {
   const flat = mkCase('f', 100, 40, 10, { tippable: true });
-  assert.equal(minFootprint([{ c: flat }]), 25);            // 10 × 40 getippt, gefloort
+  assert.equal(minFootprint([{ c: flat }]), 25);            // kleinste Kante 10 (getippt), auf 25 angehoben
   assert.equal(minFootprint([{ c: flat, tipped: false }]), 40);
   assert.equal(minFootprint([], new Map()), 25);
+});
+
+test('floorGaps: leerer Streifen zwischen Reihen zählt als Lücke der vorderen Reihe', () => {
+  const boxes = [B(0, 120, 0, 245), B(220, 340, 0, 245), B(340, 460, 0, 245)];
+  const g = floorGaps(boxes, TRUCK);
+  assert.equal(g.length, 1);
+  assert.deepEqual([g[0].row, g[0].d, g[0].w, g[0].x0, g[0].x1], [1, 100, 245, 120, 220]);
+});
+
+test('floorGaps: Streifen vor der letzten Reihe zählt, hinter ihr nichts', () => {
+  const boxes = [B(0, 120, 0, 245), B(220, 340, 0, 245)];
+  assert.equal(floorGaps(boxes, TRUCK).length, 1);
+});
+
+test('floorGaps: anliegende Reihen haben keinen Streifen; Radkasten im Streifen zählt nicht', () => {
+  assert.deepEqual(floorGaps([B(0, 120, 0, 245), B(120, 240, 0, 245), B(240, 360, 0, 245)], TRUCK), []);
+  const boxes = [B(0, 120, 0, 245), B(220, 340, 0, 245)];
+  assert.deepEqual(floorGaps(boxes, TRUCK, { obstacles: [B(120, 220, 0, 245)] }), []);
+});
+
+test('freeFloorArea enthält den Streifen zwischen Reihen', () => {
+  const boxes = [B(0, 120, 0, 245), B(220, 340, 0, 245), B(340, 460, 0, 245)];
+  assert.equal(freeFloorArea(boxes, TRUCK), 100 * 245);
+  assert.equal(freeFloorArea(boxes, TRUCK, { obstacles: [B(120, 220, 0, 45)] }), 100 * 200);
 });
