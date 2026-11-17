@@ -291,5 +291,5 @@ truckloadHost.projektGeraete()
 
 Erst wenn beide Häkchen gesetzt sind, wird auf einer der beiden Seiten gebaut.
 
-- [ ] **NYX:** Fragen beantwortet, Schnittstelle abgestimmt, wir können loslegen. (Name, Datum)
+- [x] **NYX:** Fragen beantwortet, Schnittstelle abgestimmt, wir können loslegen. (Aniflu, 17.11.2026)
 - [x] **Truckload:** Design an die Antworten angepasst, wir können loslegen. (M4dm0nky, 17.11.2026 – Design: `docs/superpowers/specs/2026-11-17-nyx-projektgeraete-design.md`)
