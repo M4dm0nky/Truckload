@@ -27,7 +27,7 @@ test('pickPieceFields: ein volles Stück liefert genau PIECE_FIELDS, in dieser R
   assert.deepEqual(Object.keys(pickPieceFields(full)), PIECE_FIELDS);
 });
 
-test('duplicate: Kopie, die in die Ablage geht (kein Platz), behält alle Stückfelder', () => {
+test('duplicate: Kopie, die in die Ablage geht (kein Platz), behält alle Stückfelder außer NYX', () => {
   const K = mkCase('k', 120, 60, 60, { tippable: true });
   const truck = mkTruck({ l: 120, w: 60, h: 60 });
   const ctx = { caseById: byId(K), truck, newId: counter('n') };
@@ -35,8 +35,11 @@ test('duplicate: Kopie, die in die Ablage geht (kein Platz), behält alle Stück
   const pl = A.duplicate(plan([{ id: 'a', caseId: 'k', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0, ...fields }]), 'a', ctx);
   assert.equal(pl.placements.length, 1);
   assert.equal(pl.unplaced.length, 1);
-  assert.deepEqual(pickPieceFields(pl.unplaced[0]), { ...fields, label: 'Kiste 2' });
-  assert.deepEqual(Object.keys(pickPieceFields(pl.unplaced[0])), PIECE_FIELDS);
+  const { nyxGeraet, nyxStueck, ...handFields } = fields;
+  // Ein Duplikat ist ein Hand-Stück: alle Felder außer den NYX-Feldern, das Original behält sie.
+  assert.deepEqual(pickPieceFields(pl.unplaced[0]), { ...handFields, label: 'Kiste 2' });
+  assert.equal(pl.placements[0].nyxGeraet, 'key-1');
+  assert.equal(pl.placements[0].nyxStueck, 2);
 });
 
 test('pickPieceFields: leere Strings entfallen, tipped:false bleibt, group wird getrimmt und gekürzt', () => {
@@ -60,11 +63,13 @@ test('Stück mit allen Feldern übersteht den ganzen Kreislauf ohne Feldverlust'
   assert.deepEqual(only(pl.placements[0]), fields);
   pl = A.duplicate(pl, id, ctx);
   assert.equal(pl.placements.length, 2);
-  assert.deepEqual(only(pl.placements[1]), { ...fields, label: 'Kiste 2' });
+  const { nyxGeraet, nyxStueck, ...hand } = fields;
+  assert.deepEqual(only(pl.placements[1]), { ...hand, label: 'Kiste 2' });
+  assert.deepEqual(only(pl.placements[0]), fields);
   pl = A.unloadAll(pl);
   assert.equal(pl.unplaced.length, 2);
   assert.deepEqual(only(pl.unplaced[0]), fields);
-  assert.deepEqual(only(pl.unplaced[1]), { ...fields, label: 'Kiste 2' });
+  assert.deepEqual(only(pl.unplaced[1]), { ...hand, label: 'Kiste 2' });
 });
 
 test('pickPieceFields übernimmt nyxGeraet/nyxStueck, nur wenn gültig', () => {
@@ -93,4 +98,20 @@ test('autoPack-Placements (packAll) behalten nyxGeraet/nyxStueck, auch in der Ab
   assert.equal(pl.placements[0].nyxStueck, 2);
   const tray = A.toTray(pl, pl.placements[0].id);
   assert.deepEqual(pickPieceFields(tray.unplaced[0]), { nyxGeraet: 'key-1', nyxStueck: 2 });
+});
+
+test('duplicate (platziert): Kopie ist ein Hand-Stück ohne NYX-Felder, Original behält sie', () => {
+  const K = mkCase('k', 100, 60, 60);
+  const ctx = { caseById: byId(K), truck: mkTruck({ l: 400, w: 200, h: 200 }), newId: counter('n') };
+  const pl = A.duplicate(plan([{ id: 'a', caseId: 'k', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0,
+    label: 'Kiste 1', group: 'FOH', nyxGeraet: 'key-1', nyxStueck: 2 }]), 'a', ctx);
+  assert.equal(pl.placements.length, 2);
+  assert.equal(pl.unplaced.length, 0);
+  const [orig, copy] = pl.placements;
+  assert.equal(orig.nyxGeraet, 'key-1');
+  assert.equal(orig.nyxStueck, 2);
+  assert.equal('nyxGeraet' in copy, false);
+  assert.equal('nyxStueck' in copy, false);
+  assert.equal(copy.label, 'Kiste 2');
+  assert.equal(copy.group, 'FOH');
 });
