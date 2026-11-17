@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { groupRows, floorGaps, freeFloorArea, minFootprint } from '../js/model/rows.js';
+import { groupRows, floorGaps, freeFloorArea } from '../js/model/rows.js';
 import { mkCase, mkTruck, byId } from './fixtures.js';
 
 const B = (x0, x1, y0, y1) => ({ x0, x1, y0, y1 });
@@ -79,22 +79,6 @@ test('freeFloorArea für das 2×100-Beispiel = 45 × 120', () => {
   assert.equal(freeFloorArea(quer(), TRUCK), 45 * 120);
   assert.equal(freeFloorArea(quer(), TRUCK, { obstacles: [B(0, 120, 200, 245)] }), 0);
   assert.equal(freeFloorArea([], TRUCK), 0);
-});
-
-test('minFootprint: 60×60×60-Packcase und 120×80-Case → 60', () => {
-  const pack = mkCase('p', 60, 60, 60, { tippable: true });
-  const big = mkCase('b', 120, 80, 100);
-  const m = byId(pack, big);
-  assert.equal(minFootprint([{ caseId: 'p' }, { caseId: 'b' }], m), 60);
-  assert.equal(minFootprint([{ c: big }], m), 80);
-  assert.equal(minFootprint([{ caseId: 'p' }], Object.fromEntries(m)), 60);
-});
-
-test('minFootprint: tippbar nutzt die kleinste Grundfläche, Untergrenze 25, leer = 25', () => {
-  const flat = mkCase('f', 100, 40, 10, { tippable: true });
-  assert.equal(minFootprint([{ c: flat }]), 25);            // kleinste Kante 10 (getippt), auf 25 angehoben
-  assert.equal(minFootprint([{ c: flat, tipped: false }]), 40);
-  assert.equal(minFootprint([], new Map()), 25);
 });
 
 test('floorGaps: leerer Streifen zwischen Reihen zählt als Lücke der vorderen Reihe', () => {

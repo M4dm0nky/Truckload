@@ -2,7 +2,7 @@
 // Koordinaten: x = Länge (Stirnwand → Tür), y = Breite. Boxen: { x0, x1, y0, y1 }.
 // Eine Reihe ist eine Kette von Boxen, deren x-Bereiche sich überschneiden. Die letzte Reihe
 // (größtes x0, an der Tür) ist von Lücken ausgenommen.
-import { EPS, pieceOrientations, effectiveDims } from './geometry.js';
+import { EPS } from './geometry.js';
 
 export const MIN_GAP = 25;
 
@@ -80,21 +80,4 @@ export function freeFloorArea(boxes, truck, { obstacles = [] } = {}) {
   for (const { band } of bands(boxes))
     for (const r of freeRects(band, truck.w, obstacles)) sum += (r.y1 - r.y0) * (r.x1 - r.x0);
   return sum;
-}
-
-// Kleinste Kante der kleinsten möglichen Grundfläche über alle Stücke, mindestens MIN_GAP.
-// Stücke tragen entweder ein aufgelöstes `c` oder eine `caseId` (caseById: Map oder Objekt).
-export function minFootprint(pieces, caseById) {
-  const lookup = id => (caseById instanceof Map ? caseById.get(id) : caseById?.[id]);
-  let best = null;
-  for (const p of pieces) {
-    const c = p.c ?? lookup(p.caseId);
-    if (!c) continue;
-    for (const orientation of pieceOrientations(p, c))
-      for (const rot of [0, 90]) {
-        const { dx, dy } = effectiveDims(c, { orientation, rot });
-        if (!best || dx * dy < best.area) best = { area: dx * dy, edge: Math.min(dx, dy) };
-      }
-  }
-  return best ? Math.max(MIN_GAP, best.edge) : MIN_GAP;
 }

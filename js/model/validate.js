@@ -1,6 +1,6 @@
 import { EPS, archBoxes, boxOf, overlaps, footprintOverlapArea, footprintArea, supportersOf, pieceLayers, isTruss, canTip } from './geometry.js';
 import { buildItems } from './items.js';
-import { floorGaps, minFootprint } from './rows.js';
+import { floorGaps } from './rows.js';
 import { t } from '../i18n/i18n.js';
 
 const SUPPORT_MIN = 0.8;
@@ -106,10 +106,10 @@ export function validatePlan(plan, caseById, truck) {
     }
   }
 
-  // Lücken vor der letzten Reihe (nur Bodenstücke; Radkästen sind keine Lücke). Mindestgröße:
-  // die kleinste Grundfläche, die im Plan vorkommt – was nicht mal das kleinste Stück aufnimmt, ist keine.
+  // Lücken vor der letzten Reihe (nur Bodenstücke; Radkästen sind keine Lücke). Mindestgröße
+  // 25 × 25 cm (MIN_GAP in rows.js): kleinere Reste sind keine Lücke, die sich lohnt.
   const floor = items.filter(it => it.box.z0 <= EPS).map(({ box: b }) => ({ x0: b.x0, x1: b.x1, y0: b.y0, y1: b.y1 }));
-  for (const g of floorGaps(floor, truck, { obstacles: arches, minSize: minFootprint(items, caseById) }))
+  for (const g of floorGaps(floor, truck, { obstacles: arches }))
     add(null, 'gap', t('Lücke {b} × {t} cm in Reihe {n}', { b: Math.round(g.w), t: Math.round(g.d), n: g.row }));
 
   const weight = items.reduce((s, it) => s + it.c.weight, 0);
