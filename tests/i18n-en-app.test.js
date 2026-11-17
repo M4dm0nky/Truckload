@@ -10,7 +10,7 @@ import { copyName, multiAddedNotice } from '../js/app/plans.js';
 import { druckTitel } from '../js/app/hostPrint.js';
 import { guarded } from '../js/app/guarded.js';
 import { SCROLL_SHORT, SCROLL_LABELS } from '../js/ui/zoom2d.js';
-import { setMixTop } from '../js/model/actions.js';
+import { setMixTop, setRowPlan } from '../js/model/actions.js';
 import { convertToMulti } from '../js/model/lkw.js';
 import { mkCase, byId } from './fixtures.js';
 
@@ -28,6 +28,12 @@ test('packRulesTitle: Tooltip der Pack-Regeln englisch, mit und ohne Deckschicht
   const mit = packRulesTitle(setMixTop(plan, true), byId());
   englisch(mit);
   assert.match(mit, /top layer on$/);
+  const reihen = packRulesTitle(setRowPlan(plan, true), byId());
+  englisch(reihen);
+  assert.match(reihen, /row planning on$/);
+  const beide = packRulesTitle(setRowPlan(setMixTop(plan, true), true), byId());
+  englisch(beide);
+  assert.match(beide, /top layer on · row planning on$/);
 });
 
 test('distributionNotices: Rest-Hinweis in Ein- und Mehrzahl englisch', () => {

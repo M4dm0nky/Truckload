@@ -4,7 +4,7 @@
 import * as A from '../model/actions.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { WHEEL_FACES, wheelFace } from '../model/geometry.js';
-import { rulesFor, ruleTargets, mixTopFor } from '../model/packRules.js';
+import { rulesFor, ruleTargets, mixTopFor, rowPlanFor } from '../model/packRules.js';
 import { renderView, attachTopInteractions, attachSelect } from '../ui/view2d.js';
 import { mountLibrary } from '../ui/library.js';
 import { openPackRules } from '../ui/pack-rules.js';
@@ -324,6 +324,7 @@ export function mountPlanView(deps) {
     const res = await openPackRules($('#dlg-rules'), {
       rules: rulesFor(s.plan),
       mixTop: mixTopFor(s.plan),
+      rowPlan: rowPlanFor(s.plan),
       targets: ruleTargets(piecesOf(s.plan), c.caseById),
       caseById: c.caseById,
       ruleSets: [...s.ruleSets].sort((a, b) => a.name.localeCompare(b.name, 'de')),
@@ -334,7 +335,7 @@ export function mountPlanView(deps) {
     if (!res) return;
     // Ein einziger Undo-Schritt für „Regeln setzen und neu packen“.
     const multi = isMultiLkw(s.plan);
-    editWhole((p, cx) => { const next = A.setMixTop(A.setPackRules(p, res.rules), res.mixTop); return res.repack ? packAllOf(next, cx) : next; });
+    editWhole((p, cx) => { const next = A.setRowPlan(A.setMixTop(A.setPackRules(p, res.rules), res.mixTop), res.rowPlan); return res.repack ? packAllOf(next, cx) : next; });
     if (res.repack) await (multi ? warnAfterDistribution() : warnIfUnplaced());
   };
   $('#unload-all').onclick = async () => {

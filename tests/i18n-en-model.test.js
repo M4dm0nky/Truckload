@@ -133,6 +133,7 @@ test('checkCase und die anderen Prüfungen werfen englische Meldungen', () => {
   wirft(() => checkPlan(pl({ packOrder: 'x' })));
   wirft(() => checkPlan(pl({ packRules: 'x' })));
   wirft(() => checkPlan(pl({ mixTop: 'x' })));
+  wirft(() => checkPlan(pl({ rowPlan: 'x' })));
   wirft(() => checkPlan(pl({ lkws: 'x' })));
   wirft(() => checkPlan(pl({ lkws: [{ id: 'a', name: 'A', truckId: 't', categories: [] }, { id: 'a', name: 'B', truckId: 't', categories: [] }] })));
   wirft(() => checkPlan(pl({ lkws: [{ id: 'a', name: 'N'.repeat(200), truckId: 't', categories: [] }] })));

@@ -1041,3 +1041,14 @@ test('Altes Schema (V 0.21.1): Plan mit mitgefuehrt ohne herkunft lädt unverän
   assert.deepEqual([...best.ausProjekt.cases], ['k1']);
   assert.equal(best.ausProjekt.importCases.size, 0);
 });
+
+test('Import: rowPlan optional boolean in Plan und Regelset, anderes wird abgelehnt', () => {
+  const b = parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), rowPlan: true }],
+    ruleSets: [{ id: 'r', name: 'X', rules: [], rowPlan: true }] }));
+  assert.equal(b.plans[0].rowPlan, true);
+  assert.equal(b.ruleSets[0].rowPlan, true);
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [{ ...plan([]), rowPlan: 'ja' }] })), /Reihen/);
+  assert.throws(() => parseBundle(exportBundle({ cases: [], trucks: [], plans: [], ruleSets: [{ id: 'r', name: 'X', rules: [], rowPlan: 1 }] })), /Regelset/);
+  const old = parseBundle(exportBundle({ cases: [], trucks: [], plans: [plan([])] }));
+  assert.equal(old.plans[0].rowPlan, undefined);
+});

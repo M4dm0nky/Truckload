@@ -8,7 +8,7 @@ import { stamp } from '../model/stamp.js';
 import { lkwsOf, isMultiLkw, resolveLkwId, lkwView, unassignedView, mergeLkwView, NO_LKW, piecesOf } from '../model/lkw.js';
 import { packAllLkws, unassignedLines } from '../model/lkw-distribute.js';
 import { packAll, placementToUnplaced } from '../model/actions.js';
-import { rulesFor, describeRule, mixTopFor } from '../model/packRules.js';
+import { rulesFor, describeRule, mixTopFor, rowPlanFor } from '../model/packRules.js';
 import { t } from '../i18n/i18n.js';
 
 export const caseByIdOf = memoLast(cases => new Map(cases.map(c => [c.id, c])));
@@ -143,7 +143,10 @@ export function distributionNotices(plan, caseById) {
 // Tooltip des Knopfs „Pack-Regeln …“: die Rangliste des Plans in Worten (ohne Regeln: nach Name).
 export function packRulesTitle(plan, caseById) {
   const order = rulesFor(plan).map(r => describeRule(r, caseById)).join(' · ') || t('nach Name');
-  return mixTopFor(plan)
+  const mix = mixTopFor(plan), rows = rowPlanFor(plan);
+  if (mix && rows) return t('Reihenfolge beim automatischen Packen: {order} · Deckschicht an · Reihen planen an', { order });
+  if (rows) return t('Reihenfolge beim automatischen Packen: {order} · Reihen planen an', { order });
+  return mix
     ? t('Reihenfolge beim automatischen Packen: {order} · Deckschicht an', { order })
     : t('Reihenfolge beim automatischen Packen: {order}', { order });
 }

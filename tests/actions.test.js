@@ -5,6 +5,7 @@ import { validatePlan } from '../js/model/validate.js';
 import { wheelFace, DOOR_FACE, boxOf } from '../js/model/geometry.js';
 import { MAX_LABEL } from '../js/model/limits.js';
 import { rulesFor } from '../js/model/packRules.js';
+import { autoPack } from '../js/model/packer.js';
 import { mkCase, mkTruck, P, plan, byId, counter } from './fixtures.js';
 
 const K = mkCase('k', 120, 60, 60);
@@ -800,4 +801,26 @@ test('toggleTipPiece: stehend -> getippt -> stehend', () => {
   const t1 = A.toggleTipPiece(plan([P('a', 't', 0, 0, 0)]), 'a', ctx());
   assert.equal(find(t1, 'a').orientation, 'tipShort');
   assert.equal(find(A.toggleTipPiece(t1, 'a', ctx()), 'a').orientation, 'standing');
+});
+
+test('setRowPlan: an setzt true, aus entfernt das Feld, unverändert = gleiche Referenz', () => {
+  const p0 = plan([]);
+  const p1 = A.setRowPlan(p0, true);
+  assert.equal(p1.rowPlan, true);
+  assert.equal(A.setRowPlan(p1, true), p1);
+  assert.ok(!('rowPlan' in A.setRowPlan(p1, false)));
+  assert.equal(A.setRowPlan(p0, false), p0);
+});
+
+test('packAll: nutzt rowPlan des Plans wie autoPack mit rowPlan', () => {
+  const a = mkCase('ra', 120, 60, 60), b = mkCase('rb', 80, 40, 60), c = mkCase('rc', 100, 50, 60);
+  const cx = { caseById: byId(a, b, c), truck: mkTruck(), newId: counter('n') };
+  let p = A.addUnplaced(plan([]), 'ra', 5, counter('a'));
+  p = A.addUnplaced(p, 'rb', 7, counter('b'));
+  p = A.addUnplaced(p, 'rc', 6, counter('c'));
+  const list = p.unplaced.map(u => ({ id: u.id, caseId: u.caseId, c: cx.caseById.get(u.caseId), ...(u.group ? { group: u.group } : {}) }));
+  const strip = r => r.placements.map(q => [q.id, q.x, q.y, q.z, q.rot ?? 0]);
+  const want = autoPack(list, cx.truck, { rules: rulesFor(p), rowPlan: true });
+  assert.deepEqual(strip(A.packAll(A.setRowPlan(p, true), cx)), strip(want));
+  assert.deepEqual(strip(A.packAll(p, cx)), strip(autoPack(list, cx.truck, { rules: rulesFor(p) })));
 });
