@@ -208,6 +208,7 @@ export default {
   "Laden aus NYX fehlgeschlagen – Truckload bitte neu laden.": "Loading from NYX failed – please reload Truckload.",
   "NYX-Speicher nicht erreichbar": "NYX storage not reachable",
   "NYX lieferte für „{store}“ keine Liste": "NYX returned no list for “{store}”",
+  "NYX lieferte keine Geräteliste": "NYX returned no device list",
   " {n}er (auf Dolly)": " ×{n} (on dolly)",
   // js/app und js/ui/zoom2d.js
   "1 Case passt nicht in den LKW und bleibt in „Noch nicht geladen“.": "1 case does not fit in the truck and stays in “Not loaded yet”.",
