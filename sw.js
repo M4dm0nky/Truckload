@@ -64,6 +64,7 @@ const ASSETS = [
   'js/model/rowPlanner.js',
   'js/model/slug.js',
   'js/model/stamp.js',
+  'js/model/stueckAusName.js',
   'js/model/tabellen-uebernahme.js',
   'js/model/truss.js',
   'js/model/trussCatalog.js',
