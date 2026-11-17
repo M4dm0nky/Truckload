@@ -159,7 +159,7 @@ const { switchPlan, runLoadWizard } = wirePlans({
 
 const tabellenImport = wireTabellenImport({ store, editWhole, switchPlan, uid, showAlert, showPrompt });
 
-const projektGeraete = wireProjektGeraete({ store, editWhole, switchPlan, uid, showAlert, saveCase: persistence.saveCase, newCaseForWizard, showPick });
+const projektGeraete = wireProjektGeraete({ store, editWhole, switchPlan, uid, showAlert, saveCase: persistence.saveCase, saveCases: persistence.saveCases, newCaseForWizard, showPick });
 
 const { ACTIONS } = mountPlanView({
   store, edit, editWhole, select, ctx, derive, renderHooks, persistence, stamp, uid, showAlert, showConfirm,

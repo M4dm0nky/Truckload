@@ -8,6 +8,7 @@ import { stamp } from '../model/stamp.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { CATEGORIES } from '../data/categories.js';
 import { umhaengen, stand, uebernimmGeraete, casesZumMerken } from '../model/nyxAbgleich.js';
+import { stueckAusName } from '../model/stueckAusName.js';
 import { isMultiLkw } from '../model/lkw.js';
 import { CASE_LIMITS, NAME_MAX } from '../model/limits.js';
 import { isInStock } from '../model/material.js';
@@ -32,13 +33,15 @@ export function kategorieVon(gewerk) {
 }
 
 // Vorbelegung des Case-Editors für „Neues Case“: Name = Gerätename + „Case“, Gewerk aus NYX,
-// Gewicht = Geräte pro Case × gewichtKg (nur wenn NYX es liefert; im Editor änderbar).
-export function caseEntwurf({ name, gewerk, gewichtKg, stueck = 1 }) {
+// Gewicht = Geräte pro Case × gewichtKg (nur wenn NYX es liefert; im Editor änderbar). Geräte pro Case:
+// `stueck`, sonst aus dem vorbelegten Namen (stueckAusName), sonst 1.
+export function caseEntwurf({ name, gewerk, gewichtKg, stueck }) {
   const kopf = t('{name} Case', { name: '' });
   const basis = String(name ?? '').slice(0, Math.max(NAME_MAX - kopf.length, 1));
   const entwurf = { name: t('{name} Case', { name: basis }), category: kategorieVon(gewerk) };
   if (typeof gewichtKg === 'number' && gewichtKg > 0) {
-    entwurf.weight = Math.min(Math.round(gewichtKg * stueck * 10) / 10, CASE_LIMITS.weight);
+    const je = Number.isInteger(stueck) && stueck >= 1 ? stueck : stueckAusName(entwurf.name) ?? 1;
+    entwurf.weight = Math.min(Math.round(gewichtKg * je * 10) / 10, CASE_LIMITS.weight);
   }
   return entwurf;
 }
@@ -80,26 +83,37 @@ export async function geraeteAbgleich(deps, { automatisch = false } = {}) {
   return 'applied';
 }
 
-// Schreibt das Ergebnis des Dialogs: erst die Bibliothek (gemerkte Zuordnungen, umgehängte Schlüssel),
-// dann den Plan (bei Bedarf neu angelegt), dann beim „Laden“ die LKW-Verteilung. Schlägt ein Speichern
-// fehl (saveCase meldet selbst), bleibt der Plan unberührt. kontext: { geaendert, alias } (umhaengen).
+// Schreibt das Ergebnis des Dialogs ganz oder gar nicht: erst alles rechnen (neuer Plan, zu merkende Cases),
+// dann die Cases in EINEM Schreibvorgang (saveCases meldet Fehler selbst), erst danach den Plan (bei Bedarf
+// neu angelegt), dann beim „Laden“ die LKW-Verteilung. Wirft die Rechnung oder lehnt das Schreiben ab,
+// bleibt alles unberührt, auch kein leerer neuer Plan. kontext: { geaendert, alias } (umhaengen).
 // Die Bibliothek wird erst hier gelesen: im Dialog angelegte Cases („Neues Case“) gehören dazu.
-export async function uebernimmErgebnis({ store, editWhole, switchPlan, uid, showAlert, saveCase }, res, { geaendert, alias }) {
-  for (const c of casesZumMerken(store.get().cases, geaendert, res)) {
-    if (!await saveCase({ ...c, builtin: false })) return false;
+export async function uebernimmErgebnis({ store, editWhole, switchPlan, uid, showAlert, saveCases }, res, { geaendert, alias }) {
+  const zuSpeichern = casesZumMerken(store.get().cases, geaendert, res).map(c => ({ ...c, builtin: false }));
+  const caseById = new Map([...store.get().cases, ...zuSpeichern].map(c => [c.id, c]));
+  const vorhanden = store.get().plan;
+  let neuerPlan = null;
+  try {
+    neuerPlan = uebernimmGeraete(
+      vorhanden ?? A.emptyPlan(uid(), t('Load {date}', { date: date(new Date()) }), DEFAULT_TRUCK_ID),
+      res, uid, caseById, alias);
+  } catch (err) { await showAlert(err.message); return false; }
+  if (zuSpeichern.length && !await saveCases(zuSpeichern)) return false;
+  if (vorhanden) {
+    const vor = stueckIds(store.get().plan);
+    editWhole((p, c) => uebernimmGeraete(p, res, uid, c.caseById, alias));
+    if (res.laden) await planeNachUebernahme({ store, editWhole, uid, showAlert }, res.lkw, vor);
+  } else {
+    switchPlan(neuerPlan);
+    if (res.laden) await planeNachUebernahme({ store, editWhole, uid, showAlert }, res.lkw, new Set());
   }
-  if (!store.get().plan) switchPlan(A.emptyPlan(uid(), t('Load {date}', { date: date(new Date()) }), DEFAULT_TRUCK_ID));
-  const vor = stueckIds(store.get().plan);
-  try { editWhole((p, c) => uebernimmGeraete(p, res, uid, c.caseById, alias)); }
-  catch (err) { await showAlert(err.message); return false; }
-  if (res.laden) await planeNachUebernahme({ store, editWhole, uid, showAlert }, res.lkw, vor);
-  else if (res.zuordnungen.length && isMultiLkw(store.get().plan)) await showAlert(multiAddedNotice());
+  if (!res.laden && res.zuordnungen.length && isMultiLkw(store.get().plan)) await showAlert(multiAddedNotice());
   return true;
 }
 
-// deps: store, editWhole, switchPlan, uid, showAlert, saveCase, newCaseForWizard, showPick.
+// deps: store, editWhole, switchPlan, uid, showAlert, saveCases, newCaseForWizard, showPick.
 // Liefert { start, auto, knopfZeigen }.
-export function wireProjektGeraete({ store, editWhole, switchPlan, uid, showAlert, saveCase, newCaseForWizard, showPick }) {
+export function wireProjektGeraete({ store, editWhole, switchPlan, uid, showAlert, saveCases, newCaseForWizard, showPick }) {
   let laeuft = false;
 
   async function sucheCase(text) {
@@ -121,7 +135,7 @@ export function wireProjektGeraete({ store, editWhole, switchPlan, uid, showAler
 
   const deps = {
     store, showAlert, hat: hatProjektGeraete, lade: ladeProjektGeraete, oeffne,
-    uebernehmen: (res, kontext) => uebernimmErgebnis({ store, editWhole, switchPlan, uid, showAlert, saveCase }, res, kontext),
+    uebernehmen: (res, kontext) => uebernimmErgebnis({ store, editWhole, switchPlan, uid, showAlert, saveCases }, res, kontext),
     leererPlan: () => A.emptyPlan(uid(), '', DEFAULT_TRUCK_ID),
     markiereGeoeffnet: () => editWhole(p => (p.nyxAbgleich?.geoeffnet ? p : stamp({ ...p, nyxAbgleich: { nichtLaden: [], ...p.nyxAbgleich, geoeffnet: true } })), false),
   };

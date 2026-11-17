@@ -186,3 +186,47 @@ test('Voll zugeordnet: ein weiterer case-Aufruf ändert nichts', () => {
   assert.deepEqual(st.zuordnung[BMFL].map(a => a.caseId), ['frei']);
   assert.deepEqual(geraeteErgebnis(st).zuordnungen.map(a => a.caseId), ['frei']);
 });
+
+// ---- nicht laden im Differenz-Modus ----
+const diffPlan = () => plan([], [nyx('a', 'x2', BMFL, 2), nyx('b', 'x2', BMFL, 2), nyx('v', 'x2', VIPER, 2)]);
+const diffSt = () => { const p = diffPlan(); return geraeteState({ liste: [{ ...liste[0], anzahl: 5 }, { ...liste[1], anzahl: 2 }], stand: stand(p, [{ ...liste[0], anzahl: 5 }, { ...liste[1], anzahl: 2 }]), cases: [x2, x1], alias: new Map(), plan: p }); };
+
+test('nicht laden im Diff-Modus: links keine Differenz, rechts „{anzahl} Stück“ statt Differenz (Treffer)', () => {
+  const st = diffSt();                 // Viper +3, BMFL −2
+  geraeteAktion(st, 'nichtladen', { key: VIPER });
+  const links = geraeteSchrittHtml(st);
+  assert.doesNotMatch(links, /\+3/);
+  assert.match(links, /<b class="ge-num">5<\/b>/);
+  geraeteAktion(st, 'waehle', { key: VIPER });
+  assert.match(geraeteSchrittHtml(st), /5 Stück/);
+  assert.doesNotMatch(geraeteSchrittHtml(st), /3 Stück/);
+});
+
+test('Gegenprobe: ohne nicht laden zeigt der Diff-Modus +3 und „3 Stück“', () => {
+  const st = diffSt();
+  assert.match(geraeteSchrittHtml(st), /\+3/);
+  geraeteAktion(st, 'waehle', { key: VIPER });
+  assert.match(geraeteSchrittHtml(st), /3 Stück/);
+});
+
+test('Reduktions-Typ: nicht laden und wieder laden stellt die Reduktion wieder her (live-Zustand)', () => {
+  const st = diffSt();
+  geraeteAktion(st, 'nichtladen', { key: BMFL });
+  geraeteAktion(st, 'waehle', { key: BMFL });
+  assert.match(geraeteSchrittHtml(st), /nicht geladen/);
+  assert.doesNotMatch(geraeteSchrittHtml(st), /−2/);
+  geraeteAktion(st, 'nichtladen', { key: BMFL });
+  assert.match(geraeteSchrittHtml(st), /−2/);
+  assert.match(geraeteSchrittHtml(st), /Diese Stücke würden entfernt/);
+  geraeteAktion(st, 'red', { key: BMFL, ja: true });
+  assert.equal(geraeteErgebnis(st).reduktion.length, 1);
+});
+
+test('Typ, der schon im Plan als nicht laden steht und −2 hat: Wieder laden zeigt die Reduktion', () => {
+  const p = { ...diffPlan(), nyxAbgleich: { nichtLaden: [BMFL] } };
+  const l = [{ ...liste[0], anzahl: 5 }, { ...liste[1], anzahl: 2 }];
+  const st = geraeteState({ liste: l, stand: stand(p, l), cases: [x2], alias: new Map(), plan: p });
+  geraeteAktion(st, 'nichtladen', { key: BMFL });
+  geraeteAktion(st, 'waehle', { key: BMFL });
+  assert.match(geraeteSchrittHtml(st), /Diese Stücke würden entfernt/);
+});

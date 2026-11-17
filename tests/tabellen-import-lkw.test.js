@@ -50,7 +50,8 @@ test('neueStueckIds: nur Stücke, die vorher nicht da waren', () => {
 
 test('Struktursperre: Übernahme und Vorschau gehen über dieselben Funktionen, Vorschau schreibt nicht in den Store', () => {
   const src = readFileSync(new URL('../js/app/tabellenImport.js', import.meta.url), 'utf8');
-  const vor = src.slice(src.indexOf('vorschau: async'), src.indexOf('vorschau: async') + 500);
+  const v0 = src.indexOf('vorschau: async');
+  const vor = src.slice(v0, src.indexOf('\n  };\n}', v0)); // bis zum Ende von lkwOptsVon
   assert.match(vor, /rechneLkwImport\(/);
   assert.doesNotMatch(vor, /editWhole|store\.update|switchPlan/);
   // Übernahme: die Tabelle ruft planeNachUebernahme, und das rechnet wie die Vorschau (planeLkws, neueStueckIds).
@@ -60,6 +61,11 @@ test('Struktursperre: Übernahme und Vorschau gehen über dieselben Funktionen, 
   assert.match(nach, /planeLkws\(p, \{ \.\.\.c, truckById: truckByIdOf\(store\.get\(\)\) \}, \{ \.\.\.lkw, neu \}\)/);
   assert.match(nach, /neueStueckIds\(/);
   assert.doesNotMatch(ueb + nach, /packRest|warnIfUnplaced/);
+  // „Aus Projektdatenbank übernehmen“ rechnet mit denselben Funktionen: Vorschau über lkwOptsVon, Übernahme über planeNachUebernahme.
+  const pg = readFileSync(new URL('../js/app/projektGeraeteImport.js', import.meta.url), 'utf8');
+  const pgUeb = pg.slice(pg.indexOf('export async function uebernimmErgebnis'), pg.indexOf('export function wireProjektGeraete'));
+  assert.match(pgUeb, /planeNachUebernahme\(/);
+  assert.match(pg, /\.\.\.lkwOptsVon\(/);
   assert.doesNotMatch(src, /saveCase/);
 });
 

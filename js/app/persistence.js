@@ -63,6 +63,27 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
   }
   const saveCase = rawValue => serial(() => saveCaseNow(rawValue));
 
+  // Mehrere Cases in EINEM writeCases (alles oder nichts), z. B. die Übernahme der Projektgeräte.
+  // Liefert die gespeicherten Cases, bei einem Fehler (Meldung kam von run) undefined.
+  async function saveCasesNow(rawValues) {
+    if (!rawValues.length) return [];
+    const st = store.get();
+    let collections = st.collections;
+    const created = [];
+    const values = rawValues.map(raw => {
+      const existing = st.cases.find(x => x.id === raw.id);
+      const target = resolveTarget(raw, existing, collections, uid);
+      if (target.created) { collections = withBuiltins([...collections, stamp(target.created)]); created.push(target.id); }
+      return stamp({ ...raw, collectionId: target.id });
+    });
+    const r = await run(t('Case konnte nicht gespeichert werden'), () => repo.writeCases({ upserts: values, touchIds: created, collections }));
+    if (!r.ok) return undefined;
+    const ids = new Set(values.map(v => v.id));
+    store.update(s => ({ ...setCollections(s, collections), cases: [...s.cases.filter(x => !ids.has(x.id)), ...values] }));
+    return values;
+  }
+  const saveCases = rawValues => serial(() => saveCasesNow(rawValues));
+
   // Gelöschte Cases auch aus der mitgeführten Kopie der Pläne im Store nehmen (ohne Undo-Eintrag,
   // `store.update` ohne history): sonst füllte bestandOf die Lücke aus dem alten Stand, das Case
   // käme mit dem Hinweis „Aus der Projektdatei“ zurück und beim nächsten Speichern in die Datenbank.
@@ -298,7 +319,7 @@ export function createPersistence({ repo, store, showAlert, showConfirm, stamp, 
 
   return {
     enqueue: serial,
-    saveCase, removeFromStock, createCollection, renameCollection, moveCollection, deleteCollection,
+    saveCase, saveCases, removeFromStock, createCollection, renameCollection, moveCollection, deleteCollection,
     moveCaseTo, restoreOriginal, importCollectionFile, saveRuleSet, deleteRuleSet, saveTruck, deleteTruck,
   };
 }

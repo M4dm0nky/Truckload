@@ -18,7 +18,7 @@ export function geraeteState({ liste = [], stand = [], cases = [], alias = KEINE
   const stuecke = new Map([...(plan?.placements ?? []), ...(plan?.unplaced ?? [])].map(p => [p.id, p]));
   const red = {};
   for (const z of stand) {
-    if (z.diff >= 0 || z.nichtLaden) continue;
+    if (z.diff >= 0) continue; // auch bei „nicht laden“: Wieder laden braucht die Reduktion
     const r = reduktion(plan ?? { placements: [], unplaced: [] }, z.key, -z.diff, alias);
     const auf = new Set(r.aufLkw);
     red[z.key] = {
@@ -35,12 +35,12 @@ export function geraeteState({ liste = [], stand = [], cases = [], alias = KEINE
 }
 
 const zeileVon = (st, key) => st.zeilen.find(z => z.key === key);
-const bedarf = z => (z && !z.nichtLaden ? Math.max(z.diff, 0) : 0);
+const bedarf = (st, z) => (z && !st.nichtLaden.has(z.key) ? Math.max(z.diff, 0) : 0);
 
 // Zuordnungen eines Typs der Reihe nach durchgerechnet: n Cases, Geräte je Stück, Rest danach.
 export function zuordnungenVon(st, key) {
   const z = zeileVon(st, key);
-  let offen = st.nichtLaden.has(key) ? 0 : bedarf(z);
+  let offen = st.nichtLaden.has(key) ? 0 : bedarf(st, z);
   const aus = [];
   for (const a of st.zuordnung[key] ?? []) {
     const { cases, rest } = aufteilen(offen, a.stueck);
@@ -56,7 +56,7 @@ export function zuordnungenVon(st, key) {
 export function offenVon(st, key) {
   const l = zuordnungenVon(st, key);
   if (l.length) return l[l.length - 1].rest;
-  return st.nichtLaden.has(key) ? 0 : bedarf(zeileVon(st, key));
+  return st.nichtLaden.has(key) ? 0 : bedarf(st, zeileVon(st, key));
 }
 
 export const caseVon = (st, id) => st.cases.find(c => c.id === id);
@@ -121,7 +121,7 @@ function zustandText(st, z) {
 }
 
 function linkeZeile(st, z) {
-  const zahl = st.diffModus && z.diff !== 0 ? diffText(z) : String(z.anzahl);
+  const zahl = st.diffModus && z.diff !== 0 && !st.nichtLaden.has(z.key) ? diffText(z) : String(z.anzahl);
   const zuo = zuordnungenVon(st, z.key).filter(a => a.n > 0)
     .map(a => `<span class="ge-ref">→ ${esc(a.n)}× ${esc(a.name)}</span>`).join('');
   return `<li><button type="button" class="ge-row${st.wahl === z.key ? ' on' : ''}" data-act="g-waehle" data-key="${esc(z.key)}" aria-pressed="${st.wahl === z.key}">`
@@ -161,9 +161,9 @@ function rechtsHtml(st) {
   const z = st.wahl ? zeileVon(st, st.wahl) : null;
   if (!z) return `<p class="hint">${t('Wähle links einen Gerätetyp.')}</p>`;
   const key = esc(z.key);
-  const kopf = `<h3>${esc(z.name)} · ${esc(t('{n} Stück', { n: st.diffModus && z.diff > 0 ? z.diff : z.anzahl }))}</h3>`;
-  if (z.diff < 0 && !z.nichtLaden) return kopf + reduktionHtml(st, z);
   const nicht = st.nichtLaden.has(z.key);
+  const kopf = `<h3>${esc(z.name)} · ${esc(t('{n} Stück', { n: st.diffModus && z.diff > 0 && !nicht ? z.diff : z.anzahl }))}</h3>`;
+  if (z.diff < 0 && !nicht) return kopf + reduktionHtml(st, z);
   if (nicht) {
     return `${kopf}<p class="hint">${t('Dieser Typ wird für dieses Projekt nicht geladen.')}</p>`
       + `<button type="button" data-act="g-skip" data-key="${key}">${t('Wieder laden')}</button>`;

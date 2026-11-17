@@ -16,7 +16,7 @@ const planMit = (extra = {}) => ({ id: 'pl', name: 'Tour', truckId: DEFAULT_TRUC
 function harness({ plan: p = null, cases = [], liste = [gerät(GDTF, 4)], ergebnis = null, ladeFehler = null, hat = true } = {}) {
   const store = createStore({ cases, collections: [], trucks: [mkTruck({ id: DEFAULT_TRUCK_ID })], plans: [], plan: p, activeLkw: null });
   const uid = counter('id');
-  const log = { oeffne: [], alerts: [], gespeichert: [], markiert: 0, lade: 0, uebernommen: [] };
+  const log = { oeffne: [], alerts: [], gespeichert: [], batches: [], markiert: 0, lade: 0, uebernommen: [] };
   const deps = {
     store, hat: () => hat,
     lade: async () => { log.lade++; if (ladeFehler) throw new Error(ladeFehler); return liste; },
@@ -29,7 +29,14 @@ function harness({ plan: p = null, cases = [], liste = [gerät(GDTF, 4)], ergebn
   const editWhole = fn => store.update(s => applyEditWhole(s, fn, uid));
   const switchPlan = pl => store.update(s => ({ ...s, plan: pl }));
   const saveCase = async c => { log.gespeichert.push(c); store.update(s => ({ ...s, cases: [...s.cases.filter(x => x.id !== c.id), c] })); return c; };
-  return { store, deps, log, uid, editWhole, switchPlan, saveCase, showAlert: deps.showAlert };
+  const saveCases = async list => {
+    log.batches.push(list);
+    if (h.batchFehler) return undefined;
+    for (const c of list) await saveCase(c);
+    return list;
+  };
+  const h = { store, deps, log, uid, editWhole, switchPlan, saveCase, saveCases, showAlert: deps.showAlert, batchFehler: false };
+  return h;
 }
 
 test('automatisch öffnen: nur ohne geoeffnet am Plan (oder ohne Plan)', () => {
@@ -147,10 +154,11 @@ test('Übernahme ohne Plan: legt den Plan an, Stücke getippt mit nyx-Feldern, C
 
 test('Übernahme: Speichern schlägt fehl -> Plan bleibt unberührt (kein Plan angelegt)', async () => {
   const h = harness({ cases: [tipp] });
-  h.saveCase = async () => undefined;
+  h.batchFehler = true;
   const res = { zuordnungen: [zu(1, 1)], nichtLaden: [], reduktion: [], laden: false };
   assert.equal(await uebernimmErgebnis(h, res, { geaendert: [], alias: new Map() }), false);
   assert.equal(h.store.get().plan, null);
+  assert.equal(h.log.gespeichert.length, 0);
 });
 
 test('Übernahme im vorhandenen Plan: umgehängte Cases werden gespeichert, vw-Stücke umgeschrieben, bestätigte Reduktion entfernt', async () => {
@@ -213,4 +221,37 @@ test('Übernahme: ein erst im Dialog angelegtes Case (nicht im Snapshot beim Öf
   const gemerkt = h.log.gespeichert.filter(c => c.fasst);
   assert.equal(gemerkt.length, 1);
   assert.deepEqual(gemerkt[0].fasst, { stueck: 3, geraete: [{ key: GDTF, name: 'Spot 700' }] });
+});
+
+test('Übernahme: alle Cases in EINEM Schreibvorgang', async () => {
+  const c2 = mkCase('t2', 60, 40, 40, { name: 'Zweites', tippable: true });
+  const h = harness({ cases: [tipp, c2] });
+  const res = { zuordnungen: [zu(1, 2), { ...zu(1, 1), caseId: 't2' }], nichtLaden: [], reduktion: [], laden: false };
+  await uebernimmErgebnis(h, res, { geaendert: [], alias: new Map() });
+  assert.equal(h.log.batches.length, 1);
+  assert.deepEqual(h.log.batches[0].map(c => c.id).sort(), ['t', 't2']);
+});
+
+test('Ablehnung des Schreibens im vorhandenen Plan: Plan bleibt unverändert', async () => {
+  const p = planMit();
+  const h = harness({ plan: p, cases: [tipp] });
+  h.batchFehler = true;
+  const res = { zuordnungen: [zu(1, 2)], nichtLaden: [], reduktion: [], laden: false };
+  assert.equal(await uebernimmErgebnis(h, res, { geaendert: [], alias: new Map() }), false);
+  assert.equal(h.store.get().plan, p);
+});
+
+test('Rechnung wirft (Case fehlt): kein leerer neuer Plan, nichts geschrieben, Meldung', async () => {
+  const h = harness({ cases: [tipp] });
+  const res = { zuordnungen: [{ ...zu(1, 1), caseId: 'weg' }], nichtLaden: [], reduktion: [], laden: false };
+  assert.equal(await uebernimmErgebnis(h, res, { geaendert: [], alias: new Map() }), false);
+  assert.equal(h.store.get().plan, null);
+  assert.equal(h.log.batches.length, 0);
+  assert.equal(h.log.alerts.length, 1);
+});
+
+test('caseEntwurf: Gewicht = Geräte pro Case × gewichtKg (explizit, aus Namen, sonst 1)', () => {
+  assert.equal(caseEntwurf({ name: 'Viper', gewichtKg: 10, stueck: 3 }).weight, 30);
+  assert.equal(caseEntwurf({ name: 'Viper x2', gewichtKg: 10 }).weight, 20); // „Viper x2 Case“ -> 2
+  assert.equal(caseEntwurf({ name: 'Viper', gewichtKg: 10 }).weight, 10);
 });
