@@ -60,6 +60,7 @@ const ASSETS = [
   'js/model/packer.js',
   'js/model/packRules.js',
   'js/model/pieceFields.js',
+  'js/model/rows.js',
   'js/model/slug.js',
   'js/model/stamp.js',
   'js/model/tabellen-uebernahme.js',
