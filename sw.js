@@ -4,7 +4,7 @@
 // läuft der Abruf im Hintergrund weiter und frischt den Cache auf.
 // Ein Stand pro Seitenaufruf: Lief bei einem Client ein Abruf in den Timeout, kommen alle weiteren
 // Dateien dieses Clients sofort aus dem Cache – sonst mischen sich alte und neue Module.
-const CACHE = 'truckload-v0.32.0';
+const CACHE = 'truckload-v0.33.0';
 const ASSETS = [
   './',
   'index.html',
@@ -30,6 +30,7 @@ const ASSETS = [
   'js/app/plans.js',
   'js/app/screens.js',
   'js/app/tabellenImport.js',
+  'js/app/projektGeraeteImport.js',
   'js/version.js',
   'data/standard.json',
   'data/meine.json',
@@ -57,6 +58,7 @@ const ASSETS = [
   'js/model/material.js',
   'js/model/memo.js',
   'js/model/mitgefuehrt.js',
+  'js/model/nyxAbgleich.js',
   'js/model/packer.js',
   'js/model/packRules.js',
   'js/model/pieceFields.js',
@@ -64,6 +66,7 @@ const ASSETS = [
   'js/model/rowPlanner.js',
   'js/model/slug.js',
   'js/model/stamp.js',
+  'js/model/stueckAusName.js',
   'js/model/tabellen-uebernahme.js',
   'js/model/truss.js',
   'js/model/trussCatalog.js',
@@ -72,6 +75,7 @@ const ASSETS = [
   'js/store/autosave.js',
   'js/store/db.js',
   'js/store/hostDb.js',
+  'js/store/projektGeraete.js',
   'js/store/io.js',
   'js/store/repo.js',
   'js/store/state.js',
@@ -95,6 +99,7 @@ const ASSETS = [
   'js/ui/print.js',
   'js/ui/projection.js',
   'js/ui/stock-target.js',
+  'js/ui/geraete-schritt.js',
   'js/ui/tabellen-import.js',
   'js/ui/textMetrics.js',
   'js/ui/themeTokens.js',

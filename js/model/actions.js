@@ -19,11 +19,11 @@ function settle(p, c, others) {
   return { ...p, z: gravityZ(boxOf(c, { ...p, z: 0 }), others) };
 }
 
-export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null, layers = null, tipped = null, group = null } = {}) {
+export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null, layers = null, tipped = null, group = null, nyxGeraet = null, nyxStueck = null } = {}) {
   const extra = Array.from({ length: n }, (_, i) => ({
     id: newId(), caseId,
     // Das Label kommt gekürzt aus der Namensliste, der Rest aus den Sammelvorgaben.
-    ...pickPieceFields({ label: labels[i] ? labels[i].slice(0, MAX_LABEL) : undefined, color, layers, tipped, group }),
+    ...pickPieceFields({ label: labels[i] ? labels[i].slice(0, MAX_LABEL) : undefined, color, layers, tipped, group, nyxGeraet, nyxStueck }),
   }));
   return stamp({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
@@ -135,6 +135,9 @@ export function duplicate(plan, id, ctx) {
   if (!c) return plan;
   const { dx, dy } = effectiveDims(c, p);
   const label = p.label ? nextLabel(p.label) : undefined;
+  // Ein Duplikat ist ein Hand-Stück: es erbt die NYX-Zuordnung nicht (sonst zählte es als geladenes
+  // NYX-Gerät und eine spätere Reduzierung könnte es entfernen).
+  const { nyxGeraet: _g, nyxStueck: _s, ...src } = p;
   // Die Kopie zuerst hinter das Original, bei Überstand über die Heckkante davor, sonst seitlich;
   // passt auch das nicht in den Laderaum, kommt sie in die Ablage. Kollisionen mit anderen Cases
   // prüft das bewusst nicht (das macht `validatePlan`), nur das Ende des Trucks.
@@ -145,11 +148,11 @@ export function duplicate(plan, id, ctx) {
   const pos = candidates[0];
   if (pos) {
     const patch = { id: ctx.newId(), ...pos, ...(label ? { label } : {}) };
-    const copy = settle({ ...p, ...patch }, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
+    const copy = settle({ ...src, ...patch }, c, otherBoxes(buildItems(plan, ctx.caseById).items, ctx.truck, []));
     return stamp({ ...plan, placements: [...plan.placements, copy] });
   }
   const trayEntry = {
-    id: ctx.newId(), caseId: p.caseId, ...pickPieceFields({ ...p, label }),
+    id: ctx.newId(), caseId: p.caseId, ...pickPieceFields({ ...src, label }),
   };
   return stamp({ ...plan, unplaced: [...plan.unplaced, trayEntry] });
 }

@@ -1,6 +1,29 @@
 # Geräte aus der NYX-Projektdatenbank in Truckload: Abstimmung
 
-An: NYX-Admin (Aniflu) · Von: Truckload · Stand: 17.11.2026 · Status: **Antworten von NYX da, Truckload-Design angepasst, Freigabe offen**
+An: NYX-Admin (Aniflu) · Von: Truckload · Stand: 17.11.2026 · Status: **umgesetzt in Truckload 0.33.0, NYX-Seite (Kanal `truckload:projektGeraete`) offen**
+
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.33.0
+
+0.32.0 und 0.33.0 lassen sich zusammen heben (Aniflu, Issue #45).
+
+**Neu mit 0.33.0 (Geräte aus NYX übernehmen):**
+- Führt NYX eine eigene Dateiliste des Submoduls, aufnehmen: `js/model/stueckAusName.js`,
+  `js/model/nyxAbgleich.js`, `js/store/projektGeraete.js`, `js/ui/geraete-schritt.js` und
+  `js/app/projektGeraeteImport.js`. Wer `sw.js` übernimmt, hat sie schon.
+- Truckload ruft `truckloadHost.projektGeraete()` auf (NYX baut dafür den Kanal
+  `truckload:projektGeraete`, nur lesend, Form siehe „Abgestimmte Schnittstelle“). Fehlt die Funktion,
+  bleibt der Knopf „Aus Projektdatenbank übernehmen“ versteckt, und nichts öffnet sich.
+- Neue optionale Felder: `fasst` an Cases, `nyxAbgleich` an Plänen, `nyxGeraet` und `nyxStueck` an
+  Stücken (Platzierungen und Ablage). Sie stecken in den bestehenden Datensätzen; NYX speichert sie
+  unverändert (von Aniflu bestätigt: `tl_records` legt den Datensatz ab, wie er kommt).
+- Kein neuer Store, keine Freigabe nötig, die Projektdatei ändert sich nur um diese Felder.
+- Zurückdrehen auf 0.32.0: `checkCase`, `checkPlan` und die Stück-Prüfungen von 0.32.0 lehnen
+  unbekannte Felder nicht ab (keine Positivliste, geprüft in `js/store/io.js`); Cases, Pläne und
+  Sicherungen mit den neuen Feldern bleiben ladbar. 0.32.0 kennt die Felder aber nicht: Packt oder
+  dupliziert man damit Stücke neu oder legt sie über „in die Ablage legen“ bzw. „Alles ausladen“
+  (`placementToUnplaced`) in die Ablage, gehen die Stückmarken `nyxGeraet`/`nyxStueck` verloren (sie
+  laufen über `pickPieceFields`), und der Abgleich zählt diese Stücke dann nicht mehr als verladen. Das ist
+  nur eine Lücke im Abgleich, kein Datenverlust an Cases oder Plänen.
 
 ## Worum es geht
 

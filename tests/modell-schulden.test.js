@@ -45,7 +45,7 @@ test('orderForStacking: Stücke ohne passende Lage in unplaced, Boden-/Nicht-Bod
 // Struktursperre: Jedes Stückfeld aus PIECE_FIELDS muss „Alles neu packen“ (toPiece → Packer) überleben,
 // platziert wie in der Ablage. Ergänzt jemand ein Feld in PIECE_FIELDS, ohne pickPieceFields/den Packer
 // nachzuziehen, schlägt dieser Test an.
-const BEISPIEL = { label: 'Beschriftung', color: '#123456', layers: [1, 2], tipped: false, group: 'FOH' };
+const BEISPIEL = { label: 'Beschriftung', color: '#123456', layers: [1, 2], tipped: false, group: 'FOH', nyxGeraet: 'key-1', nyxStueck: 2 };
 
 test('PIECE_FIELDS und pickPieceFields nennen dieselben Felder, jedes hat einen Beispielwert', () => {
   assert.deepEqual(Object.keys(BEISPIEL).sort(), [...PIECE_FIELDS].sort(), 'neues Stückfeld: BEISPIEL ergänzen');

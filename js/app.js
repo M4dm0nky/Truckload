@@ -12,6 +12,8 @@ import { attachKeyboard } from './app/keyboard.js';
 import { createPersistence } from './app/persistence.js';
 import { wirePlans } from './app/plans.js';
 import { wireTabellenImport } from './app/tabellenImport.js';
+import { wireProjektGeraete } from './app/projektGeraeteImport.js';
+import { hatProjektGeraete } from './store/projektGeraete.js';
 import { mountMaterialScreen } from './app/materialScreen.js';
 import { wireImportExport } from './app/importExport.js';
 import { mountPlanView, renderPlanViews, loadCaseColors } from './app/planView.js';
@@ -19,7 +21,7 @@ import { installEarlyHandlers, setSaveStatus, wirePrint, showVersion, showStorag
 import { ctxOf, deriveOf, applyEdit, applyEditWhole, activeViewOf, planZumSpeichern, createBestandsSync } from './app/core.js';
 import { isMultiLkw } from './model/lkw.js';
 import * as A from './model/actions.js';
-import { showAlert, showConfirm, showPrompt } from './ui/confirmDialog.js';
+import { showAlert, showConfirm, showPrompt, showPick } from './ui/confirmDialog.js';
 import { translateDom } from './i18n/dom.js';
 import { t } from './i18n/i18n.js';
 
@@ -110,6 +112,7 @@ function render() {
       onImport: () => $('#import').click(),
       onTabelle: () => tabellenImport.start(),
       onTabelleHilfe: () => tabellenImport.hilfe(),
+      onGeraete: hatProjektGeraete() ? () => projektGeraete.start() : undefined,
       onPlan: id => {
         const plan = store.get().plans.find(p => p.id === id);
         if (plan) switchPlan(plan);
@@ -156,6 +159,8 @@ const { switchPlan, runLoadWizard } = wirePlans({
 
 const tabellenImport = wireTabellenImport({ store, editWhole, switchPlan, uid, showAlert, showPrompt });
 
+const projektGeraete = wireProjektGeraete({ store, editWhole, switchPlan, uid, showAlert, saveCase: persistence.saveCase, saveCases: persistence.saveCases, newCaseForWizard, showPick });
+
 const { ACTIONS } = mountPlanView({
   store, edit, editWhole, select, ctx, derive, renderHooks, persistence, stamp, uid, showAlert, showConfirm,
   editCase, runLoadWizard, warnIfUnplaced,
@@ -186,6 +191,10 @@ wireBanners();
 registerServiceWorker();
 
 scheduleRender();
+
+// In NYX: beim ersten Öffnen die Projektgeräte anbieten. Nicht awaiten (der Start wartet nicht auf NYX);
+// Fehler meldet geraeteAbgleich selbst, ein unerwarteter geht in die Konsole.
+if (hatProjektGeraete()) projektGeraete.auto().catch(err => console.error(err));
 
 // Marker für den Ladefehler-Hinweis in index.html: ab hier ist das Modul-Skript vollständig gelaufen.
 window.__tlBooted = true;

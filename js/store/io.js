@@ -6,7 +6,7 @@ import { PRESET_TRUCKS } from '../data/preset-trucks.js';
 import { CASE_LIBRARY } from '../data/case-library.js';
 import { PRESET_CASES } from '../data/preset-cases.js';
 import { upgradeDollyStack, dollyName, parseDollyName } from '../model/audioDolly.js';
-import { pickPieceFields } from '../model/pieceFields.js';
+import { pickPieceFields, nyxGeraetValid, nyxStueckValid, NYX_KEY_MAX } from '../model/pieceFields.js';
 import { ruleOk, MAX_RULES, PACK_ORDERS } from '../model/packRules.js';
 import { MEINE_NAME, MEINE_NAME_EN } from '../model/collections.js';
 import { MITGEFUEHRT_VERSION } from '../model/mitgefuehrt.js';
@@ -69,6 +69,7 @@ export function checkCase(c) {
     && (c.legacy === undefined || typeof c.legacy === 'boolean')
     && (c.onlyInPlan === undefined || typeof c.onlyInPlan === 'boolean')
     && (c.herkunft === undefined || c.herkunft === 'import')
+    && fasstOk(c.fasst)
     && (c.kind !== 'set' || (c.wheels !== true && c.tippable !== true))
     && wheelHOk && layersOk && kindOk;
   if (!propsOk) throw new Error(t('Case „{name}“ hat ungültige Eigenschaften.', { name: c.name }));
@@ -135,6 +136,16 @@ const labelOk = x => x.label === undefined || (typeof x.label === 'string' && x.
 const pieceLayersOk = x => x.layers === undefined || layersValid(x.layers);
 const tippedOk = x => x.tipped === undefined || typeof x.tipped === 'boolean';
 const groupOk = x => x.group === undefined || (typeof x.group === 'string' && x.group.trim().length > 0 && x.group.length <= MAX_LABEL);
+const nyxPieceOk = x => (x.nyxGeraet === undefined || nyxGeraetValid(x.nyxGeraet)) && (x.nyxStueck === undefined || nyxStueckValid(x.nyxStueck));
+const nyxStr = s => typeof s === 'string' && s.length <= NYX_KEY_MAX;
+// Case.fasst: was ein Case-Typ aus NYX an Geräten fasst (Stückzahl und Geräteliste).
+const fasstOk = f => f === undefined || (f !== null && typeof f === 'object' && nyxStueckValid(f.stueck)
+  && Array.isArray(f.geraete) && f.geraete.length <= 50
+  && f.geraete.every(g => g && nyxStr(g.key) && nyxStr(g.name)));
+// Plan.nyxAbgleich: Merkzustand des Abgleichs (Dialog geöffnet, Geräte, die nicht geladen werden).
+const nyxAbgleichOk = a => a === undefined || (a !== null && typeof a === 'object'
+  && (a.geoeffnet === undefined || typeof a.geoeffnet === 'boolean')
+  && Array.isArray(a.nichtLaden) && a.nichtLaden.length <= 500 && a.nichtLaden.every(nyxStr));
 const lkwRefOk = x => x.lkw === undefined || typeof x.lkw === 'string';
 const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk);
 // Mehrere LKW in einem Plan (V 0.14): `lkws` fehlt (Ein-LKW-Plan) oder ist eine Liste von höchstens
@@ -173,6 +184,8 @@ export function checkPlan(p) {
     throw new Error(t('Ladeplan „{name}“ hat einen ungültigen Deckschicht-Schalter.', { name: p.name }));
   if (p.rowPlan !== undefined && typeof p.rowPlan !== 'boolean')
     throw new Error(t('Ladeplan „{name}“ hat einen ungültigen Reihen-planen-Schalter.', { name: p.name }));
+  if (!nyxAbgleichOk(p.nyxAbgleich))
+    throw new Error(t('Ladeplan „{name}“ hat einen ungültigen NYX-Abgleich.', { name: p.name }));
   if (p.mitgefuehrt !== undefined) {
     const m = p.mitgefuehrt;
     const bad = () => new Error(t('Ladeplan „{name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.', { name: p.name }));
@@ -186,9 +199,9 @@ export function checkPlan(p) {
   const placementOk = pl => pl && typeof pl.id === 'string' && typeof pl.caseId === 'string'
     && ORIENTATIONS.includes(pl.orientation) && ROTATIONS.includes(pl.rot)
     && num(pl.x) && num(pl.y) && num(pl.z) && labelOk(pl) && colorOk(pl)
-    && pieceLayersOk(pl) && tippedOk(pl) && groupOk(pl) && lkwRefOk(pl);
+    && pieceLayersOk(pl) && tippedOk(pl) && groupOk(pl) && nyxPieceOk(pl) && lkwRefOk(pl);
   const unplacedOk = u => u && typeof u.id === 'string' && typeof u.caseId === 'string' && labelOk(u) && colorOk(u)
-    && pieceLayersOk(u) && tippedOk(u) && groupOk(u) && lkwRefOk(u);
+    && pieceLayersOk(u) && tippedOk(u) && groupOk(u) && nyxPieceOk(u) && lkwRefOk(u);
   if (!p.placements.every(placementOk) || !arr(p.unplaced).every(unplacedOk))
     throw new Error(t('Ladeplan „{name}“ enthält ungültige Platzierungen.', { name: p.name }));
   const pieceIds = [...p.placements, ...arr(p.unplaced)].map(x => x.id);

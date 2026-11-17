@@ -891,6 +891,44 @@ Die Laderegel (Bibliothek gewinnt) gilt unverändert, siehe oben.
 erzeugt von `tools/make-ladeliste.py` (Entwicklungswerkzeug, openpyxl). Der Befehl `fixtures` schreibt
 die Testdateien nach `tests/fixtures/`.
 
+## Geräte aus NYX (seit V 0.33.0)
+
+Schnittstelle und Abstimmung: `docs/nyx-projektgeraete.md`; Entwurf:
+`docs/superpowers/specs/2026-11-17-nyx-projektgeraete-design.md`.
+
+Module:
+
+- **`js/model/stueckAusName.js`**: `stueckAusName(name)` liest die Geräte pro Case aus dem Case-Namen
+  (1..99, sonst `null`).
+- **`js/model/nyxAbgleich.js`**: reine Logik des Abgleichs. `stueckProCase`, `bekannteCases`,
+  `umhaengen` (`vw:`-Zuordnung auf `gdtf:` über `vwNamen`), `stand` (je Gerätetyp Anzahl, verladen,
+  Differenz, nicht laden, je Plan), `aufteilen` (volle Stücke und Rest), `stueckeAnlegen`, `reduktion`
+  (nur Stücke mit `nyxGeraet`, nicht auf LKW zuerst), `merken` und `uebernimmGeraete`.
+- **`js/store/projektGeraete.js`**: `hatProjektGeraete()` und `ladeProjektGeraete()` lesen
+  `truckloadHost.projektGeraete()`, verwerfen ungültige Einträge und fassen gleiche Schlüssel zusammen.
+- **`js/ui/geraete-schritt.js`**: Zustand und HTML des Schritts „Geräte → Cases“ im Import-Dialog
+  (`geraeteState`, `geraeteAktion`, `geraeteErgebnis`, `geraeteSchrittHtml`). Er liefert nur
+  Zuordnungen und bestätigte Reduktionen; zugeordnet wird nur, was angeklickt wurde.
+- **`js/app/projektGeraeteImport.js`**: Verdrahtung (`wireProjektGeraete`, `geraeteAbgleich`,
+  `uebernimmErgebnis`, `sollAutomatischOeffnen`). Das automatische Öffnen prüft alle Pläne des Projekts.
+- `js/app/tabellenImport.js` nimmt die Geräte-Zuordnungen in die LKW-Vorschau auf (`lkwOptsVon`,
+  `planeNachUebernahme`).
+
+Datenfelder (alle optional, ohne neuen Store):
+
+- **`fasst`** am Case: `{ stueck, geraete: [{ key, name }] }`, geprüft in `checkCase` (auch bei
+  mitgeführten Kopien).
+- **`nyxAbgleich`** am Plan: `{ geoeffnet?, nichtLaden: [key] }`, geprüft in `checkPlan`.
+- **`nyxGeraet`** (Schlüssel) und **`nyxStueck`** (Ganzzahl 1..99) am Stück, also an Platzierung und
+  Ablage-Eintrag; Teil von `PIECE_FIELDS`/`pickPieceFields` und von `checkPlan`. `duplicate` lässt
+  beide weg.
+
+**Übernahme ganz oder gar nicht** (`uebernimmErgebnis`): erst rechnen (`uebernimmGeraete` auf dem
+vorhandenen oder neuen, noch nicht gewechselten Plan; ein Wurf bricht ab, nichts ist geschrieben), dann
+alle Cases mit EINEM `saveCases`-Schreibvorgang in die Bibliothek (Fehler: Plan unberührt), erst danach
+den Plan schreiben bzw. wechseln und zuletzt die LKW laden. Ein Abbruch in einem vorhandenen Plan setzt
+nur `nyxAbgleich.geoeffnet`.
+
 ## Mitgelieferte Daten
 
 | Datei | Inhalt |

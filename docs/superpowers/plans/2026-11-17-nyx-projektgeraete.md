@@ -2,9 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> Nach Freigabe nach `docs/superpowers/plans/2026-11-17-nyx-projektgeraete.md` (Branch
-> `docs/nyx-projektgeraete`). **Gebaut wird erst, wenn Aniflus NYX-Häkchen in
-> `docs/nyx-projektgeraete.md` steht.** Bis dahin nur Plan.
+> Plan liegt in `docs/superpowers/plans/2026-11-17-nyx-projektgeraete.md` (Branch
+> `docs/nyx-projektgeraete`). **Beide Freigaben stehen** (Truckload 2d34cd9, NYX 7b40bce,
+> Issue #45, 17.11.2026). Umsetzung auf einem Feature-Branch `feat/nyx-projektgeraete` von `main`
+> (Doku-Branch vorher in `main` mergen), subagent-driven, je Task Sonnet + Review. Merge/Push und
+> Hinweis an NYX („0.33.0 ist auf main“) erst nach Rückfrage.
 
 **Goal:** Truckload liest die Scheinwerfer des offenen NYX-Projekts über `truckloadHost.projektGeraete()`, der Nutzer ordnet je Gerätetyp per Klick Cases zu (Truckload zeigt bekannte Cases nur als Vorschlag), Truckload legt die Stücke an, merkt sich die Wahl am Case und bietet bei Änderungen nur die Differenz an.
 

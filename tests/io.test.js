@@ -1052,3 +1052,64 @@ test('Import: rowPlan optional boolean in Plan und Regelset, anderes wird abgele
   const old = parseBundle(exportBundle({ cases: [], trucks: [], plans: [plan([])] }));
   assert.equal(old.plans[0].rowPlan, undefined);
 });
+
+const FASST = { stueck: 2, geraete: [{ key: 'k1', name: 'Kiste A' }, { key: 'k2', name: 'Kiste B' }] };
+const stueck = extra => ({ id: 'p1', caseId: 'own', orientation: 'standing', rot: 0, x: 0, y: 0, z: 0, ...extra });
+const bundleMit = ({ cases = [], plans = [] }) => parseBundle(exportBundle({ cases, trucks: [], plans }));
+
+test('Import NYX: Case mit fasst ok, ungültiges fasst wird abgelehnt', () => {
+  assert.doesNotThrow(() => checkCase({ ...own, fasst: FASST }));
+  assert.doesNotThrow(() => checkCase({ ...own, fasst: { stueck: 99, geraete: [] } }));
+  for (const bad of [{ stueck: 0, geraete: [] }, { stueck: 100, geraete: [] }, { stueck: 1.5, geraete: [] }, { stueck: '2', geraete: [] },
+    { stueck: 2 }, { stueck: 2, geraete: 'x' }, { stueck: 2, geraete: Array.from({ length: 51 }, () => ({ key: 'a', name: 'b' })) },
+    { stueck: 2, geraete: [{ key: 'a' }] }, { stueck: 2, geraete: [{ key: 'a', name: 'x'.repeat(201) }] },
+    { stueck: 2, geraete: [{ key: 'x'.repeat(201), name: 'b' }] }, null, 'x'])
+    assert.throws(() => checkCase({ ...own, fasst: bad }), /Eigenschaften/, JSON.stringify(bad));
+});
+
+test('Import NYX: Plan mit nyxAbgleich ok, ungültiger nyxAbgleich wird abgelehnt', () => {
+  assert.doesNotThrow(() => checkPlan({ ...plan([]), nyxAbgleich: { geoeffnet: true, nichtLaden: ['a', 'b'] } }));
+  assert.doesNotThrow(() => checkPlan({ ...plan([]), nyxAbgleich: { nichtLaden: [] } }));
+  for (const bad of [{ nichtLaden: 'a' }, { nichtLaden: [1] }, { geoeffnet: 'ja', nichtLaden: [] }, { nichtLaden: ['x'.repeat(201)] },
+    { nichtLaden: Array.from({ length: 501 }, () => 'a') }, { geoeffnet: true }, null, 'x'])
+    assert.throws(() => checkPlan({ ...plan([]), nyxAbgleich: bad }), /NYX/, JSON.stringify(bad));
+});
+
+test('Import NYX: Stück mit nyxGeraet/nyxStueck ok, falsche Typen werden abgelehnt (Placement und Ablage)', () => {
+  assert.doesNotThrow(() => checkPlan(plan([stueck({ nyxGeraet: 'k1', nyxStueck: 2 })])));
+  for (const bad of [{ nyxStueck: '2' }, { nyxStueck: 0 }, { nyxStueck: 100 }, { nyxStueck: 1.5 }, { nyxGeraet: '' },
+    { nyxGeraet: 5 }, { nyxGeraet: 'x'.repeat(201) }]) {
+    assert.throws(() => checkPlan(plan([stueck(bad)])), /Platzierungen/, JSON.stringify(bad));
+    const { orientation, rot, x, y, z, ...u } = stueck(bad);
+    assert.throws(() => checkPlan({ ...plan([]), unplaced: [u] }), /Platzierungen/, JSON.stringify(bad));
+  }
+});
+
+test('Import NYX: Rundreise exportBundle → parseBundle behält fasst, nyxAbgleich, nyxGeraet, nyxStueck', () => {
+  const abgleich = { geoeffnet: true, nichtLaden: ['k9'] };
+  const { orientation, rot, x, y, z, ...u } = stueck({ id: 'p2', nyxGeraet: 'k2', nyxStueck: 1 });
+  const p = { ...plan([stueck({ nyxGeraet: 'k1', nyxStueck: 3 })]), unplaced: [u], nyxAbgleich: abgleich };
+  const b = bundleMit({ cases: [{ ...own, fasst: FASST }], plans: [p] });
+  assert.deepEqual(b.cases[0].fasst, FASST);
+  assert.deepEqual(b.plans[0].nyxAbgleich, abgleich);
+  assert.equal(b.plans[0].placements[0].nyxGeraet, 'k1');
+  assert.equal(b.plans[0].placements[0].nyxStueck, 3);
+  assert.equal(b.plans[0].unplaced[0].nyxGeraet, 'k2');
+  assert.equal(b.plans[0].unplaced[0].nyxStueck, 1);
+});
+
+test('Import NYX: alte Sicherung ohne Felder lädt schlüsselgleich', () => {
+  const p = plan([stueck({})]);
+  const b = bundleMit({ cases: [own], plans: [p] });
+  assert.deepEqual(Object.keys(b.plans[0].placements[0]).sort(), Object.keys(p.placements[0]).sort());
+  assert.equal('nyxAbgleich' in b.plans[0], false);
+  assert.equal('fasst' in b.cases[0], false);
+});
+
+test('Import NYX: fasst auf der mitgeführten Case-Kopie im Plan wird geprüft und überlebt', () => {
+  const p = { ...plan([]), mitgefuehrt: { version: 1, cases: [{ ...own, fasst: FASST }], trucks: [] } };
+  const b = bundleMit({ plans: [p] });
+  assert.deepEqual(b.plans[0].mitgefuehrt.cases[0].fasst, FASST);
+  p.mitgefuehrt.cases[0].fasst = { stueck: 0, geraete: [] };
+  assert.throws(() => bundleMit({ plans: [p] }), /Kopie/);
+});

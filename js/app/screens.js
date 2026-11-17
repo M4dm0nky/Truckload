@@ -22,7 +22,7 @@ export function showScreen(name, els) {
 }
 
 // Startbildschirm: kein Plan gewählt. Eigener, viel einfacherer Render-Pfad statt der vollen
-// Pipeline in app.js. `handlers`: { onMaterial, onNew, onImport, onTabelle, onTabelleHilfe, onPlan(planId) }.
+// Pipeline in app.js. `handlers`: { onMaterial, onNew, onImport, onTabelle, onTabelleHilfe, onPlan(planId), onGeraete? (nur in NYX mit Projektgeräten) }.
 export function renderStartScreen(el, s, handlers) {
   const plans = [...s.plans].sort((a, b) => a.name.localeCompare(b.name, 'de'));
   const listHtml = plans.length
@@ -39,6 +39,7 @@ export function renderStartScreen(el, s, handlers) {
     <button id="start-import" type="button" title="${t('JSON-Sicherung einlesen')}">${t('Sicherung importieren')}</button>
     <div class="start-tabelle">
       <button id="start-tabelle" type="button" title="${t('Ladeliste aus Excel oder CSV einlesen')}">${t('Tabelle importieren')}</button>
+      ${handlers.onGeraete ? `<button id="start-geraete" type="button" title="${t('Projektgeräte aus NYX in Cases übernehmen')}">${t('Aus Projektdatenbank übernehmen')}</button>` : ''}
       <button id="start-tabelle-hilfe" type="button" title="${t('Hilfe zum Tabellen-Import')}" aria-label="${t('Hilfe zum Tabellen-Import')}">?</button>
       <a id="start-template" class="btn" href="${vorlageDatei()}" download>${t('Vorlage herunterladen')}</a>
     </div>
@@ -48,6 +49,7 @@ export function renderStartScreen(el, s, handlers) {
   el.querySelector('#start-new').onclick = handlers.onNew;
   el.querySelector('#start-import').onclick = handlers.onImport;
   el.querySelector('#start-tabelle').onclick = handlers.onTabelle;
+  if (handlers.onGeraete) el.querySelector('#start-geraete').onclick = handlers.onGeraete;
   el.querySelector('#start-tabelle-hilfe').onclick = handlers.onTabelleHilfe;
   for (const btn of el.querySelectorAll('.start-plan-item')) {
     btn.onclick = () => handlers.onPlan(btn.dataset.planId);

@@ -311,6 +311,13 @@ a.btn { text-decoration: none; color: var(--text); display: inline-block; }
 .ti-bauknoepfe { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ti-bauknoepfe input[type=number] { width: 72px; }
 @media (max-width: 640px) { .ti-bau { grid-template-columns: 1fr; } }
+.ge-list, .ge-sugs, .ge-asgs, .ge-red { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ge-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; }
+.ge-row.on { border-color: var(--accent); }
+.ge-row .hint, .ge-row .ge-ref { grid-column: 1 / -1; }
+.ge-sug, .ge-asg { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ge-sug input[type=number], .ge-asg input[type=number] { width: 64px; }
+.ge-right h3 { margin: 0 0 8px; font-size: 15px; }
 .ti-rot { color: var(--danger); }
 .ti-gelb { color: var(--warn-text); }
 .ti-hilfe { padding-left: 20px; display: grid; gap: 6px; margin: 0; }

@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.32.0** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.33.0** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -365,6 +365,26 @@ Der Import schreibt nichts in die Bibliothek.
 Importierte Cases gibt es nur im Projekt, nicht in der Materialverwaltung. Im Plan lassen sie sich wie
 andere Cases bearbeiten. Mit „In meine Bibliothek übernehmen“ werden sie zu einem normalen Case der
 Bibliothek.
+
+## Aus Projektdatenbank übernehmen
+
+Nur innerhalb von NYX: Der Knopf „Aus Projektdatenbank übernehmen“ (neben „Tabelle importieren“) liest
+die Geräte des Projekts. Beim ersten Öffnen in einem Projekt öffnet sich der Dialog von selbst.
+Ohne NYX oder ohne Geräteliste ist der Knopf versteckt.
+
+- **Links** stehen die Gerätetypen mit Stückzahl, **rechts** die Vorschläge: nur anklickbare Cases für
+  Gerätetypen, die Truckload schon kennt. Dazu immer „Anderes Case suchen …“, „Neues Case“ und
+  „Nicht laden“. Es wird nichts zugeordnet, solange man nichts anklickt.
+- **Geräte pro Case** liest Truckload aus dem Case-Namen. Der Wert ist sichtbar, änderbar und wird am
+  Case gemerkt. Bleibt ein Rest, wählt man dafür ein anderes Case.
+- **Neues Case:** kommt in „Meine Sammlung“, Gewerk „Licht“. Das Gewicht ist ein Vorschlag (Geräte pro
+  Case × Gerätegewicht aus NYX) und optional. Ist das Case tippbar, werden die Stücke getippt.
+- **Erneutes Öffnen:** Der Dialog zeigt nur die Differenz (+n/−n). Verringerungen entfernen Stücke erst
+  nach Bestätigung, zuerst die Stücke, die nicht auf einem LKW stehen. Jeder Plan gleicht sich für sich
+  ab.
+- **Danach** lädt der gewohnte LKW-Schritt.
+- **Duplikat:** Wer ein Stück dupliziert, das aus NYX stammt, erhält ein Hand-Stück. Es zählt nicht als
+  NYX-Gerät und wird bei einer Verringerung nicht entfernt.
 
 ## Mitgelieferte Cases
 
