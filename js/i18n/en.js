@@ -75,6 +75,7 @@ export default {
   "Auf „{name}“ lasten {kg} kg (max. {max} kg).": "“{name}” carries {kg} kg (max. {max} kg).",
   "„{name}“ steht in Lage {n} – mehr als 4 Lagen sind nicht vorgesehen.": "“{name}” is in layer {n} – more than 4 layers are not allowed.",
   "„{name}“ darf nicht in Lage {n} stehen (erlaubt: {allowed}).": "“{name}” must not be in layer {n} (allowed: {allowed}).",
+  "Lücke {b} × {t} cm in Reihe {n}": "Gap {b} × {t} cm in row {n}",
   "Gesamtgewicht {kg} kg überschreitet die Nutzlast von {payload} kg.": "Total weight of {kg} kg exceeds the payload of {payload} kg.",
   "Ladung ist einseitig: Schwerpunkt {cm} cm aus der Mitte.": "The load is unbalanced: the centre of gravity is {cm} cm off centre.",
   "Ladung ist einseitig: Schwerpunkt {w} cm aus der Mitte (aus den bekannten Gewichten) bzw. {v} cm aus der Mitte (Volumen-Schätzung, Cases ohne Gewicht zählen dabei wie voll beladen).": "The load is unbalanced: the centre of gravity is {w} cm off centre (from the known weights) or {v} cm off centre (volume estimate, where cases without a weight count as fully loaded).",
