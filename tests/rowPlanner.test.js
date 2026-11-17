@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { autoPack, buildStacks } from '../js/model/packer.js';
+import { autoPack, buildStacks, placeStacks } from '../js/model/packer.js';
 import { planRows } from '../js/model/rowPlanner.js';
 import { freeFloorArea, floorGaps } from '../js/model/rows.js';
 import { validatePlan } from '../js/model/validate.js';
-import { boxOf, overlaps } from '../js/model/geometry.js';
+import { boxOf, overlaps, archBoxes } from '../js/model/geometry.js';
 import { mkCase, mkTruck, SPRINTER, plan, byId } from './fixtures.js';
 
 const TRUCK = mkTruck({ l: 1360, w: 245 });
@@ -17,6 +17,12 @@ const boxesOf = (placements, cs) => {
 const run = (items, cs, truck, opts = {}) => {
   const { placements, unplaced } = autoPack(items, truck, opts);
   return { placements, unplaced, boxes: boxesOf(placements, cs) };
+};
+// Reihenplaner allein (autoPack nimmt bei weniger freier Fläche den placeStacks-Plan, s. u.).
+const rows = (items, cs, truck) => {
+  const { stacks } = buildStacks(items, truck);
+  const { placed } = planRows(stacks, truck, []);
+  return { boxes: placed.flatMap(p => p.stack.items.map(i => ({ caseId: i.it.caseId, ...p.box }))) };
 };
 // Licht: 4 × 100 breit (vorn, größer), 2 × 40 breit; stehend, nicht stapelbar → je Stück ein Stapel.
 const A = mkCase('a', 100, 100, 80, { wheels: false, category: 'Licht', stackable: false });
@@ -36,7 +42,7 @@ test('rowPlan füllt 100er-Reihe mit 40er-Stapel desselben Gewerks', () => {
 
 test('rowPlan holt nichts aus fremdem Gewerk', () => {
   const items = [...many(A, 4), ...many(T, 2)];
-  const on = run(items, [A, T], TRUCK, { rowPlan: true });
+  const on = rows(items, [A, T], TRUCK);
   const licht = on.boxes.filter(b => b.caseId === 'a'), ton = on.boxes.filter(b => b.caseId === 't');
   assert.equal(ton.length, 2);
   for (const t of ton) for (const l of licht) assert.ok(t.x0 >= l.x1 - 1e-6 || t.x1 <= l.x0 + 1e-6, 'Ton steht nie in einer Licht-Reihe');
@@ -46,7 +52,7 @@ test('rowPlan holt nichts aus fremdem Gewerk', () => {
 test('rowPlan: Traversenwagen nie als Füllstück und zuletzt', () => {
   const TR = mkCase('tr', 100, 40, 80, { wheels: false, category: 'Licht', stackable: false, kind: 'truss', truss: { length: 100, width: 40, count: 1, standing: true, height: 80 } });
   const items = [...many(A, 4), ...many(TR, 2)];
-  const on = run(items, [A, TR], TRUCK, { rowPlan: true });
+  const on = rows(items, [A, TR], TRUCK);
   const licht = on.boxes.filter(b => b.caseId === 'a'), truss = on.boxes.filter(b => b.caseId === 'tr');
   assert.equal(truss.length, 2);
   const lastLicht = Math.max(...licht.map(b => b.x1));
@@ -93,13 +99,51 @@ test('rowPlan: 300 Stücke < 1000 ms (Median aus 3 Läufen)', () => {
   const cs = Array.from({ length: 12 }, (_, i) => mkCase(`p${i}`, 40 + (i * 13) % 90, 30 + (i * 17) % 80, 40 + (i * 7) % 50,
     { category: ['Licht', 'Ton'][i % 2], stackable: false, tippable: i % 4 === 0, weight: 20 + i * 9 }));
   const items = Array.from({ length: 300 }, (_, i) => mkItem(cs[i % cs.length], `u${i}`));
+  const truck = mkTruck({ l: 6000, w: 245 });
   const times = [];
   for (let k = 0; k < 3; k++) {
     const t0 = performance.now();
-    const r = autoPack(items, TRUCK, { rowPlan: true });
+    const r = autoPack(items, truck, { rowPlan: true });
     times.push(performance.now() - t0);
     assert.equal(r.placements.length + r.unplaced.length, 300);
+    assert.ok(r.placements.length >= 270, `nur ${r.placements.length} platziert, die Zeit misst sonst nichts`);
   }
   times.sort((a, b) => a - b);
   assert.ok(times[1] < 1000, `Median ${times[1].toFixed(0)} ms`);
+});
+
+// „Nie schlechter als aus“: kleine, deterministische Mischungen (Seed → LKW, Cases, Stücke).
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function mix(seed) {
+  const r = mulberry32(seed), int = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+  const truck = mkTruck({ l: int(300, 900), w: int(200, 248) });
+  const cs = Array.from({ length: int(2, 5) }, (_, i) => mkCase(`c${i}`, int(40, 120), int(30, 110), int(30, 80),
+    { wheels: false, stackable: false, category: ['Audio', 'Licht'][int(0, 1)], weight: int(10, 100) }));
+  const items = Array.from({ length: int(6, 30) }, (_, i) => mkItem(cs[int(0, cs.length - 1)], `u${i}`));
+  return { truck, cs, items };
+}
+const floorOf = (boxes, truck) => freeFloorArea(boxes, truck, { obstacles: archBoxes(truck) });
+
+test('rowPlan ist nie schlechter als aus (freie Bodenfläche), und planRows allein wäre es oft', () => {
+  let planRowsWorse = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const { truck, cs, items } = mix(seed);
+    const off = run(items, cs, truck), on = run(items, cs, truck, { rowPlan: true });
+    const fOff = floorOf(off.boxes, truck), fOn = floorOf(on.boxes, truck);
+    assert.ok(fOn <= fOff + 1e-6, `Seed ${seed}: an ${fOn} > aus ${fOff}`);
+    if (fOn === fOff) assert.ok(on.unplaced.length <= off.unplaced.length, `Seed ${seed}: mehr unverladen`);
+    const { stacks } = buildStacks(items, truck);
+    const pr = planRows(stacks, truck, []), ps = placeStacks(stacks, truck, []);
+    if (floorOf(pr.placed.map(p => p.box), truck) > floorOf(ps.placed.map(p => p.box), truck) + 1e-6) planRowsWorse++;
+  }
+  assert.ok(planRowsWorse >= 5, `Gegenprobe: planRows allein war nur ${planRowsWorse}× schlechter, die Prüfung könnte nichts messen`);
 });

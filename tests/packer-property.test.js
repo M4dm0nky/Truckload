@@ -139,6 +139,8 @@ test('Packer-Eigenschaft mit Deckschicht mischen: 500 Mischungen, Auflage, Valid
 // Reihen planen (rowPlan): dieselben Eigenschaften wie oben, direkt über autoPack (der Plan-Schalter
 // folgt in einem späteren Schritt).
 import { autoPack } from '../js/model/packer.js';
+import { freeFloorArea } from '../js/model/rows.js';
+import { archBoxes } from '../js/model/geometry.js';
 import { rulesFor, mixTopFor } from '../js/model/packRules.js';
 
 for (const seed of SEEDS) {
@@ -150,6 +152,9 @@ for (const seed of SEEDS) {
     const bad = validatePlan(packed, caseById, truck).issues
       .filter(i => [...VIOLATIONS, 'overload', 'notStackable', 'tooManyLayers', 'layer'].includes(i.code)).map(i => `${i.code}: ${i.message}`);
     assert.deepEqual(bad, [], `Seed ${seed}`);
+    const off = autoPack(list, truck, { rules: rulesFor(input), mixTop: mixTopFor(input) });
+    const floor = pl => freeFloorArea(pl.map(p => boxOf(caseById.get(p.caseId), p)), truck, { obstacles: archBoxes(truck) });
+    assert.ok(floor(placements) <= floor(off.placements) + 1e-6, `Seed ${seed}: rowPlan hinterlässt mehr freie Fläche als aus`);
     assert.equal(placements.length + unplaced.length, count, `Seed ${seed}`);
     assert.equal(new Set([...placements, ...unplaced].map(x => x.id)).size, count, `Seed ${seed}: IDs doppelt`);
   });

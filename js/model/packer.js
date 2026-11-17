@@ -2,6 +2,7 @@ import { ROTATIONS, isTruss, archBoxes, effectiveDims, overlaps, wheelFace, DOOR
 import { pickPieceFields } from './pieceFields.js';
 import { legacyRules, blockComparator, volumeOf, sameSelectorRank } from './packRules.js';
 import { planRows } from './rowPlanner.js';
+import { freeFloorArea } from './rows.js';
 
 export function chooseOrientation(c, truck, piece = {}) {
   const opts = [];
@@ -337,7 +338,17 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
 export function autoPack(items, truck, { obstacles = [], order = 'volume', rules, mixTop = false, startX = 0, rowPlan = false } = {}) {
   // Der String `order` (Altdaten) wird hier einmal in Regeln übersetzt; darunter gibt es nur Regel-Arrays.
   const { stacks, unplaced } = buildStacks(items, truck, { rules: rules ?? legacyRules(order), mixTop });
-  const { placed, failed } = (rowPlan ? planRows : placeStacks)(stacks, truck, obstacles, { startX });
+  let { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
+  if (rowPlan) {
+    // „Reihen planen“ ist nie schlechter als aus: beide Pläne rechnen, den mit weniger freier
+    // Bodenfläche nehmen; Gleichstand → weniger nicht verladene Stücke, dann der Reihenplan.
+    const alt = planRows(stacks, truck, obstacles, { startX });
+    const blocked = [...archBoxes(truck), ...obstacles];
+    const free = r => freeFloorArea(r.placed.map(p => p.box), truck, { obstacles: blocked });
+    const lost = r => r.failed.reduce((n, s) => n + s.items.length, 0);
+    const d = free(alt) - free({ placed });
+    if (d < -1e-6 || (d <= 1e-6 && lost(alt) <= lost({ failed }))) ({ placed, failed } = alt);
+  }
   const placements = [];
   for (const { stack, box, swap } of placed) {
     for (const { it, o, z, ox = 0, oy = 0 } of stack.items) {
