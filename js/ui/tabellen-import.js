@@ -14,6 +14,7 @@ import { VERHALTEN, ART, gewerkWoerterbuch, gewerkCfg, gewerkEintrag } from '../
 import { catRank } from '../model/lkw-distribute.js';
 import { MAX_LKW } from '../model/limits.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
+import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, caseVon as geCaseVon } from './geraete-schritt.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -161,9 +162,9 @@ export const filterNachHinzufuegen = e => (e.befunde.length ? 'fehler' : 'alle')
 // ---- Schritte nach der Übersicht: Traversen, Boxen, Set (und später LKWs) ----
 
 // Reihenfolge der Schritte; ein Schritt kommt nur, wenn sein Reiter Zeilen hat. `lkws` kommt zuletzt, nur beim Laden.
-export function schritte(eintraege, laden) {
+export function schritte(eintraege, laden, mitGeraete = false) {
   const hat = r => eintraege.some(e => e.reiter === r);
-  return [...['traversen', 'boxen', 'set'].filter(hat), ...(laden ? ['lkws'] : [])];
+  return [...(mitGeraete ? ['geraete'] : []), ...['traversen', 'boxen', 'set'].filter(hat), ...(laden ? ['lkws'] : [])];
 }
 
 const MAX_STUECK = 500;
@@ -328,13 +329,18 @@ function listeSeiteHtml(st) {
 }
 
 // Esc (cancel-Ereignis des Dialogs): in Liste und Schritten zurück zur Übersicht (Korrekturen bleiben), sonst Abbruch (null).
-export const escZiel = view => (view === 'overview' ? null : 'overview');
+// `heim`: Startansicht des Dialogs ('geraete' bei der NYX-Übernahme, sonst 'overview').
+export const escZiel = (view, heim = 'overview') => (view === heim ? null : heim);
 
 // opts: { dateiname, eintraege (Traversen/Boxen/Cases/Set aus werteZeilen), zielAktuell: string|null,
 //   trussDlg, dollyDlg (eigene <dialog>-Elemente), dollyBasen: Case[] (Grundboxen), bibliothekCases: Case[] }.
 // opts zusätzlich für den LKW-Schritt: zielHatLkw, freieLkw (MAX_LKW minus vorhandene), fahrzeuge: {id, name}[],
 //   vorhandeneGewerke: {name, stueck}[] (Stücke des Zielplans), vorschau: async (ergebnis) => { lkws, nichtGeladen }.
 // opts.bestaetige(ergebnis): optional, async, wird erst im letzten Schritt gerufen; false = Dialog bleibt offen.
+// opts.geraete: { liste, stand, cases, alias, plan } (NYX-Geräte, stand() des Plans, Bibliothek, umhaengen-Alias, aktueller Plan);
+//   dann beginnt der Dialog mit dem Schritt „Geräte → Cases“, Ziel ist immer der aktuelle Plan.
+//   opts.sucheCase(text) / opts.neuesCase({ name, gewerk, gewichtKg }): async, liefern ein Case oder null.
+//   Ergebnis zusätzlich: zuordnungen [{ key, name, caseId, n, stueck, nyxStueck }], nichtLaden [key], reduktion [{ key, entfernen }] (nur bestätigt).
 // Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean, gebaut: { cases, stuecke }, lkw: einst (nur beim Laden; ohne `neu`) }
 // oder null bei Abbruch. Gebaute Cases sind Import-Cases (nie in der Bibliothek), Stücke { caseId, n }.
 export async function openTabellenImport(dlg, opts) {
@@ -346,7 +352,7 @@ export async function openTabellenImport(dlg, opts) {
   const zielAktuell = opts.zielAktuell ?? null;
   const st = {
     eintraege: [...opts.eintraege], view: 'overview', reiter: 'cases', filter: 'alle', suche: '', zeilen: null,
-    ziel: zielAktuell !== null ? 'current' : 'new', ohneRot: false, ohneRotSet: false,
+    ziel: zielAktuell !== null || opts.geraete ? 'current' : 'new', ohneRot: false, ohneRotSet: false,
     laden: false, folge: [], gebaut: { cases: [], stuecke: [] }, basisId: '', basisN: 1,
     lkw: { verhalten: VERHALTEN.NEU, truckId: '', art: ART.JE_GEWERK, getrennt: false, gewerke: gewerkWoerterbuch() },
     vorschau: null, rechnet: false, vorschauFehler: false,
@@ -356,6 +362,10 @@ export async function openTabellenImport(dlg, opts) {
   const dollyBasen = opts.dollyBasen ?? [];
   const bibliothekCases = opts.bibliothekCases ?? [];
   let result = null;
+  const ge = opts.geraete ? geraeteState(opts.geraete) : null;
+  const heim = ge ? 'geraete' : 'overview';
+  if (ge) st.view = 'geraete';
+  const geErgebnis = () => (ge ? geraeteErgebnis(ge) : {});
 
   const tabelleNeu = () => {
     const zeilen = st.zeilen?.reiter === st.reiter ? st.zeilen.set : null;
@@ -382,6 +392,7 @@ export async function openTabellenImport(dlg, opts) {
     const caseVon = new Map([...bibliothekCases, ...dollyBasen, ...st.gebaut.cases].map(c => [c.id, c]));
     for (const d of entwuerfeAus(st.eintraege).entwuerfe) plus(d.case.category || 'Sonstiges', d.menge);
     for (const x of st.gebaut.stuecke) plus(caseVon.get(x.caseId)?.category || 'Sonstiges', x.n);
+    for (const a of geErgebnis().zuordnungen ?? []) plus(geCaseVon(ge, a.caseId)?.category || 'Sonstiges', a.n);
     if (verhaltenJetzt() === VERHALTEN.NEU && st.ziel === 'current') for (const v of opts.vorhandeneGewerke ?? []) plus(v.name || 'Sonstiges', v.stueck ?? 0);
     return m;
   };
@@ -425,7 +436,7 @@ export async function openTabellenImport(dlg, opts) {
     vzTimer = setTimeout(async () => {
       let daten = null;
       let fehler = false;
-      try { daten = await opts.vorschau({ eintraege: st.eintraege, ziel: st.ziel, laden: true, ohneRot: st.ohneRot, gebaut: st.gebaut, lkw: einstFuer() }); }
+      try { daten = await opts.vorschau({ eintraege: st.eintraege, ziel: st.ziel, laden: true, ohneRot: st.ohneRot, gebaut: st.gebaut, lkw: einstFuer(), ...geErgebnis() }); }
       catch (err) { console.error(err); fehler = true; }
       if (nr !== vzNr || !dlg.open) return;
       st.vorschau = daten; st.rechnet = false; st.vorschauFehler = fehler;
@@ -449,6 +460,11 @@ export async function openTabellenImport(dlg, opts) {
     return true;
   };
   const render = () => {
+    if (st.view === 'geraete') {
+      dlg.innerHTML = `<div class="editor ti">${geraeteSchrittHtml(ge)}<menu><button type="button" data-act="cancel">${t('Abbrechen')}</button><span class="grow"></span>`
+        + `<button type="button" data-act="only">${t('Nur übernehmen')}</button><button type="button" class="primary" data-act="load">${t('Übernehmen und laden')}</button></menu></div>`;
+      return;
+    }
     if (st.view === 'lkws') { dlg.innerHTML = `<div class="editor ti">${lkwHtml()}</div>`; return; }
     if (st.view === 'list') { dlg.innerHTML = `<div class="editor ti">${listeSeiteHtml(st)}</div>`; return; }
     if (st.view !== 'overview') {
@@ -468,7 +484,7 @@ export async function openTabellenImport(dlg, opts) {
     if (busy) return;
     busy = true;
     try {
-      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot, gebaut: st.gebaut, ...(laden ? { lkw: einstFuer() } : {}) };
+      const r = { eintraege: st.eintraege, ziel: st.ziel, laden, ohneRot: st.ohneRot, gebaut: st.gebaut, ...(laden ? { lkw: einstFuer() } : {}), ...geErgebnis() };
       if (opts.bestaetige && !(await opts.bestaetige(r))) return;
       result = r;
       dlg.close('ok');
@@ -478,12 +494,12 @@ export async function openTabellenImport(dlg, opts) {
   // Schrittfolge: leer = direkt übernehmen (wie ohne Schritte). `lkws` steht beim Laden zuletzt.
   const starteSchritte = laden => {
     st.laden = laden;
-    st.folge = schritte(st.eintraege, laden);
-    if (!st.folge.length) { fertig(laden); return; }
-    geheZu(0);
+    st.folge = schritte(st.eintraege, laden, !!ge);
+    if (st.folge.length <= (ge ? 1 : 0)) { fertig(laden); return; }
+    geheZu(ge ? 1 : 0);
   };
   const geheZu = i => {
-    if (i < 0) st.view = 'overview';
+    if (i < 0) st.view = heim;
     else if (i >= st.folge.length) { fertig(st.laden); return; }
     else {
       st.view = st.folge[i];
@@ -542,11 +558,36 @@ export async function openTabellenImport(dlg, opts) {
   };
   const SCHRITT_ACTS = new Set(['prev', 'next', 'finish', 'rm', 'truss', 'loose', 'dolly']);
 
+  // Schritt „Geräte → Cases“: Knöpfe ändern den Zustand, Suche und „Neues Case“ fragen die App.
+  let geBusy = false;
+  const geraeteKlick = async (act, b) => {
+    if (geBusy) return;
+    geBusy = true;
+    try {
+      if (act === 'g-waehle') geraeteAktion(ge, 'waehle', { key: b.dataset.key });
+      else if (act === 'g-case') geraeteAktion(ge, 'case', { case: geCaseVon(ge, b.dataset.case) });
+      else if (act === 'g-unset') geraeteAktion(ge, 'loese', { key: b.dataset.key, i: Number(b.dataset.i) });
+      else if (act === 'g-skip') geraeteAktion(ge, 'nichtladen', { key: b.dataset.key });
+      else if (act === 'g-red') geraeteAktion(ge, 'red', { key: b.dataset.key ?? ge.wahl, ja: b.dataset.ja === '1' });
+      else if (act === 'g-find' || act === 'g-new') {
+        const z = ge.zeilen.find(x => x.key === ge.wahl);
+        const g = ge.jeKey.get(ge.wahl);
+        if (!z) return;
+        const c = act === 'g-find'
+          ? await opts.sucheCase?.(z.name)
+          : await opts.neuesCase?.({ name: z.name, gewerk: g?.gewerk, gewichtKg: g?.gewichtKg });
+        if (c) geraeteAktion(ge, 'case', { case: c });
+      }
+    } finally { geBusy = false; }
+    if (dlg.open && st.view === 'geraete') render();
+  };
+
   // Ein Listener je Ereignisart am Dialog (Ereignis-Delegation), keine je Zelle.
   dlg.onclick = ev => {
     const b = ev.target.closest('button[data-act]');
     if (!b) return;
     const act = b.dataset.act;
+    if (act.startsWith('g-')) { geraeteKlick(act, b); return; }
     if (act === 'cancel') dlg.close('cancel');
     else if (act === 'only') starteSchritte(false);
     else if (act === 'load') starteSchritte(true);
@@ -579,6 +620,11 @@ export async function openTabellenImport(dlg, opts) {
   dlg.onchange = ev => {
     const el = ev.target;
     if (st.view === 'lkws' && lkwAenderung(el)) return;
+    if (el.dataset.role === 'g-stueck') {
+      geraeteAktion(ge, 'stueck', { key: el.dataset.key, i: el.dataset.i === undefined ? undefined : Number(el.dataset.i), caseId: el.dataset.case, wert: Number(el.value) });
+      render();
+      return;
+    }
     if (el.name === 'target') { st.ziel = el.value; return; }
     if (el.name === 'skipredset') { st.ohneRotSet = el.checked; render(); return; }
     if (el.name === 'skipred') { st.ohneRot = el.checked; render(); return; }
@@ -608,9 +654,9 @@ export async function openTabellenImport(dlg, opts) {
     setSperreNeu();
   };
   dlg.oncancel = ev => {
-    if (escZiel(st.view) !== 'overview') return;
+    if (escZiel(st.view, heim) !== heim) return;
     ev.preventDefault();
-    st.view = 'overview'; render();
+    st.view = heim; render();
   };
   dlg.oninput = ev => {
     if (ev.target.dataset.role !== 'search') return;

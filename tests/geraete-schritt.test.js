@@ -1,0 +1,152 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkCase, P, plan } from './fixtures.js';
+import { stand } from '../js/model/nyxAbgleich.js';
+import { schritte } from '../js/ui/tabellen-import.js';
+import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, zuordnungenVon, offenVon } from '../js/ui/geraete-schritt.js';
+
+const VIPER = 'gdtf:viper';
+const BMFL = 'gdtf:bmfl';
+const caseMit = (id, name, stueck, keys) =>
+  mkCase(id, 60, 40, 40, { name, fasst: { stueck, geraete: keys.map(key => ({ key, name: key })) } });
+const x1 = caseMit('x1', 'Viper x1', 1, [VIPER]);
+const x2 = caseMit('x2', 'Viper x2', 2, [VIPER]);
+const frei = mkCase('frei', 60, 40, 40, { name: 'Sonstiges Case' });
+const liste = [
+  { key: VIPER, name: 'MAC Viper', anzahl: 25, vwNamen: [] },
+  { key: BMFL, name: 'Robe BMFL', anzahl: 6, vwNamen: [] },
+];
+const neu = (p = plan([]), extra = {}) => geraeteState({ liste, stand: stand(p, liste), cases: [x2, x1, frei], alias: new Map(), plan: p, ...extra });
+const nyx = (id, caseId, key, n, extra = {}) => ({ id, caseId, nyxGeraet: key, nyxStueck: n, ...extra });
+const knoepfe = html => [...html.matchAll(/data-act="g-case" data-case="([^"]+)"/g)].map(m => m[1]);
+
+test('links alle Typen mit Anzahl und Stand', () => {
+  const h = geraeteSchrittHtml(neu());
+  assert.match(h, /MAC Viper/); assert.match(h, /Robe BMFL/);
+  assert.match(h, /<b class="ge-num">25<\/b>/); assert.match(h, /<b class="ge-num">6<\/b>/);
+  assert.match(h, /offen/);
+});
+
+test('ohne Klick: leeres Ergebnis, nichts gewählt, keine Vorschläge', () => {
+  const st = neu();
+  assert.deepEqual(geraeteErgebnis(st), { zuordnungen: [], nichtLaden: [], reduktion: [] });
+  assert.equal(st.wahl, null);
+  assert.deepEqual(knoepfe(geraeteSchrittHtml(st)), []);
+});
+
+test('unbekannter key: keine Vorschläge, aber die drei Dauerknöpfe', () => {
+  const st = geraeteAktion(neu(), 'waehle', { key: BMFL });
+  const h = geraeteSchrittHtml(st);
+  assert.deepEqual(knoepfe(h), []);
+  for (const a of ['g-find', 'g-new', 'g-skip']) assert.ok(h.includes(`data-act="${a}"`), a);
+});
+
+test('bekannter key: Vorschläge nach Geräten pro Case sortiert, keiner aktiv, Dauerknöpfe auch', () => {
+  const st = geraeteAktion(neu(), 'waehle', { key: VIPER });
+  const h = geraeteSchrittHtml(st);
+  assert.deepEqual(knoepfe(h), ['x1', 'x2']);
+  assert.ok(!/aria-pressed="true"[^>]*g-case|g-case[^>]*(on|active)/.test(h));
+  assert.equal(zuordnungenVon(st, VIPER).length, 0);
+  for (const a of ['g-find', 'g-new', 'g-skip']) assert.ok(h.includes(`data-act="${a}"`), a);
+});
+
+test('Klick auf Vorschlag: 12× · 1 Rest, Rest bietet Cases erneut (kleine zuerst)', () => {
+  const st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: VIPER }), 'case', { case: x2 });
+  assert.deepEqual(zuordnungenVon(st, VIPER).map(a => [a.n, a.stueck, a.rest]), [[12, 2, 1]]);
+  assert.equal(offenVon(st, VIPER), 1);
+  const h = geraeteSchrittHtml(st);
+  assert.match(h, /12× Viper x2 · 1 Rest/);
+  assert.deepEqual(knoepfe(h), ['x1', 'x2']);   // x1 (<= Rest) zuerst
+  const st2 = geraeteAktion(st, 'case', { case: x1 });
+  assert.equal(offenVon(st2, VIPER), 0);
+  assert.deepEqual(geraeteErgebnis(st2).zuordnungen.map(z => [z.caseId, z.n, z.stueck]), [['x2', 12, 2], ['x1', 1, 1]]);
+});
+
+test('Rest 1 in Doppelcase: ein Stück mit 1 Gerät', () => {
+  let st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: VIPER }), 'case', { case: x2 });
+  st = geraeteAktion(st, 'case', { case: x2 });
+  const z = geraeteErgebnis(st).zuordnungen;
+  assert.deepEqual(z.map(a => [a.n, a.nyxStueck]), [[12, 2], [1, 1]]);
+});
+
+test('Geräte pro Case editierbar vor und nach der Zuordnung', () => {
+  let st = geraeteAktion(neu(), 'waehle', { key: VIPER });
+  st = geraeteAktion(st, 'stueck', { caseId: 'x1', wert: 5 });
+  assert.match(geraeteSchrittHtml(st), /value="5"[^>]*data-case="x1"/);
+  st = geraeteAktion(st, 'case', { case: x1 });
+  assert.deepEqual(geraeteErgebnis(st).zuordnungen.map(a => [a.n, a.stueck]), [[5, 5]]);
+  st = geraeteAktion(st, 'stueck', { key: VIPER, i: 0, caseId: 'x1', wert: 25 });
+  assert.deepEqual(geraeteErgebnis(st).zuordnungen.map(a => [a.n, a.stueck]), [[1, 25]]);
+  geraeteAktion(st, 'stueck', { key: VIPER, i: 0, caseId: 'x1', wert: 0 });   // ungültig
+  assert.equal(st.zuordnung[VIPER][0].stueck, 25);
+});
+
+test('Zuordnung lösen und neu wählen', () => {
+  let st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: VIPER }), 'case', { case: x2 });
+  st = geraeteAktion(st, 'loese', { key: VIPER, i: 0 });
+  assert.deepEqual(geraeteErgebnis(st).zuordnungen, []);
+  st = geraeteAktion(st, 'case', { case: x1 });
+  assert.equal(geraeteErgebnis(st).zuordnungen[0].caseId, 'x1');
+});
+
+test('anderes Case (z. B. aus Suche) wird wie Vorschlag zugeordnet', () => {
+  const st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: BMFL }), 'case', { case: frei });
+  assert.deepEqual(geraeteErgebnis(st).zuordnungen.map(a => [a.key, a.name, a.caseId, a.n]), [[BMFL, 'Robe BMFL', 'frei', 6]]);
+});
+
+test('Nicht laden: umschaltbar, löscht Zuordnung', () => {
+  let st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: VIPER }), 'case', { case: x2 });
+  st = geraeteAktion(st, 'nichtladen', { key: VIPER });
+  assert.deepEqual(geraeteErgebnis(st), { zuordnungen: [], nichtLaden: [VIPER], reduktion: [] });
+  assert.match(geraeteSchrittHtml(st), /Wieder laden/);
+  st = geraeteAktion(st, 'nichtladen', { key: VIPER });
+  assert.deepEqual(geraeteErgebnis(st).nichtLaden, []);
+});
+
+test('Differenz: +4 und −2 links, nur bestätigte Reduktion im Ergebnis', () => {
+  const p = plan([P('p1', 'x1', 0, 0, 0, nyx('p1', 'x1', BMFL, 2, { lkw: undefined }))], [nyx('u1', 'x2', VIPER, 2), nyx('u2', 'x2', VIPER, 2), nyx('u3', 'x1', BMFL, 2)]);
+  const li = [{ key: VIPER, name: 'MAC Viper', anzahl: 8, vwNamen: [] }, { key: BMFL, name: 'Robe BMFL', anzahl: 2, vwNamen: [] }];
+  const st = geraeteState({ liste: li, stand: stand(p, li), cases: [x1, x2], alias: new Map(), plan: p });
+  const h = geraeteSchrittHtml(st);
+  assert.match(h, /\+4/); assert.match(h, /−2/);
+  geraeteAktion(st, 'waehle', { key: BMFL });
+  const r = geraeteSchrittHtml(st);
+  assert.match(r, /Viper x1/); assert.match(r, /data-act="g-red"/);
+  assert.deepEqual(geraeteErgebnis(st).reduktion, []);                       // unbestätigt
+  geraeteAktion(st, 'red', { key: BMFL, ja: false });
+  assert.deepEqual(geraeteErgebnis(st).reduktion, []);                       // stehen lassen
+  geraeteAktion(st, 'red', { key: BMFL, ja: true });
+  const red = geraeteErgebnis(st).reduktion;
+  assert.equal(red.length, 1); assert.equal(red[0].key, BMFL);
+  assert.equal(red[0].entfernen.length, 1);
+});
+
+test('Reduktion auf LKW: Hinweis und „Trotzdem entfernen“; ohne LKW „Entfernen“', () => {
+  const li = [{ key: VIPER, name: 'MAC Viper', anzahl: 0, vwNamen: [] }];
+  const auf = plan([P('p1', 'x2', 0, 0, 0, { nyxGeraet: VIPER, nyxStueck: 2 })]);
+  const mk = p => geraeteAktion(geraeteState({ liste: li, stand: stand(p, li), cases: [x2], alias: new Map(), plan: p }), 'waehle', { key: VIPER });
+  const h = geraeteSchrittHtml(mk(auf));
+  assert.match(h, /Trotzdem entfernen/); assert.match(h, /Stehen lassen/); assert.match(h, /LKW/);
+  const h2 = geraeteSchrittHtml(mk(plan([], [nyx('u1', 'x2', VIPER, 2)])));
+  assert.ok(!/Trotzdem entfernen/.test(h2)); assert.match(h2, /Stehen lassen/);
+});
+
+test('Hand-Stück wird in der Reduktion nicht gezeigt', () => {
+  const li = [{ key: VIPER, name: 'MAC Viper', anzahl: 0, vwNamen: [] }];
+  const p = plan([], [nyx('u1', 'x2', VIPER, 2), { id: 'hand', caseId: 'x2' }]);
+  const st = geraeteState({ liste: li, stand: stand(p, li), cases: [x2], alias: new Map(), plan: p });
+  assert.deepEqual(st.reduktionInfo[VIPER].entfernen, ['u1']);
+});
+
+test('XSS in Gerätename und Case-Name wird maskiert', () => {
+  const x = '<img src=x onerror=alert(1)>';
+  const li = [{ key: VIPER, name: x, anzahl: 2, vwNamen: [] }];
+  const c = caseMit('c', x, 1, [VIPER]);
+  const st = geraeteAktion(geraeteState({ liste: li, stand: stand(plan([]), li), cases: [c], alias: new Map(), plan: plan([]) }), 'waehle', { key: VIPER });
+  assert.ok(!geraeteSchrittHtml(st).includes(x));
+});
+
+test('schritte: mit Geräten beginnt die Folge mit geraete', () => {
+  assert.deepEqual(schritte([], true, true), ['geraete', 'lkws']);
+  assert.deepEqual(schritte([], true), ['lkws']);
+});

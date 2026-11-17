@@ -98,6 +98,7 @@ const ASSETS = [
   'js/ui/print.js',
   'js/ui/projection.js',
   'js/ui/stock-target.js',
+  'js/ui/geraete-schritt.js',
   'js/ui/tabellen-import.js',
   'js/ui/textMetrics.js',
   'js/ui/themeTokens.js',
