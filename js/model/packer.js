@@ -340,14 +340,15 @@ export function autoPack(items, truck, { obstacles = [], order = 'volume', rules
   const { stacks, unplaced } = buildStacks(items, truck, { rules: rules ?? legacyRules(order), mixTop });
   let { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
   if (rowPlan) {
-    // „Reihen planen“ ist nie schlechter als aus: beide Pläne rechnen, den mit weniger freier
-    // Bodenfläche nehmen; Gleichstand → weniger nicht verladene Stücke, dann der Reihenplan.
+    // „Reihen planen“ lädt nie weniger als aus: beide Pläne rechnen. Zuerst zählen die nicht
+    // verladenen Stücke (weniger gewinnt), bei Gleichstand die freie Bodenfläche (weniger gewinnt),
+    // bei erneutem Gleichstand der Reihenplan.
     const alt = planRows(stacks, truck, obstacles, { startX });
     const blocked = [...archBoxes(truck), ...obstacles];
     const free = r => freeFloorArea(r.placed.map(p => p.box), truck, { obstacles: blocked });
     const lost = r => r.failed.reduce((n, s) => n + s.items.length, 0);
-    const d = free(alt) - free({ placed });
-    if (d < -1e-6 || (d <= 1e-6 && lost(alt) <= lost({ failed }))) ({ placed, failed } = alt);
+    const dl = lost(alt) - lost({ failed });
+    if (dl < 0 || (dl === 0 && free(alt) <= free({ placed }) + 1e-6)) ({ placed, failed } = alt);
   }
   const placements = [];
   for (const { stack, box, swap } of placed) {

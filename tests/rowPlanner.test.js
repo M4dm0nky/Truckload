@@ -139,8 +139,8 @@ test('rowPlan ist nie schlechter als aus (freie Bodenfläche), und planRows alle
     const { truck, cs, items } = mix(seed);
     const off = run(items, cs, truck), on = run(items, cs, truck, { rowPlan: true });
     const fOff = floorOf(off.boxes, truck), fOn = floorOf(on.boxes, truck);
-    assert.ok(fOn <= fOff + 1e-6, `Seed ${seed}: an ${fOn} > aus ${fOff}`);
-    if (fOn === fOff) assert.ok(on.unplaced.length <= off.unplaced.length, `Seed ${seed}: mehr unverladen`);
+    assert.ok(on.unplaced.length <= off.unplaced.length, `Seed ${seed}: mehr unverladen`);
+    if (on.unplaced.length === off.unplaced.length) assert.ok(fOn <= fOff + 1e-6, `Seed ${seed}: an ${fOn} > aus ${fOff}`);
     const { stacks } = buildStacks(items, truck);
     const pr = planRows(stacks, truck, []), ps = placeStacks(stacks, truck, []);
     if (floorOf(pr.placed.map(p => p.box), truck) > floorOf(ps.placed.map(p => p.box), truck) + 1e-6) planRowsWorse++;

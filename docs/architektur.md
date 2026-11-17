@@ -360,7 +360,7 @@ Optionaler Schalter `plan.rowPlan` (Regelset: `rowPlan`, fehlt = aus; `rowPlanFo
 
 - `rows.js`: das gemeinsame Reihenmodell. `groupRows` fasst Stapel mit überlappendem x-Bereich zu
   Reihen zusammen (nummeriert ab Stirnwand, je LKW; die letzte Reihe liegt an der Tür),
-  `freeFloorArea` misst die freie Bodenfläche der Reihen vor der letzten (ohne Hindernisse),
+  `freeFloorArea` misst die freie Bodenfläche der Reihen vor der letzten (Radkästen und Hindernisse werden abgezogen),
   `floorGaps` liefert die Lücken (quer und längs, ab 25 × 25 cm), aus denen `validatePlan` die
   Warnung „Lücke {b} × {t} cm in Reihe {n}“ bildet. Planer und Warnung nutzen dasselbe Modell.
 - `rowPlanner.js`: `planRows` verteilt die Stapel (aus `buildStacks`, Stapelregeln unverändert) so
@@ -369,8 +369,8 @@ Optionaler Schalter `plan.rowPlan` (Regelset: `rowPlan`, fehlt = aus; `rowPlanFo
   Hindernisses in der geplanten Reihe keinen Platz, sucht er wie bisher per Eckensuche.
 
 *Nie schlechter als aus:* Bei gesetztem `rowPlan` rechnet der Packer beide Varianten (mit und ohne
-`planRows`) und behält die mit weniger `freeFloorArea` (bei Gleichstand die mit weniger nicht
-verladenen Stücken, dann den Reihenplan). „Rest einpacken“ plant ab `startX` Reihen, davor wird
+`planRows`) und behält zuerst die mit weniger nicht verladenen Stücken (nie weniger geladen als aus), bei
+Gleichstand die mit weniger `freeFloorArea`, dann den Reihenplan. „Rest einpacken“ plant ab `startX` Reihen, davor wird
 nichts gefüllt. Tests: `tests/rows.test.js`,
 `tests/rowPlanner.test.js`, `tests/packer-property.test.js`, `tests/validate.test.js`.
 

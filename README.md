@@ -171,8 +171,8 @@ standardmäßig aus, gilt je Ladung und reist mit den Regelsets. Mit ihm plant d
 so, dass sie die Laderaumbreite füllt: Dazu nimmt er Stapel späterer Sorten desselben Gewerks bzw.
 derselben Gruppe in die Reihe. Traversenwagen werden dabei nie als Füllung verwendet. Die
 Stapelregeln (Lagen, Auflast, Gewicht) ändern sich nicht. Der Packer rechnet beide Varianten, mit
-und ohne den Schalter, und behält die mit weniger freier Bodenfläche. „Reihen planen“ ist also nie
-schlechter als aus. „Rest einpacken“ beachtet den Schalter ab der letzten vorhandenen Reihe.
+und ohne den Schalter: Es lädt nie weniger Stücke als ohne, und bei gleicher Stückzahl behält es die
+Variante mit weniger freier Bodenfläche. „Rest einpacken“ beachtet den Schalter ab der letzten vorhandenen Reihe.
 
 ### Lücken-Warnung
 

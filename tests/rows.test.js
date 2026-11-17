@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { groupRows, floorGaps, freeFloorArea } from '../js/model/rows.js';
-import { mkCase, mkTruck, byId } from './fixtures.js';
+import { mkTruck } from './fixtures.js';
 
 const B = (x0, x1, y0, y1) => ({ x0, x1, y0, y1 });
 const TRUCK = mkTruck({ l: 1360, w: 245 });
