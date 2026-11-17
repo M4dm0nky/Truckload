@@ -150,3 +150,39 @@ test('schritte: mit Geräten beginnt die Folge mit geraete', () => {
   assert.deepEqual(schritte([], true, true), ['geraete', 'lkws']);
   assert.deepEqual(schritte([], true), ['lkws']);
 });
+
+test('Rest: Cases, die in den Rest passen, stehen vor größeren', () => {
+  const x3 = caseMit('x3', 'Viper x3', 3, [VIPER]);
+  let st = geraeteState({ liste: [{ key: VIPER, name: 'MAC Viper', anzahl: 5, vwNamen: [] }], stand: stand(plan([]), [{ key: VIPER, name: 'MAC Viper', anzahl: 5, vwNamen: [] }]), cases: [x3, x2, x1], alias: new Map(), plan: plan([]) });
+  st = geraeteAktion(geraeteAktion(st, 'waehle', { key: VIPER }), 'case', { case: x3 });   // 1× x3, Rest 2
+  const ids = knoepfe(geraeteSchrittHtml(st));
+  assert.deepEqual(ids, ['x1', 'x2', 'x3']);
+  assert.ok(ids.indexOf('x2') < ids.indexOf('x3'));
+});
+
+test('Nicht laden und wieder laden: die alte Zuordnung kommt nicht zurück', () => {
+  let st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: VIPER }), 'case', { case: x2 });
+  st = geraeteAktion(geraeteAktion(st, 'nichtladen', { key: VIPER }), 'nichtladen', { key: VIPER });
+  assert.deepEqual(zuordnungenVon(st, VIPER), []);
+  assert.deepEqual(geraeteErgebnis(st).zuordnungen, []);
+  assert.equal(offenVon(st, VIPER), 25);
+});
+
+test('Reduktion: Marker „auf LKW“ nur am Stück auf dem LKW', () => {
+  const li = [{ key: VIPER, name: 'MAC Viper', anzahl: 0, vwNamen: [] }];
+  const p = plan([P('p1', 'x2', 0, 0, 0, { nyxGeraet: VIPER, nyxStueck: 2 })], [nyx('u1', 'x1', VIPER, 1)]);
+  const st = geraeteAktion(geraeteState({ liste: li, stand: stand(p, li), cases: [x1, x2], alias: new Map(), plan: p }), 'waehle', { key: VIPER });
+  const lis = [...geraeteSchrittHtml(st).matchAll(/<li>(.*?)<\/li>/g)].map(m => m[1]);
+  const auf = lis.find(l => l.includes('Viper x2'));
+  const ohne = lis.find(l => l.includes('Viper x1'));
+  assert.ok(auf.includes('ti-tag'), 'LKW-Stück markiert');
+  assert.ok(!ohne.includes('ti-tag'), 'Stück ohne LKW nicht markiert');
+});
+
+test('Voll zugeordnet: ein weiterer case-Aufruf ändert nichts', () => {
+  let st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: BMFL }), 'case', { case: frei });
+  assert.equal(offenVon(st, BMFL), 0);
+  st = geraeteAktion(st, 'case', { case: x1 });
+  assert.deepEqual(st.zuordnung[BMFL].map(a => a.caseId), ['frei']);
+  assert.deepEqual(geraeteErgebnis(st).zuordnungen.map(a => a.caseId), ['frei']);
+});
