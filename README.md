@@ -138,27 +138,6 @@ mehrere große Cases zu verteilen.
 Bestehende Pläne bleiben, wie sie sind: Gespeicherte Platzierungen ändern sich nicht. Erst beim
 nächsten „Alles neu packen“ gilt die neue Anordnung.
 
-### Reihen planen
-
-Der Schalter „Reihen planen“ steht im Dialog „Pack-Regeln …“ unter „Deckschicht mischen“, ist
-standardmäßig aus, gilt je Ladung und reist mit den Regelsets. Mit ihm plant der Packer jede Reihe
-so, dass sie die Laderaumbreite füllt: Dazu nimmt er Stapel späterer Sorten desselben Gewerks bzw.
-derselben Gruppe in die Reihe. Traversenwagen werden dabei nie als Füllung verwendet. Die
-Stapelregeln (Lagen, Auflast, Gewicht) ändern sich nicht. Der Packer rechnet beide Varianten, mit
-und ohne den Schalter, und behält die mit weniger freier Bodenfläche. „Reihen planen“ ist also nie
-schlechter als aus. „Rest einpacken“ beachtet den Schalter ab der letzten vorhandenen Reihe.
-
-### Lücken-Warnung
-
-Unter den Warnungen eines Plans (alle Pläne, beide Modi, auch von Hand gepackt) steht
-„Lücke {b} × {t} cm in Reihe {n}“, wenn freie Bodenfläche quer in einer Reihe oder längs zwischen
-zwei Reihen (auch leere Streifen zwischen Reihen) mindestens 25 × 25 cm groß ist. Die letzte Reihe
-an der Tür zählt nicht; Mehr-LKW-Pläne werden je LKW geprüft. Höhenunterschiede sind keine Lücke,
-Radkästen und Hindernisse ebenso wenig. Die Warnungen erscheinen auch im Druck.
-
-In den Standarddaten sind die Vorlagen MH 2er, LED 8er und Distro 63A jetzt tippbar (Racks und
-FOH-Pult weiterhin nicht), damit der Packer sie auch kippen kann, um Lücken zu schließen.
-
 Der Schalter gilt je Load und wandert, wie die Rangliste selbst, mit einem gespeicherten
 Regelset mit.
 
@@ -184,6 +163,24 @@ Das **Gewicht** eines Case-Typs lässt sich im Inspector direkt ändern (Zahlenf
 alle Stücke dieses Typs). Das gilt für eigene Cases und Listen-Vorlagen; bei Standardvorlagen
 legt „Kopieren“ in der Materialverwaltung eine änderbare Version an, und das Gewicht von
 Traversenwagen ergibt sich aus der Konstruktion.
+
+### Reihen planen
+
+Der Schalter „Reihen planen“ steht im Dialog „Pack-Regeln …“ unter „Deckschicht mischen“, ist
+standardmäßig aus, gilt je Ladung und reist mit den Regelsets. Mit ihm plant der Packer jede Reihe
+so, dass sie die Laderaumbreite füllt: Dazu nimmt er Stapel späterer Sorten desselben Gewerks bzw.
+derselben Gruppe in die Reihe. Traversenwagen werden dabei nie als Füllung verwendet. Die
+Stapelregeln (Lagen, Auflast, Gewicht) ändern sich nicht. Der Packer rechnet beide Varianten, mit
+und ohne den Schalter, und behält die mit weniger freier Bodenfläche. „Reihen planen“ ist also nie
+schlechter als aus. „Rest einpacken“ beachtet den Schalter ab der letzten vorhandenen Reihe.
+
+### Lücken-Warnung
+
+Unter den Warnungen eines Plans (alle Pläne, beide Modi, auch von Hand gepackt) steht
+„Lücke {b} × {t} cm in Reihe {n}“, wenn freie Bodenfläche quer in einer Reihe oder längs zwischen
+zwei Reihen (auch leere Streifen zwischen Reihen) mindestens 25 × 25 cm groß ist. Die letzte Reihe
+an der Tür zählt nicht; Mehr-LKW-Pläne werden je LKW geprüft. Höhenunterschiede sind keine Lücke,
+Radkästen und Hindernisse ebenso wenig. Die Warnungen erscheinen auch im Druck.
 
 ## Materialverwaltung
 
@@ -370,6 +367,9 @@ andere Cases bearbeiten. Mit „In meine Bibliothek übernehmen“ werden sie zu
 Bibliothek.
 
 ## Mitgelieferte Cases
+
+In den Standarddaten sind die Vorlagen MH 2er, LED 8er und Distro 63A jetzt tippbar (Racks und
+FOH-Pult weiterhin nicht); der Lade-Assistent hakt „getippt“ dafür vor.
 
 In der Bibliothek und im Wizard gibt es neben „Eigene Cases“ und den Vorlagen einen
 eigenen Abschnitt „Cases aus deiner Liste“ mit 116 Cases – übernommen aus der privaten

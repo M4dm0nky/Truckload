@@ -369,8 +369,9 @@ Optionaler Schalter `plan.rowPlan` (Regelset: `rowPlan`, fehlt = aus; `rowPlanFo
   Hindernisses in der geplanten Reihe keinen Platz, sucht er wie bisher per Eckensuche.
 
 *Nie schlechter als aus:* Bei gesetztem `rowPlan` rechnet der Packer beide Varianten (mit und ohne
-`planRows`) und behält die mit weniger `freeFloorArea` (bei Gleichstand die mit weniger nicht verladenen Stücken, dann den Reihenplan). „Rest einpacken“
-plant ab `startX` Reihen, davor wird nichts gefüllt. Tests: `tests/rows.test.js`,
+`planRows`) und behält die mit weniger `freeFloorArea` (bei Gleichstand die mit weniger nicht
+verladenen Stücken, dann den Reihenplan). „Rest einpacken“ plant ab `startX` Reihen, davor wird
+nichts gefüllt. Tests: `tests/rows.test.js`,
 `tests/rowPlanner.test.js`, `tests/packer-property.test.js`, `tests/validate.test.js`.
 
 ## Traversenwagen

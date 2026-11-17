@@ -11,7 +11,8 @@
 - Kein neuer Store, keine Freigabe nötig. Die Projektdatei ändert sich nur um dieses Feld.
 - Ältere Stände lehnen das Feld nicht ab: `checkPlan` und `checkRuleSet` von 0.31.0 prüfen nur die
   ihnen bekannten Felder und ignorieren unbekannte. Ein Zurückdrehen des Submoduls bricht nichts;
-  die Option wirkt dann nur nicht.
+  die Option wirkt dann nur nicht und geht beim erneuten Speichern eines Regelsets verloren
+  (`saveRuleSet` baut das Objekt neu auf).
 - Die Standarddaten (`data/standard.json`) haben drei Vorlagen, die jetzt tippbar sind. Hält NYX
   eine eigene Kopie, die Datei ersetzen.
 
