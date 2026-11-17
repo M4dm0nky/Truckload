@@ -141,6 +141,7 @@ export default {
   "Ladeplan „{name}“ hat ungültige Pack-Regeln.": "Load plan “{name}” has invalid packing rules.",
   "Ladeplan „{name}“ hat einen ungültigen Deckschicht-Schalter.": "Load plan “{name}” has an invalid top-layer setting.",
   "Ladeplan „{name}“ hat einen ungültigen Reihen-planen-Schalter.": "Load plan “{name}” has an invalid row-planning setting.",
+  "Ladeplan „{name}“ hat einen ungültigen NYX-Abgleich.": "Load plan “{name}” has an invalid NYX reconciliation.",
   "Ladeplan „{name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge.": "Load plan “{name}” has an invalid copy of its cases or trucks.",
   "Ladeplan „{name}“ hat eine ungültige Kopie seiner Cases oder Fahrzeuge: {detail}": "Load plan “{name}” has an invalid copy of its cases or trucks: {detail}",
   "Ladeplan „{name}“ enthält ungültige Platzierungen.": "Load plan “{name}” contains invalid placements.",

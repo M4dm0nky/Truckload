@@ -5,8 +5,8 @@ import * as A from '../js/model/actions.js';
 import { MAX_LABEL } from '../js/model/limits.js';
 import { mkCase, mkTruck, plan, byId, counter } from './fixtures.js';
 
-test('PIECE_FIELDS nennt die fünf Stückfelder', () => {
-  assert.deepEqual(PIECE_FIELDS, ['label', 'color', 'layers', 'tipped', 'group']);
+test('PIECE_FIELDS nennt die sieben Stückfelder', () => {
+  assert.deepEqual(PIECE_FIELDS, ['label', 'color', 'layers', 'tipped', 'group', 'nyxGeraet', 'nyxStueck']);
 });
 
 test('pickPieceFields: alter Datensatz ohne Felder bleibt schlüsselgleich leer', () => {
@@ -23,15 +23,15 @@ test('pickPieceFields übernimmt nur die Stückfelder, nie Position oder Id', ()
 });
 
 test('pickPieceFields: ein volles Stück liefert genau PIECE_FIELDS, in dieser Reihenfolge', () => {
-  const full = { label: 'L', color: '#123456', layers: [1, 2], tipped: true, group: 'G' };
+  const full = { label: 'L', color: '#123456', layers: [1, 2], tipped: true, group: 'G', nyxGeraet: 'k1', nyxStueck: 2 };
   assert.deepEqual(Object.keys(pickPieceFields(full)), PIECE_FIELDS);
 });
 
-test('duplicate: Kopie, die in die Ablage geht (kein Platz), behält alle fünf Stückfelder', () => {
+test('duplicate: Kopie, die in die Ablage geht (kein Platz), behält alle Stückfelder', () => {
   const K = mkCase('k', 120, 60, 60, { tippable: true });
   const truck = mkTruck({ l: 120, w: 60, h: 60 });
   const ctx = { caseById: byId(K), truck, newId: counter('n') };
-  const fields = { label: 'Kiste 1', color: '#123456', layers: [1, 2], tipped: false, group: 'FOH' };
+  const fields = { label: 'Kiste 1', color: '#123456', layers: [1, 2], tipped: false, group: 'FOH', nyxGeraet: 'key-1', nyxStueck: 2 };
   const pl = A.duplicate(plan([{ id: 'a', caseId: 'k', x: 0, y: 0, z: 0, orientation: 'standing', rot: 0, ...fields }]), 'a', ctx);
   assert.equal(pl.placements.length, 1);
   assert.equal(pl.unplaced.length, 1);
@@ -47,9 +47,9 @@ test('pickPieceFields: leere Strings entfallen, tipped:false bleibt, group wird 
 test('Stück mit allen Feldern übersteht den ganzen Kreislauf ohne Feldverlust', () => {
   const K = mkCase('k', 120, 60, 60, { tippable: true });
   const ctx = { caseById: byId(K), truck: mkTruck(), newId: counter('n') };
-  const fields = { label: 'Kiste 1', color: '#123456', layers: [1, 2], tipped: true, group: 'FOH' };
+  const fields = { label: 'Kiste 1', color: '#123456', layers: [1, 2], tipped: true, group: 'FOH', nyxGeraet: 'key-1', nyxStueck: 2 };
   const only = p => pickPieceFields(p);
-  let pl = A.addUnplaced(plan([]), 'k', 1, counter('u'), { labels: ['Kiste 1'], color: '#123456', layers: [1, 2], tipped: true, group: 'FOH' });
+  let pl = A.addUnplaced(plan([]), 'k', 1, counter('u'), { labels: ['Kiste 1'], color: '#123456', layers: [1, 2], tipped: true, group: 'FOH', nyxGeraet: 'key-1', nyxStueck: 2 });
   assert.deepEqual(only(pl.unplaced[0]), fields);
   const id = pl.unplaced[0].id;
   pl = A.placeCase(pl, 'k', { x: 0, y: 0 }, ctx, { fromUnplacedId: id });
@@ -65,4 +65,32 @@ test('Stück mit allen Feldern übersteht den ganzen Kreislauf ohne Feldverlust'
   assert.equal(pl.unplaced.length, 2);
   assert.deepEqual(only(pl.unplaced[0]), fields);
   assert.deepEqual(only(pl.unplaced[1]), { ...fields, label: 'Kiste 2' });
+});
+
+test('pickPieceFields übernimmt nyxGeraet/nyxStueck, nur wenn gültig', () => {
+  assert.deepEqual(pickPieceFields({ nyxGeraet: 'k1', nyxStueck: 3 }), { nyxGeraet: 'k1', nyxStueck: 3 });
+  assert.deepEqual(pickPieceFields({ nyxGeraet: '', nyxStueck: 0 }), {});
+  assert.deepEqual(pickPieceFields({ nyxGeraet: 5, nyxStueck: 2.5 }), {});
+  assert.deepEqual(pickPieceFields({ nyxStueck: 100 }), {});
+  assert.deepEqual(pickPieceFields({ nyxGeraet: 'x'.repeat(201) }), {});
+});
+
+test('addUnplaced reicht nyxGeraet/nyxStueck an die Stücke durch', () => {
+  const pl = A.addUnplaced(plan([]), 'k', 2, counter('u'), { nyxGeraet: 'key-1', nyxStueck: 4 });
+  assert.equal(pl.unplaced.length, 2);
+  for (const u of pl.unplaced) assert.deepEqual(pickPieceFields(u), { nyxGeraet: 'key-1', nyxStueck: 4 });
+  const ohne = A.addUnplaced(plan([]), 'k', 1, counter('v'));
+  assert.deepEqual(Object.keys(ohne.unplaced[0]).sort(), ['caseId', 'id']);
+});
+
+test('autoPack-Placements (packAll) behalten nyxGeraet/nyxStueck, auch in der Ablage', () => {
+  const K = mkCase('k', 100, 60, 60);
+  const truck = mkTruck({ l: 400, w: 200, h: 200 });
+  const ctx = { caseById: byId(K), truck, newId: counter('n') };
+  const pl = A.packAll(A.addUnplaced(plan([]), 'k', 1, counter('u'), { nyxGeraet: 'key-1', nyxStueck: 2 }), ctx);
+  assert.equal(pl.placements.length, 1);
+  assert.equal(pl.placements[0].nyxGeraet, 'key-1');
+  assert.equal(pl.placements[0].nyxStueck, 2);
+  const tray = A.toTray(pl, pl.placements[0].id);
+  assert.deepEqual(pickPieceFields(tray.unplaced[0]), { nyxGeraet: 'key-1', nyxStueck: 2 });
 });

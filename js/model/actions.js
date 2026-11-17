@@ -19,11 +19,11 @@ function settle(p, c, others) {
   return { ...p, z: gravityZ(boxOf(c, { ...p, z: 0 }), others) };
 }
 
-export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null, layers = null, tipped = null, group = null } = {}) {
+export function addUnplaced(plan, caseId, n, newId, { labels = [], color = null, layers = null, tipped = null, group = null, nyxGeraet = null, nyxStueck = null } = {}) {
   const extra = Array.from({ length: n }, (_, i) => ({
     id: newId(), caseId,
     // Das Label kommt gekürzt aus der Namensliste, der Rest aus den Sammelvorgaben.
-    ...pickPieceFields({ label: labels[i] ? labels[i].slice(0, MAX_LABEL) : undefined, color, layers, tipped, group }),
+    ...pickPieceFields({ label: labels[i] ? labels[i].slice(0, MAX_LABEL) : undefined, color, layers, tipped, group, nyxGeraet, nyxStueck }),
   }));
   return stamp({ ...plan, unplaced: [...plan.unplaced, ...extra] });
 }
