@@ -353,6 +353,26 @@ eigene Entscheidung.
 Geometrie der Platzierungen, die Last auf dem obersten Hauptstück ist daher die Summe der Deckstücke
 (`tests/validate.test.js`, „Deckschicht nebeneinander (gepackt)“).
 
+## Reihen planen und Lücken-Warnung (seit V 0.32.0)
+
+Optionaler Schalter `plan.rowPlan` (Regelset: `rowPlan`, fehlt = aus; `rowPlanFor(plan)` in
+`js/model/packRules.js`, geprüft in `js/store/io.js`). Zwei neue Module in `js/model/`:
+
+- `rows.js`: das gemeinsame Reihenmodell. `groupRows` fasst Stapel mit überlappendem x-Bereich zu
+  Reihen zusammen (nummeriert ab Stirnwand, je LKW; die letzte Reihe liegt an der Tür),
+  `freeFloorArea` misst die freie Bodenfläche der Reihen vor der letzten (ohne Hindernisse),
+  `floorGaps` liefert die Lücken (quer und längs, ab 25 × 25 cm), aus denen `validatePlan` die
+  Warnung „Lücke {b} × {t} cm in Reihe {n}“ bildet. Planer und Warnung nutzen dasselbe Modell.
+- `rowPlanner.js`: `planRows` verteilt die Stapel (aus `buildStacks`, Stapelregeln unverändert) so
+  auf Reihen, dass jede die Laderaumbreite füllt, mit Stapeln späterer Sorten desselben Gewerks bzw.
+  derselben Gruppe (`belongsTogether`); Traversenwagen füllen nie auf. Findet ein Stapel wegen eines
+  Hindernisses in der geplanten Reihe keinen Platz, sucht er wie bisher per Eckensuche.
+
+*Nie schlechter als aus:* Bei gesetztem `rowPlan` rechnet der Packer beide Varianten (mit und ohne
+`planRows`) und behält die mit weniger `freeFloorArea` (bei Gleichstand die mit weniger nicht verladenen Stücken, dann den Reihenplan). „Rest einpacken“
+plant ab `startX` Reihen, davor wird nichts gefüllt. Tests: `tests/rows.test.js`,
+`tests/rowPlanner.test.js`, `tests/packer-property.test.js`, `tests/validate.test.js`.
+
 ## Traversenwagen
 
 Ein eigener Case-Typ mit `kind: 'truss'` und `truss: { length, width, count }`.

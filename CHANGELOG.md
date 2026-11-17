@@ -2,6 +2,15 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.32.0 – 2026-11-17
+
+**Dicht laden.** Der Packer kann Reihen jetzt so planen, dass weniger freier Boden bleibt, und der Plan meldet Lücken.
+
+- **Reihen planen:** Neue Option im Dialog „Pack-Regeln …“ unter „Deckschicht mischen“, standardmäßig aus, je Ladung und mit den Regelsets gespeichert. Jede Reihe wird mit Stapeln späterer Sorten desselben Gewerks bzw. derselben Gruppe auf die Laderaumbreite aufgefüllt (nie mit Traversenwagen). Die Stapelregeln bleiben. Der Packer rechnet mit und ohne die Option und behält die Variante mit weniger freier Bodenfläche, ist also nie schlechter als aus. „Rest einpacken“ beachtet die Option ab der letzten Reihe.
+- **Lücken-Warnung:** Bei allen Plänen (auch von Hand gepackt) steht unter den Warnungen „Lücke {b} × {t} cm in Reihe {n}“ für freie Bodenfläche ab 25 × 25 cm quer in einer Reihe oder längs zwischen Reihen, je LKW, nicht in der letzten Reihe an der Tür. Höhenunterschiede, Radkästen und Hindernisse zählen nicht. Die Warnungen stehen auch im Druck.
+- **Standarddaten:** MH 2er, LED 8er und Distro 63A sind jetzt tippbar (Racks und FOH-Pult nicht).
+- **Dateien:** Neu sind `js/model/rows.js` und `js/model/rowPlanner.js`; neues Feld `rowPlan` an Plan und Regelset.
+
 ## V 0.31.0 – 2026-11-12
 
 **Tabellen-Import fertig (Stufe 2 und 3).** Nach der Übersicht führt der Import jetzt durch Traversen, Boxen, Set und LKW. Am Ende steht ein fertig verteilter Plan.

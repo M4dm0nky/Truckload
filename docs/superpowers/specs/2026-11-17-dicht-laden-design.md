@@ -98,9 +98,10 @@ nicht tippbare Vorlagen (Traversenwagen, Lautsprecher-Dollys) bleiben unverände
 - **Was zählt:** freie Bodenfläche **quer** in einer Reihe (die Reihe füllt die Breite nicht) und
   **längs** zwischen Reihen (unterschiedliche Tiefen) – jeweils vor der letzten Reihe. Die letzte
   Reihe an der Tür ist ausgenommen. Höhenunterschiede zählen nicht.
-- **Ab welcher Größe:** Eine freie Fläche ist eine Lücke, wenn mindestens ein Stück dieser Ladung
-  mit seiner kleinsten möglichen Grundfläche (getippt oder stehend, gedreht) hineinpassen würde,
-  mindestens aber 25 × 25 cm (meine Entscheidung). So warnt 3 × 80 cm in 245 cm Breite nicht.
+- **Ab welcher Größe:** Eine freie Fläche ist eine Lücke ab 25 × 25 cm (feste Mindestgröße,
+  Entscheidung der Projektleitung). Ursprünglich war „kleinste Grundfläche eines Stücks der Ladung,
+  mindestens 25 × 25 cm“ vorgesehen. Gelten bleibt nur die feste Größe: Eine Lücke lässt die Ladung
+  verrutschen, egal ob dort noch ein Stück hineinpassen würde. So warnt 3 × 80 cm in 245 cm Breite nicht.
 - **Anzeige:** im vorhandenen Warnungsbereich, wie die anderen Warnungen aus `derive()`:
   „Lücke 45 × 120 cm in Reihe 3“ (Reihe = von der Stirnwand gezählt). Gilt für alle Pläne, auch
   für von Hand platzierte.
@@ -113,6 +114,7 @@ Neues Feld `rowPlan` an Plan und Regelset. Kein neuer Store. Admin-Schritte komm
 `docs/nyx-*.md` (eigener Abschnitt) und als Kommentar ins NYX-Issue, wie bei früheren Releases.
 Ältere Truckload-Stände ignorieren das Feld (prüfen beim Bau, ob `checkCase`/Plan-Prüfung
 unbekannte Felder ablehnt; wenn ja, gilt wie bei Set-Teilen: Submodul nicht zurückdrehen).
+Ergebnis der Prüfung: `checkPlan`/`checkRuleSet` des Stands 0.31.0 lehnen unbekannte Felder nicht ab.
 
 ## Festlegungen aus der Prüfung (meine Entscheidungen, korrigierbar)
 
@@ -130,8 +132,9 @@ unbekannte Felder ablehnt; wenn ja, gilt wie bei Set-Teilen: Submodul nicht zur�
    belegte Grundfläche − Hindernisfläche, Reihentiefe = x1max − x0min. Summe über die Reihen.
    Grundfläche unter Stapeln zählt immer als belegt, Höhe spielt keine Rolle. Der Test fordert,
    dass die Summe mit „an“ kleiner ist als mit „aus“ (Beispielladung mit festem Erwartungswert).
-5. **Mindestgröße einer Lücke:** Maßgeblich sind alle Stücke dieses LKW (geladen oder nicht) mit
-   ihrer kleinsten möglichen Grundfläche, ohne Höhe und Gewicht zu prüfen; mindestens 25 × 25 cm.
+5. **Mindestgröße einer Lücke:** fest 25 × 25 cm, unabhängig von den Stücken des LKW (geändert
+   gegenüber dem ersten Entwurf „kleinste Grundfläche, mindestens 25“): Lücken lassen die Ladung
+   verrutschen, ob noch ein Stück hineinpasst oder nicht.
 6. **„Rest einpacken“:** Ist „Reihen planen“ an, plant es ab `startX` Reihen wie oben; vor
    `startX` wird nichts gefüllt (wie heute).
 7. **Hindernisse:** Rückfall je Stapel: Findet ein Stapel in der geplanten Reihe wegen eines

@@ -1,5 +1,20 @@
 # Projektdatei vollständig: was NYX wissen muss
 
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.32.0
+
+**Neu mit 0.32.0 (Dicht laden):**
+- Führt NYX eine eigene Dateiliste des Submoduls, `js/model/rows.js` und `js/model/rowPlanner.js`
+  aufnehmen. Wer `sw.js` übernimmt, hat sie schon.
+- Neues optionales Feld `rowPlan` (Boolean, fehlt = aus) an Plänen und an Regelsets
+  (`ruleSets`, `projectRuleSets`). Es steckt in den bestehenden Datensätzen; wer sie unverändert
+  durchreicht, muss nichts tun.
+- Kein neuer Store, keine Freigabe nötig. Die Projektdatei ändert sich nur um dieses Feld.
+- Ältere Stände lehnen das Feld nicht ab: `checkPlan` und `checkRuleSet` von 0.31.0 prüfen nur die
+  ihnen bekannten Felder und ignorieren unbekannte. Ein Zurückdrehen des Submoduls bricht nichts;
+  die Option wirkt dann nur nicht.
+- Die Standarddaten (`data/standard.json`) haben drei Vorlagen, die jetzt tippbar sind. Hält NYX
+  eine eigene Kopie, die Datei ersetzen.
+
 Gilt seit V 0.17.1. Ergänzt [nyx-host.md](nyx-host.md) und richtet sich an die NYX-Entwicklung, die
 Truckload als Submodul einbindet. Vorschlag und Freigabe: Issue #33.
 
