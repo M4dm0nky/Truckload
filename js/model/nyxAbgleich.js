@@ -3,6 +3,8 @@ import { stueckAusName } from './stueckAusName.js';
 import { addUnplaced } from './actions.js';
 import { canTip } from './geometry.js';
 import { lkwsOf, isMultiLkw } from './lkw.js';
+import { stamp } from './stamp.js';
+import { t } from '../i18n/i18n.js';
 
 const KEINE = new Map();
 
@@ -99,4 +101,37 @@ export function merken(c, key, name) {
       geraete: geraete.some(g => g.key === key) ? geraete : [...geraete, { key, name }],
     },
   };
+}
+
+// Übernahme des Dialog-Ergebnisses in den Plan (rein): vw:-Stücke auf gdtf: umhängen, bestätigte
+// Reduktionen entfernen (nur Stücke mit nyxGeraet), neue Stücke anlegen, nyxAbgleich setzen.
+// res: { zuordnungen, nichtLaden, reduktion }; alias: dieselbe Map wie in stand()/umhaengen().
+export function uebernimmGeraete(plan, res, newId, caseById, alias = KEINE) {
+  const zuordnungen = res.zuordnungen ?? [];
+  for (const z of zuordnungen) {
+    if (!caseById.get(z.caseId)) throw new Error(t('Das Case „{id}“ fehlt in der Bibliothek.', { id: z.caseId }));
+  }
+  const weg = new Set((res.reduktion ?? []).flatMap(r => r.entfernen));
+  const bleibt = p => !(p.nyxGeraet && weg.has(p.id));
+  const umhaengen1 = p => (p.nyxGeraet && alias.has(p.nyxGeraet) ? { ...p, nyxGeraet: alias.get(p.nyxGeraet) } : p);
+  let next = { ...plan, placements: plan.placements.filter(bleibt).map(umhaengen1), unplaced: plan.unplaced.filter(bleibt).map(umhaengen1) };
+  for (const z of zuordnungen) {
+    next = stueckeAnlegen(next, { key: z.key, caseId: z.caseId, c: caseById.get(z.caseId), n: z.n, stueck: z.nyxStueck }, newId);
+  }
+  return stamp({ ...next, nyxAbgleich: { ...plan.nyxAbgleich, geoeffnet: true, nichtLaden: [...(res.nichtLaden ?? [])] } });
+}
+
+// Cases, die nach der Übernahme in die Bibliothek geschrieben werden: die umgehängten (vw:→gdtf:)
+// und jedes zugeordnete Case mit gemerktem Typ und Geräten pro Case, sofern sich dabei etwas ändert.
+export function casesZumMerken(bibliothek, umgehaengte, res) {
+  const aus = new Map(umgehaengte.map(c => [c.id, c]));
+  const vorher = new Map(bibliothek.map(c => [c.id, c]));
+  for (const z of res.zuordnungen ?? []) {
+    const basis = aus.get(z.caseId) ?? vorher.get(z.caseId);
+    if (!basis) continue;
+    const m = merken(basis, z.key, z.name);
+    const neu = { ...m, fasst: { ...m.fasst, stueck: z.stueck } };
+    if (aus.has(z.caseId) || JSON.stringify(neu.fasst) !== JSON.stringify(vorher.get(z.caseId)?.fasst)) aus.set(z.caseId, neu);
+  }
+  return [...aus.values()];
 }

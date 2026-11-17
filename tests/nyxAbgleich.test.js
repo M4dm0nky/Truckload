@@ -153,3 +153,67 @@ test('merken: kein Doppel-Eintrag, stueck nur wenn nicht gesetzt', () => {
   assert.equal(m3.fasst.stueck, 5);
   assert.equal(c.fasst, undefined);
 });
+
+// ---- uebernimmGeraete (Task 6) ----
+import { uebernimmGeraete, casesZumMerken } from '../js/model/nyxAbgleich.js';
+import { byId } from './fixtures.js';
+
+const tippCase = mkCase('t', 60, 40, 40, { tippable: true });
+const rackCase = mkCase('r', 60, 40, 40, { tippable: false });
+const zu = (caseId, n, stueck, nyxStueck = stueck, key = GDTF) => ({ key, name: 'Viper', caseId, n, stueck, nyxStueck });
+
+test('uebernimmGeraete: legt Stücke mit nyx-Feldern an, tipped nach Case, setzt geoeffnet und nichtLaden', () => {
+  const res = { zuordnungen: [zu('t', 2, 2), zu('r', 1, 2, 1)], nichtLaden: ['gdtf:haus'], reduktion: [] };
+  const out = uebernimmGeraete(plan([]), res, counter('n'), byId(tippCase, rackCase));
+  assert.equal(out.unplaced.length, 3);
+  assert.deepEqual(out.unplaced.map(u => [u.caseId, u.nyxGeraet, u.nyxStueck]), [['t', GDTF, 2], ['t', GDTF, 2], ['r', GDTF, 1]]);
+  assert.deepEqual(out.unplaced.map(u => u.tipped === true), [true, true, false]);
+  assert.deepEqual(out.nyxAbgleich, { geoeffnet: true, nichtLaden: ['gdtf:haus'] });
+});
+
+test('uebernimmGeraete: entfernt nur bestätigte Reduktionen und nur Stücke mit nyxGeraet', () => {
+  const p = plan([], [nyx('a', 't', GDTF, 1), nyx('b', 't', GDTF, 1), { id: 'hand', caseId: 't' }]);
+  const res = { zuordnungen: [], nichtLaden: [], reduktion: [{ key: GDTF, entfernen: ['a', 'hand'] }] };
+  const out = uebernimmGeraete(p, res, counter('n'), byId(tippCase));
+  assert.deepEqual(out.unplaced.map(u => u.id), ['b', 'hand']);
+  const ohne = uebernimmGeraete(p, { zuordnungen: [], nichtLaden: [], reduktion: [] }, counter('n'), byId(tippCase));
+  assert.deepEqual(ohne.unplaced.map(u => u.id), ['a', 'b', 'hand']);
+});
+
+test('uebernimmGeraete: entfernt auch Platzierungen (auf LKW)', () => {
+  const p = plan([P('p1', 't', 0, 0, 0, { nyxGeraet: GDTF, nyxStueck: 1 })], []);
+  const out = uebernimmGeraete(p, { zuordnungen: [], nichtLaden: [], reduktion: [{ key: GDTF, entfernen: ['p1'] }] }, counter('n'), byId(tippCase));
+  assert.equal(out.placements.length, 0);
+});
+
+test('uebernimmGeraete: vw:-Stücke werden über alias auf gdtf: umgehängt (Treffer und Nicht-Treffer)', () => {
+  const p = plan(
+    [P('p1', 't', 0, 0, 0, { nyxGeraet: 'vw:Viper', nyxStueck: 1 })],
+    [nyx('u1', 't', 'vw:Viper', 2), nyx('u2', 't', 'vw:Anderes', 1), nyx('u3', 't', GDTF, 1), { id: 'h', caseId: 't' }]);
+  const alias = new Map([['vw:Viper', GDTF]]);
+  const out = uebernimmGeraete(p, { zuordnungen: [], nichtLaden: [], reduktion: [] }, counter('n'), byId(tippCase), alias);
+  assert.equal(out.placements[0].nyxGeraet, GDTF);
+  assert.deepEqual(out.unplaced.map(u => u.nyxGeraet), [GDTF, 'vw:Anderes', GDTF, undefined]);
+  assert.equal(out.unplaced[0].nyxStueck, 2);
+});
+
+test('uebernimmGeraete: unbekanntes Case wirft, Plan bleibt unverändert', () => {
+  const p = plan([]);
+  assert.throws(() => uebernimmGeraete(p, { zuordnungen: [zu('weg', 1, 1)], nichtLaden: [], reduktion: [] }, counter('n'), byId(tippCase)));
+  assert.equal(p.unplaced.length, 0);
+});
+
+test('casesZumMerken: merkt key, setzt stueck, schreibt nur Geändertes; umgehängte Cases kommen mit', () => {
+  const neu = caseMit('neu', 'Viper', null, []);
+  const schonDa = caseMit('da', 'Viper x2', 2, [GDTF]);
+  const umgehaengt = caseMit('um', 'Alt', 1, [GDTF]);
+  const res = { zuordnungen: [zu('neu', 1, 3), zu('da', 1, 2)], nichtLaden: [], reduktion: [] };
+  const out = casesZumMerken([neu, schonDa, umgehaengt], [umgehaengt], res);
+  assert.deepEqual(out.map(c => c.id).sort(), ['neu', 'um']);
+  assert.deepEqual(out.find(c => c.id === 'neu').fasst, { stueck: 3, geraete: [{ key: GDTF, name: 'Viper' }] });
+  // stueck-Korrektur an bekanntem Case wird gespeichert
+  const out2 = casesZumMerken([schonDa], [], { zuordnungen: [zu('da', 1, 4)], nichtLaden: [], reduktion: [] });
+  assert.equal(out2[0].fasst.stueck, 4);
+  // Abbruch-Fall: leeres Ergebnis -> nur umgehängte (hier keine)
+  assert.deepEqual(casesZumMerken([neu], [], { zuordnungen: [], nichtLaden: [], reduktion: [] }), []);
+});

@@ -4,6 +4,7 @@ import * as A from '../model/actions.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
 import { erkenneReiter, werteZeilen } from '../model/ladeliste.js';
 import { uebernimmTabelle } from '../model/tabellen-uebernahme.js';
+import { uebernimmGeraete } from '../model/nyxAbgleich.js';
 import { isMultiLkw, lkwsOf, piecesOf } from '../model/lkw.js';
 import { planeLkws, nichtGeladen, VERHALTEN } from '../model/lkw-import.js';
 import { catOf, catRank } from '../model/lkw-distribute.js';
@@ -51,7 +52,7 @@ export function freieLkwFuer(plan) {
 
 const truckByIdOf = s => new Map(bestandOf(s).trucks.map(tk => [tk.id, tk]));
 const ctxMitFahrzeugen = (s, newId) => ({ ...wholeCtxOf(s, newId), truckById: truckByIdOf(s) });
-const stueckIds = plan => new Set(piecesOf(plan).map(p => p.id));
+export const stueckIds = plan => new Set(piecesOf(plan).map(p => p.id));
 // Stücke, die seit `vor` dazugekommen sind (in Plan-Reihenfolge).
 export const neueStueckIds = (plan, vor) => piecesOf(plan).map(p => p.id).filter(id => !vor.has(id));
 
@@ -70,16 +71,57 @@ export function lkwBericht(plan, ids, caseById) {
 
 // Ganzer Ablauf auf einer Kopie (der Store bleibt unberührt): Tabelle übernehmen, dann LKW planen.
 // Liefert { plan, bericht }. Die Vorschau ruft genau das; die Übernahme geht dieselben Schritte über editWhole.
-export function rechneLkwImport(s, res, newId) {
+// Mit `res.zuordnungen` (Dialog „Aus Projektdatenbank übernehmen“, ohne Tabelle) übernimmt stattdessen
+// uebernimmGeraete; `alias` ist dieselbe Map wie dort (vw:→gdtf:).
+export function rechneLkwImport(s, res, newId, alias) {
   const { entwuerfe } = entwuerfeAus(res.eintraege);
   const vor = stueckIds(s.plan);
-  const mit = uebernimmTabelle(s.plan, entwuerfe, newId, res.gebaut);
+  const mit = res.zuordnungen
+    ? uebernimmGeraete(s.plan, res, newId, new Map(bestandOf(s).cases.map(c => [c.id, c])), alias)
+    : uebernimmTabelle(s.plan, entwuerfe, newId, res.gebaut);
   const s2 = { ...s, plan: mit };
   const neu = neueStueckIds(mit, vor);
   const ctx = ctxMitFahrzeugen(s2, newId);
   const plan = planeLkws(mit, ctx, { ...res.lkw, neu });
   const ids = res.lkw.verhalten === VERHALTEN.NEU ? piecesOf(plan).map(p => p.id) : neu;
   return { plan, bericht: lkwBericht(plan, ids, ctx.caseById) };
+}
+
+// Angaben für den LKW-Schritt (Stand beim Öffnen des Dialogs). `alias`: nur für den Geräte-Dialog.
+export function lkwOptsVon({ store, uid }, alias) {
+  const s = store.get();
+  const plan = s.plan;
+  const b = bestandOf(s);
+  const caseById = new Map(b.cases.map(c => [c.id, c]));
+  const zaehler = new Map();
+  for (const p of plan ? piecesOf(plan) : []) {
+    const c = caseById.get(p.caseId);
+    if (c) zaehler.set(catOf(c), (zaehler.get(catOf(c)) ?? 0) + 1);
+  }
+  return {
+    zielHatLkw: !!plan && (isMultiLkw(plan) || plan.placements.length > 0),
+    freieLkw: freieLkwFuer(plan),
+    fahrzeuge: b.trucks.map(({ id, name }) => ({ id, name })),
+    vorhandeneGewerke: [...zaehler].map(([name, stueck]) => ({ name, stueck })),
+    // Rechnet auf einer Kopie; Ziel „neu“ (oder noch kein Plan) auf einem leeren Plan. Ändert den Store nicht.
+    vorschau: async res => {
+      const aktuell = store.get().plan;
+      const basis = res.ziel === 'new' || !aktuell ? A.emptyPlan(uid(), '', DEFAULT_TRUCK_ID) : aktuell;
+      return rechneLkwImport({ ...store.get(), plan: basis }, res, uid, alias).bericht;
+    },
+  };
+}
+
+// Zweiter Schritt nach der Übernahme, damit der Kontext die neuen Stücke kennt; ohne eigenen
+// Rückgängig-Schritt, ein Rückgängig nimmt beides zurück. Dieselben Funktionen wie die Vorschau.
+// `vor`: Stück-IDs vor der Übernahme.
+export async function planeNachUebernahme({ store, editWhole, uid, showAlert }, lkw, vor) {
+  const neu = neueStueckIds(store.get().plan, vor);
+  editWhole((p, c) => planeLkws(p, { ...c, truckById: truckByIdOf(store.get()) }, { ...lkw, neu }), false);
+  const s = store.get();
+  const ids = lkw.verhalten === VERHALTEN.NEU ? piecesOf(s.plan).map(p => p.id) : neu;
+  const text = nichtGeladenText(lkwBericht(s.plan, ids, wholeCtxOf(s, uid).caseById).nichtGeladen);
+  if (text) await showAlert(text);
 }
 
 // deps: store, editWhole, switchPlan, uid, showAlert, showPrompt. Liefert { start, hilfe }.
@@ -129,34 +171,10 @@ export function wireTabellenImport({ store, editWhole, switchPlan, uid, showAler
       dateiname: files.map(f => f.name).join(', '),
       eintraege,
       zielAktuell: store.get().plan?.name ?? null,
-      ...lkwOpts(),
+      ...lkwOptsVon({ store, uid }),
       bestaetige,
     });
     if (res) await uebernehmen(res, name);
-  }
-
-  // Angaben für den LKW-Schritt (Stand beim Öffnen des Dialogs).
-  function lkwOpts() {
-    const s = store.get();
-    const plan = s.plan;
-    const b = bestandOf(s);
-    const caseById = new Map(b.cases.map(c => [c.id, c]));
-    const zaehler = new Map();
-    for (const p of plan ? piecesOf(plan) : []) {
-      const c = caseById.get(p.caseId);
-      if (c) zaehler.set(catOf(c), (zaehler.get(catOf(c)) ?? 0) + 1);
-    }
-    return {
-      zielHatLkw: !!plan && (isMultiLkw(plan) || plan.placements.length > 0),
-      freieLkw: freieLkwFuer(plan),
-      fahrzeuge: b.trucks.map(({ id, name }) => ({ id, name })),
-      vorhandeneGewerke: [...zaehler].map(([name, stueck]) => ({ name, stueck })),
-      // Rechnet auf einer Kopie; Ziel „neu“ auf einem leeren Plan. Ändert den Store nicht.
-      vorschau: async res => {
-        const basis = res.ziel === 'new' ? A.emptyPlan(uid(), '', DEFAULT_TRUCK_ID) : store.get().plan;
-        return rechneLkwImport({ ...store.get(), plan: basis }, res, uid).bericht;
-      },
-    };
   }
 
   // Zeilen, die wegen roter Befunde fehlen, werden genannt (Zahl und die ersten Namen).
@@ -179,14 +197,7 @@ export function wireTabellenImport({ store, editWhole, switchPlan, uid, showAler
       if (isMultiLkw(store.get().plan)) await showAlert(multiAddedNotice());
       return;
     }
-    // Zweiter Schritt, damit der Kontext die neuen mitgeführten Cases kennt; ohne eigenen
-    // Rückgängig-Schritt, ein Rückgängig nimmt beides zurück. Dieselben Funktionen wie die Vorschau.
-    const neu = neueStueckIds(store.get().plan, vor);
-    editWhole((p, c) => planeLkws(p, { ...c, truckById: truckByIdOf(store.get()) }, { ...lkw, neu }), false);
-    const s = store.get();
-    const ids = lkw.verhalten === VERHALTEN.NEU ? piecesOf(s.plan).map(p => p.id) : neu;
-    const text = nichtGeladenText(lkwBericht(s.plan, ids, wholeCtxOf(s, uid).caseById).nichtGeladen);
-    if (text) await showAlert(text);
+    await planeNachUebernahme({ store, editWhole, uid, showAlert }, lkw, vor);
   }
 
   input.onchange = () => {

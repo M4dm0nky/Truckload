@@ -50,13 +50,16 @@ test('neueStueckIds: nur Stücke, die vorher nicht da waren', () => {
 
 test('Struktursperre: Übernahme und Vorschau gehen über dieselben Funktionen, Vorschau schreibt nicht in den Store', () => {
   const src = readFileSync(new URL('../js/app/tabellenImport.js', import.meta.url), 'utf8');
-  const vor = src.slice(src.indexOf('vorschau: async'), src.indexOf('vorschau: async') + 400);
+  const vor = src.slice(src.indexOf('vorschau: async'), src.indexOf('vorschau: async') + 500);
   assert.match(vor, /rechneLkwImport\(/);
   assert.doesNotMatch(vor, /editWhole|store\.update|switchPlan/);
+  // Übernahme: die Tabelle ruft planeNachUebernahme, und das rechnet wie die Vorschau (planeLkws, neueStueckIds).
   const ueb = src.slice(src.indexOf('async function uebernehmen'));
-  assert.match(ueb, /planeLkws\(p, \{ \.\.\.c, truckById: truckByIdOf\(store\.get\(\)\) \}, \{ \.\.\.lkw, neu \}\)/);
-  assert.match(ueb, /neueStueckIds\(/);
-  assert.doesNotMatch(ueb, /packRest|warnIfUnplaced/);
+  assert.match(ueb, /planeNachUebernahme\(/);
+  const nach = src.slice(src.indexOf('export async function planeNachUebernahme'), src.indexOf('// deps: store, editWhole, switchPlan'));
+  assert.match(nach, /planeLkws\(p, \{ \.\.\.c, truckById: truckByIdOf\(store\.get\(\)\) \}, \{ \.\.\.lkw, neu \}\)/);
+  assert.match(nach, /neueStueckIds\(/);
+  assert.doesNotMatch(ueb + nach, /packRest|warnIfUnplaced/);
   assert.doesNotMatch(src, /saveCase/);
 });
 

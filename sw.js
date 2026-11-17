@@ -30,6 +30,7 @@ const ASSETS = [
   'js/app/plans.js',
   'js/app/screens.js',
   'js/app/tabellenImport.js',
+  'js/app/projektGeraeteImport.js',
   'js/version.js',
   'data/standard.json',
   'data/meine.json',
