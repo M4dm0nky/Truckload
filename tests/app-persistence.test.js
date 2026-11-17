@@ -104,6 +104,15 @@ test('removeFromStock: lib-Vorlage wird ausgeblendet (gespeichert, nicht gelösc
   assert.equal(store.get().cases[0].legacy, true);
 });
 
+test('saveRuleSet: rowPlan wird mitgespeichert, ohne Häkchen fehlt das Feld', async () => {
+  const { p } = setup({ state: { ruleSets: [] } });
+  const a = await p.saveRuleSet('R', [], false, 'bibliothek', true);
+  assert.equal(a.rowPlan, true);
+  assert.equal('mixTop' in a, false);
+  const b = await p.saveRuleSet('S', [], true, 'bibliothek', false);
+  assert.equal('rowPlan' in b, false);
+});
+
 test('saveRuleSet: neues Set bekommt uid, gleicher Name (case-insensitiv) behält die id', async () => {
   const { p, store } = setup({ state: { ruleSets: [{ id: 'r1', name: 'Standard', rules: [] }] } });
   const a = await p.saveRuleSet('neu', ['x'], true);

@@ -25,10 +25,10 @@ const byName = (a, b) => a.name.localeCompare(b.name, 'de');
 
 // Dialog „Pack-Regeln“. Store-unwissend wie openCaseEditor/openLoadWizard: bekommt
 // Regeln, Deckschicht-Schalter, Ziele des Loads und Regelsets als Argumente, speichert Regelsets
-// über die Rückrufe von app.js und liefert { rules, mixTop, repack } oder null (Abbrechen/Esc).
+// über die Rückrufe von app.js und liefert { rules, mixTop, rowPlan, repack } oder null (Abbrechen/Esc).
 // Eigene Entscheidung: Reihenfolge über „↑“/„↓“ statt Ziehen – per Tastatur bedienbar, ohne
 // Drag-Sonderfälle im <dialog>.
-export async function openPackRules(dlg, { rules, mixTop = false, targets, caseById, ruleSets = [], projectRuleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
+export async function openPackRules(dlg, { rules, mixTop = false, rowPlan = false, targets, caseById, ruleSets = [], projectRuleSets = [], onSaveRuleSet, onDeleteRuleSet }) {
   if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
     const closed = new Promise(r => dlg.addEventListener('close', r, { once: true }));
     dlg.returnValue = 'cancel'; dlg.close();
@@ -46,6 +46,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
       <ol class="rule-list"></ol>
       <label class="check"><input type="checkbox" name="mixTop"> ${t('Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf')}</label>
       <small class="hint">${t('Cases ohne Gewicht (0 kg) werden nicht gemischt. Die Lagen je Stück gelten weiter.')}</small>
+      <label class="check"><input type="checkbox" name="rowPlan"> ${t('Reihen planen: jede Reihe so dicht wie möglich füllen, auch mit Cases späterer Sorten desselben Gewerks')}</label>
       <fieldset class="rule-add">
         <legend>${t('Regel hinzufügen')}</legend>
         <div class="rule-add-row">
@@ -119,6 +120,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
 
   const saveSetBtn = dlg.querySelector('[data-act="save-set"]');
   f.mixTop.checked = mixTop === true;
+  f.rowPlan.checked = rowPlan === true;
 
   f.by.addEventListener('change', syncAddRow);
   // Enter im Namensfeld sendet sonst das <form method="dialog"> mit dem ERSTEN Button im Dokument
@@ -147,7 +149,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
     if (act === 'apply-set') {
       const v = parseSetValue(f.set.value);
       const s = v && listOf(v.ort).find(x => x.id === v.id);
-      if (s) { cur = [...s.rules]; f.mixTop.checked = s.mixTop === true; showSetHint(t('Regelset „{name}“ übernommen.', { name: s.name })); }
+      if (s) { cur = [...s.rules]; f.mixTop.checked = s.mixTop === true; f.rowPlan.checked = s.rowPlan === true; showSetHint(t('Regelset „{name}“ übernommen.', { name: s.name })); }
     }
     if (act === 'delete-set') {
       const v = parseSetValue(f.set.value);
@@ -162,7 +164,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
       const name = f.setName.value.trim();
       if (!name) { f.setName.focus(); return; }
       const ort = f.setOrt.value;
-      const saved = await onSaveRuleSet?.(name, cur, f.mixTop.checked, ort);
+      const saved = await onSaveRuleSet?.(name, cur, f.mixTop.checked, ort, f.rowPlan.checked);
       if (saved) {
         const next = [...listOf(ort).filter(x => x.id !== saved.id), saved].sort(byName);
         if (ort === 'projekt') projSets = next; else sets = next;
@@ -182,7 +184,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, targets, caseB
   return new Promise(resolve => {
     dlg.addEventListener('close', () => {
       const v = dlg.returnValue;
-      resolve(v === 'save' || v === 'repack' ? { rules: cur, mixTop: f.mixTop.checked, repack: v === 'repack' } : null);
+      resolve(v === 'save' || v === 'repack' ? { rules: cur, mixTop: f.mixTop.checked, rowPlan: f.rowPlan.checked, repack: v === 'repack' } : null);
     }, { once: true });
     dlg.returnValue = '';
     dlg.showModal();

@@ -5,6 +5,8 @@ import { archBoxes } from '../js/model/geometry.js';
 import { buildItems, aboveLayer } from '../js/model/items.js';
 import { mkCase, mkTruck, SPRINTER, P, plan, byId, counter } from './fixtures.js';
 import * as A from '../js/model/actions.js';
+import { printSectionsOf } from '../js/app/core.js';
+import { DEFAULT_TRUCK_ID } from '../js/data/preset-trucks.js';
 
 const K = mkCase('k', 120, 60, 60);
 const codes = (r, id) => (r.byPlacement.get(id) ?? []).map(i => i.code).sort();
@@ -424,3 +426,85 @@ test('Deckschicht nebeneinander (gepackt): keine Fehlalarme, Last auf dem Haupts
   assert.equal(bad.length, 1);
   assert.equal(bad[0].placementId, b.id);
 });
+
+// ---- Lücken vor der letzten Reihe (Plan „Dicht laden“) ---------------------------------------
+// Mindestgröße einer Lücke: 25 × 25 cm. Jeder Gegentest hat ein Paar mit möglichem Treffer.
+{
+  const B100 = mkCase('b100', 120, 100, 100);
+  const B80 = mkCase('b80', 120, 80, 100);
+  const SM = mkCase('sm', 40, 40, 40); // Füllstück der letzten Reihe
+  const T245 = mkTruck({ w: 245 });
+  const gaps = r => r.issues.filter(i => i.code === 'gap');
+  const row1 = [P('a', 'b100', 0, 0, 0), P('b', 'b100', 0, 100, 0)]; // 45 cm Rest bei w 245
+
+  test('validatePlan: Lücke vor der letzten Reihe wird gemeldet', () => {
+    const r = validatePlan(plan([...row1, P('c', 'b100', 120, 0, 0), P('d', 'b100', 120, 100, 0)]),
+      byId(B100), T245);
+    assert.equal(gaps(r).length, 1);
+    assert.equal(gaps(r)[0].placementId, null);
+    assert.equal(gaps(r)[0].message, 'Lücke 45 × 120 cm in Reihe 1');
+  });
+
+  test('validatePlan: die letzte Reihe ist ausgenommen (gleiche 100 cm Rest, nur mit Reihe dahinter ein Treffer)', () => {
+    const T300 = mkTruck({ w: 300 });
+    const allein = validatePlan(plan(row1), byId(B100), T300);
+    assert.deepEqual(gaps(allein), []);
+    const mit = validatePlan(plan([...row1, P('c', 'b100', 120, 0, 0)]), byId(B100), T300);
+    assert.equal(gaps(mit).length, 1);
+    assert.equal(gaps(mit)[0].message, 'Lücke 100 × 120 cm in Reihe 1');
+  });
+
+  test('validatePlan: 3×80 füllt 245 bis auf 5 cm – keine Lücke; mit nur 2×80 sind es 85 cm und ein Treffer', () => {
+    const voll = [P('a', 'b80', 0, 0, 0), P('b', 'b80', 0, 80, 0), P('c', 'b80', 0, 160, 0)];
+    const dahinter = P('d', 'b80', 120, 0, 0);
+    assert.deepEqual(gaps(validatePlan(plan([...voll, dahinter]), byId(B80), T245)), []);
+    const zwei = validatePlan(plan([...voll.slice(0, 2), dahinter]), byId(B80), T245);
+    assert.equal(gaps(zwei).length, 1);
+    assert.equal(gaps(zwei)[0].message, 'Lücke 85 × 120 cm in Reihe 1');
+  });
+
+  test('validatePlan: Radkasten im Transporter ist keine Lücke', () => {
+    const arch = { x: 215, l: 100, w: 40, h: 30, side: 'both' };
+    const T = mkTruck({ l: 430, w: 178, h: 194, payload: 1000, wheelArches: [arch] });
+    const mid = mkCase('mid', 100, 98, 60); // füllt zwischen den Radkästen (y 40–138)
+    const items = [P('a', 'mid', 215, 40, 0), P('e', 'sm', 330, 0, 0)];
+    assert.deepEqual(gaps(validatePlan(plan(items), byId(mid, SM), T)), []);
+    // Gegenprobe: ohne Radkasten wären die 40-cm-Streifen Lücken
+    const ohne = validatePlan(plan(items), byId(mid, SM), { ...T, wheelArches: [] });
+    assert.equal(gaps(ohne).length, 2);
+  });
+
+  test('validatePlan: ein gestapeltes Stück über der Lücke schließt sie nicht', () => {
+    // Ein Brett (z 100) deckt den 45-cm-Rest ganz ab; die Bodenlücke bleibt. Die Auflage-Warnung ist egal.
+    const brett = mkCase('brett', 120, 45, 20);
+    const r = validatePlan(plan([...row1, P('c', 'b100', 120, 0, 0), P('d', 'b100', 120, 100, 0),
+      P('s', 'brett', 0, 200, 100)]), byId(B100, brett), T245);
+    assert.equal(gaps(r).length, 1);
+  });
+
+  test('validatePlan: ein gestapeltes Stück weiter hinten ändert die letzte Reihe nicht', () => {
+    const r = validatePlan(plan([...row1, P('s', 'sm', 300, 0, 100)]), byId(B100, SM), T245);
+    assert.deepEqual(gaps(r), []);
+  });
+
+  test('validatePlan: Mehr-LKW – je LKW eigene letzte Reihe', () => {
+    const TR = mkTruck({ id: DEFAULT_TRUCK_ID, w: 245 });
+    const mkLkw = id => ({ id, name: id, truckId: DEFAULT_TRUCK_ID, categories: [] });
+    const on = (lkw, ...ps) => ps.map(p => ({ ...p, lkw }));
+    const p = {
+      ...plan([
+        // LKW A: nur eine Reihe (x 0–120) → letzte Reihe, keine Lücke, auch wenn B weiter hinten steht
+        ...on('A', P('a1', 'b100', 0, 0, 0), P('a2', 'b100', 0, 100, 0)),
+        // LKW B: Reihe 1 mit 45er-Rest, dahinter die letzte Reihe
+        ...on('B', P('b1', 'b100', 300, 0, 0), P('b2', 'b100', 300, 100, 0),
+          P('b3', 'b100', 420, 0, 0), P('b4', 'b100', 420, 100, 0)),
+      ]),
+      lkws: [mkLkw('A'), mkLkw('B')],
+    };
+    const s = { plan: p, cases: [B100], trucks: [TR] };
+    const [a, b] = printSectionsOf(s).sections; // validatePlan je LKW, wie core.js es aufruft
+    assert.deepEqual(gaps(a.result), []);
+    assert.equal(gaps(b.result).length, 1);
+    assert.equal(gaps(b.result)[0].message, 'Lücke 45 × 120 cm in Reihe 1');
+  });
+}

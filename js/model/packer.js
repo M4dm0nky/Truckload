@@ -1,6 +1,8 @@
 import { ROTATIONS, isTruss, archBoxes, effectiveDims, overlaps, wheelFace, DOOR_FACE, pieceLayers, pieceOrientations, outerDims } from './geometry.js';
 import { pickPieceFields } from './pieceFields.js';
 import { legacyRules, blockComparator, volumeOf, sameSelectorRank } from './packRules.js';
+import { planRows } from './rowPlanner.js';
+import { freeFloorArea } from './rows.js';
 
 export function chooseOrientation(c, truck, piece = {}) {
   const opts = [];
@@ -55,7 +57,7 @@ function canAddToStack(stack, c, dz, truck) {
 
 // Deckschicht (Spec 2026-09-30-deckschicht-design.md): gehören zwei Stücke zusammen? Beide mit
 // Gruppe → gleiche Gruppe; beide ohne → gleiches Gewerk; eins mit, eins ohne → nein.
-const belongsTogether = (a, ca, b, cb) =>
+export const belongsTogether = (a, ca, b, cb) =>
   (a.group || b.group) ? a.group === b.group : ca.category === cb.category;
 
 // Passt das Stück als weiteres Deckstück auf den Stapel `s` eines früheren Blocks? Die Deckschicht ist
@@ -332,11 +334,22 @@ export function placeStacks(stacks, truck, obstacles = [], { startX = 0 } = {}) 
 
 // items: Stücke { id, caseId, c, label?, color?, layers?, tipped? } mit bereits aufgelöstem Case `c`.
 // Die erzeugten Placements übernehmen id/label/color/layers/tipped des Stücks statt eine neue ID zu vergeben.
-// order: 'volume' | 'count' (Altdaten), rules: Rangliste (packRules.js, hat Vorrang), startX: frühestes x der ersten Sorte (Rest einpacken).
-export function autoPack(items, truck, { obstacles = [], order = 'volume', rules, mixTop = false, startX = 0 } = {}) {
+// order: 'volume' | 'count' (Altdaten), rules: Rangliste (packRules.js, hat Vorrang), startX: frühestes x der ersten Sorte (Rest einpacken), rowPlan: Reihenplaner statt placeStacks (rowPlanner.js).
+export function autoPack(items, truck, { obstacles = [], order = 'volume', rules, mixTop = false, startX = 0, rowPlan = false } = {}) {
   // Der String `order` (Altdaten) wird hier einmal in Regeln übersetzt; darunter gibt es nur Regel-Arrays.
   const { stacks, unplaced } = buildStacks(items, truck, { rules: rules ?? legacyRules(order), mixTop });
-  const { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
+  let { placed, failed } = placeStacks(stacks, truck, obstacles, { startX });
+  if (rowPlan) {
+    // „Reihen planen“ lädt nie weniger als aus: beide Pläne rechnen. Zuerst zählen die nicht
+    // verladenen Stücke (weniger gewinnt), bei Gleichstand die freie Bodenfläche (weniger gewinnt),
+    // bei erneutem Gleichstand der Reihenplan.
+    const alt = planRows(stacks, truck, obstacles, { startX });
+    const blocked = [...archBoxes(truck), ...obstacles];
+    const free = r => freeFloorArea(r.placed.map(p => p.box), truck, { obstacles: blocked });
+    const lost = r => r.failed.reduce((n, s) => n + s.items.length, 0);
+    const dl = lost(alt) - lost({ failed });
+    if (dl < 0 || (dl === 0 && free(alt) <= free({ placed }) + 1e-6)) ({ placed, failed } = alt);
+  }
   const placements = [];
   for (const { stack, box, swap } of placed) {
     for (const { it, o, z, ox = 0, oy = 0 } of stack.items) {

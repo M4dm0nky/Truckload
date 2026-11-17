@@ -4,7 +4,7 @@
 // läuft der Abruf im Hintergrund weiter und frischt den Cache auf.
 // Ein Stand pro Seitenaufruf: Lief bei einem Client ein Abruf in den Timeout, kommen alle weiteren
 // Dateien dieses Clients sofort aus dem Cache – sonst mischen sich alte und neue Module.
-const CACHE = 'truckload-v0.31.0';
+const CACHE = 'truckload-v0.32.0';
 const ASSETS = [
   './',
   'index.html',
@@ -60,6 +60,8 @@ const ASSETS = [
   'js/model/packer.js',
   'js/model/packRules.js',
   'js/model/pieceFields.js',
+  'js/model/rows.js',
+  'js/model/rowPlanner.js',
   'js/model/slug.js',
   'js/model/stamp.js',
   'js/model/tabellen-uebernahme.js',
