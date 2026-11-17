@@ -2,13 +2,17 @@
 // Liefert eine ganze Zahl 1..99 oder null. Die erste passende Regel gewinnt;
 // Einzel/Doppel stehen vor Zahlen ("Doppel-Toploader-Case CycFX 8" -> 2).
 
+const ZAHLWORT = { zwei: 2, drei: 3, vier: 4, fünf: 5, fuenf: 5, sechs: 6, acht: 8, zehn: 10, zwölf: 12, zwoelf: 12 };
+
 const REGELN = [
   [/\b(?:einzel|single)\b/i, () => 1],
   [/\b(?:doppel|double|dual)\b/i, () => 2],
+  // Zahlwort + "fach": "Vierfach-Toploader-Case ... 4" (Zahlwort schlägt nachgestellte Ziffern)
+  [/\b(zwei|drei|vier|f(?:ü|ue)nf|sechs|acht|zehn|zw(?:ö|oe)lf)fach/i, m => ZAHLWORT[m[1].toLowerCase()]],
   // "6er", "5fach". Über 20 ist es ein Traversenprofil ("Truss 40er", "29er"), kein Zählwert.
   [/(?<![\w,.])(\d+)\s*(?:er|fach)\b/i, m => (Number(m[1]) <= 20 ? m[1] : null)],
-  // "(2)"
-  [/\((\d+)\)/, m => m[1]],
+  // "(2)", "(2 Stück)", "(8 Panels)"
+  [/\((\d+)(?:\s*(?:stück|stk\.?|panels?))?\)/i, m => m[1]],
   // "x4", "HEx2", "LEDx8": kleines x, nicht direkt nach einer Ziffer (120x60),
   // gefolgt von Leerraum, Ende oder "-". Großes X ("X4-Bar") zählt nie.
   [/(?<!\d)x\s?(\d+)(?=\s|$|-)/, m => m[1]],
