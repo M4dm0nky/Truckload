@@ -1,1 +1,1 @@
-{ "name": "truckload", "version": "0.32.0", "private": true, "type": "module", "scripts": { "test": "node --test" } }
+{ "name": "truckload", "version": "0.33.0", "private": true, "type": "module", "scripts": { "test": "node --test" } }

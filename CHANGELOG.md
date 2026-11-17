@@ -2,6 +2,17 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.33.0 – 2026-11-17
+
+**Geräte aus NYX übernehmen.** Nur in NYX: Truckload liest die Geräte des Projekts und legt die passenden Cases an.
+
+- **Aus Projektdatenbank übernehmen:** Neuer Knopf (nur wenn NYX die Geräte liefert) und automatisches Öffnen beim ersten Öffnen in einem Projekt. Links die Gerätetypen mit Stückzahl, rechts anklickbare Vorschläge nur für schon bekannte Gerätetypen, „Anderes Case suchen …“, „Neues Case“ und „Nicht laden“. Ohne Klick wird nichts zugeordnet.
+- **Geräte pro Case:** kommt aus dem Case-Namen, ist sichtbar und änderbar und wird am Case gemerkt. Ein Rest geht auf ein anderes Case.
+- **Neues Case:** landet in „Meine Sammlung“, Gewerk „Licht“, Gewichtsvorschlag = Geräte pro Case × Gerätegewicht aus NYX (optional). Ist das Case tippbar, werden die Stücke getippt.
+- **Erneutes Öffnen:** zeigt nur die Differenz (+n/−n). Verringerungen erst nach Bestätigung, zuerst Stücke, die nicht auf einem LKW stehen. Jeder Plan gleicht sich für sich ab. Danach lädt der gewohnte LKW-Schritt.
+- **Duplikat:** Ein Duplikat eines NYX-Stücks zählt als Hand-Stück.
+- **Dateien:** Neu sind `js/model/stueckAusName.js`, `js/model/nyxAbgleich.js`, `js/store/projektGeraete.js`, `js/ui/geraete-schritt.js` und `js/app/projektGeraeteImport.js`; neue optionale Felder `fasst` (Case), `nyxAbgleich` (Plan), `nyxGeraet` und `nyxStueck` (Stück). Kein neuer Store.
+
 ## V 0.32.0 – 2026-11-17
 
 **Dicht laden.** Der Packer kann Reihen jetzt so planen, dass weniger freier Boden bleibt, und der Plan meldet Lücken.
