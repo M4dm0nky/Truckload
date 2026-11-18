@@ -8,7 +8,7 @@
 /* ---- Knopf ---- */
 button, .btn, select, input, textarea { font: inherit; color: inherit; }
 button, .btn {
-  background: var(--tl-button-bg); border: 1px solid var(--line); border-radius: var(--tl-radius);
+  background: var(--tl-button-bg); border: 1px solid var(--tl-control-border); border-radius: var(--tl-radius);
   min-height: var(--tl-control-height); padding: var(--tl-button-pad);
   font-size: var(--tl-control-font-size); font-weight: var(--tl-button-weight); cursor: pointer;
 }
@@ -27,7 +27,7 @@ a.btn { text-decoration: none; color: var(--text); display: inline-block; }
 
 /* ---- Feld ---- */
 select, input, textarea {
-  background: var(--tl-input); border: 1px solid var(--line); border-radius: var(--tl-radius);
+  background: var(--tl-input); border: 1px solid var(--tl-control-border); border-radius: var(--tl-radius);
   padding: var(--tl-field-pad); min-height: var(--tl-control-height);
 }
 select { max-width: 100%; }
@@ -73,7 +73,7 @@ dialog::backdrop { background: var(--tl-backdrop); }
 .editor label:has(> input:disabled), .editor label:has(> select:disabled) { color: var(--muted); opacity: .6; }
 
 /* ---- Hinweis ---- */
-.hint { color: var(--muted); font-size: 12px; margin: 0; }
+.hint { color: var(--muted); font-size: var(--tl-hint-font-size); margin: 0; }
 .banner { padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--line); position: relative; }
 .banner-warn { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .banner-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); } /* nur Position; Optik: button.quiet */

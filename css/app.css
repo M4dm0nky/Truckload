@@ -28,10 +28,11 @@
   --tl-dialog-radius: 12px; --tl-dialog-pad: 18px; --tl-dialog-title-size: 18px;
   --tl-dialog-divider: transparent; --tl-backdrop: rgba(0,0,0,.5);
   --tl-warn: #f2b705; --tl-warn-text: #f2b705;
+  --tl-control-border: var(--tl-line); --tl-font-size: 14px; --tl-hint-font-size: 12px;
   --bg: var(--tl-bg); --panel: var(--tl-surface); --line: var(--tl-line); --text: var(--tl-text); --muted: var(--tl-text-muted);
   --accent: var(--tl-accent); --on-accent: var(--tl-on-accent); --danger: var(--tl-danger); --ok: var(--tl-ok); --truck: var(--tl-truck); --grid: var(--tl-grid);
   --warn: var(--tl-warn); --warn-text: var(--tl-warn-text); /* Warnfarbe: Rand/Grund gelb, Text im Hellmodus dunkler (Kontrast auf Weiß) */
-  --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 8px; font: var(--tl-font-size)/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   --case-body: #1c1d20; --alu: #b8bec6; --corner: #d6dbe1; --wheel: #2b2d31;
 }
 @media (prefers-color-scheme: light) {

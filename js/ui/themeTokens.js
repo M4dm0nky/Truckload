@@ -15,4 +15,5 @@ export const THEME_TOKENS = [
   '--tl-button-hover-border', '--tl-selected-bg', '--tl-selected-text', '--tl-selected-border',
   '--tl-marked-border', '--tl-dialog-radius', '--tl-dialog-pad', '--tl-dialog-title-size',
   '--tl-dialog-divider', '--tl-backdrop', '--tl-warn', '--tl-warn-text',
+  '--tl-control-border', '--tl-font-size', '--tl-hint-font-size',
 ];

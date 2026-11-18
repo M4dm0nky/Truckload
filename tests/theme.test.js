@@ -53,6 +53,7 @@ const DUNKEL2 = {
   '--tl-dialog-radius': '12px', '--tl-dialog-pad': '18px', '--tl-dialog-title-size': '18px',
   '--tl-dialog-divider': 'transparent', '--tl-backdrop': 'rgba(0,0,0,.5)',
   '--tl-warn': '#f2b705', '--tl-warn-text': '#f2b705',
+  '--tl-control-border': 'var(--tl-line)', '--tl-font-size': '14px', '--tl-hint-font-size': '12px',
 };
 
 test('Token-Liste Version 1 ist vollständig und in fester Reihenfolge', () => {
@@ -114,4 +115,12 @@ test('Knöpfe, Felder, Fokus und Schrift lesen die Tokens', () => {
   assert.match(uiCss, /select, input, textarea \{[^}]*background: var\(--tl-input\)[^}]*border-radius: var\(--tl-radius\)/);
   assert.match(uiCss, /:focus-visible \{[^}]*outline: 2px solid var\(--tl-focus\)/);
   assert.match(css, /body \{[^}]*font-family: var\(--tl-font\)/);
+});
+
+test('Randfarbe, Grund- und Hinweisschrift werden von den Bausteinen gelesen', () => {
+  const rule = (sel) => { const i = uiCss.indexOf(`\n${sel} {`); assert.ok(i >= 0, sel); return uiCss.slice(i, uiCss.indexOf('}', i)); };
+  assert.match(rule('button, .btn'), /border: 1px solid var\(--tl-control-border\)/);
+  assert.match(rule('select, input, textarea'), /border: 1px solid var\(--tl-control-border\)/);
+  assert.match(rule('.hint'), /font-size: var\(--tl-hint-font-size\)/);
+  assert.match(css, /font: var\(--tl-font-size\)\/1\.4 /);
 });
