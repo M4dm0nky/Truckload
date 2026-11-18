@@ -1,6 +1,6 @@
 # Einbindung in NYX
 
-## Für den Admin: zu tun vor dem Heben des Submoduls auf die Version mit Issue #50
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.34.1
 
 - Neue Dateien `js/ui/symbols.js` (Lucide-Symbole) und `vendor/LICENSE-lucide.txt` (ISC), beide in
   `sw.js`. NYX packt das Submodul über `**/*` ein; Lucide steht in NYX' `THIRD_PARTY_NOTICES.txt`
