@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseCss, targetCompound, uiClasses, findControlStyling, findColorLiterals } from './css-scan.js';
+import { parseCss, uiClasses, findControlStyling, findColorLiterals } from './css-scan.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const ui = parseCss(read('css/ui.css'));
@@ -22,7 +22,7 @@ test('keine Farbliterale außerhalb der Token-Blöcke', () => {
 });
 
 test('ui.css kennt kein generisches button.on', () => {
-  const bad = ui.filter(r => targetCompound(r.selector) === 'button.on' && r.selector === 'button.on');
+  const bad = ui.filter(r => /^button\.on(:[\w-]+)*$/.test(r.selector));
   assert.deepEqual(bad.map(r => `css/ui.css:${r.line} ${r.selector}`), []);
 });
 

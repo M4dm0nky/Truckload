@@ -87,34 +87,40 @@ export function targetCompound(selector) {
   return parts[parts.length - 1] ?? '';
 }
 
-// Baustein-Klassen: nur die ERSTE Klasse des Zielglieds einer unverschachtelten Regel
-// (`.chip`, `button.small`, `.lkw-tab.on` -> chip, small, lkw-tab). Zustands- und
-// Kontextklassen (`.on`, `.error`, das `.row` aus `.editor .row`, alles in `:not(...)`)
-// sind keine Bausteine; sonst meldete der Wächter jede Ansichtsregel mit `.row` oder `.on`.
-export function uiClasses(rules) {
-  const set = new Set();
-  for (const r of rules) {
-    const t = targetCompound(r.selector);
-    if (t !== r.selector) continue;
-    const m = /\.([\w-]+)/.exec(stripNot(t));
-    if (m) set.add(m[1]);
-  }
-  return set;
-}
+// Klassen, die ui.css nur als Zustand setzt und die auch an Nicht-Bedienelementen hängen:
+// on = gewählt/aktiv (auch .wiz-dot.on), error = Fehlerzustand (auch .save-status.error),
+// warn = Warnzustand (auch an Hinweisen), none = „leer“-Variante des Tabs (nur mit :not(.on) gepaart),
+// sel = gewählte Zeile/Karte in Listen.
+export const STATE_CLASSES = new Set(['on', 'error', 'warn', 'none', 'sel']);
 
 function stripNot(c) {
   return c.replace(/:not\((?:[^()]|\([^)]*\))*\)/g, '');
 }
 
-// Ein Glied zielt auf ein Bedienelement, wenn es ein Element aus der Liste nennt oder seine
-// erste Klasse `btn` bzw. eine Baustein-Klasse ist.
+function classesOf(compound) {
+  return [...stripNot(compound).matchAll(/\.([\w-]+)/g)].map(m => m[1]);
+}
+
+// Baustein- und Variantenklassen: alle Klassen im Zielglied unverschachtelter ui.css-Regeln
+// (`.chip`, `button.small`, `.lkw-tab.on`), ohne Zustandsklassen. Kontextklassen
+// (das `.row` aus `.editor .row`) und alles in `:not(...)` zählen nicht.
+export function uiClasses(rules) {
+  const set = new Set();
+  for (const r of rules) {
+    if (targetCompound(r.selector) !== r.selector) continue;
+    for (const c of classesOf(r.selector)) if (!STATE_CLASSES.has(c)) set.add(c);
+  }
+  return set;
+}
+
+// Ein Glied zielt auf ein Bedienelement, wenn es ein Element aus der Liste nennt oder IRGENDEINE
+// seiner Klassen `btn` oder eine Baustein-/Variantenklasse ist (`.quick-len.chip` zählt).
 export function isControlTarget(compound, ui) {
   const c = stripNot(compound)
     .replace(/::?[\w-]+(\([^)]*\))?/g, '')
     .replace(/\[[^\]]*\]/g, '');
   if (/^(button|input|select|textarea|dialog)(?![\w-])/i.test(c)) return true;
-  const m = /\.([\w-]+)/.exec(c);
-  return !!m && (m[1] === 'btn' || ui.has(m[1]));
+  return classesOf(c).some(k => k === 'btn' || ui.has(k));
 }
 
 export const LOOK_PROPS = /^(padding|height|min-height|font|line-height|color|background|border|box-shadow|opacity|outline|cursor|text-align)/;

@@ -50,9 +50,9 @@ test('findColorLiterals: transparent, currentColor, var, Tokens in @media', () =
   assert.deepEqual(findColorLiterals(parseCss(css)), []);
 });
 
-test('uiClasses: nur die erste Klasse unverschachtelter Zielglieder, nie :not oder Kontext', () => {
+test('uiClasses: alle Klassen unverschachtelter Zielglieder, nie :not, Kontext oder Zustand', () => {
   const css = '.a.on:hover, button.b.c, .x .row, .lkw-tab.none:not(.on), input.error { x: y }';
-  assert.deepEqual([...uiClasses(parseCss(css))].sort(), ['a', 'b', 'error', 'lkw-tab']);
+  assert.deepEqual([...uiClasses(parseCss(css))].sort(), ['a', 'b', 'c', 'lkw-tab']);
 });
 
 test('Ansichtsregeln mit Zustands- oder Kontextklasse sind kein Bedienelement-Ziel', () => {
@@ -60,4 +60,15 @@ test('Ansichtsregeln mit Zustands- oder Kontextklasse sind kein Bedienelement-Zi
   assert.equal(isControlTarget('.save-status.error', ui), false);
   assert.equal(isControlTarget('.row.wiz-all', ui), false);
   assert.equal(isControlTarget('.chip', ui), true);
+});
+
+test('Hakenklasse plus Variante wird gemeldet, Zustand und Kontext nicht', () => {
+  const ui = uiClasses(parseCss('.chip { x: y } .small { x: y } .btn { x: y } .primary { x: y } .editor .row { x: y } .on { x: y } input.error { x: y }'));
+  for (const sel of ['.x.chip', '.quick-len.chip', '.insp-weight.small', '.x.btn', '.x.primary']) {
+    const found = findControlStyling(parseCss(`${sel} { padding: 1px }`), ui);
+    assert.deepEqual(found.map(f => f.selector), [sel], sel);
+  }
+  for (const sel of ['.save-status.error', '.wiz-dot.on', '.row.wiz-all']) {
+    assert.deepEqual(findControlStyling(parseCss(`${sel} { padding: 1px }`), ui), [], sel);
+  }
 });
