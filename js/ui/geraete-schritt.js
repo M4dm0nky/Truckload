@@ -138,7 +138,7 @@ function linkeZeile(st, z) {
   const zahl = st.diffModus && z.diff !== 0 && !st.nichtLaden.has(z.key) ? diffText(z) : String(z.anzahl);
   const zuo = zuordnungenVon(st, z.key).filter(a => a.n > 0)
     .map(a => `<span class="ge-ref">→ ${esc(a.n)}× ${esc(a.name)}</span>`).join('');
-  return `<li><button type="button" class="ge-row${st.wahl === z.key ? ' on' : ''}" data-act="g-waehle" data-key="${esc(z.key)}" aria-pressed="${st.wahl === z.key}">`
+  return `<li><button type="button" class="ge-row list-item${st.wahl === z.key ? ' on' : ''}" data-act="g-waehle" data-key="${esc(z.key)}" aria-pressed="${st.wahl === z.key}">`
     + `<span class="ge-name">${esc(z.name)}</span><b class="ge-num">${esc(zahl)}</b><span class="hint">${esc(zustandText(st, z))}</span>${zuo}</button></li>`;
 }
 

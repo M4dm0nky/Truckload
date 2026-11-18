@@ -97,7 +97,7 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
         <div class="row">
           <label>${t('Traversenlänge (cm)')}<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
         </div>
-        <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
+        <div class="row quick-lengths">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len chip" data-len="${n}">${n}</button>`).join('')}</div>
         <div class="row">
           <label>${t('Traversenbreite')}<select name="trussWidthProfile">
             ${TRUSS_PROFILES.map(p => `<option value="${p.width}">${p.name} – ${p.width} cm</option>`).join('')}

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { SPALTEN, erkenneReiter, werteZeilen, pruefeEintrag } from '../js/model/ladeliste.js';
 import { stockTargetHtml, readStockTarget } from '../js/ui/stock-target.js';
-import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus, filterNachHinzufuegen, schritte, bauSchrittHtml, setSchrittHtml, lkwSchrittHtml, nichtGeladenText } from '../js/ui/tabellen-import.js';
+import { zusammenfassung, auffaelligkeiten, uebersichtHtml, listeHtml, zeilenStatus, hilfeHtml, vorlageDatei, entwuerfeAus, filterNachHinzufuegen, schritte, bauSchrittHtml, setSchrittHtml, lkwSchrittHtml, nichtGeladenText, feldKlasse } from '../js/ui/tabellen-import.js';
 
 const XSS = '<img src=x onerror=alert(1)>';
 const kopf = reiter => SPALTEN[reiter].map(s => s.de);
@@ -105,7 +105,7 @@ test('listeHtml: Filter „fehler“ zeigt nur rote und gelbe Einträge, keine L
   assert.match(nur, /<tr data-i="1" class="gelb">/);
   assert.match(nur, /<tr data-i="2" class="rot">/);
   assert.doesNotMatch(alle, /LKW/);
-  assert.match(nur, /data-k="hoehe" value="" class="rot"/);
+  assert.match(nur, /data-k="hoehe" value="" class="small error"/);
   // Reiter und Suche
   assert.ok(!listeHtml(e, { filter: 'alle', reiter: 'set', suche: '' }).includes('<tr data-i'));
   assert.equal((listeHtml(e, { filter: 'alle', reiter: 'cases', suche: 'GELB' }).match(/<tr data-i/g) ?? []).length, 1);
@@ -454,4 +454,10 @@ test('nichtGeladenText: leer, Einzahl, Mehrzahl', () => {
   const zwei = nichtGeladenText([{ name: 'Sub', gewerk: 'Ton' }, { name: 'Par', gewerk: 'Licht' }]);
   assert.match(zwei, /2 Cases nicht geladen/);
   assert.match(zwei, /Sub \(Ton\).*Par \(Licht\)/);
+});
+
+test('Feldzustand behält die Größe nach Eingabe', () => {
+  assert.equal(feldKlasse('rot'), 'small error');
+  assert.equal(feldKlasse('gelb'), 'small warn');
+  assert.equal(feldKlasse(undefined), 'small');
 });

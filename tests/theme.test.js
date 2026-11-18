@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { THEME_VERSION, THEME_TOKENS } from '../js/ui/themeTokens.js';
 
 const css = readFileSync(new URL('../css/app.css', import.meta.url), 'utf8');
+const uiCss = readFileSync(new URL('../css/ui.css', import.meta.url), 'utf8');
 
 // Liefert die Deklarationen des ERSTEN Blocks, dessen Selektor genau `sel` ist.
 function block(sel) {
@@ -109,8 +110,8 @@ test('data-theme gibt es für hell und dunkel, mit allen Farb-Tokens', () => {
 });
 
 test('Knöpfe, Felder, Fokus und Schrift lesen die Tokens', () => {
-  assert.match(css, /button, \.btn \{[^}]*background: var\(--tl-raised\)[^}]*border-radius: var\(--tl-radius\)/);
-  assert.match(css, /select, input, textarea \{[^}]*background: var\(--tl-input\)[^}]*border-radius: var\(--tl-radius\)/);
-  assert.match(css, /:focus-visible \{[^}]*outline: 2px solid var\(--tl-focus\)/);
+  assert.match(uiCss, /button, \.btn \{[^}]*background: var\(--tl-button-bg\)[^}]*border-radius: var\(--tl-radius\)/);
+  assert.match(uiCss, /select, input, textarea \{[^}]*background: var\(--tl-input\)[^}]*border-radius: var\(--tl-radius\)/);
+  assert.match(uiCss, /:focus-visible \{[^}]*outline: 2px solid var\(--tl-focus\)/);
   assert.match(css, /body \{[^}]*font-family: var\(--tl-font\)/);
 });
