@@ -49,9 +49,6 @@
 body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; font-family: var(--tl-font); }
 h1, h2, h3, .brand { font-family: var(--tl-font-display); }
 
-.banner { padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--line); position: relative; }
-.banner-warn { background: color-mix(in srgb, var(--accent) 18%, transparent); }
-.banner-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
 .save-status { font-size: 12px; color: var(--muted); }
 .save-status.error { color: var(--danger); font-weight: 600; }
 
@@ -133,26 +130,14 @@ svg .case .truss-tube { fill: var(--corner); stroke: var(--wheel); stroke-width:
 svg .cog { fill: none; stroke: var(--danger); stroke-width: 3; }
 svg.drop-target .truck { stroke: var(--accent); stroke-width: 4; }
 
-dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(520px, 92vw); }
-dialog::backdrop { background: rgba(0,0,0,.5); }
-.editor { display: grid; gap: 10px; padding: 18px; }
-.editor h2 { margin: 0 0 4px; font-size: 18px; }
-.editor label { display: grid; gap: 4px; color: var(--muted); }
-.editor label > input, .editor label > select, .editor label > textarea { color: var(--text); }
-.editor .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
 /* nach .editor .row, sonst gewinnt dessen Grid (gleiche Spezifität) */
 .editor .kind-switch { display: flex; gap: 4px; }
-.editor .check { display: flex; gap: 8px; align-items: center; color: var(--text); }
-.editor fieldset { border: 1px solid var(--line); border-radius: 8px; }
-.editor menu { display: flex; gap: 8px; padding: 0; margin: 8px 0 0; }
-.hint { color: var(--muted); font-size: 12px; margin: 0; }
 .print-root { display: none; }
 
 .editor .quick-lengths { display: flex; flex-wrap: wrap; gap: 6px; }
 .editor .truss-dims, .editor .outer-dims-hint { color: var(--muted); font-size: 12px; margin: 0; }
-.editor input:disabled, .editor select:disabled { opacity: .5; }
-.editor label:has(> input:disabled), .editor label:has(> select:disabled) { color: var(--muted); opacity: .6; }
 
+dialog { width: min(520px, 92vw); }
 #dlg-rules { width: min(560px, 90vw); }
 .rule-list { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
 .rule-list .rule { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; align-items: center; }
