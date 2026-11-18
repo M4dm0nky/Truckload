@@ -8,7 +8,7 @@
      ebenfalls nicht, bleibt unverändert. */
   /* Gestaltungs-Tokens (js/ui/themeTokens.js, docs/nyx-host.md): ein Host wie NYX überschreibt
      sie, die Web-App behält diese Standardwerte. */
-  --tl-theme-version: 2;
+  --tl-theme-version: 3;
   --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a;
   --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-accent: #d97706;
   --tl-on-accent: #111; --tl-selection: #f0a500; --tl-danger: #dc2626; --tl-ok: #30a46c;
@@ -30,6 +30,8 @@
   --tl-warn: #f2b705; --tl-warn-text: #f2b705;
   --tl-control-border: var(--tl-line); --tl-font-size: 14px; --tl-hint-font-size: 12px;
   --tl-line-height: 1.4; --tl-font-size-xs: 11px; --tl-font-size-sm: 12px; --tl-font-size-lg: 16px;
+  /* Version 3: 0 = Segmentknöpfe einzeln mit Abstand, 1 = zusammenhängende Leiste */
+  --tl-segment-joined: 0;
   --bg: var(--tl-bg); --panel: var(--tl-surface); --line: var(--tl-line); --text: var(--tl-text); --muted: var(--tl-text-muted);
   --accent: var(--tl-accent); --on-accent: var(--tl-on-accent); --danger: var(--tl-danger); --ok: var(--tl-ok); --truck: var(--tl-truck); --grid: var(--tl-grid);
   --warn: var(--tl-warn); --warn-text: var(--tl-warn-text); /* Warnfarbe: Rand/Grund gelb, Text im Hellmodus dunkler (Kontrast auf Weiß) */
@@ -56,10 +58,11 @@ h1, h2, h3, .brand { font-family: var(--tl-font-display); }
 
 .topbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .topbar .group { display: flex; gap: 4px; align-items: center; }
+.topbar .group.seg { gap: calc(4px * (1 - var(--tl-segment-joined))); } /* Abstand der Segmente: Baustein .seg in ui.css */
 .brand { color: var(--accent); letter-spacing: .02em; }
 .brand .version { color: var(--muted); font-weight: 500; font-size: var(--tl-font-size-sm); margin-left: 4px; }
 .grow { flex: 1; }
-.case-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.case-tabs { display: flex; margin-bottom: 8px; } /* Abstand: Baustein .seg in ui.css */
 .case-tabs button { flex: 1; }
 
 .start-screen { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 24px; }

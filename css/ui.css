@@ -43,6 +43,15 @@ input.warn { border-color: var(--warn); }
 input.color-compact { padding: 2px; height: 30px; }
 
 /* ---- Segment ---- */
+.seg { --seg-gap: 4px; }
+.seg.seg-inline { display: inline-flex; align-items: center; --seg-gap: 0px; } /* Markup ohne Leerraum zwischen den Knöpfen: heute berührend */
+.seg, .seg .btns { gap: calc(var(--seg-gap) * (1 - var(--tl-segment-joined))); }
+.seg .btns { --seg-gap: 6px; }
+.seg > button ~ button, .seg .btns > button ~ button { margin-left: calc(-1px * var(--tl-segment-joined));
+  border-top-left-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); border-bottom-left-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); }
+.seg > button:has(~ button), .seg .btns > button:has(~ button) {
+  border-top-right-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); border-bottom-right-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); }
+.seg > button.on, .seg .btns > button.on { position: relative; }
 .seg-label { color: var(--muted); font-size: var(--tl-font-size-sm); margin-right: 2px; }
 .editor .kind-switch label { display: flex; align-items: center; gap: 6px; margin: 0; padding: var(--tl-button-pad); min-height: var(--tl-control-height);
   border: 1px solid var(--tl-control-border); border-radius: var(--tl-radius); cursor: pointer; color: var(--text); }

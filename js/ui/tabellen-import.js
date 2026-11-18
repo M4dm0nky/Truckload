@@ -317,7 +317,7 @@ function listeSeiteHtml(st) {
   return `
     <h2>${t('Liste bearbeiten')}</h2>
     <div class="ti-leiste">
-      <div class="seg">${tab('cases')}${tab('set')}${tab('boxen')}</div>
+      <div class="seg seg-inline">${tab('cases')}${tab('set')}${tab('boxen')}</div>
       <select data-role="filter">
         <option value="all">${t('Alle')}</option>
         <option value="bad"${st.filter === 'fehler' ? ' selected' : ''}>${t('Nur fehlerhafte')}</option>

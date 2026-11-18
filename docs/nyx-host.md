@@ -136,6 +136,7 @@ bzw. ein Gewicht. Die Innenabstände von Mini, Groß, Chip und Leise sind feste 
 | `--tl-font-size`, `--tl-line-height` | `14px`, `1.4` | Grundschrift |
 | `--tl-hint-font-size` | `12px` | `.hint` |
 | `--tl-font-size-xs`, `--tl-font-size-sm`, `--tl-font-size-lg` | `11px`, `12px`, `16px` | Schriftstufen der Ansichten (Einzelwerte als `calc()` darüber) |
+| `--tl-segment-joined` | `0` | Version 3: `0` = Segmentknöpfe einzeln mit Abstand, `1` = zusammenhängende Leiste (1-px-Trennlinie, nur äußere Ecken rund) |
 
 ## Drucken
 

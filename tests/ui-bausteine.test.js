@@ -49,3 +49,8 @@ test('sw.js führt ui.css und app.css in ASSETS (Reihenfolge dort ohne Wirkung a
   const sw = read('sw.js');
   assert.ok(sw.includes('css/ui.css') && sw.includes('css/app.css'));
 });
+
+test('Segment-Baustein liest --tl-segment-joined', () => {
+  const css = read('css/ui.css');
+  assert.ok(/\.seg[^{]*\{[^}]*var\(--tl-segment-joined\)/.test(css), 'eine .seg-Regel in ui.css braucht var(--tl-segment-joined)');
+});

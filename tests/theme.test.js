@@ -62,14 +62,16 @@ test('Token-Liste Version 1 ist vollständig und in fester Reihenfolge', () => {
 });
 
 test('Token-Liste Version 2 = Version 1 + neue, feste Reihenfolge', () => {
-  assert.equal(THEME_VERSION, 2);
-  assert.deepEqual(THEME_TOKENS, [...Object.keys(DUNKEL), ...Object.keys(DUNKEL2)]);
+  assert.equal(THEME_VERSION, 3);
+  assert.deepEqual(THEME_TOKENS, [...Object.keys(DUNKEL), ...Object.keys(DUNKEL2), '--tl-segment-joined']);
+  assert.equal(THEME_TOKENS.at(-1), '--tl-segment-joined');
 });
 
 test('Standardwerte Version 2', () => {
   const root = block(':root');
   for (const [k, v] of Object.entries(DUNKEL2)) assert.equal(root[k], v, k);
-  assert.equal(root['--tl-theme-version'], '2');
+  assert.equal(root['--tl-theme-version'], '3');
+  assert.equal(root['--tl-segment-joined'], '0');
 });
 
 test('Warntext je Modus', () => {
