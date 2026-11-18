@@ -993,6 +993,8 @@ Spezifität gewinnt; nur dort ist das sicher, weil sie keine Gestaltung mehr set
   Bedienelement nennt oder irgendeine Baustein-Klasse aus `ui.css`, Zustandsklassen wie `.on`
   ausgenommen), keine Farbliterale und keine festen Schriftgrößen außerhalb der Token-Blöcke und
   der `svg`-Regeln, kein allgemeines `button.on`, `ui.css` vor `app.css`.
+- Grenzen des Wächters: Hakenklassen und IDs ohne Baustein-Klasse sieht er nicht, und `em`/`rem` gelten als
+  fest, weil Stufen über Tokens laufen sollen.
 - `tools/muster.html` zeigt jeden Baustein in jedem Zustand, hell und dunkel nebeneinander. Neue
   Bausteine erst dort, dann in den Ansichten.
 

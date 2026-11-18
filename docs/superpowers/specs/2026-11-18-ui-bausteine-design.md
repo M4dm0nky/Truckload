@@ -128,7 +128,8 @@ Inhalt, jeweils aus den heutigen Regeln zusammengeführt:
 | Popup | `dialog`, `::backdrop`, `.editor`, `h2`, `label` (mit Überlauf-Fix), `.row`, `.check`, `fieldset`, `menu`, Trennlinie | 133–142 |
 | Hinweis | `.hint`, `.banner`, `.banner-warn`, `.banner-close` | 47–49, 143 |
 
-Größen der Knopf-Varianten (heutige Werte, alle über Tokens):
+Größen der Knopf-Varianten (heutige Werte): Höhe und Schrift der Varianten laufen über Tokens, ihre
+Innenabstände sind feste Teile des Bausteins (Kontrollentscheidung, Review I1):
 - **klein**: Innenabstand `2px 8px`, Schrift geerbt (Bibliothek).
 - **mini**: `1px 8px`, `12px`, Gewicht 400 (Zoom-Knöpfe in der Bildunterschrift, die sonst die
   fette Schrift der `figcaption` erben).

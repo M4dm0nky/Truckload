@@ -123,7 +123,7 @@ export function isControlTarget(compound, ui) {
   return classesOf(c).some(k => k === 'btn' || ui.has(k));
 }
 
-export const LOOK_PROPS = /^(padding|height|min-height|font|line-height|color|background|border|box-shadow|opacity|outline|cursor|text-align)/;
+export const LOOK_PROPS = /^(padding|height|min-height|font|line-height|color|background|border|box-shadow|opacity|outline|cursor|text-align|letter-spacing|text-decoration|text-transform|accent-color|appearance|filter)/;
 
 export function findControlStyling(rules, ui) {
   const out = [];
@@ -168,17 +168,36 @@ export function findColorLiterals(rules) {
 }
 
 // Feste Schriftgrößen (px/rem/em/pt) in font-size und font-Kurzform; :root, svg und --* ausgenommen.
-// var(...)/calc(...) mit var(...) und Schlüsselwörter sind erlaubt.
-const FIXED_SIZE = /(?:^|[\s/])-?\d*\.?\d+(?:px|rem|em|pt)\b/;
+// var(...)/calc(...)/max/min/clamp mit var(...) und Schlüsselwörter sind erlaubt.
+const FIXED_SIZE = /(?:^|[\s/(,])-?\d*\.?\d+(?:px|rem|em|pt)\b/i;
 export function findFixedFontSizes(rules) {
   const out = [];
   for (const r of rules) {
     if (r.selector.startsWith(':root') || r.selector.startsWith('svg')) continue;
     for (const d of r.decls) {
       if (d.prop.startsWith('--') || (d.prop !== 'font-size' && d.prop !== 'font')) continue;
-      if (/^(var|calc)\(/.test(d.value) && /var\(/.test(d.value)) continue;
+      if (/^(var|calc|max|min|clamp)\(/i.test(d.value) && /var\(/.test(d.value)) continue;
       if (FIXED_SIZE.test(d.value)) out.push({ selector: r.selector, prop: d.prop, value: d.value, line: r.line });
     }
+  }
+  return out;
+}
+
+// Regeln in app.css, die einen Baustein-Selektor aus ui.css nachbauen und gestalten: der Selektor
+// (ohne Pseudoklassen/-elemente) ist gleich einem ui.css-Selektor oder endet an einer Kombinator-
+// Grenze auf ihn (`.x .editor h2` für `.editor h2`).
+function bare(selector) {
+  return selector.replace(/::?[\w-]+(\([^()]*\))?/g, '').replace(/\s+/g, ' ').trim();
+}
+export function findBlockOverrides(appRules, uiRules) {
+  const uiSels = new Set(uiRules.map(r => bare(r.selector)).filter(Boolean));
+  const out = [];
+  for (const r of appRules) {
+    const sel = bare(r.selector);
+    if (!sel) continue;
+    const hit = [...uiSels].some(u => sel === u || sel.endsWith(' ' + u) || sel.endsWith('>' + u) || sel.endsWith('+' + u) || sel.endsWith('~' + u));
+    if (!hit) continue;
+    for (const d of r.decls) if (LOOK_PROPS.test(d.prop)) out.push({ selector: r.selector, prop: d.prop, line: r.line });
   }
   return out;
 }

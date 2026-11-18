@@ -107,19 +107,21 @@ in die Bedienelemente und die Schrift der Ansichten.
   setzt das Attribut, die Web-App nie.
 - **Wechsel zur Laufzeit:** Nach jedem Setzen löst NYX `tl-theme` an `window` aus. Wer Farben
   einmalig liest (die 3D-Ansicht über `js/ui/themeColors.js`), liest sie dann neu.
-- **Neue Tokens:** in `THEME_TOKENS` anhängen, `THEME_VERSION` und `--tl-theme-version` erhöhen,
+- **Neue Tokens:** in `THEME_TOKENS` hinten anhängen (NYX vergleicht die Menge), `THEME_VERSION` und `--tl-theme-version` erhöhen,
   in `:root` von `css/app.css` eintragen (in die Modus-Blöcke nur, wenn sich der Wert je Modus
   unterscheidet) und hier in die Tabelle. NYX befüllt nur Tokens, die es für die gemeldete Version
   kennt. Umbenennen oder Entfernen bricht NYX, eine Drift-Sperre dort meldet es.
 - **Nicht gestaltbar:** Gegenstandsfarben (Case-Schwarz, Alu, Räder, Griffe), die
   Beschriftungskontur, SVG-Beschriftungen (Plan-Einheiten) und das Layout.
 
-Version 2 (zusätzlich zu den 18 Tokens von Version 1, Standard = Aussehen der Web-App):
+Version 2 (zusätzlich zu den 18 Tokens von Version 1, Standard = Aussehen der Web-App). `inherit` als Standard von
+`--tl-control-font-size` und `--tl-button-weight` heißt „vom Elternelement erben“; ein Host setzt dort eine Länge
+bzw. ein Gewicht. Die Innenabstände von Mini, Groß, Chip und Leise sind feste Teile des Bausteins, keine Tokens.
 
 | Token | Standard | wirkt auf |
 |---|---|---|
-| `--tl-control-height`, `--tl-control-height-sm` | `auto` | Mindesthöhe von Knopf/Feld, klein |
-| `--tl-control-font-size`, `--tl-control-font-size-sm` | `inherit`, `12px` | Schrift von Knopf/Feld, klein |
+| `--tl-control-height`, `--tl-control-height-sm` | `auto` | Mindesthöhe von Knopf und Feld; `-sm`: kleiner Knopf, kleines Feld, Mini, Chip |
+| `--tl-control-font-size`, `--tl-control-font-size-sm` | `inherit`, `12px` | Schrift von Knopf und Feld; `-sm`: Schrift von Mini und Chip |
 | `--tl-button-pad`, `--tl-button-pad-sm` | `5px 10px`, `2px 8px` | Innenabstand Knopf |
 | `--tl-field-pad`, `--tl-field-pad-sm` | `5px 8px`, `2px 6px` | Innenabstand Feld |
 | `--tl-button-weight`, `--tl-button-primary-weight` | `inherit`, `600` | Schriftgewicht Knopf, Hauptknopf |

@@ -126,3 +126,14 @@ test('Randfarbe, Grund- und Hinweisschrift werden von den Bausteinen gelesen', (
   assert.match(css, /font: var\(--tl-font-size\)\/var\(--tl-line-height\) /);
   assert.match(rule('.editor .kind-switch label'), /border: 1px solid var\(--tl-control-border\)/);
 });
+
+test('ui.css: Größen-Varianten folgen den Höhen-Tokens', () => {
+  const rule = sel => uiCss.split('\n').find(l => l.startsWith(sel + ' {') || l.startsWith(sel + ', '));
+  assert.match(uiCss, /input\.small, select\.small \{[^}]*min-height: var\(--tl-control-height-sm\)/);
+  assert.match(rule('button.mini'), /min-height: var\(--tl-control-height-sm\)/);
+  assert.match(rule('button.chip'), /min-height: var\(--tl-control-height-sm\)/);
+  assert.match(rule('button.quiet'), /min-height: 0/);
+  assert.match(uiCss, /\.editor \.kind-switch label \{[^}]*min-height: var\(--tl-control-height\)/);
+  assert.match(uiCss, /input\[type="checkbox"\], input\[type="radio"\] \{[^}]*min-height: 0/);
+  assert.match(uiCss, /select, input, textarea \{[^}]*font-size: var\(--tl-control-font-size\)/);
+});

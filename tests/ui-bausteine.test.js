@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseCss, uiClasses, findControlStyling, findColorLiterals, findFixedFontSizes } from './css-scan.js';
+import { parseCss, uiClasses, findControlStyling, findColorLiterals, findFixedFontSizes, findBlockOverrides } from './css-scan.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const ui = parseCss(read('css/ui.css'));
@@ -31,10 +31,21 @@ test('ui.css kennt kein generisches button.on', () => {
   assert.deepEqual(bad.map(r => `css/ui.css:${r.line} ${r.selector}`), []);
 });
 
-test('ui.css wird vor app.css geladen', () => {
-  for (const [name, text] of [['index.html', read('index.html')], ['sw.js', read('sw.js')]]) {
-    const u = text.indexOf('css/ui.css'), a = text.indexOf('css/app.css');
+test('app.css baut keine Baustein-Selektoren aus ui.css nach', () => {
+  const found = findBlockOverrides(app, ui);
+  assert.deepEqual(found, [], `Gestaltung gehört nach css/ui.css:\n${fmt('css/app.css', found)}`);
+});
+
+test('ui.css wird vor app.css geladen (index.html, Musterseite)', () => {
+  for (const name of ['index.html', 'tools/muster.html']) {
+    const hrefs = [...read(name).matchAll(/<link\b[^>]*\bhref="([^"]+)"/g)].map(m => m[1]);
+    const u = hrefs.findIndex(h => h.endsWith('css/ui.css')), a = hrefs.findIndex(h => h.endsWith('css/app.css'));
     assert.ok(u >= 0 && a >= 0, `${name} nennt beide Dateien`);
     assert.ok(u < a, `${name}: css/ui.css muss vor css/app.css stehen`);
   }
+});
+
+test('sw.js führt ui.css und app.css in ASSETS (Reihenfolge dort ohne Wirkung auf die Kaskade)', () => {
+  const sw = read('sw.js');
+  assert.ok(sw.includes('css/ui.css') && sw.includes('css/app.css'));
 });
