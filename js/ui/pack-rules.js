@@ -1,4 +1,4 @@
-import { esc } from './dom.js';
+import { esc, symbol } from './dom.js';
 import { MAX_RULESET_NAME } from '../model/limits.js';
 import { t } from '../i18n/i18n.js';
 import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, ruleActive } from '../model/packRules.js';
@@ -106,7 +106,7 @@ export async function openPackRules(dlg, { rules, mixTop = false, rowPlan = fals
           <span class="rule-text">${esc(describeRule(r, caseById))}${active ? '' : ` <small>${t('(nicht in diesem Load)')}</small>`}</span>
           <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="${t('Nach oben')}" aria-label="${t('Nach oben')}">↑</button>
           <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="${t('Nach unten')}" aria-label="${t('Nach unten')}">↓</button>
-          <button type="button" data-act="remove" title="${t('Regel entfernen')}" aria-label="${t('Regel entfernen')}">×</button>
+          <button type="button" data-act="remove" title="${t('Regel entfernen')}" aria-label="${t('Regel entfernen')}">${symbol('x')}</button>
         </li>`;
     }).join('') || `<li class="hint">${t('Keine Regel – dann entscheidet der Name.')}</li>`;
   }

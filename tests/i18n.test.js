@@ -172,7 +172,7 @@ test('F: der HTML-Scan findet unmarkierte Texte und liest die Marker', () => {
   assert.deepEqual(h.attribute.filter(x => !x.marked && looksGerman(x.text)).map(x => x.text), ['Schließen']);
   assert.deepEqual(h.markiert.map(x => x.text).sort(), ['Alles neu', 'Hinweis schließen', 'Kind']);
   assert.deepEqual(h.gemischt.map(x => x.text), ['i']);
-  for (const s of ['Truckload', 'V 0.20.0', '×', '↶', '↷', '−', '+', '2D', '3D']) assert.equal(looksGerman(s), false, s);
+  for (const s of ['Truckload', 'V 0.20.0', '×', '−', '+', '2D', '3D']) assert.equal(looksGerman(s), false, s);
 });
 
 // Minimales DOM-Double: nur die API, die translateDom benutzt.

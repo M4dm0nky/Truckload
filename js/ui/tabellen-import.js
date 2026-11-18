@@ -3,7 +3,7 @@
 // Dialog selbst hängt nur an einem <dialog> und kennt weder Store noch js/app/.
 // Alles, was aus der Tabelle stammt (Namen, Gewerke, Befund-Texte), geht durch esc().
 
-import { esc, safeColor, icon, swatch } from './dom.js';
+import { esc, safeColor, symbol, swatch } from './dom.js';
 import { t, lang, trade, capList } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
 import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
@@ -68,16 +68,16 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
   const rotSonst = z.rot - (z.rotSet ?? 0);
   const gesperrt = rotSonst > 0 && !ohneRot;
   const kachel = (cls, n, text) => `<span class="ti-chip ${cls}"><b>${n}</b> ${text}</span>`;
-  const band = (cls, glyph, text, knopf) => `<div class="ti-band ${cls}"><span>${glyph} ${text}</span>${knopf}</div>`;
+  const band = (cls, name, text, knopf) => `<div class="ti-band ${cls}"><span>${symbol(name)} ${text}</span>${knopf}</div>`;
   const anzeigen = attrs => `<button type="button" data-act="edit" ${attrs}>${t('ansehen / korrigieren')}</button>`;
   const baender = [];
-  if (rotSonst) baender.push(band('rot', '✖', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen(`data-filter="bad" data-tab="${rotSonst > (z.rotBoxen ?? 0) ? 'cases' : 'boxen'}"`)));
-  if (z.rotSet) baender.push(band('rot', '✖', esc(z.rotSet === 1 ? t('1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.') : t('{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.', { n: z.rotSet })), anzeigen('data-filter="bad" data-tab="set"')));
-  if (z.gelb) baender.push(band('gelb', '⚠', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (rotSonst) baender.push(band('rot', 'circle-x', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen(`data-filter="bad" data-tab="${rotSonst > (z.rotBoxen ?? 0) ? 'cases' : 'boxen'}"`)));
+  if (z.rotSet) baender.push(band('rot', 'circle-x', esc(z.rotSet === 1 ? t('1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.') : t('{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.', { n: z.rotSet })), anzeigen('data-filter="bad" data-tab="set"')));
+  if (z.gelb) baender.push(band('gelb', 'triangle-alert', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
   for (const a of auffaellig) {
     const text = t('{n} Zeilen sind {farbe}, aber dem Gewerk {gewerk} zugeordnet ({farbe} ist sonst {mehrheit}).',
       { n: a.zeilen.length, farbe: farbName(a.farbe), gewerk: trade(a.gewerk), mehrheit: trade(a.mehrheit) });
-    baender.push(band('gelb', '⚠', esc(text), anzeigen(`data-filter="all" data-tab="${esc(a.reiter)}" data-rows="${esc(a.zeilen.join(','))}"`)));
+    baender.push(band('gelb', 'triangle-alert', esc(text), anzeigen(`data-filter="all" data-tab="${esc(a.reiter)}" data-rows="${esc(a.zeilen.join(','))}"`)));
   }
   const gewerke = z.jeGewerk.length
     ? `<table class="ti-trades"><tr><th>${t('Gewerk')}</th><th>${t('Stück')}</th></tr>${z.jeGewerk.map(g =>
@@ -152,7 +152,7 @@ export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche 
       return `<td><input type="text" data-k="${esc(sg.key)}" value="${esc(e.werte[sg.key] ?? '')}" class="${feldKlasse(st.felder[sg.key])}"${b ? ` title="${esc(b)}"` : ''}></td>`;
     }).join('');
     return `<tr data-i="${i}" class="${st.zeile}"><td class="ti-nr">${e.zeile ?? '+'}</td>${zellen}<td class="ti-hint">${st.hinweis}</td>`
-      + `<td><button type="button" class="ti-del" data-act="del" title="${t('Zeile löschen')}" aria-label="${t('Zeile löschen')}">${icon('trash')}</button></td></tr>`;
+      + `<td><button type="button" class="ti-del" data-act="del" title="${t('Zeile löschen')}" aria-label="${t('Zeile löschen')}">${symbol('trash-2')}</button></td></tr>`;
   };
   return `<table class="ti-list"><thead>${kopf}</thead><tbody>${treffer.map(zeileHtml).join('')}</tbody></table>`
     + (!treffer.length ? `<p class="hint">${t('Keine Zeilen.')}</p>` : '');
@@ -197,7 +197,7 @@ export function bauSchrittHtml(art, merkliste, gebaut, { dollyBasen = [], biblio
       : '';
     return `<li class="ti-bauzeile"><span class="ti-name">${esc(c?.name ?? s.caseId)}</span>${tag}`
       + `<input type="number" min="1" max="${MAX_STUECK}" step="1" value="${esc(s.n)}" data-k="n" data-s="${i}" aria-label="${t('Anzahl')}">`
-      + `<button type="button" class="ti-del" data-act="rm" data-s="${i}" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">${icon('trash')}</button></li>`;
+      + `<button type="button" class="ti-del" data-act="rm" data-s="${i}" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">${symbol('trash-2')}</button></li>`;
   };
   const memo = merklisteZeilen(zeilen);
   const ausTabelle = art === 'boxen' ? zeilen.filter(istLoseBox) : [];
@@ -263,7 +263,7 @@ export function vorschauHtml(vorschau, rechnet = false, fehler = false) {
     + ` <span class="hint">${esc(t('{n} Stück', { n: l.stueck }))}</span></li>`;
   const warn = nichtGeladenText(vorschau.nichtGeladen);
   return `${stand}${vorschau.lkws.length ? `<ul class="lkw-vliste">${vorschau.lkws.map(zeile).join('')}</ul>` : `<p class="hint">${t('Es entsteht kein LKW.')}</p>`}`
-    + (warn ? `<p class="ti-gelb">⚠ ${esc(warn)}</p>` : '');
+    + (warn ? `<p class="ti-gelb">${symbol('triangle-alert')} ${esc(warn)}</p>` : '');
 }
 
 // LKW-Schritt. gewerke: Gewerke der betroffenen Stücke; einst: { verhalten, truckId, art, getrennt, gewerke:

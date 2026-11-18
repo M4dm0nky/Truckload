@@ -1,4 +1,4 @@
-import { esc, swatch, icon } from './dom.js';
+import { esc, swatch, symbol } from './dom.js';
 import { CASE_TABS, caseKind } from './caseGroups.js';
 import { caseLine } from './caseInfo.js';
 import { onlyInPlanCases, isInStock, istUeberlagerung, ausgeblendeteUeberlagerungen } from '../model/material.js';
@@ -45,8 +45,8 @@ export function mountMaterial(el, h) {
       ${readOnly
         ? `<button data-act="copy" title="${t('In eine Sammlung kopieren')}">${t('Kopieren')}</button>`
         : `${sel === ONLY_IN_PLAN ? '' : `<button data-act="move-case" title="${t('In eine andere Sammlung verschieben')}">${t('Verschieben', null, 'move')}</button>`}
-           <button data-act="edit" title="${t('Bearbeiten')}">${icon('pencil-simple')}</button>
-           <button data-act="delete" class="danger" title="${t('Löschen')}">${icon('trash')}</button>`}
+           <button data-act="edit" title="${t('Bearbeiten')}" aria-label="${t('Bearbeiten')}">${symbol('pencil-line')}</button>
+           <button data-act="delete" class="danger" title="${t('Löschen')}" aria-label="${t('Löschen')}">${symbol('trash-2')}</button>`}
       ${sel === ONLY_IN_PLAN ? `<button data-act="adopt">${t('In Bestand übernehmen')}</button>` : ''}
     </div>`;
   }

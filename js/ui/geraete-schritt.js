@@ -2,7 +2,7 @@
 // Render sind rein und mit node prüfbar; der Dialog (tabellen-import.js) hängt nur Klicks daran.
 // Nichts wird vorbelegt: ohne Klick bleiben Zuordnungen und Ergebnis leer.
 
-import { esc } from './dom.js';
+import { esc, symbol } from './dom.js';
 import { t } from '../i18n/i18n.js';
 import { stueckProCase, bekannteCases, aufteilen, reduktion } from '../model/nyxAbgleich.js';
 
@@ -150,7 +150,7 @@ function reduktionHtml(st, z) {
   const w = st.reduktionWahl[z.key];
   const liste = r.stuecke.map(s => `<li>${esc(s.name)}${s.aufLkw ? ` <span class="ti-tag dolly">${t('auf LKW')}</span>` : ''}</li>`).join('');
   const frage = r.aufLkw.length
-    ? `<p class="ti-gelb">⚠ ${esc(t('{n} davon stehen auf einem LKW.', { n: r.aufLkw.length }))}</p>`
+    ? `<p class="ti-gelb">${symbol('triangle-alert')} ${esc(t('{n} davon stehen auf einem LKW.', { n: r.aufLkw.length }))}</p>`
     : '';
   const ja = r.aufLkw.length ? t('Trotzdem entfernen') : t('Entfernen');
   return `<p>${esc(t('NYX liefert {n} weniger. Diese Stücke würden entfernt:', { n: r.minus }))}</p>`
