@@ -1,10 +1,10 @@
 # Einbindung in NYX
 
-## Für den Admin: zu tun vor dem Heben des Submoduls auf die Version mit Issue #48
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.34.0
 
 - Neue Datei `css/ui.css` (in `sw.js` eingetragen). NYX packt das Submodul über `**/*` ein, eine
   eigene Dateiliste ist nicht nachzuziehen.
-- Schnittstelle Gestaltung auf **Version 2** (27 neue Tokens, Tabelle unter „Gestaltung“). Ohne
+- Schnittstelle Gestaltung auf **Version 2** (31 neue Tokens, Tabelle unter „Gestaltung“). Ohne
   NYX-Zuordnung bleiben sie auf ihren Standards: Truckload sieht in NYX dann aus wie bisher, nichts
   bricht. Die Drift-Sperre in NYX (`frontend/src/lib/truckload/theme.test.js`) meldet Version 2,
   bis `TOKENS_JE_VERSION[2]` eingetragen ist.
