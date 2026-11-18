@@ -1,5 +1,15 @@
 # Einbindung in NYX
 
+## Für den Admin: zu tun vor dem Heben des Submoduls auf die Version mit Issue #48
+
+- Neue Datei `css/ui.css` (in `sw.js` eingetragen). NYX packt das Submodul über `**/*` ein, eine
+  eigene Dateiliste ist nicht nachzuziehen.
+- Schnittstelle Gestaltung auf **Version 2** (27 neue Tokens, Tabelle unter „Gestaltung“). Ohne
+  NYX-Zuordnung bleiben sie auf ihren Standards: Truckload sieht in NYX dann aus wie bisher, nichts
+  bricht. Die Drift-Sperre in NYX (`frontend/src/lib/truckload/theme.test.js`) meldet Version 2,
+  bis `TOKENS_JE_VERSION[2]` eingetragen ist.
+- Kein neuer Store, kein Datenmodell, keine Projektdatei betroffen.
+
 Truckload läuft zusätzlich als Tab in NYX (Electron-App von Hoch/Steinmetz). NYX bindet dieses
 Repo als Git-Submodul ein, festgenagelt auf einen geprüften Commit, und liefert es über ein
 eigenes Protokoll `truckload://app/` aus. Diese Datei hält fest, worauf sich NYX verlässt. Wer
@@ -77,8 +87,19 @@ NYX bietet danach Englisch an.
 ## Gestaltung
 
 NYX passt Truckload im Tab an sein Erscheinungsbild an. Truckload legt dafür fest, was sich
-gestalten lässt, NYX liefert die Werte.
+gestalten lässt, NYX liefert die Werte. Seit Version 2 der Schnittstelle (Issue #48) reicht das bis
+in die Bedienelemente und die Schrift der Ansichten.
 
+- **Aufbau in drei Schichten:** Werte (Tokens in `css/app.css`, `:root`) → Bausteine (`css/ui.css`:
+  Knopf, Feld, Segment, Reiter, Popup, Hinweis, nur aus Tokens) → Ansichten (`css/app.css`, setzen
+  bei Bedienelementen nur Anordnung: `flex`, `width`, `margin` …). `index.html` lädt `ui.css` vor
+  `app.css`. `tests/ui-bausteine.test.js` meldet Gestaltung von Bedienelementen in `app.css`,
+  Farbliterale und feste Schriftgrößen außerhalb der Token-Blöcke; jeder Baustein in jedem Zustand
+  steht auf der Musterseite `tools/muster.html` (nur für Entwickler, nicht ausgeliefert).
+- **Varianten** setzt das Markup als Klasse: Knopf `.primary` `.danger` `.small` `.mini` `.large`
+  `.chip` `.quiet` `.list-item`, Feld `.small` `.error` `.warn` `.color-compact`. Gewählt ist `.on`
+  (gefüllt in `.seg` und am Reiter `.lkw-tab`, nur als Rand am `.list-item`); ein allgemeines
+  `button.on` gibt es bewusst nicht.
 - **Tokens:** die Liste in `js/ui/themeTokens.js` (`THEME_TOKENS`, `THEME_VERSION`). Die
   Standardwerte stehen in `css/app.css` und sind das Aussehen der Web-App. NYX setzt eigene
   Werte mit dem Selektor `:root:root[data-theme]`.
@@ -87,11 +108,32 @@ gestalten lässt, NYX liefert die Werte.
 - **Wechsel zur Laufzeit:** Nach jedem Setzen löst NYX `tl-theme` an `window` aus. Wer Farben
   einmalig liest (die 3D-Ansicht über `js/ui/themeColors.js`), liest sie dann neu.
 - **Neue Tokens:** in `THEME_TOKENS` anhängen, `THEME_VERSION` und `--tl-theme-version` erhöhen,
-  in alle vier Blöcke von `css/app.css` und hier eintragen. NYX befüllt nur Tokens, die es für
-  die gemeldete Version kennt. Umbenennen oder Entfernen bricht NYX, eine Drift-Sperre dort
-  meldet es.
+  in `:root` von `css/app.css` eintragen (in die Modus-Blöcke nur, wenn sich der Wert je Modus
+  unterscheidet) und hier in die Tabelle. NYX befüllt nur Tokens, die es für die gemeldete Version
+  kennt. Umbenennen oder Entfernen bricht NYX, eine Drift-Sperre dort meldet es.
 - **Nicht gestaltbar:** Gegenstandsfarben (Case-Schwarz, Alu, Räder, Griffe), die
-  Beschriftungskontur und das Layout.
+  Beschriftungskontur, SVG-Beschriftungen (Plan-Einheiten) und das Layout.
+
+Version 2 (zusätzlich zu den 18 Tokens von Version 1, Standard = Aussehen der Web-App):
+
+| Token | Standard | wirkt auf |
+|---|---|---|
+| `--tl-control-height`, `--tl-control-height-sm` | `auto` | Mindesthöhe von Knopf/Feld, klein |
+| `--tl-control-font-size`, `--tl-control-font-size-sm` | `inherit`, `12px` | Schrift von Knopf/Feld, klein |
+| `--tl-button-pad`, `--tl-button-pad-sm` | `5px 10px`, `2px 8px` | Innenabstand Knopf |
+| `--tl-field-pad`, `--tl-field-pad-sm` | `5px 8px`, `2px 6px` | Innenabstand Feld |
+| `--tl-button-weight`, `--tl-button-primary-weight` | `inherit`, `600` | Schriftgewicht Knopf, Hauptknopf |
+| `--tl-button-bg`, `--tl-button-hover-bg`, `--tl-button-hover-border` | `var(--tl-raised)`, `var(--tl-button-bg)`, `var(--tl-text-muted)` | Knopfgrund, Hover |
+| `--tl-selected-bg`, `--tl-selected-text`, `--tl-selected-border` | `var(--tl-accent)`, `var(--tl-on-accent)`, `var(--tl-accent)` | Gewählt (gefüllt) |
+| `--tl-marked-border` | `var(--tl-accent)` | Gewählt (Listeneintrag) |
+| `--tl-dialog-radius`, `--tl-dialog-pad`, `--tl-dialog-title-size` | `12px`, `18px`, `18px` | Popup |
+| `--tl-dialog-divider` | `transparent` | Linie unter dem Titel und über den Knöpfen |
+| `--tl-backdrop` | `rgba(0,0,0,.5)` | Abdunkler |
+| `--tl-warn`, `--tl-warn-text` | `#f2b705`, `#f2b705` (hell `#7a5a00`) | Warnfarbe |
+| `--tl-control-border` | `var(--tl-line)` | Rand von Knopf, Feld, Art-Schalter |
+| `--tl-font-size`, `--tl-line-height` | `14px`, `1.4` | Grundschrift |
+| `--tl-hint-font-size` | `12px` | `.hint` |
+| `--tl-font-size-xs`, `--tl-font-size-sm`, `--tl-font-size-lg` | `11px`, `12px`, `16px` | Schriftstufen der Ansichten (Einzelwerte als `calc()` darüber) |
 
 ## Drucken
 
