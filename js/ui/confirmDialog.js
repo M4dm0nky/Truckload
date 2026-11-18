@@ -1,4 +1,4 @@
-import { esc } from './dom.js';
+import { esc, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { t } from '../i18n/i18n.js';
 
 // Eigene Popups statt der nativen confirm()/alert()/prompt() – gleiches Muster wie
@@ -33,11 +33,11 @@ export function showConfirm(message, { okLabel = t('OK'), cancelLabel = t('Abbre
 // `options`: [{ value, label }].
 export function showPick(title, options) {
   const d = document.getElementById('dlg-pick');
-  d.innerHTML = `<form method="dialog" class="editor"><label>${esc(title)}<select name="v">${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></label>
+  d.innerHTML = `<form method="dialog" class="editor">${dialogKopf(esc(title))}<select name="v" aria-label="${esc(title)}" autofocus>${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>
     <menu><span class="grow"></span><button value="cancel" formnovalidate>${t('Abbrechen')}</button><button value="ok" class="primary">${t('OK')}</button></menu></form>`;
   const sel = d.querySelector('select');
   d.returnValue = ''; // sonst liefert Escape den Wert des vorigen Aufrufs
-  d.showModal();
+  d.showModal(); fokusNachOeffnen(d);
   return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? sel.value : null), { once: true }));
 }
 

@@ -47,6 +47,15 @@ export function dialogKopf(titelHtml, { act } = {}) {
   return `<header class="dialog-head"><h2>${titelHtml}</h2><button ${x} class="quiet dialog-x" aria-label="${t('Schließen')}" title="${t('Schließen')}">${symbol('x')}</button></header>`;
 }
 
+// Nach showModal(): hat der Browser das × fokussiert (erstes fokussierbares Element, kein autofocus), geht der Fokus
+// aufs erste sichtbare Bedienelement – Enter darf nie das Popup schließen.
+export function fokusNachOeffnen(dlg) {
+  if (!document.activeElement?.classList?.contains('dialog-x')) return;
+  const ziel = [...dlg.querySelectorAll('input:not([type=hidden]), select, textarea, button')]
+    .find(e => !e.classList.contains('dialog-x') && !e.disabled && e.offsetParent !== null);
+  ziel?.focus();
+}
+
 // Getter statt fester Texte: die Sprache steht erst beim Zugriff fest (Tests schalten sie um).
 export const ORIENTATION_LABEL = {
   get standing() { return t('stehend'); },

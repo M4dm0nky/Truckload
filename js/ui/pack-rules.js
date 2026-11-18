@@ -1,4 +1,4 @@
-import { esc, symbol } from './dom.js';
+import { esc, symbol, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { MAX_RULESET_NAME } from '../model/limits.js';
 import { t } from '../i18n/i18n.js';
 import { RULE_KINDS, POS_LABEL, addRule, moveRule, removeRule, describeRule, ruleActive } from '../model/packRules.js';
@@ -41,10 +41,10 @@ export async function openPackRules(dlg, { rules, mixTop = false, rowPlan = fals
 
   dlg.innerHTML = `
     <form method="dialog" class="editor pack-rules">
-      <h2>${t('Pack-Regeln')}</h2>
+      ${dialogKopf(t('Pack-Regeln'))}
       <p class="hint">${t('Oben steht die wichtigste Regel, bei Gleichstand entscheidet die nächste. Jeder Case-Typ bleibt ein eigener Block, Stücke mit Gruppe bilden einen eigenen Block. „zuerst“ heißt an der Stirnwand, „zuletzt“ an der Tür.')}</p>
       <ol class="rule-list"></ol>
-      <label class="check"><input type="checkbox" name="mixTop"> ${t('Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf')}</label>
+      <label class="check"><input type="checkbox" name="mixTop" autofocus> ${t('Deckschicht mischen: leichtere, kleinere Cases derselben Gruppe bzw. desselben Gewerks obendrauf')}</label>
       <small class="hint">${t('Cases ohne Gewicht (0 kg) werden nicht gemischt. Die Lagen je Stück gelten weiter.')}</small>
       <label class="check"><input type="checkbox" name="rowPlan"> ${t('Reihen planen: jede Reihe so dicht wie möglich füllen, auch mit Cases späterer Sorten desselben Gewerks')}</label>
       <fieldset class="rule-add">
@@ -187,6 +187,6 @@ export async function openPackRules(dlg, { rules, mixTop = false, rowPlan = fals
       resolve(v === 'save' || v === 'repack' ? { rules: cur, mixTop: f.mixTop.checked, rowPlan: f.rowPlan.checked, repack: v === 'repack' } : null);
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }

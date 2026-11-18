@@ -1,4 +1,4 @@
-import { esc, swatch, symbol } from './dom.js';
+import { esc, swatch, symbol, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { t, num, trade } from '../i18n/i18n.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { layersOf, canTip } from '../model/geometry.js';
@@ -43,10 +43,10 @@ export async function openLoadWizard(dlg, opts = {}) {
 
   dlg.innerHTML = `
     <form method="dialog" class="editor wizard">
-      <h2>${t('Load zusammenstellen')}</h2>
+      ${dialogKopf(t('Load zusammenstellen'))}
       <div class="wiz-progress">${steps.map(() => '<span class="wiz-dot"></span>').join('')}</div>
       <section class="wiz-step" data-step="load">
-        <label>${t('Name')}<input name="loadName" required maxlength="${NAME_MAX}"></label>
+        <label>${t('Name')}<input name="loadName" autofocus required maxlength="${NAME_MAX}"></label>
         <label>${t('Fahrzeug')}<select name="truckId">${trucks.map(tk => `<option value="${esc(tk.id)}">${esc(tk.name)}</option>`).join('')}</select></label>
       </section>
       <section class="wiz-step" data-step="cases" hidden>
@@ -468,7 +468,7 @@ export async function openLoadWizard(dlg, opts = {}) {
             if (steps[stepIdx] === 'labels') renderGroups();
           } finally {
             dlg.returnValue = '';
-            dlg.showModal();
+            dlg.showModal(); fokusNachOeffnen(dlg);
           }
         }
         return;
@@ -496,6 +496,6 @@ export async function openLoadWizard(dlg, opts = {}) {
     };
     dlg.addEventListener('close', onClose);
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }

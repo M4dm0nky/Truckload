@@ -3,7 +3,7 @@
 // Dialog selbst hängt nur an einem <dialog> und kennt weder Store noch js/app/.
 // Alles, was aus der Tabelle stammt (Namen, Gewerke, Befund-Texte), geht durch esc().
 
-import { esc, safeColor, symbol, swatch } from './dom.js';
+import { esc, safeColor, symbol, swatch, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { t, lang, trade, capList } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
 import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
@@ -90,7 +90,7 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
   const rotWahl = rotSonst ? `<label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>` : '';
   const sperre = gesperrt ? ' disabled' : '';
   return `
-    <h2>${t('Tabelle importieren')}</h2>
+    ${dialogKopf(t('Tabelle importieren'), { act: 'cancel' })}
     <p class="hint">${esc(dateiname)}</p>
     <div class="ti-chips">
       ${kachel('', z.cases, t('Cases'))}${kachel('', z.traversen, t('Traversen'))}${kachel('', z.boxen, t('Boxen'))}${kachel('', z.set, t('Set'))}
@@ -214,7 +214,7 @@ export function bauSchrittHtml(art, merkliste, gebaut, { dollyBasen = [], biblio
         + `<button type="button" data-act="loose">${t('Lose hinzufügen')}</button><button type="button" data-act="dolly">${t('Auf Dolly laden')}</button></div>`
       : `<p class="hint">${t('Keine Grundboxen in der Bibliothek.')}</p>`;
   return `
-    <h2>${art === 'traversen' ? t('Traversen bauen') : t('Boxen bauen')}</h2>
+    ${dialogKopf(art === 'traversen' ? t('Traversen bauen') : t('Boxen bauen'), { act: 'esc' })}
     <div class="ti-bau"><div>${links}</div>${rechts}</div>
     ${steuerung}
     ${fussHtml({ letzter, laden })}`;
@@ -229,7 +229,7 @@ const zaehlerText = eintraege => {
 export function setSchrittHtml(eintraege, { ohneRot = false, letzter = false, laden = false } = {}) {
   const sperre = setGesperrt(eintraege, ohneRot);
   return `
-    <h2>${t('Set')}</h2>
+    ${dialogKopf(t('Set'), { act: 'esc' })}
     <p class="hint">${t('Set-Teile prüfen und bei Bedarf korrigieren.')}</p>
     <div class="ti-leiste">
       <button type="button" data-act="add">${t('Zeile hinzufügen')}</button>
@@ -304,7 +304,7 @@ export function lkwSchrittHtml({ gewerke = [], einst = {}, fahrzeuge = [], zielH
     ? `<label class="check"><input type="checkbox" name="lkwgetrennt"${einst.getrennt ? ' checked' : ''}> ${t('nach Gewerk getrennt')}</label>`
     : `<ul class="lkw-gl">${sortiert.map(zeile).join('')}</ul>`}`;
   return `
-    <h2>${t('LKW')}</h2>
+    ${dialogKopf(t('LKW'), { act: 'esc' })}
     ${oben}${einstellungen}
     <div class="lkw-vorschau" data-role="vorschau">${vorschauHtml(vorschau, rechnet, fehler)}</div>
     <menu><button type="button" data-act="prev">${t('Zurück')}</button><span class="grow"></span><button type="button" class="primary" data-act="finish" data-role="go">${t('Übernehmen und laden')}</button></menu>`;
@@ -315,7 +315,7 @@ function listeSeiteHtml(st) {
   const tab = r => `<button type="button" data-act="tab" data-tab="${r}" class="${st.reiter === r ? 'on' : ''}">${reiterName(r)} (${n(r)})</button>`;
   const zeilen = st.zeilen?.reiter === st.reiter ? st.zeilen.set : null;
   return `
-    <h2>${t('Liste bearbeiten')}</h2>
+    ${dialogKopf(t('Liste bearbeiten'), { act: 'esc' })}
     <div class="ti-leiste">
       <div class="seg seg-inline">${tab('cases')}${tab('set')}${tab('boxen')}</div>
       <select data-role="filter">
@@ -591,6 +591,7 @@ export async function openTabellenImport(dlg, opts) {
     const act = b.dataset.act;
     if (act.startsWith('g-')) { geraeteKlick(act, b); return; }
     if (act === 'cancel') dlg.close('cancel');
+    else if (act === 'esc') { if (escZiel(st.view, heim) === heim) { st.view = heim; render(); } else dlg.close('cancel'); }
     else if (act === 'only') starteSchritte(false);
     else if (act === 'load') starteSchritte(true);
     else if (SCHRITT_ACTS.has(act)) schrittAktion(act, b);
@@ -674,14 +675,14 @@ export async function openTabellenImport(dlg, opts) {
       resolve(dlg.returnValue === 'ok' ? result : null);
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }
 
 // Kleiner Hilfedialog („?“), ohne Netz.
 export function hilfeHtml() {
   return `<form method="dialog" class="editor">
-    <h2>${t('Tabelle importieren: so geht es')}</h2>
+    ${dialogKopf(t('Tabelle importieren: so geht es'))}
     <ol class="ti-hilfe">
       <li>${t('„Vorlage herunterladen“ und ausfüllen. Kopfzeile nicht ändern.')}</li>
       <li>${t('Excel: als .xlsx speichern und über „Tabelle importieren“ auswählen.')}</li>
@@ -689,12 +690,12 @@ export function hilfeHtml() {
       <li>${t('Google exportiert nur den gerade offenen Reiter. Das ergibt bis zu vier CSV-Dateien, die im Dateidialog alle zusammen ausgewählt werden.')}</li>
       <li>${t('Die Höhe immer inklusive Rollen angeben, so wie das Case auf den Rollen steht.')}</li>
     </ol>
-    <menu><span class="grow"></span><button value="ok" class="primary">${t('OK')}</button></menu></form>`;
+    <menu><span class="grow"></span><button value="ok" class="primary" autofocus>${t('OK')}</button></menu></form>`;
 }
 
 export function openTabellenHilfe(dlg) {
   dlg.innerHTML = hilfeHtml();
   dlg.returnValue = '';
-  dlg.showModal();
+  dlg.showModal(); fokusNachOeffnen(dlg);
   return new Promise(resolve => dlg.addEventListener('close', () => resolve(undefined), { once: true }));
 }

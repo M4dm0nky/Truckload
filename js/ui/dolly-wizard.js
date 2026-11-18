@@ -1,4 +1,4 @@
-import { esc } from './dom.js';
+import { esc, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { t } from '../i18n/i18n.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 import { dollyStackCase, maxDollyCount, dollyDepth } from '../model/audioDolly.js';
@@ -40,9 +40,9 @@ export function openDollyDialog(dlg, opts = {}) {
 
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${t('{name} auf Dolly laden', { name: esc(base.name) })}</h2>
+      ${dialogKopf(t('{name} auf Dolly laden', { name: esc(base.name) }))}
       <p class="hint">${t('Line-Array-Elemente und Subwoofer stehen immer auf einem Dolly mit Schwerlastrollen – wie viele Boxen übereinander?')}</p>
-      <label>${t('Stückzahl auf diesem Dolly')}<input type="number" name="n" min="1" max="${maxN}" step="1" value="1" required></label>
+      <label>${t('Stückzahl auf diesem Dolly')}<input type="number" name="n" autofocus min="1" max="${maxN}" step="1" value="1" required></label>
       <div class="row">
         <label>${t('Wagen Breite (cm)')}<input type="number" name="wl" min="20" max="400" step="1" value="${esc(base.l)}" required></label>
         <label>${t('Wagen Tiefe (cm)')}<input type="number" name="ww" min="20" max="250" step="1" value="${dollyDepth(base.w)}" required></label>
@@ -89,6 +89,6 @@ export function openDollyDialog(dlg, opts = {}) {
       resolve({ newCase: saved, addition: { caseId: saved.id, n: 1 } });
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }

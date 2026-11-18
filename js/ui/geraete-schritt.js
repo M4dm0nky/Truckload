@@ -2,7 +2,7 @@
 // Render sind rein und mit node prüfbar; der Dialog (tabellen-import.js) hängt nur Klicks daran.
 // Nichts wird vorbelegt: ohne Klick bleiben Zuordnungen und Ergebnis leer.
 
-import { esc, symbol } from './dom.js';
+import { esc, symbol, dialogKopf } from './dom.js';
 import { t } from '../i18n/i18n.js';
 import { stueckProCase, bekannteCases, aufteilen, reduktion } from '../model/nyxAbgleich.js';
 
@@ -200,6 +200,6 @@ export function geraeteSchrittHtml(st) {
     ? `<ul class="ge-list">${st.zeilen.map(z => linkeZeile(st, z)).join('')}</ul>`
     : `<p class="hint">${t('NYX liefert keine Geräte.')}</p>`;
   return `
-    <h2>${t('Geräte aus NYX')}</h2>
+    ${dialogKopf(t('Geräte aus NYX'), { act: 'cancel' })}
     <div class="ti-bau ge-cols"><div class="ti-memo">${links}</div><div class="ti-gebaut ge-right">${rechtsHtml(st)}</div></div>`;
 }
