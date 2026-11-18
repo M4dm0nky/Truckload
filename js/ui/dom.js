@@ -48,7 +48,9 @@ export function dialogKopf(titelHtml, { act } = {}) {
 }
 
 // Nach showModal(): hat der Browser das × fokussiert (erstes fokussierbares Element, kein autofocus), geht der Fokus
-// aufs erste sichtbare Bedienelement – Enter darf nie das Popup schließen.
+// aufs erste sichtbare Bedienelement. Der Fokus liegt so nie auf dem ×. Enter in einem Feld löst den Standardknopf
+// aus, und das ist der erste Absendeknopf, also das × (value="cancel"): Enter bricht ab wie das ×. Absicht – so
+// trifft Enter nie „Löschen“ oder einen anderen Knopf mit Wirkung.
 export function fokusNachOeffnen(dlg) {
   if (!document.activeElement?.classList?.contains('dialog-x')) return;
   const ziel = [...dlg.querySelectorAll('input:not([type=hidden]), select, textarea, button')]

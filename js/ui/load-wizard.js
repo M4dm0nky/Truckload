@@ -138,9 +138,9 @@ export async function openLoadWizard(dlg, opts = {}) {
         ${swatch(c.color)}
         <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
         <div class="stepper">
-          <button type="button" data-act="dec" aria-label="${t('Eine weniger')}" ${n <= 0 ? 'disabled' : ''}>${symbol('minus')}</button>
+          <button type="button" data-act="dec" title="${t('Eine weniger')}" aria-label="${t('Eine weniger')}" ${n <= 0 ? 'disabled' : ''}>${symbol('minus')}</button>
           <span class="qty">${n}</span>
-          <button type="button" data-act="inc" aria-label="${t('Eine mehr')}" ${total() >= MAX_ITEMS ? 'disabled' : ''}>${symbol('plus')}</button>
+          <button type="button" data-act="inc" title="${t('Eine mehr')}" aria-label="${t('Eine mehr')}" ${total() >= MAX_ITEMS ? 'disabled' : ''}>${symbol('plus')}</button>
         </div>
       </div>`;
   }

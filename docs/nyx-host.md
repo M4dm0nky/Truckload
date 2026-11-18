@@ -106,7 +106,8 @@ in die Bedienelemente und die Schrift der Ansichten.
   Emoji als Symbol: die sehen je Betriebssystem anders aus. `tests/symbole-sperre.test.js` prüft das.
 - **Popup-Kopf** über `dialogKopf(titelHtml, { act })` aus `js/ui/dom.js`: Titel plus Schließen-Knopf, der den
   Abbrechen-Weg des Popups nimmt (ohne `act` `value="cancel"`, sonst `data-act`); der Fokus landet beim Öffnen
-  nie auf dem ×. `tests/dialogKopf-sperre.test.js` prüft, dass Popups kein eigenes `<h2>` mehr setzen.
+  nie auf dem ×. Enter in einem Feld bricht ab wie das ×, weil das × der erste Absendeknopf ist (Standardknopf);
+  Absicht, damit Enter nie „Löschen“ trifft. `tests/dialogKopf-sperre.test.js` prüft, dass Popups kein eigenes `<h2>` mehr setzen.
 - **Tokens:** die Liste in `js/ui/themeTokens.js` (`THEME_TOKENS`, `THEME_VERSION`). Die
   Standardwerte stehen in `css/app.css` und sind das Aussehen der Web-App. NYX setzt eigene
   Werte mit dem Selektor `:root:root[data-theme]`.

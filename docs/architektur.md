@@ -976,16 +976,16 @@ den Katalog.
 
 ## Gestaltung: Werte, Bausteine, Wächter (Issue #48)
 
-Seit Issue #50 gehören dazu Symbole (`symbol()` in `js/ui/dom.js`, Lucide-Pfade in `js/ui/symbols.js`), der
-Popup-Kopf (`dialogKopf()`, × nimmt den Abbrechen- bzw. Esc-Weg des Popups) und die Segment-Leiste: `.seg` rechnet
-Abstand, innere Ecken und Randüberlapp aus `--tl-segment-joined` (0 = Einzelknöpfe, 1 = Leiste).
-
 Das CSS hat drei Schichten. **Werte** sind die Tokens `--tl-*` in `:root` von `css/app.css` (Liste und
 Version in `js/ui/themeTokens.js`, Vertrag mit NYX in [nyx-host.md](nyx-host.md#gestaltung)).
 **Bausteine** stehen in `css/ui.css`: Knopf, Feld, Segment, Reiter, Popup und Hinweis mit ihren
 Varianten und Zuständen, nur aus Tokens. **Ansichten** in `css/app.css` setzen an Bedienelementen nur
 Anordnung. `index.html` und `sw.js` laden `ui.css` vor `app.css`, damit eine Ansicht bei gleicher
 Spezifität gewinnt; nur dort ist das sicher, weil sie keine Gestaltung mehr setzt.
+
+Seit Issue #50 gehören dazu Symbole (`symbol()` in `js/ui/dom.js`, Lucide-Pfade in `js/ui/symbols.js`), der
+Popup-Kopf (`dialogKopf()`, × nimmt den Abbrechen- bzw. Esc-Weg des Popups) und die Segment-Leiste: `.seg` rechnet
+Abstand, innere Ecken und Randüberlapp aus `--tl-segment-joined` (0 = Einzelknöpfe, 1 = Leiste).
 
 - Eine Variante ist eine Klasse im Markup (`class="quick-len chip"`), keine Regel in der Ansicht.
 - Gewählt schlägt Hover über Spezifität (`.seg button.on:hover`), nicht über die Reihenfolge.

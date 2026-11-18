@@ -12,7 +12,7 @@ function open(html) {
   dlg ??= document.getElementById('dlg-confirm');
   dlg.innerHTML = html;
   dlg.returnValue = ''; // sonst liefert Escape den Wert des vorigen Aufrufs
-  dlg.showModal();
+  dlg.showModal(); fokusNachOeffnen(dlg);
   return dlg;
 }
 

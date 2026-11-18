@@ -27,6 +27,14 @@ test('kein Knopf trägt nur × − oder + als Inhalt', () => {
   assert.deepEqual(treffer(/<button\b(?:[^>]|\$\{[^}]*\})*>\s*[×−+]\s*<\/button>/), []);
 });
 
+test('weder &times; noch ✕ steht im Code', () => {
+  assert.deepEqual(treffer(/&times;|✕/), []);
+});
+
+test('kein leeres aria-label an Symbol-Knöpfen', () => {
+  assert.deepEqual(treffer(/aria-label=""/), []);
+});
+
 test('icon( (Phosphor) kommt in js/ nicht mehr vor', () => {
   assert.deepEqual(treffer(/(^|[^\w.])icon\(/), []);
 });
@@ -46,6 +54,9 @@ test('index.html: eingetragene Symbole sind byte-gleich zu symbol(name)', () => 
     assert.ok(m, id);
     assert.equal(m[1], symbol(name), id);
   }
+  const banner = [...html.matchAll(/<button[^>]*class="[^"]*banner-close[^"]*"[^>]*>(<svg[\s\S]*?<\/svg>)<\/button>/g)];
+  assert.ok(banner.length >= 2, 'banner-close');
+  for (const m of banner) assert.equal(m[1], symbol('x'), 'banner-close');
   for (const [z, name] of [['out', 'minus'], ['in', 'plus']]) {
     const alle = [...html.matchAll(new RegExp(`data-z="${z}"[^>]*>(<svg[\\s\\S]*?</svg>)</button>`, 'g'))];
     assert.equal(alle.length, 3, z);

@@ -4,7 +4,7 @@ import { symbol, dialogKopf } from '../js/ui/dom.js';
 import { SYMBOLS, LUCIDE_VERSION } from '../js/ui/symbols.js';
 import { t } from '../js/i18n/i18n.js';
 
-const NAMEN = ['box', 'circle-x', 'minus', 'pencil-line', 'plus', 'redo-2', 'trash-2', 'triangle-alert', 'undo-2', 'x'];
+const NAMEN = ['arrow-down', 'arrow-up', 'box', 'circle-x', 'minus', 'pencil-line', 'plus', 'redo-2', 'trash-2', 'triangle-alert', 'undo-2', 'x'];
 
 test('Lucide-Version und Symbolnamen sind fest', () => {
   assert.equal(LUCIDE_VERSION, '1.74.0');

@@ -1,10 +1,12 @@
 // Symbole aus Lucide (https://lucide.dev), Lizenz: vendor/LICENSE-lucide.txt.
-// Inhalt je Symbol 1:1 der SVG-Innenteil der Lucide-Datei (x, undo-2, triangle-alert, pencil-line aus
+// Inhalt je Symbol 1:1 der SVG-Innenteil der Lucide-Datei (x, undo-2, triangle-alert, pencil-line, arrow-up, arrow-down aus
 // NYX frontend/src/lib/symbole.js, die übrigen aus lucide-static@1.74.0/icons/<name>.svg); nie Pfade abtippen.
 export const LUCIDE_VERSION = '1.74.0';
 
 export const SYMBOLS = Object.freeze({
   x: '<path d="M18 6 6 18" /><path d="m6 6 12 12" />',
+  'arrow-up': '<path d="m5 12 7-7 7 7" /> <path d="M12 19V5" />',
+  'arrow-down': '<path d="M12 5v14" /> <path d="m19 12-7 7-7-7" />',
   minus: '<path d="M5 12h14" />',
   plus: '<path d="M5 12h14" /> <path d="M12 5v14" />',
   'undo-2': '<path d="M9 14 4 9l5-5" /> <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />',

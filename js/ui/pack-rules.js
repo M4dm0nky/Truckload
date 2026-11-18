@@ -104,8 +104,8 @@ export async function openPackRules(dlg, { rules, mixTop = false, rowPlan = fals
       return `
         <li class="rule ${active ? '' : 'inactive'}" data-i="${i}">
           <span class="rule-text">${esc(describeRule(r, caseById))}${active ? '' : ` <small>${t('(nicht in diesem Load)')}</small>`}</span>
-          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="${t('Nach oben')}" aria-label="${t('Nach oben')}">↑</button>
-          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="${t('Nach unten')}" aria-label="${t('Nach unten')}">↓</button>
+          <button type="button" data-act="up" ${i === 0 ? 'disabled' : ''} title="${t('Nach oben')}" aria-label="${t('Nach oben')}">${symbol('arrow-up')}</button>
+          <button type="button" data-act="down" ${i === cur.length - 1 ? 'disabled' : ''} title="${t('Nach unten')}" aria-label="${t('Nach unten')}">${symbol('arrow-down')}</button>
           <button type="button" data-act="remove" title="${t('Regel entfernen')}" aria-label="${t('Regel entfernen')}">${symbol('x')}</button>
         </li>`;
     }).join('') || `<li class="hint">${t('Keine Regel – dann entscheidet der Name.')}</li>`;
