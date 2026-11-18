@@ -14,6 +14,7 @@ const ASSETS = [
   'icons/icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
+  'css/ui.css',
   'css/app.css',
   'css/print.css',
   'js/app.js',

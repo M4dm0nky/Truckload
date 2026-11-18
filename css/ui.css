@@ -1,0 +1,80 @@
+/* UI-Bausteine: Knopf, Feld, Gewählt-Zustand, Segment, Reiter, Popup, Hinweis.
+   Regel: Bedienelemente werden NUR hier gestaltet, und nur aus Tokens (--tl-…, die Aliasse aus
+   app.css, Schlüsselwörter). Ansichten (app.css, js/) ordnen an (flex, width, margin, position …),
+   gestalten Knopf, Feld, Segment und Reiter aber nie selbst; sie setzen die Variantenklasse im Markup.
+   Geladen VOR css/app.css. Entwurf: docs/superpowers/specs/2026-11-18-ui-bausteine-design.md (§5).
+   Reihenfolge je Baustein: Basis → :hover → .primary/.danger → Varianten → Zustände. */
+
+/* ---- Knopf ---- */
+button, .btn, select, input, textarea { font: inherit; color: inherit; }
+button, .btn {
+  background: var(--tl-button-bg); border: 1px solid var(--line); border-radius: var(--tl-radius);
+  min-height: var(--tl-control-height); padding: var(--tl-button-pad);
+  font-size: var(--tl-control-font-size); font-weight: var(--tl-button-weight); cursor: pointer;
+}
+button:hover, .btn:hover { background: var(--tl-button-hover-bg); border-color: var(--tl-button-hover-border); }
+button:disabled { opacity: .4; cursor: default; }
+:focus-visible { outline: 2px solid var(--tl-focus); outline-offset: 1px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: var(--tl-button-primary-weight); }
+button.danger { color: var(--danger); }
+button.small { padding: var(--tl-button-pad-sm); min-height: var(--tl-control-height-sm); }
+button.mini { padding: 1px 8px; font-size: var(--tl-control-font-size-sm); font-weight: 400; }
+button.large { padding: 10px 20px; font-size: 15px; }
+button.chip { padding: 3px 10px; font-size: var(--tl-control-font-size-sm); border-radius: 999px; }
+button.quiet { border: none; background: none; font-size: 16px; line-height: 1; padding: 2px 6px; }
+button.list-item { text-align: left; }
+a.btn { text-decoration: none; color: var(--text); display: inline-block; }
+
+/* ---- Feld ---- */
+select, input, textarea {
+  background: var(--tl-input); border: 1px solid var(--line); border-radius: var(--tl-radius);
+  padding: var(--tl-field-pad); min-height: var(--tl-control-height);
+}
+select { max-width: 100%; }
+input.small, select.small { padding: var(--tl-field-pad-sm); }
+input.error { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+input.warn { border-color: var(--warn); }
+input.color-compact { padding: 2px; height: 30px; }
+
+/* ---- Segment ---- */
+.seg-label { color: var(--muted); font-size: 12px; margin-right: 2px; }
+.editor .kind-switch { display: flex; gap: 4px; }
+.editor .kind-switch label { display: flex; align-items: center; gap: 6px; margin: 0; padding: var(--tl-button-pad);
+  border: 1px solid var(--line); border-radius: var(--tl-radius); cursor: pointer; color: var(--text); }
+
+/* ---- Reiter ---- */
+.lkw-tab { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.lkw-tab small { opacity: .75; }
+.lkw-tab.none:not(.on) { border-style: dashed; }
+
+/* ---- Gewählt: gefüllt (steht nach den Basen; gewinnt über Spezifität gegen :hover) ---- */
+.seg button.on, .seg button.on:hover { background: var(--tl-selected-bg); color: var(--tl-selected-text); border-color: var(--tl-selected-border); }
+.lkw-tab.on, .lkw-tab.on:hover { background: var(--tl-selected-bg); color: var(--tl-selected-text); border-color: var(--tl-selected-border); font-weight: 600; }
+.editor .kind-switch label:has(input:checked) { background: var(--tl-selected-bg); color: var(--tl-selected-text); border-color: var(--tl-selected-border); }
+/* ---- Gewählt: markiert (Listeneintrag) ---- */
+button.list-item.on, button.list-item.on:hover { border-color: var(--tl-marked-border); }
+
+/* ---- Popup ---- */
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--tl-dialog-radius); padding: 0; }
+dialog::backdrop { background: var(--tl-backdrop); }
+.editor { display: grid; gap: 10px; padding: var(--tl-dialog-pad); }
+/* Trennlinien per box-shadow: ein Rand würde 1px Höhe kosten, solange sie transparent sind. */
+.editor h2 { margin: 0 0 4px; font-size: var(--tl-dialog-title-size); box-shadow: 0 1px 0 var(--tl-dialog-divider); }
+/* Überlauf-Fix (#45): ein langer Eintrag darf die Spalte nicht über das Popup hinaus aufziehen. Ein Select hat sonst
+   als Mindestbreite seine volle Eintragsbreite; minmax(0, 1fr) als Spalte würde dasselbe tun, verschöbe aber
+   die Zeilenhöhen um Bruchteile von Pixeln (Bildvergleich), deshalb min-width am Select. */
+.editor label { display: grid; gap: 4px; color: var(--muted); }
+.editor label > input, .editor label > select, .editor label > textarea { color: var(--text); }
+.editor label > select { min-width: 0; }
+.editor .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.editor .check { display: flex; gap: 8px; align-items: center; color: var(--text); }
+.editor fieldset { border: 1px solid var(--line); border-radius: var(--radius); }
+.editor menu { display: flex; gap: 8px; padding: 0; margin: 8px 0 0; box-shadow: 0 -1px 0 var(--tl-dialog-divider); }
+.editor input:disabled, .editor select:disabled { opacity: .5; }
+.editor label:has(> input:disabled), .editor label:has(> select:disabled) { color: var(--muted); opacity: .6; }
+
+/* ---- Hinweis ---- */
+.hint { color: var(--muted); font-size: 12px; margin: 0; }
+.banner { padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--line); position: relative; }
+.banner-warn { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.banner-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); } /* nur Position; Optik: button.quiet */
