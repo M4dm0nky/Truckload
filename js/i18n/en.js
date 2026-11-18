@@ -3,6 +3,7 @@
 export default {
   // index.html (Reihenfolge wie im Dokument)
   "Hinweis schließen": "Dismiss notice",
+  "Schließen": "Close",
   "Truckload ist in einem weiteren Tab offen — Änderungen können sich gegenseitig überschreiben.": "Truckload is open in another tab — changes may overwrite each other.",
   "Lege einen neuen Ladeplan an oder öffne einen vorhandenen.": "Create a new load plan or open an existing one.",
   "Ladeplan": "Load plan",

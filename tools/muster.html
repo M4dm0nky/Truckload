@@ -26,7 +26,10 @@
   </style>
 </head>
 <body>
-<script>
+<script type="module">
+  import { symbol, dialogKopf } from '../js/ui/dom.js';
+  import { SYMBOLS } from '../js/ui/symbols.js';
+  const alle = Object.keys(SYMBOLS);
   const theme = new URLSearchParams(location.search).get('theme');
   if (!theme) {
     document.body.style.padding = '0';
@@ -94,6 +97,35 @@
     <label>Gerät <select><option>Ein sehr langer Eintrag aus einer Tabelle mit vielen Angaben zu Hersteller, Typ, Variante und Zubehör (Stückzahl 24)</option></select></label>
     <menu><button class="primary">OK</button><button>Abbrechen</button></menu>
   </form></dialog>
+</section>
+
+<section><h3>Symbole (Lucide)</h3>
+  <div class="z"><small>alle 10</small>${alle.map(n => `<span title="${n}">${symbol(n)}</span>`).join(' ')}<span style="font-size:32px">${alle.map(n => symbol(n)).join(' ')}</span></div>
+  <div class="z"><small>Knopf normal</small>${alle.map(n => `<button>${symbol(n)} ${n}</button>`).join('')}</div>
+  <div class="z"><small>Knopf klein</small>${alle.map(n => `<button class="small">${symbol(n)}</button>`).join('')}</div>
+  <div class="z"><small>Knopf leise</small>${alle.map(n => `<button class="quiet" aria-label="${n}">${symbol(n)}</button>`).join('')}</div>
+  <div class="z"><small>deaktiviert</small>${alle.map(n => `<button disabled>${symbol(n)}</button>`).join('')}<button class="quiet" disabled>${symbol('x')}</button></div>
+  <div class="z"><small>Gefahr</small><button class="danger">${symbol('trash-2')} Löschen</button><button class="danger small">${symbol('trash-2')}</button><button class="danger" disabled>${symbol('trash-2')} Löschen</button></div>
+  <div class="z"><small>im Text</small><span>Eine Zeile mit ${symbol('triangle-alert')} Warnung, ${symbol('box')} Case und ${symbol('pencil-line')} Bearbeiten im Fließtext.</span></div>
+  <div class="z"><small>Hauptknopf</small><button class="primary">${symbol('plus')} Neu</button></div>
+</section>
+
+<section><h3>Popup mit Kopf</h3>
+  <dialog open style="width:420px"><form class="editor" method="dialog">
+    ${dialogKopf('Case bearbeiten')}
+    <label>Name <input value="Moving Head"></label>
+    <menu><button class="primary">OK</button><button>Abbrechen</button></menu>
+  </form></dialog>
+  <dialog open style="width:420px"><form class="editor" method="dialog">
+    ${dialogKopf('Ein sehr langer Titel für ein Popup, der in der Breite umbrechen muss, ohne das Kreuz zu verdrängen', { act: 'cancel' })}
+    <label>Name <input value="Moving Head"></label>
+    <menu><button class="primary">OK</button><button>Abbrechen</button></menu>
+  </form></dialog>
+</section>
+
+<section><h3>Segmente: getrennt und verbunden</h3>
+  <div class="z"><small>getrennt (0)</small><span class="seg"><button>2D</button><button class="on">3D</button><button>Beide</button></span></div>
+  <div class="z" style="--tl-segment-joined:1"><small>verbunden (1)</small><span class="seg"><button>2D</button><button class="on">3D</button><button>Beide</button></span></div>
 </section>
 `;
   }

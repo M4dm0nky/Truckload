@@ -88,6 +88,7 @@ const ASSETS = [
   'js/ui/confirmDialog.js',
   'js/ui/dolly-wizard.js',
   'js/ui/dom.js',
+  'js/ui/symbols.js',
   'js/ui/inspector.js',
   'js/ui/instanceMatrix.js',
   'js/ui/labelTexture.js',
@@ -114,6 +115,7 @@ const ASSETS = [
   'js/ui/view3d.js',
   'vendor/three.module.min.js',
   'vendor/LICENSE-three.txt',
+  'vendor/LICENSE-lucide.txt',
   'vendor/addons/controls/OrbitControls.js'
 ];
 

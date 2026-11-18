@@ -1,4 +1,5 @@
 import { t, num } from '../i18n/i18n.js';
+import { SYMBOLS } from './symbols.js';
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ESC[ch]);
@@ -43,6 +44,22 @@ export function icon(name) {
   const d = ICON_PATHS[name];
   if (!d) throw new Error(`Unknown icon: ${name}`);
   return `<svg class="icon" viewBox="0 0 256 256" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
+}
+
+// Lucide-Symbol (Quelle und Version: js/ui/symbols.js). Folgt über currentColor der Textfarbe und ist für
+// Screenreader stumm – den Namen trägt der umgebende Knopf (aria-label). Unbekannter Name = Tippfehler: wirft.
+export function symbol(name) {
+  if (!Object.hasOwn(SYMBOLS, name)) throw new Error(`Unknown symbol: ${name}`);
+  return `<svg class="symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${SYMBOLS[name]}</svg>`;
+}
+
+// Popup-Kopf: Titel links, × rechts. Das × tut nur, was das Abbrechen des Popups tut: ohne `act` schließt es
+// das Formular (value="cancel"), mit `act` löst es data-act aus. `titelHtml` ist fertiges HTML (esc() Sache des Aufrufers).
+export function dialogKopf(titelHtml, { act } = {}) {
+  const x = act
+    ? `type="button" data-act="${esc(act)}"`
+    : 'type="submit" value="cancel" formnovalidate';
+  return `<header class="dialog-head"><h2>${titelHtml}</h2><button ${x} class="quiet dialog-x" aria-label="${t('Schließen')}" title="${t('Schließen')}">${symbol('x')}</button></header>`;
 }
 
 // Getter statt fester Texte: die Sprache steht erst beim Zugriff fest (Tests schalten sie um).
