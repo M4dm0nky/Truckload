@@ -63,7 +63,7 @@ export function mountLibrary(el, h) {
       <div class="lib-group-head">
         ${swatch(c?.color)}
         <span class="lib-text"><b>${esc(name)}</b><small>${count}× ${esc(c ? caseDetail(c) : '')}</small></span>
-        <button data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? t('Als eigenes Case kopieren') : t('Bearbeiten')}">${icon('pencil-simple')}</button>
+        <button class="small" data-act="edit" data-case="${esc(caseId)}" title="${c?.builtin ? t('Als eigenes Case kopieren') : t('Bearbeiten')}">${icon('pencil-simple')}</button>
       </div>`;
   }
 
@@ -81,7 +81,7 @@ export function mountLibrary(el, h) {
     return `<div class="lib-item${selCls}" draggable="true" data-case="${esc(caseId)}" data-unplaced="${esc(u.id)}">
       ${swatch(color)}
       <span class="lib-text">${esc(label)}${reason ? `<small class="lib-reason">${esc(reason)}</small>` : ''}</span>
-      <button data-act="tray-remove" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">−</button></div>`;
+      <button class="small" data-act="tray-remove" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">−</button></div>`;
   }
 
   // Reiner Auswahlwechsel: nur die Klasse umschalten, kein Neuaufbau.

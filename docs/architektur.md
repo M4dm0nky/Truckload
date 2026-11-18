@@ -974,6 +974,30 @@ zeigt dagegen nur noch den Inhalt des aktuellen Loads (platzierte + unplatzierte
 Stücke), umschaltbar zwischen „Noch nicht geladen“ und „Alles Material“ – nicht mehr
 den Katalog.
 
+## Gestaltung: Werte, Bausteine, Wächter (Issue #48)
+
+Das CSS hat drei Schichten. **Werte** sind die Tokens `--tl-*` in `:root` von `css/app.css` (Liste und
+Version in `js/ui/themeTokens.js`, Vertrag mit NYX in [nyx-host.md](nyx-host.md#gestaltung)).
+**Bausteine** stehen in `css/ui.css`: Knopf, Feld, Segment, Reiter, Popup und Hinweis mit ihren
+Varianten und Zuständen, nur aus Tokens. **Ansichten** in `css/app.css` setzen an Bedienelementen nur
+Anordnung. `index.html` und `sw.js` laden `ui.css` vor `app.css`, damit eine Ansicht bei gleicher
+Spezifität gewinnt; nur dort ist das sicher, weil sie keine Gestaltung mehr setzt.
+
+- Eine Variante ist eine Klasse im Markup (`class="quick-len chip"`), keine Regel in der Ansicht.
+- Gewählt schlägt Hover über Spezifität (`.seg button.on:hover`), nicht über die Reihenfolge.
+- Schriftgrößen laufen über die Stufen `--tl-font-size-xs|sm|lg` bzw. `--tl-font-size`; Einzelwerte
+  als ganzzahliges `calc()` darüber, damit ein Host sie mitverkleinern kann. SVG-Beschriftungen sind
+  Plan-Einheiten und bleiben fest.
+- `tests/ui-bausteine.test.js` prüft mit dem Zerleger `tests/css-scan.js`: keine Gestaltung von
+  Bedienelementen in `app.css` (Ziel ist das letzte Glied des Selektors; zählt, wenn es ein
+  Bedienelement nennt oder irgendeine Baustein-Klasse aus `ui.css`, Zustandsklassen wie `.on`
+  ausgenommen), keine Farbliterale und keine festen Schriftgrößen außerhalb der Token-Blöcke und
+  der `svg`-Regeln, kein allgemeines `button.on`, `ui.css` vor `app.css`.
+- Grenzen des Wächters: Hakenklassen und IDs ohne Baustein-Klasse sieht er nicht, und `em`/`rem` gelten als
+  fest, weil Stufen über Tokens laufen sollen.
+- `tools/muster.html` zeigt jeden Baustein in jedem Zustand, hell und dunkel nebeneinander. Neue
+  Bausteine erst dort, dann in den Ansichten.
+
 ## Darstellung
 
 Zahlen in Case-Zeilen und -Details formatiert `fmtNum` (`js/ui/caseInfo.js`): deutsch, höchstens

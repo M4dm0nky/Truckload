@@ -23,7 +23,7 @@ const isPreset = c => c?.builtin === true && String(c.id).startsWith('preset-');
 // der Hinweis, wie man ihn ändert.
 export function weightField(c, { gesperrt = false } = {}) {
   if (!gesperrt && weightEditable(c)) {
-    return `<input type="number" name="weight" class="insp-weight" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">${t('gilt für alle Stücke dieses Typs')}</small>`;
+    return `<input type="number" name="weight" class="insp-weight small" min="0" max="${CASE_LIMITS.weight}" step="any" value="${esc(c.weight)}"> kg <small class="hint insp-weight-scope">${t('gilt für alle Stücke dieses Typs')}</small>`;
   }
   return `${esc(c.weight)} kg`;
 }
@@ -78,7 +78,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
   const pct = tot.payload > 0 ? Math.min(100, Math.round(tot.weight / tot.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
   const wheelRow = tipped ? `
-      <div class="insp-wheels">
+      <div class="insp-wheels seg">
         <span class="hint">${t('Rollen zeigen nach:')}</span>
         <div class="btns">
           ${WHEEL_FACE_ORDER.map(face => {
@@ -97,7 +97,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       ${selected.c.content ? `<p class="content">${esc(selected.c.content)}</p>` : ''}
       <div class="insp-label">
         <label>${t('Beschriftung')}<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selected.label)}"></label>
-        <label>${t('Farbe')}<input type="color" name="color" value="${esc(selected.color)}"></label>
+        <label>${t('Farbe')}<input type="color" class="color-compact" name="color" value="${esc(selected.color)}"></label>
         <label>${t('Gruppe')}<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="${t('keine')}" value="${esc(selected.p.group ?? '')}"></label>
       </div>
       ${lkwField(lkw)}
@@ -128,7 +128,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
       <p class="hint">${t('Noch nicht geladen')}</p>
       <div class="insp-label">
         <label>${t('Beschriftung')}<input type="text" name="label" maxlength="${MAX_LABEL}" value="${esc(selectedUnplaced.label)}"></label>
-        <label>${t('Farbe')}<input type="color" name="color" value="${esc(selectedUnplaced.color)}"></label>
+        <label>${t('Farbe')}<input type="color" class="color-compact" name="color" value="${esc(selectedUnplaced.color)}"></label>
         <label>${t('Gruppe')}<input type="text" name="group" list="insp-group-list" maxlength="${MAX_LABEL}" placeholder="${t('keine')}" value="${esc(selectedUnplaced.item.group ?? '')}"></label>
       </div>
       ${lkwField(lkw)}

@@ -121,6 +121,9 @@ export function entwuerfeAus(eintraege) {
   return { entwuerfe, ausgelassen };
 }
 
+export const FELD_KLASSE = { rot: 'error', gelb: 'warn' };
+export const feldKlasse = stufe => (FELD_KLASSE[stufe] ? `small ${FELD_KLASSE[stufe]}` : 'small');
+
 // Befund-Zustand einer Zeile: { zeile: 'rot'|'gelb'|'', felder: { key: 'rot'|'gelb' }, hinweis: HTML }.
 export function zeilenStatus(e) {
   const felder = {};
@@ -146,7 +149,7 @@ export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche 
     const st = zeilenStatus(e);
     const zellen = spalten.map(sg => {
       const b = e.befunde.filter(x => x.feld === sg.key).map(x => x.text).join(' ');
-      return `<td><input type="text" data-k="${esc(sg.key)}" value="${esc(e.werte[sg.key] ?? '')}" class="${st.felder[sg.key] ?? ''}"${b ? ` title="${esc(b)}"` : ''}></td>`;
+      return `<td><input type="text" data-k="${esc(sg.key)}" value="${esc(e.werte[sg.key] ?? '')}" class="${feldKlasse(st.felder[sg.key])}"${b ? ` title="${esc(b)}"` : ''}></td>`;
     }).join('');
     return `<tr data-i="${i}" class="${st.zeile}"><td class="ti-nr">${e.zeile ?? '+'}</td>${zellen}<td class="ti-hint">${st.hinweis}</td>`
       + `<td><button type="button" class="ti-del" data-act="del" title="${t('Zeile löschen')}" aria-label="${t('Zeile löschen')}">${icon('trash')}</button></td></tr>`;
@@ -644,7 +647,7 @@ export async function openTabellenImport(dlg, opts) {
     const s = zeilenStatus(neu);
     tr.className = s.zeile;
     for (const input of tr.querySelectorAll('input[data-k]')) {
-      input.className = s.felder[input.dataset.k] ?? '';
+      input.className = feldKlasse(s.felder[input.dataset.k]);
       const text = neu.befunde.filter(x => x.feld === input.dataset.k).map(x => x.text).join(' ');
       if (text) input.title = text; else input.removeAttribute('title');
     }

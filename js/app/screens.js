@@ -27,13 +27,13 @@ export function renderStartScreen(el, s, handlers) {
   const plans = [...s.plans].sort((a, b) => a.name.localeCompare(b.name, 'de'));
   const listHtml = plans.length
     ? `<ul class="start-plans">${plans.map(p => `
-        <li><button class="start-plan-item" type="button" data-plan-id="${esc(p.id)}">${esc(p.name)}</button></li>
+        <li><button class="start-plan-item list-item" type="button" data-plan-id="${esc(p.id)}">${esc(p.name)}</button></li>
       `).join('')}</ul>`
     : `<p class="start-hint">${t('Noch keine gespeicherten Ladepläne.')}</p>`;
   el.querySelector('#start-actions').innerHTML = `
     <div class="start-main">
-      <button id="start-new" class="primary" type="button">${t('Neuen Load erstellen')}</button>
-      <button id="start-material" class="primary" type="button" title="${t('Materialverwaltung: Sammlungen, Cases, Lautsprecher, Traversen')}">${t('Material')}</button>
+      <button id="start-new" class="primary large" type="button">${t('Neuen Load erstellen')}</button>
+      <button id="start-material" class="primary large" type="button" title="${t('Materialverwaltung: Sammlungen, Cases, Lautsprecher, Traversen')}">${t('Material')}</button>
     </div>
     ${listHtml}
     <button id="start-import" type="button" title="${t('JSON-Sicherung einlesen')}">${t('Sicherung importieren')}</button>

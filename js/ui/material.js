@@ -59,11 +59,11 @@ export function mountMaterial(el, h) {
       <div class="mat-head"><h1>${t('Material')}</h1><button data-act="back">${t('Zurück')}</button></div>
       <div class="mat-body">
         <nav class="mat-firms">
-          ${rows.map(({ collection, depth }) => `<button data-collection="${esc(collection.id)}" class="${sel === collection.id ? 'on' : ''}" style="padding-left:${10 + depth * 14}px">${esc(collName(collection))} <small>${countOf(collection.id)}</small></button>`).join('')}
+          ${rows.map(({ collection, depth }) => `<button data-collection="${esc(collection.id)}" class="list-item${sel === collection.id ? ' on' : ''}" style="padding-left:${10 + depth * 14}px">${esc(collName(collection))} <small>${countOf(collection.id)}</small></button>`).join('')}
           <button data-act="new-collection">${t('+ Sammlung')}</button>
           <button data-act="import-collection">${t('Sammlung importieren')}</button>
-          <button data-collection="${ONLY_IN_PLAN}" class="${sel === ONLY_IN_PLAN ? 'on' : ''}">${t('Nur in Ladeplänen')} <small>${onlyInPlanCases(last.cases).length}</small></button>
-          ${ausgeblendeteUeberlagerungen(last.cases, shipped()).length ? `<button data-collection="${HIDDEN}" class="${sel === HIDDEN ? 'on' : ''}" title="${t('Gelöschte Listen-Cases – hier lässt sich die mitgelieferte Fassung zurückholen')}">${t('Ausgeblendet')} <small>${ausgeblendeteUeberlagerungen(last.cases, shipped()).length}</small></button>` : ''}
+          <button data-collection="${ONLY_IN_PLAN}" class="list-item${sel === ONLY_IN_PLAN ? ' on' : ''}">${t('Nur in Ladeplänen')} <small>${onlyInPlanCases(last.cases).length}</small></button>
+          ${ausgeblendeteUeberlagerungen(last.cases, shipped()).length ? `<button data-collection="${HIDDEN}" class="list-item${sel === HIDDEN ? ' on' : ''}" title="${t('Gelöschte Listen-Cases – hier lässt sich die mitgelieferte Fassung zurückholen')}">${t('Ausgeblendet')} <small>${ausgeblendeteUeberlagerungen(last.cases, shipped()).length}</small></button>` : ''}
         </nav>
         <section class="mat-list">
           <div class="row">

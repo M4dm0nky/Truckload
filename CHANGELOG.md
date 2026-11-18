@@ -2,6 +2,17 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.34.0 – 2026-11-18
+
+**Gestaltung aus einem Guss (Issue #48).** Am Aussehen der Web-App ändert sich nichts. Das CSS ist so umgebaut, dass Truckload in NYX bis in Knöpfe, Felder, Popups und Schrift wie NYX aussehen kann.
+
+- **Drei Schichten:** Werte (Tokens in `css/app.css`), Bausteine (neu `css/ui.css`: Knopf, Feld, Segment, Reiter, Popup, Hinweis) und Ansichten, die an Bedienelementen nur noch die Anordnung setzen. Varianten sind Klassen im Markup (`.small`, `.mini`, `.large`, `.chip`, `.quiet`, `.list-item`, `.error`, `.warn`, `.color-compact`).
+- **Gestaltungs-Schnittstelle Version 2:** 31 neue Tokens für Höhe, Innenabstand, Schrift und Rand der Bedienelemente, den Gewählt-Zustand, das Popup, die Warnfarbe, Grundschrift, Zeilenhöhe und Schriftstufen. Die Standardwerte sind das bisherige Aussehen. Liste in `docs/nyx-host.md`.
+- **Wächter:** `tests/ui-bausteine.test.js` meldet Knopf- und Feldgestaltung in den Ansichten, Farbliterale und feste Schriftgrößen außerhalb der Tokens. Jeden Baustein in jedem Zustand zeigt `tools/muster.html` (nur für Entwickler).
+- **Behoben:** Ein Popup mit langer Auswahl (z. B. „Anderes Case suchen …“) lief seitlich aus dem Fenster (#45).
+- **Sichtbar anders:** Die Felder der Liste im Tabellen-Import sind 2 px niedriger (eine gemeinsame kleine Feldgröße).
+- **Dateien:** Neu sind `css/ui.css`, `tests/css-scan.js`, `tools/muster.html`. Kein neuer Store, kein Datenmodell.
+
 ## V 0.33.0 – 2026-11-17
 
 **Geräte aus NYX übernehmen.** Nur in NYX: Truckload liest die Geräte des Projekts und legt die passenden Cases an.

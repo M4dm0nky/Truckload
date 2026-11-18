@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Truckload: Musterseite der UI-Bausteine</title>
+  <!-- Entwicklerwerkzeug (nicht in sw.js, nicht im i18n-Test, im NYX-Paket ausgeschlossen).
+       Ohne ?theme: zwei iframes, dunkel und hell nebeneinander. Mit ?theme=dark|light: ein Theme. -->
+  <link rel="stylesheet" href="../css/ui.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <style>
+    /* Nur Musterseite: Hover und Fokus dauerhaft sichtbar (Nachbau von :hover und :focus-visible). */
+    button.is-hover, .btn.is-hover { background: var(--tl-button-hover-bg); border-color: var(--tl-button-hover-border); }
+    button.primary.is-hover { background: var(--accent); border-color: var(--accent); } /* Hauptknopf behält beim Überfahren den Akzentrand */
+    .is-focus { outline: 2px solid var(--tl-focus); outline-offset: 1px; }
+    html, body { height: auto; }
+    body { display: block; padding: 16px 20px 40px; min-height: 100vh; }
+    h1 { font-size: 18px; margin: 0 0 12px; }
+    section { margin: 0 0 18px; }
+    section > h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .z { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 6px; }
+    .z > small { width: 90px; color: var(--muted); font-size: 11px; flex: none; }
+    dialog { position: static; display: block; margin: 0 0 12px; width: 100%; }
+    .frames { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: 100vh; padding: 8px; }
+    .frames iframe { width: 100%; height: 100%; border: 1px solid #888; }
+    .stage-lbl { font: 12px system-ui; margin: 0 0 4px; }
+  </style>
+</head>
+<body>
+<script>
+  const theme = new URLSearchParams(location.search).get('theme');
+  if (!theme) {
+    document.body.style.padding = '0';
+    document.body.innerHTML = '<div class="frames"><iframe src="?theme=dark"></iframe><iframe src="?theme=light"></iframe></div>';
+  } else {
+    document.documentElement.dataset.theme = theme;
+    document.body.innerHTML = `
+<h1>UI-Bausteine, ${theme === 'dark' ? 'dunkel' : 'hell'}</h1>
+
+<section><h3>Knopf</h3>
+  <div class="z"><small>normal</small><button>Speichern</button><button class="is-hover">hover</button><button class="is-focus">Fokus</button><button disabled>disabled</button><a class="btn" href="#">a.btn</a></div>
+  <div class="z"><small>Haupt</small><button class="primary">Haupt</button><button class="primary is-hover">hover</button><button class="primary is-focus">Fokus</button><button class="primary" disabled>disabled</button></div>
+  <div class="z"><small>Gefahr</small><button class="danger">Löschen</button><button class="danger is-hover">hover</button><button class="danger" disabled>disabled</button></div>
+  <div class="z"><small>klein</small><button class="small">klein</button><button class="small is-hover">hover</button><button class="small" disabled>disabled</button></div>
+  <div class="z"><small>mini</small><button class="mini">+</button><button class="mini">−</button><button class="mini is-hover">hover</button></div>
+  <div class="z"><small>groß</small><button class="primary large">Neuer Plan</button><button class="large">groß</button></div>
+  <div class="z"><small>Chip</small><button class="chip">120</button><button class="chip">240</button><button class="chip is-hover">hover</button><button class="chip" disabled>disabled</button></div>
+  <div class="z"><small>leise</small><button class="quiet">×</button><button class="quiet is-hover">×</button></div>
+  <div class="z" style="display:grid;grid-template-columns:260px 260px;"><small>Listeneintrag</small><span></span>
+    <button class="list-item">Startplan</button><button class="list-item on">Startplan (markiert)</button>
+    <button class="list-item is-hover">Startplan (hover)</button><button class="list-item" disabled>Startplan (disabled)</button></div>
+</section>
+
+<section><h3>Feld</h3>
+  <div class="z"><small>normal</small><input value="Text"><select><option>Auswahl</option></select><textarea rows="1">Textfeld</textarea></div>
+  <div class="z"><small>Fokus</small><input class="is-focus" value="Fokus"><select class="is-focus"><option>Auswahl</option></select></div>
+  <div class="z"><small>disabled</small><input value="gesperrt" disabled><select disabled><option>gesperrt</option></select></div>
+  <div class="z"><small>klein</small><input class="small" value="klein"><select class="small"><option>klein</option></select></div>
+  <div class="z"><small>Fehler</small><input class="error" value="Fehler"></div>
+  <div class="z"><small>Warnung</small><input class="warn" value="Warnung"></div>
+  <div class="z"><small>Farbwahl</small><input type="color" value="#d97706"><input type="color" class="color-compact" value="#d97706"></div>
+</section>
+
+<section><h3>Segment, Gewählt</h3>
+  <div class="z"><small>Segment</small><span class="seg-label">Ansicht</span><span class="seg"><button>2D</button><button class="on">3D</button><button>Beide</button></span></div>
+  <div class="z"><small>gewählt + hover</small><span class="seg"><button class="on is-hover">3D</button></span><span class="seg"><button class="on" disabled>3D</button></span></div>
+  <div class="z"><small>Art-Schalter</small><span class="editor" style="padding:0"><span class="kind-switch"><label><input type="radio" name="k"> Case</label><label><input type="radio" name="k" checked> Traverse</label></span></span></div>
+</section>
+
+<section><h3>Reiter</h3>
+  <div class="z"><small>Reiter</small><button class="lkw-tab">LKW 1 <small>12</small></button><button class="lkw-tab on">LKW 2 <small>8</small></button><button class="lkw-tab none">LKW 3 <small>0</small></button><button class="lkw-tab on is-hover">hover</button></div>
+</section>
+
+<section><h3>Hinweis</h3>
+  <div class="z"><small>hint</small><p class="hint">Ein Hinweistext in kleiner Schrift.</p></div>
+  <div class="banner">Banner ohne Warnung</div>
+  <div class="banner banner-warn">Banner mit Warnung <button class="quiet banner-close">×</button></div>
+</section>
+
+<section><h3>Popup (normal)</h3>
+  <dialog open><form class="editor" method="dialog">
+    <h2>Case bearbeiten</h2>
+    <label>Name <input value="Moving Head"></label>
+    <div class="row"><label>Breite <input value="60"></label><label>Tiefe <input value="40"></label></div>
+    <label>Gesperrt <input value="schreibgeschützt" disabled></label>
+    <label class="check"><input type="checkbox" checked> Tippbar</label>
+    <fieldset><legend>Gruppe</legend><label>Feld <input value="x"></label></fieldset>
+    <menu><button class="primary">OK</button><button>Abbrechen</button></menu>
+  </form></dialog>
+</section>
+
+<section><h3>Popup mit langer Auswahl (#45: darf nicht seitlich überlaufen)</h3>
+  <dialog open style="width:420px"><form class="editor" method="dialog">
+    <h2>Gerät zuordnen</h2>
+    <label>Gerät <select><option>Ein sehr langer Eintrag aus einer Tabelle mit vielen Angaben zu Hersteller, Typ, Variante und Zubehör (Stückzahl 24)</option></select></label>
+    <menu><button class="primary">OK</button><button>Abbrechen</button></menu>
+  </form></dialog>
+</section>
+`;
+  }
+</script>
+</body>
+</html>

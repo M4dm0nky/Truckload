@@ -58,12 +58,12 @@ export function profileHitLabel(p) {
 export function profileHitsHtml(profiles) {
   if (!profiles.length) return `<p class="hint">${t('Kein Profil gefunden.')}</p>`;
   return profiles.map(p =>
-    `<button type="button" class="quick-len profile-hit" data-id="${esc(p.id)}">${esc(profileHitLabel(p))}</button>`).join('');
+    `<button type="button" class="chip quick-len profile-hit" data-id="${esc(p.id)}">${esc(profileHitLabel(p))}</button>`).join('');
 }
 
 export function lengthButtonsHtml(profile) {
   return lengthButtons(profile).map(b =>
-    `<button type="button" class="quick-len" data-len="${b.cm}" title="${esc(b.title)}">${esc(b.label)}</button>`).join('');
+    `<button type="button" class="chip quick-len" data-len="${b.cm}" title="${esc(b.title)}">${esc(b.label)}</button>`).join('');
 }
 
 // Kleinste zulässige Länge im Längenfeld: 50 cm, mit Katalogprofil die kürzeste Katalog-Länge
@@ -131,10 +131,10 @@ export function openTrussDialog(dlg, opts = {}) {
       <fieldset class="classic-only"><legend>${t('Klassischer Wagen')}</legend>
         <label>${t('Profil suchen (z. B. FD34)')}<input type="search" name="profileSearch" autocomplete="off"></label>
         <div class="row quick-lengths profile-hits"></div>
-        <p class="hint profile-chosen" hidden><span class="profile-chosen-text"></span> <button type="button" class="quick-len profile-clear">${t('Auswahl aufheben')}</button></p>
+        <p class="hint profile-chosen" hidden><span class="profile-chosen-text"></span> <button type="button" class="chip quick-len profile-clear">${t('Auswahl aufheben')}</button></p>
         <label class="profile-select">${t('Profil')}<select name="profile">${TRUSS_PROFILES.map(p => `<option value="${p.width}">${esc(p.name)}</option>`).join('')}</select></label>
         <label>${t('Länge (cm)')}<input type="number" name="trussLength" min="50" max="1000" step="1" required></label>
-        <div class="row quick-lengths length-buttons">${QUICK_LENGTHS.map(n => `<button type="button" class="quick-len" data-len="${n}">${n}</button>`).join('')}</div>
+        <div class="row quick-lengths length-buttons">${QUICK_LENGTHS.map(n => `<button type="button" class="chip quick-len" data-len="${n}">${n}</button>`).join('')}</div>
         <p class="hint length-origin"></p>
         <label>${t('Wagenbreite (cm)')}<input type="number" name="wagonW" min="20" max="200" step="1" required></label>
         <p class="hint">${t('Wagen unterscheiden sich je Sammlung – die Breite hier an den echten Wagen anpassen.')}</p>

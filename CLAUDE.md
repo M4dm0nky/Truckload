@@ -40,6 +40,10 @@ wird dort geschlossen, ein neuer als Issue angelegt, nicht in einer Datei gesamm
   (Store `projectRuleSets`) und den mitgeführten Cases und Fahrzeugen eines Plans in
   [docs/nyx-projektdatei.md](docs/nyx-projektdatei.md), zum Tabellen-Import in [docs/nyx-tabellenimport.md](docs/nyx-tabellenimport.md). Vor Änderungen an `js/store/`, `sw.js`,
   `data/` oder `vendor/` lesen.
+- **Knopf und Feld nur über `css/ui.css`.** Dort stehen die Bausteine (nur aus Tokens), die
+  Ansichten in `css/app.css` setzen an Bedienelementen nur Anordnung; Varianten sind Klassen im Markup
+  (`.small`, `.chip` …), Schriftgrößen laufen über Tokens. `tests/ui-bausteine.test.js` erzwingt das,
+  jeden Baustein zeigt `tools/muster.html`. Aufbau in [docs/architektur.md](docs/architektur.md).
 - **`STORES` in `js/store/db.js` ist die einzige Liste der Stores.** NYX prüft sie gegen seine
   `STORE_ORT`; ein neuer Store braucht vorab Bescheid an NYX (und Freigabe dort, Projektdatei oder
   Bibliothek), sonst zeigt Truckload dort nur die Ersatzansicht.
