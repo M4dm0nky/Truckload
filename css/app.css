@@ -60,8 +60,6 @@ h1, h2, h3, .brand { font-family: var(--tl-font-display); }
 .brand { color: var(--accent); letter-spacing: .02em; }
 .brand .version { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 4px; }
 .grow { flex: 1; }
-.seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.seg-label { color: var(--muted); font-size: 12px; margin-right: 2px; }
 .case-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
 .case-tabs button { flex: 1; }
 
@@ -142,16 +140,14 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .editor label { display: grid; gap: 4px; color: var(--muted); }
 .editor label > input, .editor label > select, .editor label > textarea { color: var(--text); }
 .editor .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+/* nach .editor .row, sonst gewinnt dessen Grid (gleiche Spezifität) */
+.editor .kind-switch { display: flex; gap: 4px; }
 .editor .check { display: flex; gap: 8px; align-items: center; color: var(--text); }
 .editor fieldset { border: 1px solid var(--line); border-radius: 8px; }
 .editor menu { display: flex; gap: 8px; padding: 0; margin: 8px 0 0; }
 .hint { color: var(--muted); font-size: 12px; margin: 0; }
 .print-root { display: none; }
 
-.editor .kind-switch { display: flex; gap: 4px; }
-.editor .kind-switch label { display: flex; align-items: center; gap: 6px; margin: 0; padding: 5px 10px;
-  border: 1px solid var(--line); border-radius: 6px; cursor: pointer; color: var(--text); }
-.editor .kind-switch label:has(input:checked) { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .editor .quick-lengths { display: flex; flex-wrap: wrap; gap: 6px; }
 .editor .truss-dims, .editor .outer-dims-hint { color: var(--muted); font-size: 12px; margin: 0; }
 .editor input:disabled, .editor select:disabled { opacity: .5; }
@@ -227,7 +223,6 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .insp-label input[type="text"] { width: 100%; }
 .insp-wheels { margin: 10px 0; }
 .insp-wheels .hint { display: block; margin-bottom: 4px; }
-.insp-wheels button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 /* Block „Laden“ (Lage 1–4 + getippt) – gleiche Optik wie die Wizard-Häkchen (.wiz-layers,
    .wiz-tipped, .check, .wiz-layer-hint sind dort schon definiert und werden hier mit
    übernommen), nur kompakter fürs schmale Inspector-Panel. */
@@ -257,10 +252,6 @@ kbd { font-size: 11px; color: var(--muted); border: 1px solid var(--line); borde
 /* Mehrere LKW in einem Plan: Reiterleiste über den Ansichten, Summenzeile darunter. */
 .lkw-tabs { padding: 8px 10px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
 .lkw-tab-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.lkw-tab { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-.lkw-tab.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
-.lkw-tab small { opacity: .75; }
-.lkw-tab.none:not(.on) { border-style: dashed; }
 .lkw-sum { margin: 6px 0 8px; }
 .lkw-none-hint { margin: 24px; color: var(--muted); }
 .editor .lkw-cat-list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
@@ -285,7 +276,6 @@ kbd { font-size: 11px; color: var(--muted); border: 1px solid var(--line); borde
 .ti-memo ul { margin: 6px 0 0; padding-left: 20px; }
 .ti-target { border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 6px; }
 .ti-leiste { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.ti-leiste .seg button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .ti-scroll { max-height: 55vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
 .ti-list { border-collapse: collapse; width: 100%; }
 .ti-list th { position: sticky; top: 0; background: var(--panel); text-align: left; font-size: 12px; color: var(--muted); padding: 5px 4px; z-index: 1; }

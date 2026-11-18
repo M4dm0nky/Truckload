@@ -78,7 +78,7 @@ export function renderInspector(el, { selected, selectedUnplaced, result, truck,
   const pct = tot.payload > 0 ? Math.min(100, Math.round(tot.weight / tot.payload * 100)) : 0;
   const tipped = selected && selected.p.orientation !== 'standing';
   const wheelRow = tipped ? `
-      <div class="insp-wheels">
+      <div class="insp-wheels seg">
         <span class="hint">${t('Rollen zeigen nach:')}</span>
         <div class="btns">
           ${WHEEL_FACE_ORDER.map(face => {
