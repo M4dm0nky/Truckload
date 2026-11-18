@@ -39,15 +39,51 @@ const HELL = {
   '--tl-truck': '#f7f9fc', '--tl-grid': '#e5eaf1',
 };
 
+const DUNKEL2 = {
+  '--tl-control-height': 'auto', '--tl-control-height-sm': 'auto',
+  '--tl-control-font-size': 'inherit', '--tl-control-font-size-sm': '12px',
+  '--tl-button-pad': '5px 10px', '--tl-button-pad-sm': '2px 8px',
+  '--tl-field-pad': '5px 8px', '--tl-field-pad-sm': '2px 6px',
+  '--tl-button-weight': 'inherit', '--tl-button-primary-weight': '600',
+  '--tl-button-bg': 'var(--tl-raised)', '--tl-button-hover-bg': 'var(--tl-button-bg)',
+  '--tl-button-hover-border': 'var(--tl-text-muted)',
+  '--tl-selected-bg': 'var(--tl-accent)', '--tl-selected-text': 'var(--tl-on-accent)',
+  '--tl-selected-border': 'var(--tl-accent)', '--tl-marked-border': 'var(--tl-accent)',
+  '--tl-dialog-radius': '12px', '--tl-dialog-pad': '18px', '--tl-dialog-title-size': '18px',
+  '--tl-dialog-divider': 'transparent', '--tl-backdrop': 'rgba(0,0,0,.5)',
+  '--tl-warn': '#f2b705', '--tl-warn-text': '#f2b705',
+};
+
 test('Token-Liste Version 1 ist vollständig und in fester Reihenfolge', () => {
-  assert.equal(THEME_VERSION, 1);
-  assert.deepEqual(THEME_TOKENS, Object.keys(DUNKEL));
+  assert.deepEqual(THEME_TOKENS.slice(0, 18), Object.keys(DUNKEL));
+});
+
+test('Token-Liste Version 2 = Version 1 + neue, feste Reihenfolge', () => {
+  assert.equal(THEME_VERSION, 2);
+  assert.deepEqual(THEME_TOKENS, [...Object.keys(DUNKEL), ...Object.keys(DUNKEL2)]);
+});
+
+test('Standardwerte Version 2', () => {
+  const root = block(':root');
+  for (const [k, v] of Object.entries(DUNKEL2)) assert.equal(root[k], v, k);
+  assert.equal(root['--tl-theme-version'], '2');
+});
+
+test('Warntext je Modus', () => {
+  assert.equal(lightMediaRoot()['--tl-warn-text'], '#7a5a00');
+  assert.equal(block(':root[data-theme="light"]')['--tl-warn-text'], '#7a5a00');
+  assert.equal(block(':root[data-theme="dark"]')['--tl-warn-text'], '#f2b705');
+});
+
+test('Warn-Aliasse', () => {
+  const root = block(':root');
+  assert.equal(root['--warn'], 'var(--tl-warn)');
+  assert.equal(root['--warn-text'], 'var(--tl-warn-text)');
 });
 
 test('Standardwerte = alte Palette (dunkel), jeder Token definiert', () => {
   const root = block(':root');
   for (const [k, v] of Object.entries(DUNKEL)) assert.equal(root[k], v, k);
-  assert.equal(root['--tl-theme-version'], '1');
 });
 
 test('Standardwerte = alte Palette (hell, Systemeinstellung)', () => {

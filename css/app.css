@@ -8,29 +8,42 @@
      ebenfalls nicht, bleibt unverändert. */
   /* Gestaltungs-Tokens (js/ui/themeTokens.js, docs/nyx-host.md): ein Host wie NYX überschreibt
      sie, die Web-App behält diese Standardwerte. */
-  --tl-theme-version: 1;
+  --tl-theme-version: 2;
   --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a;
   --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-accent: #d97706;
   --tl-on-accent: #111; --tl-selection: #f0a500; --tl-danger: #dc2626; --tl-ok: #30a46c;
   --tl-truck: #121a2c; --tl-grid: #223049; --tl-radius: 6px; --tl-focus: #d97706;
   --tl-font: system-ui, -apple-system, "Segoe UI", sans-serif;
   --tl-font-display: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Version 2: Bausteine (Maße, Knopf, Gewählt, Dialog, Warnfarbe); Standard = heutiger Wert */
+  --tl-control-height: auto; --tl-control-height-sm: auto;
+  --tl-control-font-size: inherit; --tl-control-font-size-sm: 12px;
+  --tl-button-pad: 5px 10px; --tl-button-pad-sm: 2px 8px;
+  --tl-field-pad: 5px 8px; --tl-field-pad-sm: 2px 6px;
+  --tl-button-weight: inherit; --tl-button-primary-weight: 600;
+  --tl-button-bg: var(--tl-raised); --tl-button-hover-bg: var(--tl-button-bg);
+  --tl-button-hover-border: var(--tl-text-muted);
+  --tl-selected-bg: var(--tl-accent); --tl-selected-text: var(--tl-on-accent);
+  --tl-selected-border: var(--tl-accent); --tl-marked-border: var(--tl-accent);
+  --tl-dialog-radius: 12px; --tl-dialog-pad: 18px; --tl-dialog-title-size: 18px;
+  --tl-dialog-divider: transparent; --tl-backdrop: rgba(0,0,0,.5);
+  --tl-warn: #f2b705; --tl-warn-text: #f2b705;
   --bg: var(--tl-bg); --panel: var(--tl-surface); --line: var(--tl-line); --text: var(--tl-text); --muted: var(--tl-text-muted);
   --accent: var(--tl-accent); --on-accent: var(--tl-on-accent); --danger: var(--tl-danger); --ok: var(--tl-ok); --truck: var(--tl-truck); --grid: var(--tl-grid);
-  --warn: #f2b705; --warn-text: #f2b705; /* Warnfarbe: Rand/Grund gelb, Text im Hellmodus dunkler (Kontrast auf Weiß) */
+  --warn: var(--tl-warn); --warn-text: var(--tl-warn-text); /* Warnfarbe: Rand/Grund gelb, Text im Hellmodus dunkler (Kontrast auf Weiß) */
   --radius: 8px; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
   --case-body: #1c1d20; --alu: #b8bec6; --corner: #d6dbe1; --wheel: #2b2d31;
 }
 @media (prefers-color-scheme: light) {
   /* Hellmodus komplett selbst abgeleitet (eigene Entscheidung, 2026-10-02) – der Skill-Treffer
      deckt nur den Dunkelmodus ab. In derselben Indigo-Blauton-Familie wie oben. */
-  :root { --warn-text: #7a5a00; --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
+  :root { --tl-warn-text: #7a5a00; --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
   /* Cases sind immer schwarz mit Alu-Kanten, unabhängig vom Theme */
 }
 /* Ein Host (NYX) setzt hell/dunkel ausdrücklich. :root[data-theme] hat die Spezifität (0,2,0) und
    schlägt damit die Systemeinstellung oben (0,1,0), unabhängig von der Reihenfolge. */
-:root[data-theme="dark"] { --warn-text: #f2b705; --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a; --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-truck: #121a2c; --tl-grid: #223049; }
-:root[data-theme="light"] { --warn-text: #7a5a00; --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
+:root[data-theme="dark"] { --tl-warn-text: #f2b705; --tl-bg: #0f172a; --tl-surface: #192134; --tl-raised: #192134; --tl-input: #0f172a; --tl-line: #2a3444; --tl-text: #ffffff; --tl-text-muted: #94a3b8; --tl-truck: #121a2c; --tl-grid: #223049; }
+:root[data-theme="light"] { --tl-warn-text: #7a5a00; --tl-bg: #f1f4f9; --tl-surface: #fff; --tl-raised: #fff; --tl-input: #f1f4f9; --tl-line: #dce3ec; --tl-text: #16213a; --tl-text-muted: #5b6b85; --tl-truck: #f7f9fc; --tl-grid: #e5eaf1; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; font-family: var(--tl-font); }
