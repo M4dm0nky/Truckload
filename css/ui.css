@@ -86,7 +86,7 @@ button.dialog-x { flex: none; display: inline-flex; align-items: center; justify
 /* Überlauf-Fix (#45): ein langer Eintrag darf die Spalte nicht über das Popup hinaus aufziehen. Ein Select hat sonst
    als Mindestbreite seine volle Eintragsbreite; minmax(0, 1fr) als Spalte würde dasselbe tun, verschöbe aber
    die Zeilenhöhen um Bruchteile von Pixeln (Bildvergleich), deshalb min-width am Select. */
-.editor label > select { min-width: 0; }
+.editor label > select, .editor > select { min-width: 0; }
 .editor .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
 .editor .check { display: flex; gap: 8px; align-items: center; color: var(--text); }
 .editor fieldset { border: 1px solid var(--line); border-radius: var(--radius); }

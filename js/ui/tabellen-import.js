@@ -585,13 +585,19 @@ export async function openTabellenImport(dlg, opts) {
   };
 
   // Ein Listener je Ereignisart am Dialog (Ereignis-Delegation), keine je Zelle.
+  // Gemeinsamer Weg von Esc und ×: außerhalb der Startansicht zurück dorthin (true), sonst nichts tun (false = Abbruch).
+  const zurueckZurStart = () => {
+    if (escZiel(st.view, heim) !== heim) return false;
+    st.view = heim; render();
+    return true;
+  };
   dlg.onclick = ev => {
     const b = ev.target.closest('button[data-act]');
     if (!b) return;
     const act = b.dataset.act;
     if (act.startsWith('g-')) { geraeteKlick(act, b); return; }
     if (act === 'cancel') dlg.close('cancel');
-    else if (act === 'esc') { if (escZiel(st.view, heim) === heim) { st.view = heim; render(); } else dlg.close('cancel'); }
+    else if (act === 'esc') { if (!zurueckZurStart()) dlg.close('cancel'); }
     else if (act === 'only') starteSchritte(false);
     else if (act === 'load') starteSchritte(true);
     else if (SCHRITT_ACTS.has(act)) schrittAktion(act, b);
@@ -656,11 +662,7 @@ export async function openTabellenImport(dlg, opts) {
     dlg.querySelector('[data-role=count]').textContent = zaehler();
     setSperreNeu();
   };
-  dlg.oncancel = ev => {
-    if (escZiel(st.view, heim) !== heim) return;
-    ev.preventDefault();
-    st.view = heim; render();
-  };
+  dlg.oncancel = ev => { if (zurueckZurStart()) ev.preventDefault(); };
   dlg.oninput = ev => {
     if (ev.target.dataset.role !== 'search') return;
     st.suche = ev.target.value;

@@ -8,7 +8,7 @@ const quelle = n => readFileSync(new URL(`../js/ui/${n}.js`, import.meta.url), '
 
 for (const n of DATEIEN) {
   test(`${n}: kein <h2> außerhalb von dialogKopf()`, () => {
-    assert.doesNotMatch(quelle(n), /<h2>/);
+    assert.doesNotMatch(quelle(n), /<h2[\s>]/);
     assert.match(quelle(n), /dialogKopf\(/);
   });
 }
