@@ -1,0 +1,35 @@
+// Wächter für die Bausteine (Spec §8): app.css gestaltet keine Bedienelemente, keine
+// Farbliterale außerhalb der Token-Blöcke, und ui.css lädt vor app.css.
+// Prüfung 3 (Längen in ui.css) fehlt bewusst: siehe PR-Text.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { parseCss, targetCompound, uiClasses, findControlStyling, findColorLiterals } from './css-scan.js';
+
+const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+const ui = parseCss(read('css/ui.css'));
+const app = parseCss(read('css/app.css'));
+const fmt = (file, l) => l.map(x => `${file}:${x.line} ${x.selector} { ${x.prop}${x.value ? ': ' + x.value : ''} }`).join('\n');
+
+test('app.css gestaltet keine Bedienelemente', () => {
+  const found = findControlStyling(app, uiClasses(ui));
+  assert.deepEqual(found, [], `Gestaltung gehört nach css/ui.css:\n${fmt('css/app.css', found)}`);
+});
+
+test('keine Farbliterale außerhalb der Token-Blöcke', () => {
+  const found = [...findColorLiterals(app).map(x => ({ ...x, f: 'css/app.css' })), ...findColorLiterals(ui).map(x => ({ ...x, f: 'css/ui.css' }))];
+  assert.deepEqual(found, [], `Farben nur über Tokens:\n${found.map(x => fmt(x.f, [x])).join('\n')}`);
+});
+
+test('ui.css kennt kein generisches button.on', () => {
+  const bad = ui.filter(r => targetCompound(r.selector) === 'button.on' && r.selector === 'button.on');
+  assert.deepEqual(bad.map(r => `css/ui.css:${r.line} ${r.selector}`), []);
+});
+
+test('ui.css wird vor app.css geladen', () => {
+  for (const [name, text] of [['index.html', read('index.html')], ['sw.js', read('sw.js')]]) {
+    const u = text.indexOf('css/ui.css'), a = text.indexOf('css/app.css');
+    assert.ok(u >= 0 && a >= 0, `${name} nennt beide Dateien`);
+    assert.ok(u < a, `${name}: css/ui.css muss vor css/app.css stehen`);
+  }
+});

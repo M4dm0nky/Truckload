@@ -50,6 +50,14 @@ test('findColorLiterals: transparent, currentColor, var, Tokens in @media', () =
   assert.deepEqual(findColorLiterals(parseCss(css)), []);
 });
 
-test('uiClasses', () => {
-  assert.deepEqual([...uiClasses(parseCss('.a.b:hover, .c .d { x: y }'))].sort(), ['a', 'b', 'c', 'd']);
+test('uiClasses: nur die erste Klasse unverschachtelter Zielglieder, nie :not oder Kontext', () => {
+  const css = '.a.on:hover, button.b.c, .x .row, .lkw-tab.none:not(.on), input.error { x: y }';
+  assert.deepEqual([...uiClasses(parseCss(css))].sort(), ['a', 'b', 'error', 'lkw-tab']);
+});
+
+test('Ansichtsregeln mit Zustands- oder Kontextklasse sind kein Bedienelement-Ziel', () => {
+  const ui = uiClasses(parseCss('.editor .row { x: y } input.error { x: y } .chip { x: y }'));
+  assert.equal(isControlTarget('.save-status.error', ui), false);
+  assert.equal(isControlTarget('.row.wiz-all', ui), false);
+  assert.equal(isControlTarget('.chip', ui), true);
 });

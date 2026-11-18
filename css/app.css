@@ -130,7 +130,9 @@ svg .case .truss-tube { fill: var(--corner); stroke: var(--wheel); stroke-width:
 svg .cog { fill: none; stroke: var(--danger); stroke-width: 3; }
 svg.drop-target .truck { stroke: var(--accent); stroke-width: 4; }
 
-/* nach .editor .row, sonst gewinnt dessen Grid (gleiche Spezifität) */
+/* Muss in app.css bleiben: `.editor .row` steht in css/ui.css, das vor app.css lädt (index.html),
+   und diese Regel soll dessen Grid bei gleicher Spezifität übertrumpfen. Die Reihenfolge sichert
+   der Test 'ui.css wird vor app.css geladen'. */
 .editor .kind-switch { display: flex; gap: 4px; }
 .print-root { display: none; }
 

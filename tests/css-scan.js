@@ -87,19 +87,34 @@ export function targetCompound(selector) {
   return parts[parts.length - 1] ?? '';
 }
 
+// Baustein-Klassen: nur die ERSTE Klasse des Zielglieds einer unverschachtelten Regel
+// (`.chip`, `button.small`, `.lkw-tab.on` -> chip, small, lkw-tab). Zustands- und
+// Kontextklassen (`.on`, `.error`, das `.row` aus `.editor .row`, alles in `:not(...)`)
+// sind keine Bausteine; sonst meldete der Wächter jede Ansichtsregel mit `.row` oder `.on`.
 export function uiClasses(rules) {
   const set = new Set();
-  for (const r of rules) for (const m of r.selector.matchAll(/\.([\w-]+)/g)) set.add(m[1]);
+  for (const r of rules) {
+    const t = targetCompound(r.selector);
+    if (t !== r.selector) continue;
+    const m = /\.([\w-]+)/.exec(stripNot(t));
+    if (m) set.add(m[1]);
+  }
   return set;
 }
 
+function stripNot(c) {
+  return c.replace(/:not\((?:[^()]|\([^)]*\))*\)/g, '');
+}
+
+// Ein Glied zielt auf ein Bedienelement, wenn es ein Element aus der Liste nennt oder seine
+// erste Klasse `btn` bzw. eine Baustein-Klasse ist.
 export function isControlTarget(compound, ui) {
-  const c = compound
+  const c = stripNot(compound)
     .replace(/::?[\w-]+(\([^)]*\))?/g, '')
     .replace(/\[[^\]]*\]/g, '');
   if (/^(button|input|select|textarea|dialog)(?![\w-])/i.test(c)) return true;
-  for (const m of c.matchAll(/\.([\w-]+)/g)) if (m[1] === 'btn' || ui.has(m[1])) return true;
-  return false;
+  const m = /\.([\w-]+)/.exec(c);
+  return !!m && (m[1] === 'btn' || ui.has(m[1]));
 }
 
 export const LOOK_PROPS = /^(padding|height|min-height|font|line-height|color|background|border|box-shadow|opacity|outline|cursor|text-align)/;
