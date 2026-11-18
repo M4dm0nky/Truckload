@@ -1,4 +1,4 @@
-import { esc } from './dom.js';
+import { esc, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { t, num } from '../i18n/i18n.js';
 import { QUICK_LENGTHS, trussProfileName } from './caseInfo.js';
 import { isTruss } from '../model/geometry.js';
@@ -123,9 +123,9 @@ export function openTrussDialog(dlg, opts = {}) {
 
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${t('Traverse hinzufügen')}</h2>
+      ${dialogKopf(t('Traverse hinzufügen'))}
       <div class="row kind-switch">
-        <label><input type="radio" name="kind" value="classic" checked> ${t('Klassische Traverse (F34/F40)')}</label>
+        <label><input type="radio" name="kind" value="classic" checked autofocus> ${t('Klassische Traverse (F34/F40)')}</label>
         <label><input type="radio" name="kind" value="prerig"> ${t('Pre-Rig-Traverse (MLT/S36PR)')}</label>
       </div>
       <fieldset class="classic-only"><legend>${t('Klassischer Wagen')}</legend>
@@ -293,6 +293,6 @@ export function openTrussDialog(dlg, opts = {}) {
       }
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }

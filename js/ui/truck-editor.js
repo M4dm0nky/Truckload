@@ -1,6 +1,7 @@
 import { showConfirm } from './confirmDialog.js';
 import { NAME_MAX } from '../model/limits.js';
 import { t } from '../i18n/i18n.js';
+import { dialogKopf, fokusNachOeffnen } from './dom.js';
 
 export async function openTruckEditor(dlg, truck, { usedIn = 0 } = {}) {
   if (dlg.open) { // close() feuert `close` asynchron – erst abwarten (Listener vor close() anhängen), sonst trifft das alte Ereignis den neuen Listener
@@ -12,9 +13,9 @@ export async function openTruckEditor(dlg, truck, { usedIn = 0 } = {}) {
   const arch = truck?.wheelArches?.[0];
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${isNew ? t('Neues Fahrzeug') : t('Fahrzeug bearbeiten')}</h2>
+      ${dialogKopf(isNew ? t('Neues Fahrzeug') : t('Fahrzeug bearbeiten'))}
       ${truck?.builtin ? `<p class="hint">${t('Vorlage (Richtwert) – Speichern legt ein eigenes Fahrzeug an.')}</p>` : ''}
-      <label>${t('Name')}<input name="name" required maxlength="${NAME_MAX}" placeholder="${t('z. B. Firmen-7,5-Tonner')}"></label>
+      <label>${t('Name')}<input name="name" autofocus required maxlength="${NAME_MAX}" placeholder="${t('z. B. Firmen-7,5-Tonner')}"></label>
       <fieldset><legend>${t('Laderaum innen (cm)')}</legend>
         <div class="row"><label>${t('Länge')}<input type="number" name="l" min="50" max="2000" required></label>
         <label>${t('Breite')}<input type="number" name="w" min="50" max="300" required></label>
@@ -64,6 +65,6 @@ export async function openTruckEditor(dlg, truck, { usedIn = 0 } = {}) {
       } });
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }

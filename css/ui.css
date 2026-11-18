@@ -43,7 +43,16 @@ input.warn { border-color: var(--warn); }
 input.color-compact { padding: 2px; height: 30px; }
 
 /* ---- Segment ---- */
-.seg-label { color: var(--muted); font-size: var(--tl-font-size-sm); margin-right: 2px; }
+.seg { --seg-gap: 4px; }
+.seg.seg-inline { display: inline-flex; align-items: center; --seg-gap: 0px; } /* Markup ohne Leerraum zwischen den Knöpfen: heute berührend */
+.seg, .seg .btns { gap: calc(var(--seg-gap) * (1 - var(--tl-segment-joined))); }
+.seg .btns { --seg-gap: 6px; }
+.seg > button ~ button, .seg .btns > button ~ button { margin-left: calc(-1px * var(--tl-segment-joined));
+  border-top-left-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); border-bottom-left-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); }
+.seg > button:has(~ button), .seg .btns > button:has(~ button) {
+  border-top-right-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); border-bottom-right-radius: calc(var(--tl-radius) * (1 - var(--tl-segment-joined))); }
+.seg > button.on, .seg .btns > button.on { position: relative; }
+.seg-label { color: var(--muted); font-size: var(--tl-font-size-sm); margin-right: calc(2px + var(--seg-gap, 4px) * var(--tl-segment-joined)); }
 .editor .kind-switch label { display: flex; align-items: center; gap: 6px; margin: 0; padding: var(--tl-button-pad); min-height: var(--tl-control-height);
   border: 1px solid var(--tl-control-border); border-radius: var(--tl-radius); cursor: pointer; color: var(--text); }
 
@@ -59,18 +68,25 @@ input.color-compact { padding: 2px; height: 30px; }
 /* ---- Gewählt: markiert (Listeneintrag) ---- */
 button.list-item.on, button.list-item.on:hover { border-color: var(--tl-marked-border); }
 
+/* ---- Symbol (Lucide, js/ui/dom.js symbol()) ---- */
+.symbol { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+
 /* ---- Popup ---- */
 dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--tl-dialog-radius); padding: 0; }
 dialog::backdrop { background: var(--tl-backdrop); }
 .editor { display: grid; gap: 10px; padding: var(--tl-dialog-pad); }
 /* Trennlinien per box-shadow: ein Rand würde 1px Höhe kosten, solange sie transparent sind. */
 .editor h2 { margin: 0; padding-bottom: 4px; font-size: var(--tl-dialog-title-size); box-shadow: 0 1px 0 var(--tl-dialog-divider); }
+/* Popup-Kopf: die Trennlinie sitzt am Kopf; ohne Kopf behält .editor h2 sie selbst. */
+.dialog-head { display: flex; align-items: center; gap: 8px; padding-bottom: 4px; box-shadow: 0 1px 0 var(--tl-dialog-divider); }
+.editor .dialog-head h2 { flex: 1; min-width: 0; padding-bottom: 0; box-shadow: none; overflow-wrap: anywhere; }
+button.dialog-x { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--tl-control-height-sm); height: var(--tl-control-height-sm); min-width: 24px; min-height: 24px; padding: 0; }
+.editor label { display: grid; gap: 4px; color: var(--muted); }
+.editor label > input, .editor label > select, .editor label > textarea { color: var(--text); }
 /* Überlauf-Fix (#45): ein langer Eintrag darf die Spalte nicht über das Popup hinaus aufziehen. Ein Select hat sonst
    als Mindestbreite seine volle Eintragsbreite; minmax(0, 1fr) als Spalte würde dasselbe tun, verschöbe aber
    die Zeilenhöhen um Bruchteile von Pixeln (Bildvergleich), deshalb min-width am Select. */
-.editor label { display: grid; gap: 4px; color: var(--muted); }
-.editor label > input, .editor label > select, .editor label > textarea { color: var(--text); }
-.editor label > select { min-width: 0; }
+.editor label > select, .editor > select { min-width: 0; }
 .editor .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
 .editor .check { display: flex; gap: 8px; align-items: center; color: var(--text); }
 .editor fieldset { border: 1px solid var(--line); border-radius: var(--radius); }

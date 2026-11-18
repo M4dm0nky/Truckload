@@ -1,4 +1,5 @@
 import { t, num } from '../i18n/i18n.js';
+import { SYMBOLS } from './symbols.js';
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ESC[ch]);
@@ -30,19 +31,31 @@ const SWATCH_COLOR_RE = /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/;
 export const safeColor = c => (SWATCH_COLOR_RE.test(c) ? c : '#888');
 export const swatch = color => `<span class="swatch" style="background:${safeColor(color)}"></span>`;
 
-// Inline-SVG-Icons statt Emoji: ein Emoji bringt eine betriebssystemabhängige Farbe mit und fällt
-// aus dem monochromen Dark-/Light-UI heraus. `fill="currentColor"` übernimmt die Button-Textfarbe
-// und läuft mit dem Farbmodus mit (css/app.css). Pfade: Phosphor Icons (MIT), „regular“, unverändert.
-// Anders als bei swatch() ist `name` eine feste Zeichenkette im eigenen Code – ein unbekannter
-// Name ist ein Tippfehler und soll laut werfen, nicht still ein leeres Icon liefern.
-const ICON_PATHS = {
-  'pencil-simple': 'M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z',
-  trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z',
-};
-export function icon(name) {
-  const d = ICON_PATHS[name];
-  if (!d) throw new Error(`Unknown icon: ${name}`);
-  return `<svg class="icon" viewBox="0 0 256 256" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="${d}"/></svg>`;
+// Lucide-Symbol (Quelle und Version: js/ui/symbols.js). Folgt über currentColor der Textfarbe und ist für
+// Screenreader stumm – den Namen trägt der umgebende Knopf (aria-label). Unbekannter Name = Tippfehler: wirft.
+export function symbol(name) {
+  if (!Object.hasOwn(SYMBOLS, name)) throw new Error(`Unknown symbol: ${name}`);
+  return `<svg class="symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${SYMBOLS[name]}</svg>`;
+}
+
+// Popup-Kopf: Titel links, × rechts. Das × tut nur, was das Abbrechen des Popups tut: ohne `act` schließt es
+// das Formular (value="cancel"), mit `act` löst es data-act aus. `titelHtml` ist fertiges HTML (esc() Sache des Aufrufers).
+export function dialogKopf(titelHtml, { act } = {}) {
+  const x = act
+    ? `type="button" data-act="${esc(act)}"`
+    : 'type="submit" value="cancel" formnovalidate';
+  return `<header class="dialog-head"><h2>${titelHtml}</h2><button ${x} class="quiet dialog-x" aria-label="${t('Schließen')}" title="${t('Schließen')}">${symbol('x')}</button></header>`;
+}
+
+// Nach showModal(): hat der Browser das × fokussiert (erstes fokussierbares Element, kein autofocus), geht der Fokus
+// aufs erste sichtbare Bedienelement. Der Fokus liegt so nie auf dem ×. Enter in einem Feld löst den Standardknopf
+// aus, und das ist der erste Absendeknopf, also das × (value="cancel"): Enter bricht ab wie das ×. Absicht – so
+// trifft Enter nie „Löschen“ oder einen anderen Knopf mit Wirkung.
+export function fokusNachOeffnen(dlg) {
+  if (!document.activeElement?.classList?.contains('dialog-x')) return;
+  const ziel = [...dlg.querySelectorAll('input:not([type=hidden]), select, textarea, button')]
+    .find(e => !e.classList.contains('dialog-x') && !e.disabled && e.offsetParent !== null);
+  ziel?.focus();
 }
 
 // Getter statt fester Texte: die Sprache steht erst beim Zugriff fest (Tests schalten sie um).

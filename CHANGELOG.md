@@ -2,6 +2,16 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.34.1 – 2026-11-18
+
+**Symbole, Popup-Kopf, Segment-Leiste (Issue #50).**
+
+- **Linien-Symbole:** Statt Zeichen wie ⚠ ✖ ↶ ↷ ⬛ und der Knöpfe mit nur × − + ↑ ↓ zeigt Truckload überall dieselben Linien-Symbole (Lucide). Sie sehen auf jedem Betriebssystem gleich aus und nehmen die Textfarbe an. Bearbeiten und Löschen nutzen ebenfalls Lucide statt Phosphor. Die Lizenz liegt in `vendor/LICENSE-lucide.txt`.
+- **Popup-Kopf:** Jedes Popup mit Titel hat rechts oben einen Schließen-Knopf (×). Er wirkt wie Abbrechen bzw. Esc. Enter in einem Feld bricht ebenfalls ab und trifft nie mehr einen Löschen-Knopf; vorher öffnete Enter im Fahrzeug- und LKW-Editor die Löschen-Rückfrage. „Enter speichert“ ist als #51 zur Abstimmung offen.
+- **Segment-Leiste:** Umschalter lassen sich über `--tl-segment-joined` zu einer zusammenhängenden Leiste schalten. Die Web-App bleibt bei Einzelknöpfen, NYX nutzt die Leiste. Gestaltungs-Schnittstelle Version 3.
+- **Wächter:** `tests/symbole-sperre.test.js` und `tests/dialogKopf-sperre.test.js` sperren Zeichen als Symbole, Popup-Titel ohne Kopf, einen Löschen-Knopf als Enter-Ziel und Fokus auf dem ×.
+- **Dateien:** Neu sind `js/ui/symbols.js` und `vendor/LICENSE-lucide.txt`. Kein neuer Store, kein Datenmodell.
+
 ## V 0.34.0 – 2026-11-18
 
 **Gestaltung aus einem Guss (Issue #48).** Am Aussehen der Web-App ändert sich nichts. Das CSS ist so umgebaut, dass Truckload in NYX bis in Knöpfe, Felder, Popups und Schrift wie NYX aussehen kann.

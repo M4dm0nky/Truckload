@@ -3,7 +3,7 @@
 // erhöht THEME_VERSION, hängt ihn HINTEN an (neue Tokens hinten anhängen; NYX vergleicht die Menge),
 // trägt ihn in css/app.css (in :root; in die Modus-Blöcke nur, wenn der Wert je Modus abweicht)
 // und in docs/nyx-host.md ein. Umbenennen oder Entfernen bricht NYX.
-export const THEME_VERSION = 2;
+export const THEME_VERSION = 3;
 export const THEME_TOKENS = [
   '--tl-bg', '--tl-surface', '--tl-raised', '--tl-input', '--tl-line', '--tl-text', '--tl-text-muted',
   '--tl-accent', '--tl-on-accent', '--tl-selection', '--tl-danger', '--tl-ok', '--tl-truck', '--tl-grid',
@@ -17,4 +17,6 @@ export const THEME_TOKENS = [
   '--tl-dialog-divider', '--tl-backdrop', '--tl-warn', '--tl-warn-text',
   '--tl-control-border', '--tl-font-size', '--tl-hint-font-size',
   '--tl-line-height', '--tl-font-size-xs', '--tl-font-size-sm', '--tl-font-size-lg',
+  // Version 3
+  '--tl-segment-joined',
 ];

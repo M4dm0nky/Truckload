@@ -44,6 +44,10 @@ wird dort geschlossen, ein neuer als Issue angelegt, nicht in einer Datei gesamm
   Ansichten in `css/app.css` setzen an Bedienelementen nur Anordnung; Varianten sind Klassen im Markup
   (`.small`, `.chip` …), Schriftgrößen laufen über Tokens. `tests/ui-bausteine.test.js` erzwingt das,
   jeden Baustein zeigt `tools/muster.html`. Aufbau in [docs/architektur.md](docs/architektur.md).
+- **Symbole nur über `symbol()`, Popup-Titel nur über `dialogKopf()`** (beide `js/ui/dom.js`). Keine Zeichen
+  oder Emoji als Symbol (⚠ ✖ ↶ …): sie sehen je Betriebssystem anders aus. Ein neues Symbol kommt 1:1 aus
+  Lucide in der Version von `js/ui/symbols.js`. `tests/symbole-sperre.test.js` und
+  `tests/dialogKopf-sperre.test.js` erzwingen das.
 - **`STORES` in `js/store/db.js` ist die einzige Liste der Stores.** NYX prüft sie gegen seine
   `STORE_ORT`; ein neuer Store braucht vorab Bescheid an NYX (und Freigabe dort, Projektdatei oder
   Bibliothek), sonst zeigt Truckload dort nur die Ersatzansicht.

@@ -3,7 +3,7 @@
 // Dialog selbst hängt nur an einem <dialog> und kennt weder Store noch js/app/.
 // Alles, was aus der Tabelle stammt (Namen, Gewerke, Befund-Texte), geht durch esc().
 
-import { esc, safeColor, icon, swatch } from './dom.js';
+import { esc, safeColor, symbol, swatch, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { t, lang, trade, capList } from '../i18n/i18n.js';
 import { colorFor } from '../data/categories.js';
 import { SPALTEN, FARBEN, zahl, pruefeEintrag, entwurfAus, farbAuffaelligkeiten, istLoseBox } from '../model/ladeliste.js';
@@ -68,16 +68,16 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
   const rotSonst = z.rot - (z.rotSet ?? 0);
   const gesperrt = rotSonst > 0 && !ohneRot;
   const kachel = (cls, n, text) => `<span class="ti-chip ${cls}"><b>${n}</b> ${text}</span>`;
-  const band = (cls, glyph, text, knopf) => `<div class="ti-band ${cls}"><span>${glyph} ${text}</span>${knopf}</div>`;
+  const band = (cls, name, text, knopf) => `<div class="ti-band ${cls}"><span>${symbol(name)} ${text}</span>${knopf}</div>`;
   const anzeigen = attrs => `<button type="button" data-act="edit" ${attrs}>${t('ansehen / korrigieren')}</button>`;
   const baender = [];
-  if (rotSonst) baender.push(band('rot', '✖', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen(`data-filter="bad" data-tab="${rotSonst > (z.rotBoxen ?? 0) ? 'cases' : 'boxen'}"`)));
-  if (z.rotSet) baender.push(band('rot', '✖', esc(z.rotSet === 1 ? t('1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.') : t('{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.', { n: z.rotSet })), anzeigen('data-filter="bad" data-tab="set"')));
-  if (z.gelb) baender.push(band('gelb', '⚠', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
+  if (rotSonst) baender.push(band('rot', 'circle-x', esc(rotSonst === 1 ? t('1 Zeile ist fehlerhaft (rot).') : t('{n} Zeilen sind fehlerhaft (rot).', { n: rotSonst })), anzeigen(`data-filter="bad" data-tab="${rotSonst > (z.rotBoxen ?? 0) ? 'cases' : 'boxen'}"`)));
+  if (z.rotSet) baender.push(band('rot', 'circle-x', esc(z.rotSet === 1 ? t('1 Set-Teil ist fehlerhaft und wird im Schritt Set korrigiert.') : t('{n} Set-Teile sind fehlerhaft und werden im Schritt Set korrigiert.', { n: z.rotSet })), anzeigen('data-filter="bad" data-tab="set"')));
+  if (z.gelb) baender.push(band('gelb', 'triangle-alert', esc(z.gelb === 1 ? t('1 Zeile mit Hinweis (gelb), sie wird mit den genannten Annahmen übernommen.') : t('{n} Zeilen mit Hinweis (gelb), sie werden mit den genannten Annahmen übernommen.', { n: z.gelb })), anzeigen('data-filter="bad" data-tab="cases"')));
   for (const a of auffaellig) {
     const text = t('{n} Zeilen sind {farbe}, aber dem Gewerk {gewerk} zugeordnet ({farbe} ist sonst {mehrheit}).',
       { n: a.zeilen.length, farbe: farbName(a.farbe), gewerk: trade(a.gewerk), mehrheit: trade(a.mehrheit) });
-    baender.push(band('gelb', '⚠', esc(text), anzeigen(`data-filter="all" data-tab="${esc(a.reiter)}" data-rows="${esc(a.zeilen.join(','))}"`)));
+    baender.push(band('gelb', 'triangle-alert', esc(text), anzeigen(`data-filter="all" data-tab="${esc(a.reiter)}" data-rows="${esc(a.zeilen.join(','))}"`)));
   }
   const gewerke = z.jeGewerk.length
     ? `<table class="ti-trades"><tr><th>${t('Gewerk')}</th><th>${t('Stück')}</th></tr>${z.jeGewerk.map(g =>
@@ -90,7 +90,7 @@ export function uebersichtHtml(z, auffaellig, { zielAktuell = null, merkliste = 
   const rotWahl = rotSonst ? `<label class="check"><input type="checkbox" name="skipred"${ohneRot ? ' checked' : ''}> ${t('rote Zeilen nicht übernehmen')}</label>` : '';
   const sperre = gesperrt ? ' disabled' : '';
   return `
-    <h2>${t('Tabelle importieren')}</h2>
+    ${dialogKopf(t('Tabelle importieren'), { act: 'cancel' })}
     <p class="hint">${esc(dateiname)}</p>
     <div class="ti-chips">
       ${kachel('', z.cases, t('Cases'))}${kachel('', z.traversen, t('Traversen'))}${kachel('', z.boxen, t('Boxen'))}${kachel('', z.set, t('Set'))}
@@ -152,7 +152,7 @@ export function listeHtml(eintraege, { filter = 'alle', reiter = 'cases', suche 
       return `<td><input type="text" data-k="${esc(sg.key)}" value="${esc(e.werte[sg.key] ?? '')}" class="${feldKlasse(st.felder[sg.key])}"${b ? ` title="${esc(b)}"` : ''}></td>`;
     }).join('');
     return `<tr data-i="${i}" class="${st.zeile}"><td class="ti-nr">${e.zeile ?? '+'}</td>${zellen}<td class="ti-hint">${st.hinweis}</td>`
-      + `<td><button type="button" class="ti-del" data-act="del" title="${t('Zeile löschen')}" aria-label="${t('Zeile löschen')}">${icon('trash')}</button></td></tr>`;
+      + `<td><button type="button" class="ti-del" data-act="del" title="${t('Zeile löschen')}" aria-label="${t('Zeile löschen')}">${symbol('trash-2')}</button></td></tr>`;
   };
   return `<table class="ti-list"><thead>${kopf}</thead><tbody>${treffer.map(zeileHtml).join('')}</tbody></table>`
     + (!treffer.length ? `<p class="hint">${t('Keine Zeilen.')}</p>` : '');
@@ -197,7 +197,7 @@ export function bauSchrittHtml(art, merkliste, gebaut, { dollyBasen = [], biblio
       : '';
     return `<li class="ti-bauzeile"><span class="ti-name">${esc(c?.name ?? s.caseId)}</span>${tag}`
       + `<input type="number" min="1" max="${MAX_STUECK}" step="1" value="${esc(s.n)}" data-k="n" data-s="${i}" aria-label="${t('Anzahl')}">`
-      + `<button type="button" class="ti-del" data-act="rm" data-s="${i}" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">${icon('trash')}</button></li>`;
+      + `<button type="button" class="ti-del" data-act="rm" data-s="${i}" title="${t('Entfernen')}" aria-label="${t('Entfernen')}">${symbol('trash-2')}</button></li>`;
   };
   const memo = merklisteZeilen(zeilen);
   const ausTabelle = art === 'boxen' ? zeilen.filter(istLoseBox) : [];
@@ -214,7 +214,7 @@ export function bauSchrittHtml(art, merkliste, gebaut, { dollyBasen = [], biblio
         + `<button type="button" data-act="loose">${t('Lose hinzufügen')}</button><button type="button" data-act="dolly">${t('Auf Dolly laden')}</button></div>`
       : `<p class="hint">${t('Keine Grundboxen in der Bibliothek.')}</p>`;
   return `
-    <h2>${art === 'traversen' ? t('Traversen bauen') : t('Boxen bauen')}</h2>
+    ${dialogKopf(art === 'traversen' ? t('Traversen bauen') : t('Boxen bauen'), { act: 'esc' })}
     <div class="ti-bau"><div>${links}</div>${rechts}</div>
     ${steuerung}
     ${fussHtml({ letzter, laden })}`;
@@ -229,7 +229,7 @@ const zaehlerText = eintraege => {
 export function setSchrittHtml(eintraege, { ohneRot = false, letzter = false, laden = false } = {}) {
   const sperre = setGesperrt(eintraege, ohneRot);
   return `
-    <h2>${t('Set')}</h2>
+    ${dialogKopf(t('Set'), { act: 'esc' })}
     <p class="hint">${t('Set-Teile prüfen und bei Bedarf korrigieren.')}</p>
     <div class="ti-leiste">
       <button type="button" data-act="add">${t('Zeile hinzufügen')}</button>
@@ -263,7 +263,7 @@ export function vorschauHtml(vorschau, rechnet = false, fehler = false) {
     + ` <span class="hint">${esc(t('{n} Stück', { n: l.stueck }))}</span></li>`;
   const warn = nichtGeladenText(vorschau.nichtGeladen);
   return `${stand}${vorschau.lkws.length ? `<ul class="lkw-vliste">${vorschau.lkws.map(zeile).join('')}</ul>` : `<p class="hint">${t('Es entsteht kein LKW.')}</p>`}`
-    + (warn ? `<p class="ti-gelb">⚠ ${esc(warn)}</p>` : '');
+    + (warn ? `<p class="ti-gelb">${symbol('triangle-alert')} ${esc(warn)}</p>` : '');
 }
 
 // LKW-Schritt. gewerke: Gewerke der betroffenen Stücke; einst: { verhalten, truckId, art, getrennt, gewerke:
@@ -304,7 +304,7 @@ export function lkwSchrittHtml({ gewerke = [], einst = {}, fahrzeuge = [], zielH
     ? `<label class="check"><input type="checkbox" name="lkwgetrennt"${einst.getrennt ? ' checked' : ''}> ${t('nach Gewerk getrennt')}</label>`
     : `<ul class="lkw-gl">${sortiert.map(zeile).join('')}</ul>`}`;
   return `
-    <h2>${t('LKW')}</h2>
+    ${dialogKopf(t('LKW'), { act: 'esc' })}
     ${oben}${einstellungen}
     <div class="lkw-vorschau" data-role="vorschau">${vorschauHtml(vorschau, rechnet, fehler)}</div>
     <menu><button type="button" data-act="prev">${t('Zurück')}</button><span class="grow"></span><button type="button" class="primary" data-act="finish" data-role="go">${t('Übernehmen und laden')}</button></menu>`;
@@ -315,9 +315,9 @@ function listeSeiteHtml(st) {
   const tab = r => `<button type="button" data-act="tab" data-tab="${r}" class="${st.reiter === r ? 'on' : ''}">${reiterName(r)} (${n(r)})</button>`;
   const zeilen = st.zeilen?.reiter === st.reiter ? st.zeilen.set : null;
   return `
-    <h2>${t('Liste bearbeiten')}</h2>
+    ${dialogKopf(t('Liste bearbeiten'), { act: 'esc' })}
     <div class="ti-leiste">
-      <div class="seg">${tab('cases')}${tab('set')}${tab('boxen')}</div>
+      <div class="seg seg-inline">${tab('cases')}${tab('set')}${tab('boxen')}</div>
       <select data-role="filter">
         <option value="all">${t('Alle')}</option>
         <option value="bad"${st.filter === 'fehler' ? ' selected' : ''}>${t('Nur fehlerhafte')}</option>
@@ -585,12 +585,19 @@ export async function openTabellenImport(dlg, opts) {
   };
 
   // Ein Listener je Ereignisart am Dialog (Ereignis-Delegation), keine je Zelle.
+  // Gemeinsamer Weg von Esc und ×: außerhalb der Startansicht zurück dorthin (true), sonst nichts tun (false = Abbruch).
+  const zurueckZurStart = () => {
+    if (escZiel(st.view, heim) !== heim) return false;
+    st.view = heim; render();
+    return true;
+  };
   dlg.onclick = ev => {
     const b = ev.target.closest('button[data-act]');
     if (!b) return;
     const act = b.dataset.act;
     if (act.startsWith('g-')) { geraeteKlick(act, b); return; }
     if (act === 'cancel') dlg.close('cancel');
+    else if (act === 'esc') { if (!zurueckZurStart()) dlg.close('cancel'); }
     else if (act === 'only') starteSchritte(false);
     else if (act === 'load') starteSchritte(true);
     else if (SCHRITT_ACTS.has(act)) schrittAktion(act, b);
@@ -655,11 +662,7 @@ export async function openTabellenImport(dlg, opts) {
     dlg.querySelector('[data-role=count]').textContent = zaehler();
     setSperreNeu();
   };
-  dlg.oncancel = ev => {
-    if (escZiel(st.view, heim) !== heim) return;
-    ev.preventDefault();
-    st.view = heim; render();
-  };
+  dlg.oncancel = ev => { if (zurueckZurStart()) ev.preventDefault(); };
   dlg.oninput = ev => {
     if (ev.target.dataset.role !== 'search') return;
     st.suche = ev.target.value;
@@ -674,14 +677,14 @@ export async function openTabellenImport(dlg, opts) {
       resolve(dlg.returnValue === 'ok' ? result : null);
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }
 
 // Kleiner Hilfedialog („?“), ohne Netz.
 export function hilfeHtml() {
   return `<form method="dialog" class="editor">
-    <h2>${t('Tabelle importieren: so geht es')}</h2>
+    ${dialogKopf(t('Tabelle importieren: so geht es'))}
     <ol class="ti-hilfe">
       <li>${t('„Vorlage herunterladen“ und ausfüllen. Kopfzeile nicht ändern.')}</li>
       <li>${t('Excel: als .xlsx speichern und über „Tabelle importieren“ auswählen.')}</li>
@@ -689,12 +692,12 @@ export function hilfeHtml() {
       <li>${t('Google exportiert nur den gerade offenen Reiter. Das ergibt bis zu vier CSV-Dateien, die im Dateidialog alle zusammen ausgewählt werden.')}</li>
       <li>${t('Die Höhe immer inklusive Rollen angeben, so wie das Case auf den Rollen steht.')}</li>
     </ol>
-    <menu><span class="grow"></span><button value="ok" class="primary">${t('OK')}</button></menu></form>`;
+    <menu><span class="grow"></span><button value="ok" class="primary" autofocus>${t('OK')}</button></menu></form>`;
 }
 
 export function openTabellenHilfe(dlg) {
   dlg.innerHTML = hilfeHtml();
   dlg.returnValue = '';
-  dlg.showModal();
+  dlg.showModal(); fokusNachOeffnen(dlg);
   return new Promise(resolve => dlg.addEventListener('close', () => resolve(undefined), { once: true }));
 }

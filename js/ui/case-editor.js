@@ -4,7 +4,7 @@ import { TRUSS_PROFILES, trussDims } from '../model/truss.js';
 import { CASE_LIMITS, NAME_MAX } from '../model/limits.js';
 import { QUICK_LENGTHS } from './caseInfo.js';
 import { showConfirm } from './confirmDialog.js';
-import { esc } from './dom.js';
+import { esc, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { applyStockTarget } from '../model/material.js';
 import { stockTargetHtml, readStockTarget, wireStockTarget } from './stock-target.js';
 import { t, trade } from '../i18n/i18n.js';
@@ -62,9 +62,9 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
   const dim = n => `type="number" name="${n}" min="1" max="${CASE_LIMITS[n]}" step="any" required`;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${isNew ? t('Neues Case') : t('Case bearbeiten')}</h2>
+      ${dialogKopf(isNew ? t('Neues Case') : t('Case bearbeiten'))}
       ${fromTemplate ? `<p class="hint">${t('Vorlage (Richtwert) – Speichern legt eine eigene Kopie an.')}</p>` : ''}
-      <label>${t('Name')}<input name="name" required maxlength="${NAME_MAX}" placeholder="${t('z. B. Kabelcase Strom 1')}"></label>
+      <label>${t('Name')}<input name="name" autofocus required maxlength="${NAME_MAX}" placeholder="${t('z. B. Kabelcase Strom 1')}"></label>
       <label>${t('Inhalt')}<textarea name="content" rows="3" placeholder="${t('z. B. 10× Schuko 10 m, 4× CEE 32 A 25 m')}"></textarea></label>
       <div class="row">
         <label>${t('Gewerk')}<select name="category">${categoryOptionsHtml(v.category)}</select></label>
@@ -369,6 +369,6 @@ export async function openCaseEditor(dlg, c, { usedIn = 0, draft, allowDelete = 
       }
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }

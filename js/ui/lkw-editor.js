@@ -1,6 +1,6 @@
 // Dialog „LKW anlegen / bearbeiten“: Name, Fahrzeug, Gewerke-Haken, Löschen mit Rückfrage.
 // Gleiches Muster wie openTruckEditor (<dialog> mit <form method="dialog">, Auflösung im close-Ereignis).
-import { esc } from './dom.js';
+import { esc, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { showAlert, showConfirm } from './confirmDialog.js';
 import { NAME_MAX } from '../model/limits.js';
 import { CATEGORIES } from '../data/categories.js';
@@ -31,8 +31,8 @@ export async function openLkwEditor(dlg, lkw, { trucks, defaultTruckId, isLast =
   const truckId = lkw?.truckId ?? defaultTruckId;
   dlg.innerHTML = `
     <form method="dialog" class="editor">
-      <h2>${isNew ? t('Neuer LKW') : t('LKW bearbeiten')}</h2>
-      <label>${t('Name')}<input name="name" required maxlength="${NAME_MAX}" placeholder="${t('z. B. LKW Ton')}"></label>
+      ${dialogKopf(isNew ? t('Neuer LKW') : t('LKW bearbeiten'))}
+      <label>${t('Name')}<input name="name" autofocus required maxlength="${NAME_MAX}" placeholder="${t('z. B. LKW Ton')}"></label>
       <label>${t('Fahrzeug')}<select name="truck">${sortTrucks(trucks).map(tk =>
         `<option value="${esc(tk.id)}" ${tk.id === truckId ? 'selected' : ''}>${esc(tk.name)}${tk.builtin ? '' : ' ★'} – ${tk.l}×${tk.w}×${tk.h}</option>`).join('')}</select></label>
       <fieldset class="lkw-cats"><legend>${t('Gewerke')}</legend>
@@ -66,6 +66,6 @@ export async function openLkwEditor(dlg, lkw, { trucks, defaultTruckId, isLast =
       } });
     }, { once: true });
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }

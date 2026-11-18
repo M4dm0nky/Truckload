@@ -1,4 +1,4 @@
-import { esc, swatch } from './dom.js';
+import { esc, swatch, symbol, dialogKopf, fokusNachOeffnen } from './dom.js';
 import { t, num, trade } from '../i18n/i18n.js';
 import { CATEGORIES, colorFor } from '../data/categories.js';
 import { layersOf, canTip } from '../model/geometry.js';
@@ -43,10 +43,10 @@ export async function openLoadWizard(dlg, opts = {}) {
 
   dlg.innerHTML = `
     <form method="dialog" class="editor wizard">
-      <h2>${t('Load zusammenstellen')}</h2>
+      ${dialogKopf(t('Load zusammenstellen'))}
       <div class="wiz-progress">${steps.map(() => '<span class="wiz-dot"></span>').join('')}</div>
       <section class="wiz-step" data-step="load">
-        <label>${t('Name')}<input name="loadName" required maxlength="${NAME_MAX}"></label>
+        <label>${t('Name')}<input name="loadName" autofocus required maxlength="${NAME_MAX}"></label>
         <label>${t('Fahrzeug')}<select name="truckId">${trucks.map(tk => `<option value="${esc(tk.id)}">${esc(tk.name)}</option>`).join('')}</select></label>
       </section>
       <section class="wiz-step" data-step="cases" hidden>
@@ -61,7 +61,7 @@ export async function openLoadWizard(dlg, opts = {}) {
         <div class="wiz-case-list"></div>
         <div class="row">
           <button type="button" data-act="new-case">${t('+ Neues Case')}</button>
-          <button type="button" data-act="sonderbau">${t('⬛ Sonderbau')}</button>
+          <button type="button" data-act="sonderbau">${symbol('box')} ${t('Sonderbau')}</button>
           <button type="button" data-act="new-truss">${t('+ Traverse hinzufügen')}</button>
         </div>
         <p class="hint wiz-limit-hint" hidden></p>
@@ -138,9 +138,9 @@ export async function openLoadWizard(dlg, opts = {}) {
         ${swatch(c.color)}
         <span class="lib-text"><b>${esc(c.name)}</b><small>${esc(caseLine(c))}</small></span>
         <div class="stepper">
-          <button type="button" data-act="dec" aria-label="${t('Eine weniger')}" ${n <= 0 ? 'disabled' : ''}>−</button>
+          <button type="button" data-act="dec" title="${t('Eine weniger')}" aria-label="${t('Eine weniger')}" ${n <= 0 ? 'disabled' : ''}>${symbol('minus')}</button>
           <span class="qty">${n}</span>
-          <button type="button" data-act="inc" aria-label="${t('Eine mehr')}" ${total() >= MAX_ITEMS ? 'disabled' : ''}>+</button>
+          <button type="button" data-act="inc" title="${t('Eine mehr')}" aria-label="${t('Eine mehr')}" ${total() >= MAX_ITEMS ? 'disabled' : ''}>${symbol('plus')}</button>
         </div>
       </div>`;
   }
@@ -468,7 +468,7 @@ export async function openLoadWizard(dlg, opts = {}) {
             if (steps[stepIdx] === 'labels') renderGroups();
           } finally {
             dlg.returnValue = '';
-            dlg.showModal();
+            dlg.showModal(); fokusNachOeffnen(dlg);
           }
         }
         return;
@@ -496,6 +496,6 @@ export async function openLoadWizard(dlg, opts = {}) {
     };
     dlg.addEventListener('close', onClose);
     dlg.returnValue = '';
-    dlg.showModal();
+    dlg.showModal(); fokusNachOeffnen(dlg);
   });
 }
