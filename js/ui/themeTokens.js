@@ -1,6 +1,6 @@
 // Gestaltungs-Schnittstelle (docs/nyx-host.md, „Gestaltung“): die Tokens, die ein Host wie NYX
 // setzen darf. NYX liest diese Datei in einer Drift-Sperre — wer hier einen Token ergänzt,
-// erhöht THEME_VERSION, hängt ihn HINTEN an (NYX vergleicht die Liste in fester Reihenfolge),
+// erhöht THEME_VERSION, hängt ihn HINTEN an (neue Tokens hinten anhängen; NYX vergleicht die Menge),
 // trägt ihn in css/app.css (in :root; in die Modus-Blöcke nur, wenn der Wert je Modus abweicht)
 // und in docs/nyx-host.md ein. Umbenennen oder Entfernen bricht NYX.
 export const THEME_VERSION = 2;
