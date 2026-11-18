@@ -1,13 +1,14 @@
 # Einbindung in NYX
 
-## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.34.0
+## Für den Admin: zu tun vor dem Heben des Submoduls auf die Version mit Issue #50
 
-- Neue Datei `css/ui.css` (in `sw.js` eingetragen). NYX packt das Submodul über `**/*` ein, eine
-  eigene Dateiliste ist nicht nachzuziehen.
-- Schnittstelle Gestaltung auf **Version 2** (31 neue Tokens, Tabelle unter „Gestaltung“). Ohne
-  NYX-Zuordnung bleiben sie auf ihren Standards: Truckload sieht in NYX dann aus wie bisher, nichts
-  bricht. Die Drift-Sperre in NYX (`frontend/src/lib/truckload/theme.test.js`) meldet Version 2,
-  bis `TOKENS_JE_VERSION[2]` eingetragen ist.
+- Neue Dateien `js/ui/symbols.js` (Lucide-Symbole) und `vendor/LICENSE-lucide.txt` (ISC), beide in
+  `sw.js`. NYX packt das Submodul über `**/*` ein; Lucide steht in NYX' `THIRD_PARTY_NOTICES.txt`
+  schon. Die Phosphor-Symbole sind entfernt.
+- Schnittstelle Gestaltung auf **Version 3**: ein neuer Token `--tl-segment-joined` (Standard `0`).
+  Ohne NYX-Zuordnung bleiben die Segmente Einzelknöpfe, nichts bricht. Die Drift-Sperre in NYX
+  meldet Version 3, bis `TOKENS_JE_VERSION[3]` eingetragen ist (NYX setzt `1`).
+- Sichtbar auch in der Web-App: Symbole statt Zeichen, Popup-Kopf mit Schließen-Knopf.
 - Kein neuer Store, kein Datenmodell, keine Projektdatei betroffen.
 
 Truckload läuft zusätzlich als Tab in NYX (Electron-App von Hoch/Steinmetz). NYX bindet dieses
@@ -100,6 +101,12 @@ in die Bedienelemente und die Schrift der Ansichten.
   `.chip` `.quiet` `.list-item`, Feld `.small` `.error` `.warn` `.color-compact`. Gewählt ist `.on`
   (gefüllt in `.seg` und am Reiter `.lkw-tab`, nur als Rand am `.list-item`); ein allgemeines
   `button.on` gibt es bewusst nicht.
+- **Symbole** nur über `symbol(name)` aus `js/ui/dom.js` (Lucide 1.74.0, Pfade in `js/ui/symbols.js`, Lizenz
+  `vendor/LICENSE-lucide.txt`); sie folgen der Textfarbe und der Schriftgröße (`.symbol`). Keine Zeichen oder
+  Emoji als Symbol: die sehen je Betriebssystem anders aus. `tests/symbole-sperre.test.js` prüft das.
+- **Popup-Kopf** über `dialogKopf(titelHtml, { act })` aus `js/ui/dom.js`: Titel plus Schließen-Knopf, der den
+  Abbrechen-Weg des Popups nimmt (ohne `act` `value="cancel"`, sonst `data-act`); der Fokus landet beim Öffnen
+  nie auf dem ×. `tests/dialogKopf-sperre.test.js` prüft, dass Popups kein eigenes `<h2>` mehr setzen.
 - **Tokens:** die Liste in `js/ui/themeTokens.js` (`THEME_TOKENS`, `THEME_VERSION`). Die
   Standardwerte stehen in `css/app.css` und sind das Aussehen der Web-App. NYX setzt eigene
   Werte mit dem Selektor `:root:root[data-theme]`.
@@ -114,7 +121,8 @@ in die Bedienelemente und die Schrift der Ansichten.
 - **Nicht gestaltbar:** Gegenstandsfarben (Case-Schwarz, Alu, Räder, Griffe), die
   Beschriftungskontur, SVG-Beschriftungen (Plan-Einheiten) und das Layout.
 
-Version 2 (zusätzlich zu den 18 Tokens von Version 1, Standard = Aussehen der Web-App). `inherit` als Standard von
+Version 2 (zusätzlich zu den 18 Tokens von Version 1, Standard = Aussehen der Web-App) und Version 3
+(letzte Zeile, `--tl-segment-joined`). `inherit` als Standard von
 `--tl-control-font-size` und `--tl-button-weight` heißt „vom Elternelement erben“; ein Host setzt dort eine Länge
 bzw. ein Gewicht. Die Innenabstände von Mini, Groß, Chip und Leise sind feste Teile des Bausteins, keine Tokens.
 
