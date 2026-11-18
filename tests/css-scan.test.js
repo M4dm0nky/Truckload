@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCss, targetCompound, uiClasses, isControlTarget, findControlStyling, findColorLiterals } from './css-scan.js';
+import { parseCss, targetCompound, uiClasses, isControlTarget, findControlStyling, findColorLiterals, findFixedFontSizes } from './css-scan.js';
 
 const SNIPPET = `:root { --x: #fff; }
 .a button { padding: 2px; flex: 1; }
@@ -71,4 +71,9 @@ test('Hakenklasse plus Variante wird gemeldet, Zustand und Kontext nicht', () =>
   for (const sel of ['.save-status.error', '.wiz-dot.on', '.row.wiz-all']) {
     assert.deepEqual(findControlStyling(parseCss(`${sel} { padding: 1px }`), ui), [], sel);
   }
+});
+
+test('findFixedFontSizes: feste Größen melden, Tokens, :root, svg und --* nicht', () => {
+  const css = '.a { font-size: 12px }\n.b { font: 13px/1 x }\n:root { font: 14px/1.4 x }\nsvg .t { font-size: 14px }\n.c { font-size: var(--x) }\n.d { font-size: calc(var(--x) - 1px) }\n.e { --y: 12px }\n.f { font-size: inherit }\n.g { font: inherit }';
+  assert.deepEqual(findFixedFontSizes(parseCss(css)).map(f => `${f.selector} ${f.prop}`), ['.a font-size', '.b font']);
 });

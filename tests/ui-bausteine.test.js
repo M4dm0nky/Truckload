@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseCss, uiClasses, findControlStyling, findColorLiterals } from './css-scan.js';
+import { parseCss, uiClasses, findControlStyling, findColorLiterals, findFixedFontSizes } from './css-scan.js';
 
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const ui = parseCss(read('css/ui.css'));
@@ -19,6 +19,11 @@ test('app.css gestaltet keine Bedienelemente', () => {
 test('keine Farbliterale außerhalb der Token-Blöcke', () => {
   const found = [...findColorLiterals(app).map(x => ({ ...x, f: 'css/app.css' })), ...findColorLiterals(ui).map(x => ({ ...x, f: 'css/ui.css' }))];
   assert.deepEqual(found, [], `Farben nur über Tokens:\n${found.map(x => fmt(x.f, [x])).join('\n')}`);
+});
+
+test('keine festen Schriftgrößen in app.css und ui.css', () => {
+  const found = [...findFixedFontSizes(app).map(x => ({ ...x, f: 'css/app.css' })), ...findFixedFontSizes(ui).map(x => ({ ...x, f: 'css/ui.css' }))];
+  assert.deepEqual(found, [], `Schriftgrößen nur über Tokens:\n${found.map(x => fmt(x.f, [x])).join('\n')}`);
 });
 
 test('ui.css kennt kein generisches button.on', () => {

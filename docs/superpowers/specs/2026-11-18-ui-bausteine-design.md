@@ -208,6 +208,30 @@ Reihenfolge der Version-2-Tokens noch frei wechseln, die 18 Tokens von Version 1
 Die Musterseite zeigt nur die Truckload-Standardwerte; einen NYX-Wertesatz bekommt sie nicht (der
 läge doppelt vor und driftete).
 
+### 7a. Ergebnis der NYX-Probe (2026-11-18)
+
+Die erste Probe sah gut aus, aber Ränder zu blass und Truckload wirkte rund 5 % größer als NYX. Ursachen:
+Randfarbe ohne eigenen Token, Grundschrift 14 px statt 13 px, Hinweise 12 px statt 11 px, Zeilenhöhe 1,4 statt
+NYX' Standard (≈ 1,2) und rund 20 feste Pixelgrößen in den Ansichten, die der Grundschrift nicht folgen.
+**Nutzerentscheidung:** alles in B1 beheben. Damit reicht B1 über die Bedienelemente hinaus auf die Schrift
+der Ansichten. Neue Tokens (Standard = heutiger Wert):
+
+| Token | Standard | wirkt auf |
+|---|---|---|
+| `--tl-control-border` | `var(--tl-line)` | Rand von Knopf, Feld und Art-Schalter |
+| `--tl-font-size` | `14px` | Grundschrift (`:root`) |
+| `--tl-hint-font-size` | `12px` | `.hint` |
+| `--tl-line-height` | `1.4` | Zeilenhöhe (`:root`) |
+| `--tl-font-size-xs` | `11px` | kleine Zusätze (Versionsangabe, Tags, `kbd`) |
+| `--tl-font-size-sm` | `12px` | Beschriftungen, Tabellenköpfe, Abschnittstitel |
+| `--tl-font-size-lg` | `16px` | Überschriften der Bibliothek und des Inspectors |
+
+Einzelwerte, die zu keiner Stufe passen (13, 15, 18 px), werden als ganzzahlige Rechnung über eine Stufe
+geschrieben (`calc(var(--tl-font-size) - 1px)`), damit die Web-App pixelgleich bleibt und NYX sie trotzdem
+mitverkleinert. SVG-Beschriftungen sind ausgenommen: Ihre Größen sind Einheiten des Plans (cm), keine
+Bildschirmpixel. Der Wächter (§8) prüft zusätzlich, dass `font-size` in `app.css` und `ui.css` außerhalb der
+Token-Blöcke und der `svg`-Regeln nur über Tokens läuft.
+
 ## 8. Schicht 3: Wächter
 
 Neue Testdatei in `tests/`, `node --test`, ohne Abhängigkeiten. Ein kleiner CSS-Zerleger (Kommentare

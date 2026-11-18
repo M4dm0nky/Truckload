@@ -19,9 +19,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 button.danger { color: var(--danger); }
 button.small { padding: var(--tl-button-pad-sm); min-height: var(--tl-control-height-sm); }
 button.mini { padding: 1px 8px; font-size: var(--tl-control-font-size-sm); font-weight: 400; }
-button.large { padding: 10px 20px; font-size: 15px; }
+button.large { padding: 10px 20px; font-size: calc(var(--tl-font-size-lg) - 1px); }
 button.chip { padding: 3px 10px; font-size: var(--tl-control-font-size-sm); border-radius: 999px; }
-button.quiet { border: none; background: none; font-size: 16px; line-height: 1; padding: 2px 6px; }
+button.quiet { border: none; background: none; font-size: var(--tl-font-size-lg); line-height: 1; padding: 2px 6px; }
 button.list-item { text-align: left; }
 a.btn { text-decoration: none; color: var(--text); display: inline-block; }
 
@@ -37,9 +37,9 @@ input.warn { border-color: var(--warn); }
 input.color-compact { padding: 2px; height: 30px; }
 
 /* ---- Segment ---- */
-.seg-label { color: var(--muted); font-size: 12px; margin-right: 2px; }
+.seg-label { color: var(--muted); font-size: var(--tl-font-size-sm); margin-right: 2px; }
 .editor .kind-switch label { display: flex; align-items: center; gap: 6px; margin: 0; padding: var(--tl-button-pad);
-  border: 1px solid var(--line); border-radius: var(--tl-radius); cursor: pointer; color: var(--text); }
+  border: 1px solid var(--tl-control-border); border-radius: var(--tl-radius); cursor: pointer; color: var(--text); }
 
 /* ---- Reiter ---- */
 .lkw-tab { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
@@ -74,6 +74,6 @@ dialog::backdrop { background: var(--tl-backdrop); }
 
 /* ---- Hinweis ---- */
 .hint { color: var(--muted); font-size: var(--tl-hint-font-size); margin: 0; }
-.banner { padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--line); position: relative; }
+.banner { padding: 6px 12px; font-size: calc(var(--tl-font-size) - 1px); border-bottom: 1px solid var(--line); position: relative; }
 .banner-warn { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .banner-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); } /* nur Position; Optik: button.quiet */

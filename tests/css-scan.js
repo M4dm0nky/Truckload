@@ -166,3 +166,19 @@ export function findColorLiterals(rules) {
   }
   return out;
 }
+
+// Feste Schriftgrößen (px/rem/em/pt) in font-size und font-Kurzform; :root, svg und --* ausgenommen.
+// var(...)/calc(...) mit var(...) und Schlüsselwörter sind erlaubt.
+const FIXED_SIZE = /(?:^|[\s/])-?\d*\.?\d+(?:px|rem|em|pt)\b/;
+export function findFixedFontSizes(rules) {
+  const out = [];
+  for (const r of rules) {
+    if (r.selector.startsWith(':root') || r.selector.startsWith('svg')) continue;
+    for (const d of r.decls) {
+      if (d.prop.startsWith('--') || (d.prop !== 'font-size' && d.prop !== 'font')) continue;
+      if (/^(var|calc)\(/.test(d.value) && /var\(/.test(d.value)) continue;
+      if (FIXED_SIZE.test(d.value)) out.push({ selector: r.selector, prop: d.prop, value: d.value, line: r.line });
+    }
+  }
+  return out;
+}

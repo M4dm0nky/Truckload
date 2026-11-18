@@ -54,6 +54,7 @@ const DUNKEL2 = {
   '--tl-dialog-divider': 'transparent', '--tl-backdrop': 'rgba(0,0,0,.5)',
   '--tl-warn': '#f2b705', '--tl-warn-text': '#f2b705',
   '--tl-control-border': 'var(--tl-line)', '--tl-font-size': '14px', '--tl-hint-font-size': '12px',
+  '--tl-line-height': '1.4', '--tl-font-size-xs': '11px', '--tl-font-size-sm': '12px', '--tl-font-size-lg': '16px',
 };
 
 test('Token-Liste Version 1 ist vollständig und in fester Reihenfolge', () => {
@@ -122,5 +123,6 @@ test('Randfarbe, Grund- und Hinweisschrift werden von den Bausteinen gelesen', (
   assert.match(rule('button, .btn'), /border: 1px solid var\(--tl-control-border\)/);
   assert.match(rule('select, input, textarea'), /border: 1px solid var\(--tl-control-border\)/);
   assert.match(rule('.hint'), /font-size: var\(--tl-hint-font-size\)/);
-  assert.match(css, /font: var\(--tl-font-size\)\/1\.4 /);
+  assert.match(css, /font: var\(--tl-font-size\)\/var\(--tl-line-height\) /);
+  assert.match(rule('.editor .kind-switch label'), /border: 1px solid var\(--tl-control-border\)/);
 });
