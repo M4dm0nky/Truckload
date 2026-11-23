@@ -29,6 +29,7 @@ export function geraeteState({ liste = [], stand = [], cases = [], alias = KEINE
   return {
     zeilen: stand, jeKey, cases: [...cases], wahl: null,
     diffModus: stand.some(z => z.verladen > 0),
+    anders: Object.fromEntries(stand.map(z => [z.key, z.anders ?? 0])), andersVor: Object.fromEntries(stand.map(z => [z.key, z.anders ?? 0])),
     zuordnung: {}, stueckVor: {}, nichtLaden: new Set(stand.filter(z => z.nichtLaden).map(z => z.key)),
     nichtLadenVor: new Set(stand.filter(z => z.nichtLaden).map(z => z.key)),
     reduktionInfo: red, reduktionWahl: {},
@@ -36,7 +37,12 @@ export function geraeteState({ liste = [], stand = [], cases = [], alias = KEINE
 }
 
 const zeileVon = (st, key) => st.zeilen.find(z => z.key === key);
-const bedarf = (st, z) => (z && !st.nichtLaden.has(z.key) ? Math.max(z.diff, 0) : 0);
+const andersNow = (st, z) => st.anders[z.key] ?? 0;
+// Live-Differenz mit dem Wert im Dialog; Reduktion (diff < 0 aus stand) bleibt unverändert.
+const diffLive = (st, z) => (z.diff < 0 ? z.diff : z.anzahl - z.verladen - andersNow(st, z));
+const bedarf = (st, z) => (z && !st.nichtLaden.has(z.key) ? Math.max(diffLive(st, z), 0) : 0);
+// Wert, bei dem der Bedarf 0 wird (ohne neue Cases).
+export const andersMax = (st, key) => { const z = zeileVon(st, key); return z ? Math.max(z.anzahl - z.verladen, 0) : 0; };
 
 // Zuordnungen eines Typs der Reihe nach durchgerechnet: n Cases, Geräte je Stück, Rest danach.
 export function zuordnungenVon(st, key) {
@@ -63,7 +69,7 @@ export function offenVon(st, key) {
 export const caseVon = (st, id) => st.cases.find(c => c.id === id);
 
 // Aktionen: waehle {key} · case {case: Case} · loese {key, i} · stueck {key?, i?, caseId, wert} ·
-// nichtladen {key} (umschalten) · red {key, ja}. Gibt den (veränderten) Zustand zurück.
+// nichtladen {key} (umschalten) · anders {key, wert} · red {key, ja}. Gibt den (veränderten) Zustand zurück.
 export function geraeteAktion(st, act, d = {}) {
   if (act === 'waehle') { if (zeileVon(st, d.key)) st.wahl = d.key; return st; }
   if (act === 'case') {
@@ -84,7 +90,20 @@ export function geraeteAktion(st, act, d = {}) {
   }
   if (act === 'nichtladen') {
     if (st.nichtLaden.has(d.key)) st.nichtLaden.delete(d.key);
-    else { st.nichtLaden.add(d.key); delete st.zuordnung[d.key]; }
+    else { st.nichtLaden.add(d.key); delete st.zuordnung[d.key]; st.anders[d.key] = 0; }
+    return st;
+  }
+  if (act === 'anders') {
+    const z = zeileVon(st, d.key);
+    if (!z || z.diff < 0) return st;
+    const w = Number(d.wert);
+    st.anders[d.key] = Number.isFinite(w) ? Math.min(Math.max(Math.round(w), 0), andersMax(st, d.key)) : 0;
+    if (st.anders[d.key] > 0) st.nichtLaden.delete(d.key);
+    const liste = st.zuordnung[d.key];
+    if (liste) {
+      const l = zuordnungenVon(st, d.key);
+      while (liste.length && l[liste.length - 1]?.n === 0) liste.pop();
+    }
     return st;
   }
   if (act === 'red') { st.reduktionWahl[d.key] = !!d.ja; return st; }
@@ -102,14 +121,16 @@ export function geraeteErgebnis(st) {
   const reduktion = Object.entries(st.reduktionInfo)
     .filter(([key]) => st.reduktionWahl[key] === true && !st.nichtLaden.has(key))
     .map(([key, r]) => ({ key, entfernen: [...r.entfernen] }));
-  return { zuordnungen, nichtLaden: [...st.nichtLaden], reduktion };
+  const andersGeladen = {};
+  for (const z of st.zeilen) if (andersNow(st, z) !== (st.andersVor[z.key] ?? 0)) andersGeladen[z.key] = andersNow(st, z);
+  return { zuordnungen, nichtLaden: [...st.nichtLaden], reduktion, andersGeladen };
 }
 
 // Würde „Übernehmen“ etwas ändern? Zuordnung, bestätigte Reduktion oder geänderte nichtLaden-Menge.
 export function geraeteAenderung(st) {
   const e = geraeteErgebnis(st);
   const gleich = e.nichtLaden.length === st.nichtLadenVor.size && e.nichtLaden.every(k => st.nichtLadenVor.has(k));
-  return e.zuordnungen.length > 0 || e.reduktion.length > 0 || !gleich;
+  return e.zuordnungen.length > 0 || e.reduktion.length > 0 || !gleich || Object.keys(e.andersGeladen).length > 0;
 }
 
 // ---- Render ----
@@ -120,7 +141,7 @@ export function geraeteMenuHtml(st) {
     + `<button type="button" data-act="only"${dis}>${t('Nur übernehmen')}</button><button type="button" class="primary" data-act="load"${dis}>${t('Übernehmen und laden')}</button></menu>`;
 }
 
-const diffText = z => (z.diff > 0 ? `+${z.diff}` : z.diff < 0 ? `−${-z.diff}` : '');
+const diffText = d => (d > 0 ? `+${d}` : d < 0 ? `−${-d}` : '');
 
 function zustandText(st, z) {
   if (st.nichtLaden.has(z.key)) return t('nicht laden');
@@ -128,14 +149,14 @@ function zustandText(st, z) {
     const w = st.reduktionWahl[z.key];
     return w === true ? t('wird entfernt') : w === false ? t('bleibt stehen') : t('Entfernen offen');
   }
-  if (z.diff === 0) return t('Alles verladen');
   const l = zuordnungenVon(st, z.key);
+  if (diffLive(st, z) === 0 && !l.length) return andersNow(st, z) > 0 ? t('anders geladen') : t('Alles verladen');
   if (!l.length) return t('noch offen');
   return offenVon(st, z.key) > 0 ? t('Rest offen') : t('zugeordnet');
 }
 
 function linkeZeile(st, z) {
-  const zahl = st.diffModus && z.diff !== 0 && !st.nichtLaden.has(z.key) ? diffText(z) : String(z.anzahl);
+  const zahl = st.diffModus && diffLive(st, z) !== 0 && !st.nichtLaden.has(z.key) ? diffText(diffLive(st, z)) : String(z.anzahl);
   const zuo = zuordnungenVon(st, z.key).filter(a => a.n > 0)
     .map(a => `<span class="ge-ref">→ ${esc(a.n)}× ${esc(a.name)}</span>`).join('');
   return `<li><button type="button" class="ge-row list-item${st.wahl === z.key ? ' on' : ''}" data-act="g-waehle" data-key="${esc(z.key)}" aria-pressed="${st.wahl === z.key}">`
@@ -172,24 +193,31 @@ function rechtsHtml(st) {
   if (!z) return `<p class="hint">${t('Wähle links einen Gerätetyp.')}</p>`;
   const key = esc(z.key);
   const nicht = st.nichtLaden.has(z.key);
-  const kopf = `<h3>${esc(z.name)} · ${esc(t('{n} Stück', { n: st.diffModus && z.diff > 0 && !nicht ? z.diff : z.anzahl }))}</h3>`;
+  const an = andersNow(st, z);
+  const kopf = `<h3>${esc(z.name)} · ${esc(t('{n} Stück', { n: st.diffModus && diffLive(st, z) > 0 && !nicht ? diffLive(st, z) : z.anzahl }))}`
+    + `${an > 0 && !nicht ? ` · ${esc(t('{n} anders geladen', { n: an }))}` : ''}</h3>`;
   if (z.diff < 0 && !nicht) return kopf + reduktionHtml(st, z);
   if (nicht) {
     return `${kopf}<p class="hint">${t('Dieser Typ wird für dieses Projekt nicht geladen.')}</p>`
       + `<button type="button" data-act="g-skip" data-key="${key}">${t('Wieder laden')}</button>`;
   }
-  if (z.diff === 0) return `${kopf}<p class="hint">${t('Alles verladen')}</p>`;
+  const andersFeld = andersMax(st, z.key) > 0 || an > 0
+    ? `<div class="ge-anders"><span>${t('Anders geladen (ohne Case)')}</span>`
+      + `<input type="number" min="0" max="${esc(andersMax(st, z.key))}" step="1" value="${esc(an)}" data-role="g-anders" data-key="${key}" aria-label="${t('Anders geladen (ohne Case)')}">`
+      + `<button type="button" data-act="g-anders-max" data-key="${key}">${t('Alle')}</button></div>`
+    : '';
+  if (diffLive(st, z) === 0 && !zuordnungenVon(st, z.key).length && an === 0) return `${kopf}<p class="hint">${t('Alles verladen')}</p>${andersFeld}`;
   const zuo = zuordnungenVon(st, z.key);
   const offen = offenVon(st, z.key);
   const zeilen = zuo.map((a, i) => `<li class="ge-asg"><span>${a.n > 0 ? `${esc(a.n)}× ${esc(a.name)}` : esc(a.name)}${a.rest > 0 ? ` · ${esc(t('{n} Rest', { n: a.rest }))}` : ''}</span>`
     + `<span class="hint">${t('Geräte pro Case')}</span>${stueckFeld(a.stueck, `data-role="g-stueck" data-key="${key}" data-i="${i}" data-case="${esc(a.caseId)}"`)}`
     + `<button type="button" data-act="g-unset" data-key="${key}" data-i="${i}">${t('Lösen')}</button></li>`).join('');
   const liste = zuo.length ? `<ul class="ge-asgs">${zeilen}</ul>` : '';
-  if (offen <= 0) return kopf + liste;
+  if (offen <= 0) return kopf + andersFeld + liste;
   const sucheUndNeu = `<button type="button" data-act="g-find">${t('Anderes Case suchen …')}</button>`
     + `<button type="button" data-act="g-new">${t('Neues Case')}</button>`
     + `<button type="button" data-act="g-skip" data-key="${key}">${t('Nicht laden')}</button>`;
-  return `${kopf}${liste}${zuo.length ? `<p><b>${esc(t('Für den Rest ({n} Stück) ein weiteres Case wählen:', { n: offen }))}</b></p>` : ''}`
+  return `${kopf}${andersFeld}${liste}${zuo.length ? `<p><b>${esc(t('Für den Rest ({n} Stück) ein weiteres Case wählen:', { n: offen }))}</b></p>` : ''}`
     + vorschlaegeHtml(st, z)
     + `<div class="ti-bauknoepfe">${sucheUndNeu}</div>`;
 }

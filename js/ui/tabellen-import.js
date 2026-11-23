@@ -14,7 +14,7 @@ import { VERHALTEN, ART, gewerkWoerterbuch, gewerkCfg, gewerkEintrag } from '../
 import { catRank } from '../model/lkw-distribute.js';
 import { MAX_LKW } from '../model/limits.js';
 import { DEFAULT_TRUCK_ID } from '../data/preset-trucks.js';
-import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, geraeteMenuHtml, caseVon as geCaseVon } from './geraete-schritt.js';
+import { geraeteState, geraeteAktion, geraeteErgebnis, andersMax, geraeteSchrittHtml, geraeteMenuHtml, caseVon as geCaseVon } from './geraete-schritt.js';
 
 // Relativ, damit die Dateien auch offline (sw.js) und in NYX gefunden werden.
 const VORLAGEN = { de: 'data/Truckload-Ladeliste.xlsx', en: 'data/Truckload-Loadlist.xlsx' };
@@ -343,7 +343,8 @@ export const escZiel = (view, heim = 'overview') => (view === heim ? null : heim
 // opts.geraete: { liste, stand, cases, alias, plan } (NYX-Geräte, stand() des Plans, Bibliothek, umhaengen-Alias, aktueller Plan);
 //   dann beginnt der Dialog mit dem Schritt „Geräte → Cases“, Ziel ist immer der aktuelle Plan.
 //   opts.sucheCase(text) / opts.neuesCase({ name, gewerk, gewichtKg }): async, liefern ein Case oder null.
-//   Ergebnis zusätzlich: zuordnungen [{ key, name, caseId, n, stueck, nyxStueck }], nichtLaden [key], reduktion [{ key, entfernen }] (nur bestätigt).
+//   Ergebnis zusätzlich: zuordnungen [{ key, name, caseId, n, stueck, nyxStueck }], nichtLaden [key], reduktion [{ key, entfernen }] (nur bestätigt),
+//   andersGeladen { key: n } (nur gegenüber dem Planstand geänderte Werte; 0 = löschen, siehe uebernimmGeraete).
 // Ergebnis: { eintraege, ziel: 'current'|'new', laden: boolean, ohneRot: boolean, gebaut: { cases, stuecke }, lkw: einst (nur beim Laden; ohne `neu`) }
 // oder null bei Abbruch. Gebaute Cases sind Import-Cases (nie in der Bibliothek), Stücke { caseId, n }.
 export async function openTabellenImport(dlg, opts) {
@@ -570,6 +571,7 @@ export async function openTabellenImport(dlg, opts) {
       else if (act === 'g-case') geraeteAktion(ge, 'case', { case: geCaseVon(ge, b.dataset.case) });
       else if (act === 'g-unset') geraeteAktion(ge, 'loese', { key: b.dataset.key, i: Number(b.dataset.i) });
       else if (act === 'g-skip') geraeteAktion(ge, 'nichtladen', { key: b.dataset.key });
+      else if (act === 'g-anders-max') geraeteAktion(ge, 'anders', { key: b.dataset.key, wert: andersMax(ge, b.dataset.key) });
       else if (act === 'g-red') geraeteAktion(ge, 'red', { key: b.dataset.key ?? ge.wahl, ja: b.dataset.ja === '1' });
       else if (act === 'g-find' || act === 'g-new') {
         const z = ge.zeilen.find(x => x.key === ge.wahl);
@@ -634,6 +636,7 @@ export async function openTabellenImport(dlg, opts) {
       render();
       return;
     }
+    if (el.dataset.role === 'g-anders') { geraeteAktion(ge, 'anders', { key: el.dataset.key, wert: Number(el.value) }); render(); return; }
     if (el.name === 'target') { st.ziel = el.value; return; }
     if (el.name === 'skipredset') { st.ohneRotSet = el.checked; render(); return; }
     if (el.name === 'skipred') { st.ohneRot = el.checked; render(); return; }

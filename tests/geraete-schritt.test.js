@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkCase, P, plan } from './fixtures.js';
 import { stand } from '../js/model/nyxAbgleich.js';
 import { schritte } from '../js/ui/tabellen-import.js';
-import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, geraeteMenuHtml, geraeteAenderung, zuordnungenVon, offenVon } from '../js/ui/geraete-schritt.js';
+import { geraeteState, geraeteAktion, geraeteErgebnis, geraeteSchrittHtml, geraeteMenuHtml, geraeteAenderung, zuordnungenVon, offenVon, andersMax } from '../js/ui/geraete-schritt.js';
 
 const VIPER = 'gdtf:viper';
 const BMFL = 'gdtf:bmfl';
@@ -29,7 +29,7 @@ test('links alle Typen mit Anzahl und Stand', () => {
 
 test('ohne Klick: leeres Ergebnis, nichts gewählt, keine Vorschläge', () => {
   const st = neu();
-  assert.deepEqual(geraeteErgebnis(st), { zuordnungen: [], nichtLaden: [], reduktion: [] });
+  assert.deepEqual(geraeteErgebnis(st), { zuordnungen: [], nichtLaden: [], reduktion: [], andersGeladen: {} });
   assert.equal(st.wahl, null);
   assert.deepEqual(knoepfe(geraeteSchrittHtml(st)), []);
 });
@@ -97,7 +97,7 @@ test('anderes Case (z. B. aus Suche) wird wie Vorschlag zugeordnet', () => {
 test('Nicht laden: umschaltbar, löscht Zuordnung', () => {
   let st = geraeteAktion(geraeteAktion(neu(), 'waehle', { key: VIPER }), 'case', { case: x2 });
   st = geraeteAktion(st, 'nichtladen', { key: VIPER });
-  assert.deepEqual(geraeteErgebnis(st), { zuordnungen: [], nichtLaden: [VIPER], reduktion: [] });
+  assert.deepEqual(geraeteErgebnis(st), { zuordnungen: [], nichtLaden: [VIPER], reduktion: [], andersGeladen: {} });
   assert.match(geraeteSchrittHtml(st), /Wieder laden/);
   st = geraeteAktion(st, 'nichtladen', { key: VIPER });
   assert.deepEqual(geraeteErgebnis(st).nichtLaden, []);
@@ -264,4 +264,78 @@ test('Übernehmen-Knöpfe: schon gesetztes nichtLaden im Plan ist keine Änderun
   assert.ok(st.nichtLaden.has(BMFL));
   assert.equal(geraeteAenderung(st), false);
   assert.equal(geraeteAenderung(geraeteAktion(st, 'nichtladen', { key: BMFL })), true);        // wieder laden
+});
+
+// ---- anders geladen ----
+const mitAnders = n => neu({ ...plan([]), nyxAbgleich: { andersGeladen: { [VIPER]: n } } });
+const waehleViper = st => geraeteAktion(st, 'waehle', { key: VIPER });
+
+test('anders 21: offen 4, ein Klick auf x2 ergibt 2× Viper x2, offen 0', () => {
+  const st = waehleViper(mitAnders(21));
+  assert.equal(offenVon(st, VIPER), 4);
+  geraeteAktion(st, 'case', { case: x2 });
+  assert.match(geraeteSchrittHtml(st), /2× Viper x2/);
+  assert.equal(offenVon(st, VIPER), 0);
+});
+
+test('anders 25: offen 0, links „anders geladen“, case ändert nichts', () => {
+  const st = waehleViper(mitAnders(25));
+  assert.equal(offenVon(st, VIPER), 0);
+  assert.match(geraeteSchrittHtml(st), /<span class="hint">anders geladen<\/span>/);
+  geraeteAktion(st, 'case', { case: x2 });
+  assert.deepEqual(zuordnungenVon(st, VIPER), []);
+});
+
+test('anders anheben kürzt Zuordnung: 12× x2 + 1 Rest, dann 20 bleibt 2× x2', () => {
+  const st = geraeteAktion(waehleViper(neu()), 'case', { case: x2 });
+  geraeteAktion(st, 'anders', { key: VIPER, wert: 20 });
+  assert.deepEqual(zuordnungenVon(st, VIPER).map(a => [a.n, a.rest]), [[2, 1]]);
+  geraeteAktion(st, 'anders', { key: VIPER, wert: 25 });
+  assert.deepEqual(st.zuordnung[VIPER], []);
+});
+
+test('anders wird auf 0…Maximum begrenzt', () => {
+  const st = waehleViper(neu());
+  assert.equal(andersMax(st, VIPER), 25);
+  geraeteAktion(st, 'anders', { key: VIPER, wert: -3 });
+  assert.equal(st.anders[VIPER], 0);
+  geraeteAktion(st, 'anders', { key: VIPER, wert: NaN });
+  assert.equal(st.anders[VIPER], 0);
+  geraeteAktion(st, 'anders', { key: VIPER, wert: 99 });
+  assert.equal(st.anders[VIPER], 25);
+});
+
+test('nicht laden löscht anders, anders danach hebt nicht laden auf', () => {
+  let st = waehleViper(mitAnders(10));
+  st = geraeteAktion(st, 'nichtladen', { key: VIPER });
+  assert.equal(st.anders[VIPER], 0);
+  assert.deepEqual(geraeteErgebnis(st).andersGeladen, { [VIPER]: 0 });
+  geraeteAktion(st, 'anders', { key: VIPER, wert: 5 });
+  assert.equal(st.nichtLaden.has(VIPER), false);
+});
+
+test('geraeteAenderung: nur anders geändert ist eine Änderung, unveränderter Planwert nicht', () => {
+  assert.equal(geraeteAenderung(mitAnders(21)), false);
+  assert.equal(geraeteAenderung(geraeteAktion(mitAnders(21), 'anders', { key: VIPER, wert: 21 })), false);
+  assert.equal(geraeteAenderung(geraeteAktion(mitAnders(21), 'anders', { key: VIPER, wert: 22 })), true);
+  assert.equal(geraeteAenderung(geraeteAktion(neu(), 'anders', { key: VIPER, wert: 3 })), true);
+});
+
+test('HTML: Feld und „Alle“ im gewählten Typ, Kopf mit Zahl; bei nicht laden und Reduktion kein Feld', () => {
+  const h = geraeteSchrittHtml(waehleViper(mitAnders(21)));
+  assert.ok(h.includes('data-role="g-anders"') && h.includes('data-act="g-anders-max"'));
+  assert.match(h, /21 anders geladen/);
+  assert.ok(!geraeteSchrittHtml(waehleViper(neu(plan([]), {}))).includes('anders geladen</h3>'));
+  const nl = geraeteSchrittHtml(geraeteAktion(waehleViper(neu()), 'nichtladen', { key: VIPER }));
+  assert.ok(!nl.includes('g-anders'));
+  const p = plan([], [nyx('u1', 'x2', VIPER, 2), nyx('u2', 'x2', VIPER, 2)]);
+  const li = [{ key: VIPER, name: 'MAC Viper', anzahl: 2, vwNamen: [] }];
+  const rd = geraeteState({ liste: li, stand: stand(p, li), cases: [x1, x2], alias: new Map(), plan: p });
+  assert.ok(!geraeteSchrittHtml(waehleViper(rd)).includes('g-anders'));
+});
+
+test('geraeteErgebnis().andersGeladen liefert geänderte Werte', () => {
+  const st = geraeteAktion(waehleViper(neu()), 'anders', { key: VIPER, wert: 21 });
+  assert.deepEqual(geraeteErgebnis(st).andersGeladen, { [VIPER]: 21 });
+  assert.deepEqual(geraeteErgebnis(mitAnders(21)).andersGeladen, {});
 });
