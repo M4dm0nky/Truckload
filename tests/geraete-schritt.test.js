@@ -339,3 +339,27 @@ test('geraeteErgebnis().andersGeladen liefert geänderte Werte', () => {
   assert.deepEqual(geraeteErgebnis(st).andersGeladen, { [VIPER]: 21 });
   assert.deepEqual(geraeteErgebnis(mitAnders(21)).andersGeladen, {});
 });
+
+test('anders geladen ohne Case-Stücke: links +Rest, Kopf „{Rest} Stück“ (nicht die Gesamtzahl)', () => {
+  const st = neu();
+  geraeteAktion(st, 'waehle', { key: VIPER });
+  geraeteAktion(st, 'anders', { key: VIPER, wert: 21 });
+  const html = geraeteSchrittHtml(st);
+  assert.match(html, /<b class="ge-num">\+4<\/b>/);
+  assert.match(html, /MAC Viper · 4 Stück · 21 anders geladen/);
+  // Gegenprobe: ohne anders bleibt die Gesamtzahl
+  geraeteAktion(st, 'anders', { key: VIPER, wert: 0 });
+  assert.match(geraeteSchrittHtml(st), /<b class="ge-num">25<\/b>/);
+});
+
+test('Wieder geöffnet: 21 anders + 4 in Cases → „Alles verladen“, nicht „anders geladen“; ganz anders → „anders geladen“', () => {
+  const p = { ...plan([]), unplaced: [nyx('a', 'x2', VIPER, 2), nyx('b', 'x2', VIPER, 2)], nyxAbgleich: { nichtLaden: [], andersGeladen: { [VIPER]: 21 } } };
+  const st = neu(p);
+  geraeteAktion(st, 'waehle', { key: VIPER });
+  const html = geraeteSchrittHtml(st);
+  assert.match(html, /MAC Viper<\/span><b class="ge-num">25<\/b><span class="hint">Alles verladen</);
+  assert.match(html, /<p class="hint">Alles verladen<\/p>/);
+  assert.match(html, /data-role="g-anders"/);
+  const ganz = neu({ ...plan([]), nyxAbgleich: { nichtLaden: [], andersGeladen: { [VIPER]: 25 } } });
+  assert.match(geraeteSchrittHtml(ganz), /MAC Viper<\/span><b class="ge-num">25<\/b><span class="hint">anders geladen</);
+});

@@ -141,6 +141,9 @@ export function geraeteMenuHtml(st) {
     + `<button type="button" data-act="only"${dis}>${t('Nur übernehmen')}</button><button type="button" class="primary" data-act="load"${dis}>${t('Übernehmen und laden')}</button></menu>`;
 }
 
+// Offene Zahl statt Gesamtzahl: im Diff-Modus und wenn ein Teil des Typs anders geladen ist.
+const zeigtDiff = (st, z) => st.diffModus || andersNow(st, z) > 0;
+
 const diffText = d => (d > 0 ? `+${d}` : d < 0 ? `−${-d}` : '');
 
 function zustandText(st, z) {
@@ -150,13 +153,13 @@ function zustandText(st, z) {
     return w === true ? t('wird entfernt') : w === false ? t('bleibt stehen') : t('Entfernen offen');
   }
   const l = zuordnungenVon(st, z.key);
-  if (diffLive(st, z) === 0 && !l.length) return andersNow(st, z) > 0 ? t('anders geladen') : t('Alles verladen');
+  if (diffLive(st, z) === 0 && !l.length) return andersNow(st, z) > 0 && z.verladen === 0 ? t('anders geladen') : t('Alles verladen');
   if (!l.length) return t('noch offen');
   return offenVon(st, z.key) > 0 ? t('Rest offen') : t('zugeordnet');
 }
 
 function linkeZeile(st, z) {
-  const zahl = st.diffModus && diffLive(st, z) !== 0 && !st.nichtLaden.has(z.key) ? diffText(diffLive(st, z)) : String(z.anzahl);
+  const zahl = zeigtDiff(st, z) && diffLive(st, z) !== 0 && !st.nichtLaden.has(z.key) ? diffText(diffLive(st, z)) : String(z.anzahl);
   const zuo = zuordnungenVon(st, z.key).filter(a => a.n > 0)
     .map(a => `<span class="ge-ref">→ ${esc(a.n)}× ${esc(a.name)}</span>`).join('');
   return `<li><button type="button" class="ge-row list-item${st.wahl === z.key ? ' on' : ''}" data-act="g-waehle" data-key="${esc(z.key)}" aria-pressed="${st.wahl === z.key}">`
@@ -194,7 +197,7 @@ function rechtsHtml(st) {
   const key = esc(z.key);
   const nicht = st.nichtLaden.has(z.key);
   const an = andersNow(st, z);
-  const kopf = `<h3>${esc(z.name)} · ${esc(t('{n} Stück', { n: st.diffModus && diffLive(st, z) > 0 && !nicht ? diffLive(st, z) : z.anzahl }))}`
+  const kopf = `<h3>${esc(z.name)} · ${esc(t('{n} Stück', { n: zeigtDiff(st, z) && diffLive(st, z) > 0 && !nicht ? diffLive(st, z) : z.anzahl }))}`
     + `${an > 0 && !nicht ? ` · ${esc(t('{n} anders geladen', { n: an }))}` : ''}</h3>`;
   if (z.diff < 0 && !nicht) return kopf + reduktionHtml(st, z);
   if (nicht) {
@@ -206,7 +209,7 @@ function rechtsHtml(st) {
       + `<input type="number" min="0" max="${esc(andersMax(st, z.key))}" step="1" value="${esc(an)}" data-role="g-anders" data-key="${key}" aria-label="${t('Anders geladen (ohne Case)')}">`
       + `<button type="button" data-act="g-anders-max" data-key="${key}">${t('Alle')}</button></div>`
     : '';
-  if (diffLive(st, z) === 0 && !zuordnungenVon(st, z.key).length && an === 0) return `${kopf}<p class="hint">${t('Alles verladen')}</p>${andersFeld}`;
+  if (diffLive(st, z) === 0 && !zuordnungenVon(st, z.key).length) return `${kopf}<p class="hint">${t('Alles verladen')}</p>${andersFeld}`;
   const zuo = zuordnungenVon(st, z.key);
   const offen = offenVon(st, z.key);
   const zeilen = zuo.map((a, i) => `<li class="ge-asg"><span>${a.n > 0 ? `${esc(a.n)}× ${esc(a.name)}` : esc(a.name)}${a.rest > 0 ? ` · ${esc(t('{n} Rest', { n: a.rest }))}` : ''}</span>`
