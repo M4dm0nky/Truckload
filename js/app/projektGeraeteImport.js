@@ -119,7 +119,7 @@ export function wireProjektGeraete({ store, editWhole, switchPlan, uid, showAler
   async function sucheCase(text) {
     const cases = suchReihenfolge(store.get().cases.filter(c => isInStock(c)), text);
     if (!cases.length) { await showAlert(t('Keine passende Box vorhanden.')); return null; }
-    const id = await showPick(t('Welches Case?'), cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })));
+    const id = await showPick(t('Welches Case?'), cases.map(c => ({ value: c.id, label: c.name + (c.company ? ` – ${c.company}` : '') })), { suche: true });
     return id == null ? null : cases.find(c => c.id === id) ?? null;
   }
   // Das neue Case landet sofort in „Meine Sammlung“ (Spec), auch wenn der Dialog danach abgebrochen wird.

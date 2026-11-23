@@ -902,7 +902,7 @@ Module:
   (1..99, sonst `null`).
 - **`js/model/nyxAbgleich.js`**: reine Logik des Abgleichs. `stueckProCase`, `bekannteCases`,
   `umhaengen` (`vw:`-Zuordnung auf `gdtf:` über `vwNamen`), `stand` (je Gerätetyp Anzahl, verladen,
-  Differenz, nicht laden, je Plan), `aufteilen` (volle Stücke und Rest), `stueckeAnlegen`, `reduktion`
+  Differenz, anders geladen, nicht laden, je Plan; `diff = anzahl − verladen − anders`), `aufteilen` (volle Stücke und Rest), `stueckeAnlegen`, `reduktion`
   (nur Stücke mit `nyxGeraet`, nicht auf LKW zuerst), `merken` und `uebernimmGeraete`.
 - **`js/store/projektGeraete.js`**: `hatProjektGeraete()` und `ladeProjektGeraete()` lesen
   `truckloadHost.projektGeraete()`, verwerfen ungültige Einträge und fassen gleiche Schlüssel zusammen.
@@ -918,7 +918,10 @@ Datenfelder (alle optional, ohne neuen Store):
 
 - **`fasst`** am Case: `{ stueck, geraete: [{ key, name }] }`, geprüft in `checkCase` (auch bei
   mitgeführten Kopien).
-- **`nyxAbgleich`** am Plan: `{ geoeffnet?, nichtLaden: [key] }`, geprüft in `checkPlan`.
+- **`nyxAbgleich`** am Plan: `{ geoeffnet?, nichtLaden: [key], andersGeladen?: { [key]: 1…9999 } }`, geprüft in
+  `checkPlan`. `andersGeladen` (seit V 0.33.1) = Geräte, die ohne Case mitfahren (MLT, Sonderbau); sie zählen als verladen.
+- **Case-Suche:** `showPick(title, options, { suche: true })` (`js/ui/confirmDialog.js`) zeigt ein Suchfeld über
+  einer offenen Liste; Filter `pickFilter` (alle Wörter, Groß-/Kleinschreibung egal).
 - **`nyxGeraet`** (Schlüssel) und **`nyxStueck`** (Ganzzahl 1..99) am Stück, also an Platzierung und
   Ablage-Eintrag; Teil von `PIECE_FIELDS`/`pickPieceFields` und von `checkPlan`. `duplicate` lässt
   beide weg.

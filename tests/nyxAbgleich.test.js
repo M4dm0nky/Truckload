@@ -237,3 +237,41 @@ test('casesZumMerken: merkt key, setzt stueck, schreibt nur Geändertes; umgehä
   // Abbruch-Fall: leeres Ergebnis -> nur umgehängte (hier keine)
   assert.deepEqual(casesZumMerken([neu], [], { zuordnungen: [], nichtLaden: [], reduktion: [] }), []);
 });
+
+// ---- andersGeladen ----
+const mitAnders = (p, andersGeladen) => ({ ...p, nyxAbgleich: { geoeffnet: true, nichtLaden: [], andersGeladen } });
+
+test('stand: andersGeladen zählt als geladen, gedeckelt auf anzahl', () => {
+  const [a] = stand(mitAnders(plan([]), { V: 96 }), [gerät('V', 100)], new Map());
+  assert.equal(a.anders, 96);
+  assert.equal(a.diff, 4);
+  const [b] = stand(mitAnders(plan([]), { V: 96 }), [gerät('V', 90)], new Map());
+  assert.equal(b.anders, 90);
+  assert.equal(b.diff, 0);
+});
+
+test('stand: anders plus Case-Stück darüber ergibt Überschuss; ohne Feld anders 0; vw:-Schlüssel über alias', () => {
+  const p = mitAnders(plan([], [nyx('u1', 'c', 'V', 2)]), { V: 90 });
+  const [s] = stand(p, [gerät('V', 90)], new Map());
+  assert.equal(s.diff, -2);
+  const [alt] = stand(plan([], [nyx('u1', 'c', 'V', 2)]), [gerät('V', 5)], new Map());
+  assert.equal(alt.anders, 0);
+  assert.equal(alt.diff, 3);
+  const alias = new Map([['vw:Viper', GDTF]]);
+  const [v] = stand(mitAnders(plan([]), { 'vw:Viper': 5 }), [gerät(GDTF, 8)], alias);
+  assert.equal(v.anders, 5);
+  assert.equal(v.diff, 3);
+});
+
+test('uebernimmGeraete: andersGeladen aus res über alias, 0 löscht, fremde Schlüssel bleiben', () => {
+  const alias = new Map([['vw:Viper', GDTF]]);
+  const out = uebernimmGeraete(plan([]), { andersGeladen: { 'vw:Viper': 5, X: 0 } }, counter('n'), byId(tippCase), alias);
+  assert.deepEqual(out.nyxAbgleich.andersGeladen, { [GDTF]: 5 });
+  const p = mitAnders(plan([]), { Z: 3 });
+  const m = uebernimmGeraete(p, { andersGeladen: { V: 2 } }, counter('n'), byId(tippCase));
+  assert.deepEqual(m.nyxAbgleich.andersGeladen, { Z: 3, V: 2 });
+  const d = uebernimmGeraete(p, { andersGeladen: { Z: 0 } }, counter('n'), byId(tippCase));
+  assert.equal('andersGeladen' in d.nyxAbgleich, false);
+  const k = uebernimmGeraete(p, {}, counter('n'), byId(tippCase));
+  assert.deepEqual(k.nyxAbgleich.andersGeladen, { Z: 3 });
+});

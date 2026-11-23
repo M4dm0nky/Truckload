@@ -1,6 +1,6 @@
 # Truckload – Ladeplaner für Event-Cases
 
-Version: **V 0.34.1** – siehe [CHANGELOG.md](CHANGELOG.md).
+Version: **V 0.34.2** – siehe [CHANGELOG.md](CHANGELOG.md).
 
 Lokale Vanilla-JavaScript-App zur Planung und Visualisierung von Laderaum-Aufteilungen im LKW. Cases (auf Rollen, stehend oder getippt) werden interaktiv in den Laderaum positioniert, Kollisionen und Grenzen werden live geprüft.
 
@@ -375,6 +375,12 @@ Ohne NYX oder ohne Geräteliste ist der Knopf versteckt.
 - **Links** stehen die Gerätetypen mit Stückzahl, **rechts** die Vorschläge: nur anklickbare Cases für
   Gerätetypen, die Truckload schon kennt. Dazu immer „Anderes Case suchen …“, „Neues Case“ und
   „Nicht laden“. Es wird nichts zugeordnet, solange man nichts anklickt.
+- **Anders geladen (ohne Case):** Für Geräte, die zwar mitfahren, aber kein eigenes Case bekommen
+  (fest in MLTs oder im Sonderbau), trägt man je Gerätetyp eine Zahl ein, z. B. 96 von 100. Sie zählen
+  als verladen. Cases wählt man nur für den Rest. „Alle“ setzt die ganze offene Menge. „Nicht laden“
+  bleibt für Geräte, die gar nicht mitfahren (Hausbestand, Fremdfirma).
+- **Anderes Case suchen …** öffnet eine Liste mit Suchfeld: Tippt man z. B. „robe“, bleiben nur Cases
+  mit „robe“ im Namen. Mehrere Wörter müssen alle vorkommen. Enter übernimmt den ersten Treffer.
 - **Geräte pro Case** liest Truckload aus dem Case-Namen. Der Wert ist sichtbar, änderbar und wird am
   Case gemerkt. Bleibt ein Rest, wählt man dafür ein anderes Case.
 - **Neues Case:** kommt in „Meine Sammlung“, Gewerk „Licht“. Das Gewicht ist ein Vorschlag (Geräte pro

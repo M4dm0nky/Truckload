@@ -294,6 +294,8 @@ kbd { font-size: var(--tl-font-size-xs); color: var(--muted); border: 1px solid 
 .ge-row .hint, .ge-row .ge-ref { grid-column: 1 / -1; }
 .ge-sug, .ge-asg { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ge-sug input[type=number], .ge-asg input[type=number] { width: 64px; }
+.ge-anders { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.ge-anders input[type=number] { width: 64px; }
 .ge-right h3 { margin: 0 0 8px; font-size: calc(var(--tl-font-size-lg) - 1px); }
 .ti-rot { color: var(--danger); }
 .ti-gelb { color: var(--warn-text); }
@@ -305,3 +307,5 @@ kbd { font-size: var(--tl-font-size-xs); color: var(--muted); border: 1px solid 
 .lkw-g select, .lkw-g input[type=number] { max-width: 180px; }
 .lkw-g input[type=number] { width: 72px; }
 .lkw-vorschau { margin-top: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-height: 40px; }
+#dlg-pick select[size] { width: 100%; min-width: 0; margin-top: 6px; }
+#dlg-pick input[type="search"] { width: 100%; box-sizing: border-box; margin-top: 6px; }

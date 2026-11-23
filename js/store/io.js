@@ -143,9 +143,13 @@ const fasstOk = f => f === undefined || (f !== null && typeof f === 'object' && 
   && Array.isArray(f.geraete) && f.geraete.length <= 50
   && f.geraete.every(g => g && nyxStr(g.key) && nyxStr(g.name)));
 // Plan.nyxAbgleich: Merkzustand des Abgleichs (Dialog geöffnet, Geräte, die nicht geladen werden).
+const andersGeladenOk = g => g !== null && typeof g === 'object' && !Array.isArray(g)
+  && Object.keys(g).length <= 500
+  && Object.entries(g).every(([k, n]) => nyxStr(k) && Number.isInteger(n) && n >= 1 && n <= 9999);
 const nyxAbgleichOk = a => a === undefined || (a !== null && typeof a === 'object'
   && (a.geoeffnet === undefined || typeof a.geoeffnet === 'boolean')
-  && Array.isArray(a.nichtLaden) && a.nichtLaden.length <= 500 && a.nichtLaden.every(nyxStr));
+  && Array.isArray(a.nichtLaden) && a.nichtLaden.length <= 500 && a.nichtLaden.every(nyxStr)
+  && (a.andersGeladen === undefined || andersGeladenOk(a.andersGeladen)));
 const lkwRefOk = x => x.lkw === undefined || typeof x.lkw === 'string';
 const rulesOk = r => Array.isArray(r) && r.length <= MAX_RULES && r.every(ruleOk);
 // Mehrere LKW in einem Plan (V 0.14): `lkws` fehlt (Ein-LKW-Plan) oder ist eine Liste von höchstens
