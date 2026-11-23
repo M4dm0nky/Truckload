@@ -444,6 +444,8 @@ export default {
   "Gelöschte Listen-Cases – hier lässt sich die mitgelieferte Fassung zurückholen": "Deleted list cases – the shipped version can be brought back here",
   "Ausgeblendet": "Hidden",
   "Suchen": "Search",
+  "Kein Treffer.": "No match.",
+  "Suchen …": "Search …",
   "+ Neues Case": "+ New case",
   "+ Traverse": "+ Truss",
   "+ Boxen-Dolly": "+ Box dolly",

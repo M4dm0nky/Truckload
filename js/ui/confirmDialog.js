@@ -29,15 +29,46 @@ export function showConfirm(message, { okLabel = t('OK'), cancelLabel = t('Abbre
   return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok'), { once: true }));
 }
 
+// Filter der Auswahlliste: alle Wörter (an Leerraum getrennt) müssen im Label vorkommen, Groß-/Kleinschreibung egal.
+export function pickFilter(options, text) {
+  const w = String(text ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+  return options.filter(o => { const l = String(o.label).toLowerCase(); return w.every(x => l.includes(x)); });
+}
+
 // Kleiner Auswahldialog (<select> in #dlg-pick); Wert der gewählten Option, null bei Abbruch.
-// `options`: [{ value, label }].
-export function showPick(title, options) {
+// `options`: [{ value, label }]. `{ suche: true }`: Suchfeld über der Liste (tippt filtert, Enter übernimmt).
+export function showPick(title, options, { suche = false } = {}) {
   const d = document.getElementById('dlg-pick');
-  d.innerHTML = `<form method="dialog" class="editor">${dialogKopf(esc(title))}<select name="v" aria-label="${esc(title)}" autofocus>${options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>
+  const optHtml = list => list.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('');
+  const field = suche
+    ? `<input type="search" data-role="pick-suche" placeholder="${esc(t('Suchen …'))}" aria-label="${esc(t('Suchen …'))}" autocomplete="off" autofocus><select name="v" size="10" aria-label="${esc(title)}">${optHtml(options)}</select><p class="hint" data-role="pick-leer" hidden>${t('Kein Treffer.')}</p>`
+    : `<select name="v" aria-label="${esc(title)}" autofocus>${optHtml(options)}</select>`;
+  d.innerHTML = `<form method="dialog" class="editor">${dialogKopf(esc(title))}${field}
     <menu><span class="grow"></span><button value="cancel" formnovalidate>${t('Abbrechen')}</button><button value="ok" class="primary">${t('OK')}</button></menu></form>`;
   const sel = d.querySelector('select');
+  if (suche) {
+    const input = d.querySelector('[data-role="pick-suche"]');
+    const leer = d.querySelector('[data-role="pick-leer"]');
+    const ok = d.querySelector('button[value="ok"]');
+    const zeige = () => {
+      const treffer = pickFilter(options, input.value);
+      sel.innerHTML = optHtml(treffer);
+      if (treffer.length) sel.selectedIndex = 0;
+      leer.hidden = treffer.length > 0;
+      ok.disabled = !treffer.length;
+    };
+    input.addEventListener('input', zeige);
+    input.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (sel.value) d.close('ok');
+    });
+    sel.addEventListener('dblclick', () => { if (sel.value) d.close('ok'); });
+    sel.selectedIndex = options.length ? 0 : -1;
+  }
   d.returnValue = ''; // sonst liefert Escape den Wert des vorigen Aufrufs
   d.showModal(); fokusNachOeffnen(d);
+  if (suche) d.querySelector('[data-role="pick-suche"]').focus();
   return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'ok' ? sel.value : null), { once: true }));
 }
 
