@@ -1,8 +1,21 @@
 # Geräte aus der NYX-Projektdatenbank in Truckload: Abstimmung
 
-An: NYX-Admin (Aniflu) · Von: Truckload · Stand: 17.11.2026 · Status: **umgesetzt in Truckload 0.33.0, NYX-Seite (Kanal `truckload:projektGeraete`) offen**
+An: NYX-Admin (Aniflu) · Von: Truckload · Stand: 17.11.2026 · Status: **umgesetzt in Truckload 0.33.0 (ergänzt in 0.34.2: „anders geladen“), NYX-Seite (Kanal `truckload:projektGeraete`) offen**
 
-## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.33.0
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.34.2
+
+**Neu mit 0.34.2 („anders geladen“, Case-Suche):**
+- Neues optionales Feld am Plan: `nyxAbgleich.andersGeladen = { "<key>": Anzahl }` (Ganzzahl 1…9999,
+  höchstens 500 Schlüssel). Gemeint sind Geräte, die ohne eigenes Case mitfahren, z. B. fest in MLTs oder
+  im Sonderbau. Sie zählen im Abgleich als verladen. Das Feld steckt im bestehenden Plan-Datensatz, NYX
+  speichert es unverändert. Es gibt keinen neuen Store, keine Freigabe und keine Änderung an
+  `projektGeraete()`.
+- Keine neue Datei. „Anderes Case suchen …“ zeigt jetzt ein Suchfeld im vorhandenen `#dlg-pick`.
+- Zurückdrehen auf 0.34.1: `checkPlan` von 0.34.1 lehnt das Feld nicht ab, und die Übernahme behält es.
+  0.34.1 rechnet es aber nicht ein: Die betroffenen Typen erscheinen dort wieder als offen (+n). Daten
+  gehen dabei nicht verloren.
+
+## Davor: zu tun vor dem Heben des Submoduls auf 0.33.0
 
 0.32.0 und 0.33.0 lassen sich zusammen heben (Aniflu, Issue #45).
 

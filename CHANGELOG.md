@@ -2,6 +2,14 @@
 
 Versionierung: eine Nummer `Major.Minor.Patch` überall gleich – App-Anzeige, Druck, Export, `package.json`, README, Offline-Cache und Git-Tag.
 
+## V 0.34.2 – 2026-11-23
+
+**Geräte aus NYX: „anders geladen“ und Case-Suche.**
+
+- **Anders geladen (ohne Case):** Im Dialog „Geräte aus NYX“ trägt man je Gerätetyp ein, wie viele Geräte ohne eigenes Case mitfahren, z. B. 96 von 100 fest in MLTs oder im Sonderbau. Sie zählen als verladen, Cases wählt man nur noch für den Rest. „Alle“ setzt die ganze offene Menge. Links und im Kopf steht dann die offene Zahl (+4, „4 Stück · 96 anders geladen“). „Nicht laden“ bleibt für Geräte, die gar nicht mitfahren.
+- **Case-Suche:** „Anderes Case suchen …“ öffnet eine Liste mit Suchfeld. Tippt man „robe“, bleiben nur Cases mit „robe“ im Namen. Mehrere Wörter müssen alle vorkommen, Enter übernimmt den ersten Treffer, Doppelklick einen beliebigen.
+- **Dateien:** neues optionales Feld `nyxAbgleich.andersGeladen` (`{ key: Anzahl }`) am Plan; `showPick` hat die Option `{ suche: true }`. Kein neuer Store, keine neue Datei unter `js/`.
+
 ## V 0.34.1 – 2026-11-18
 
 **Symbole, Popup-Kopf, Segment-Leiste (Issue #50).**

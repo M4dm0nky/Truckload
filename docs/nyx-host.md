@@ -1,6 +1,12 @@
 # Einbindung in NYX
 
-## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.34.1
+## Für den Admin: zu tun vor dem Heben des Submoduls auf 0.34.2
+
+- Neu mit 0.34.2: optionales Planfeld `nyxAbgleich.andersGeladen` und ein Suchfeld in der Case-Auswahl.
+  Kein neuer Store und keine neue Datei. Einzelheiten stehen in
+  [nyx-projektgeraete.md](nyx-projektgeraete.md) unter „Für den Admin“.
+
+## Davor: 0.34.1
 
 - Neue Dateien `js/ui/symbols.js` (Lucide-Symbole) und `vendor/LICENSE-lucide.txt` (ISC), beide in
   `sw.js`. NYX packt das Submodul über `**/*` ein; Lucide steht in NYX' `THIRD_PARTY_NOTICES.txt`
