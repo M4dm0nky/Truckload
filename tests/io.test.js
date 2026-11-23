@@ -1075,6 +1075,15 @@ test('Import NYX: Plan mit nyxAbgleich ok, ungültiger nyxAbgleich wird abgelehn
     assert.throws(() => checkPlan({ ...plan([]), nyxAbgleich: bad }), /NYX/, JSON.stringify(bad));
 });
 
+test('Import NYX: andersGeladen ok bzw. abgelehnt', () => {
+  const mit = andersGeladen => ({ ...plan([]), nyxAbgleich: { nichtLaden: [], andersGeladen } });
+  assert.doesNotThrow(() => checkPlan(mit({ a: 3 })));
+  assert.doesNotThrow(() => checkPlan(plan([])));
+  const viele = Object.fromEntries(Array.from({ length: 501 }, (_, i) => ['k' + i, 1]));
+  for (const bad of [{ a: 0 }, { a: -1 }, { a: 1.5 }, { a: 10000 }, { a: '3' }, [], null, viele])
+    assert.throws(() => checkPlan(mit(bad)), /NYX/, JSON.stringify(bad).slice(0, 40));
+});
+
 test('Import NYX: Stück mit nyxGeraet/nyxStueck ok, falsche Typen werden abgelehnt (Placement und Ablage)', () => {
   assert.doesNotThrow(() => checkPlan(plan([stueck({ nyxGeraet: 'k1', nyxStueck: 2 })])));
   for (const bad of [{ nyxStueck: '2' }, { nyxStueck: 0 }, { nyxStueck: 100 }, { nyxStueck: 1.5 }, { nyxGeraet: '' },

@@ -58,9 +58,13 @@ export function stand(plan, geraete, alias = KEINE) {
   const verladen = new Map();
   for (const s of nyxStuecke(plan, alias)) verladen.set(s.key, (verladen.get(s.key) ?? 0) + s.stueck);
   const nicht = new Set(plan.nyxAbgleich?.nichtLaden ?? []);
+  // andersGeladen: Geräte ohne Case (z. B. fest in Motorzügen); Schlüssel vw: über alias auf gdtf: gehoben
+  const andersMap = new Map();
+  for (const [k, n] of Object.entries(plan.nyxAbgleich?.andersGeladen ?? {})) andersMap.set(alias.get(k) ?? k, n);
   const zeile = (key, name, anzahl) => {
     const v = verladen.get(key) ?? 0;
-    return { key, name, anzahl, verladen: v, diff: anzahl - v, nichtLaden: nicht.has(key) };
+    const anders = Math.min(andersMap.get(key) ?? 0, anzahl);
+    return { key, name, anzahl, verladen: v, anders, diff: anzahl - v - anders, nichtLaden: nicht.has(key) };
   };
   const rows = geraete.map(g => zeile(g.key, g.name, g.anzahl));
   const da = new Set(geraete.map(g => g.key));
@@ -121,7 +125,16 @@ export function uebernimmGeraete(plan, res, newId, caseById, alias = KEINE) {
   for (const z of zuordnungen) {
     next = stueckeAnlegen(next, { key: z.key, caseId: z.caseId, c: caseById.get(z.caseId), n: z.n, stueck: z.nyxStueck }, newId);
   }
-  return stamp({ ...next, nyxAbgleich: { ...plan.nyxAbgleich, geoeffnet: true, nichtLaden: [...new Set((res.nichtLaden ?? []).map(k => alias.get(k) ?? k))] } });
+  const anders = {};
+  for (const [k, n] of Object.entries(plan.nyxAbgleich?.andersGeladen ?? {})) anders[alias.get(k) ?? k] = n;
+  for (const [k, n] of Object.entries(res.andersGeladen ?? {})) {
+    if (n > 0) anders[alias.get(k) ?? k] = n; else delete anders[alias.get(k) ?? k];
+  }
+  const { andersGeladen: _alt, ...abgleich } = plan.nyxAbgleich ?? {};
+  return stamp({ ...next, nyxAbgleich: {
+    ...abgleich, geoeffnet: true, nichtLaden: [...new Set((res.nichtLaden ?? []).map(k => alias.get(k) ?? k))],
+    ...(Object.keys(anders).length ? { andersGeladen: anders } : {}),
+  } });
 }
 
 // Cases, die nach der Übernahme in die Bibliothek geschrieben werden: die umgehängten (vw:→gdtf:)
